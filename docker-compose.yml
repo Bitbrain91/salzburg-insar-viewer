@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgis/postgis:15-3.4
+    environment:
+      POSTGRES_DB: insar
+      POSTGRES_USER: insar
+      POSTGRES_PASSWORD: insar
+    ports:
+      - "5432:5432"
+    volumes:
+      - insar_db:/var/lib/postgresql/data
+
+volumes:
+  insar_db:

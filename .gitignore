@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-wsl/
+.venv-win/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.local
+*.local
+
+# Data (too large for git)
+data/Daten/
+data/gba/
+data/parquet/
+data/tiles_v2/
+data/pmtiles/
+data/geojson/
+data/extracts/
+*.parquet
+*.mbtiles
+*.pmtiles
+*.gpkg
+*.geojson
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
