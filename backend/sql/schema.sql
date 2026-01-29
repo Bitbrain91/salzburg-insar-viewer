@@ -6,6 +6,9 @@ DROP TABLE IF EXISTS insar_timeseries;
 DROP TABLE IF EXISTS insar_points;
 DROP TABLE IF EXISTS gba_buildings;
 DROP TABLE IF EXISTS osm_buildings;
+DROP TABLE IF EXISTS ml_run_metrics;
+DROP TABLE IF EXISTS ml_point_results;
+DROP TABLE IF EXISTS ml_runs;
 
 CREATE TABLE insar_points (
     code TEXT NOT NULL,
@@ -80,3 +83,48 @@ CREATE TABLE insar_to_osm (
 );
 
 CREATE INDEX insar_to_osm_osm_idx ON insar_to_osm (osm_id);
+
+CREATE TABLE ml_runs (
+    run_id UUID PRIMARY KEY,
+    mlflow_run_id TEXT,
+    pipeline TEXT NOT NULL,
+    pipeline_version TEXT NOT NULL,
+    run_type TEXT NOT NULL,
+    source TEXT,
+    track INTEGER,
+    bbox JSONB,
+    params JSONB,
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    error TEXT
+);
+
+CREATE INDEX ml_runs_status_idx ON ml_runs (status);
+CREATE INDEX ml_runs_created_idx ON ml_runs (created_at);
+
+CREATE TABLE ml_point_results (
+    run_id UUID NOT NULL,
+    code TEXT NOT NULL,
+    track INTEGER NOT NULL,
+    cluster_id TEXT,
+    building_source TEXT,
+    building_id TEXT,
+    distance_m DOUBLE PRECISION,
+    score DOUBLE PRECISION,
+    meta JSONB,
+    PRIMARY KEY (run_id, code, track)
+);
+
+CREATE INDEX ml_point_results_run_idx ON ml_point_results (run_id);
+CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, cluster_id);
+CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, building_id);
+
+CREATE TABLE ml_run_metrics (
+    run_id UUID NOT NULL,
+    metric TEXT NOT NULL,
+    value DOUBLE PRECISION,
+    meta JSONB,
+    PRIMARY KEY (run_id, metric)
+);

@@ -23,10 +23,16 @@ export type AppState = {
   filters: Filters;
   filtersEnabled: boolean;
   selection: Selection;
+  activeRunId: string | null;
+  showMlLayer: boolean;
+  mapBBox: [number, number, number, number] | null;
   setLayer: (key: keyof LayerVisibility, value: boolean) => void;
   setFilter: (key: keyof Filters, value: number) => void;
   setFiltersEnabled: (enabled: boolean) => void;
   setSelection: (selection: Selection) => void;
+  setActiveRunId: (runId: string | null) => void;
+  setShowMlLayer: (show: boolean) => void;
+  setMapBBox: (bbox: [number, number, number, number] | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -43,10 +49,16 @@ export const useAppStore = create<AppState>((set) => ({
   },
   filtersEnabled: true,
   selection: null,
+  activeRunId: null,
+  showMlLayer: true,
+  mapBBox: null,
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
   setFilter: (key, value) =>
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
   setSelection: (selection) => set(() => ({ selection })),
+  setActiveRunId: (runId) => set(() => ({ activeRunId: runId })),
+  setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
+  setMapBBox: (bbox) => set(() => ({ mapBBox: bbox })),
 }));

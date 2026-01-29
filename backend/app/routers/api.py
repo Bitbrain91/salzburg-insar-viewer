@@ -12,7 +12,6 @@ from ..schemas import (
     InSARPointDetail,
     TimeseriesResponse,
 )
-
 router = APIRouter(prefix="/api", tags=["api"])
 
 

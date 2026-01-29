@@ -1,0 +1,6 @@
+[mcp_servers.mlflow-mcp]
+command = "/home/wsl_user/.local/bin/uv"
+args = ["run", "--with", "mlflow[mcp]==3.8.1", "mlflow", "mcp", "run"]
+
+[mcp_servers.mlflow-mcp.env]
+MLFLOW_TRACKING_URI = "http://localhost:5001"

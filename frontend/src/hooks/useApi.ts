@@ -1,7 +1,13 @@
-export const apiBase = import.meta.env.VITE_API_URL || "";
+export const apiBase =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
 
-export async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(`${apiBase}${url}`);
+export async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const res = await fetch(`${apiBase}${url}`, { ...options, headers });
   if (!res.ok) {
     throw new Error(await res.text());
   }
@@ -25,4 +31,30 @@ export function getBuildingDetail(source: "gba" | "osm", id: string) {
 
 export function getBuildingPoints(source: "gba" | "osm", id: string) {
   return fetchJson(`/api/buildings/${source}/${encodeURIComponent(id)}/points`);
+}
+
+export function listMlPipelines() {
+  return fetchJson(`/api/ml/pipelines`);
+}
+
+export function listMlRuns() {
+  return fetchJson(`/api/ml/runs`);
+}
+
+export function getMlRunDetail(runId: string) {
+  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}`);
+}
+
+export function createMlRun(payload: any) {
+  return fetchJson(`/api/ml/runs`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteMlRun(runId: string, force = false) {
+  const query = force ? "?force=true" : "";
+  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}${query}`, {
+    method: "DELETE",
+  });
 }

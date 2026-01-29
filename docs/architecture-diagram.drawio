@@ -1,0 +1,311 @@
+<mxfile host="app.diagrams.net" modified="2026-01-29T10:00:00.000Z" agent="Claude" version="22.1.0">
+  <diagram name="InSAR Viewer Architecture" id="insar-architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="InSAR Viewer App - Architektur &amp; Datenfluss" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=28;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="450" y="20" width="500" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ROW 1: Browser ==================== -->
+
+        <!-- Browser Group -->
+        <mxCell id="browser-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1976D2;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="80" y="100" width="220" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-label" value="Browser" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#1976D2;" parent="1" vertex="1">
+          <mxGeometry x="150" y="110" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user-icon" value="Benutzer" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#1976D2;strokeColor=#1976D2;" parent="1" vertex="1">
+          <mxGeometry x="100" y="160" width="35" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="frontend" value="Frontend&#xa;React + MapLibre GL&#xa;&#xa;- Kartenvisualisierung&#xa;- Layer-Panel&#xa;- Pipeline-Panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;align=center;verticalAlign=top;spacingTop=8;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="150" y="145" width="140" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ROW 1: Backend ==================== -->
+
+        <!-- Backend Group -->
+        <mxCell id="backend-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#F9A825;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="380" y="100" width="420" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-label" value="Backend (FastAPI) - Port 8000" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="480" y="110" width="220" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Routers -->
+        <mxCell id="api-router" value="API Router&#xa;/api/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#F9A825;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="400" y="145" width="100" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-router" value="ML Router&#xa;/api/ml/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#F9A825;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="520" y="145" width="100" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="tiles-router" value="Tiles Router&#xa;/tiles/*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#F9A825;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="680" y="145" width="100" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ML Module -->
+        <mxCell id="ml-module" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#FB8C00;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="400" y="205" width="380" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="ml-module-label" value="ML Module" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#FB8C00;" parent="1" vertex="1">
+          <mxGeometry x="410" y="208" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="runner" value="Pipeline Runner&#xa;(Async)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCC80;strokeColor=#FB8C00;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="415" y="232" width="90" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pipe-assign" value="Assignment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="520" y="232" width="75" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="pipe-cluster" value="Clustering" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="605" y="232" width="75" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="pipe-hybrid" value="Hybrid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="690" y="232" width="75" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ROW 1: Datenspeicher ==================== -->
+
+        <!-- Datenspeicher Group -->
+        <mxCell id="storage-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#43A047;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="880" y="100" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-label" value="Datenspeicher" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="960" y="110" width="120" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="postgres" value="PostgreSQL + PostGIS&#xa;Port 5432&#xa;&#xa;- insar_points&#xa;- buildings_gba/osm&#xa;- ml_runs&#xa;- ml_run_metrics" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#C8E6C9;strokeColor=#43A047;align=center;verticalAlign=top;spacingTop=5;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="900" y="145" width="120" height="145" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pmtiles" value="PMTiles&#xa;Vector Tiles" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#C8E6C9;strokeColor=#43A047;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1040" y="145" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="files" value="Dateisystem&#xa;&#xa;data/parquet/&#xa;data/geojson/&#xa;data/Daten/*.gpkg" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#C8E6C9;strokeColor=#43A047;align=center;verticalAlign=top;spacingTop=5;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1040" y="215" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ROW 2: MLflow ==================== -->
+
+        <!-- MLflow Group -->
+        <mxCell id="mlflow-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#E53935;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="380" y="340" width="420" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="mlflow-label" value="MLflow - Port 5001" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#E53935;" parent="1" vertex="1">
+          <mxGeometry x="520" y="350" width="140" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mlflow-server" value="MLflow Server&#xa;Tracking UI&#xa;&#xa;http://localhost:5001" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="410" y="385" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mlflow-store" value="mlruns/&#xa;&#xa;- SQLite (mlflow.db)&#xa;- Artifacts (JSON)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#FFCDD2;strokeColor=#E53935;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="600" y="380" width="180" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ROW 2: Data Pipeline ==================== -->
+
+        <!-- Data Pipeline Group -->
+        <mxCell id="pipeline-group" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#607D8B;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="80" y="340" width="220" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="pipeline-label" value="Data Pipeline (Offline)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#607D8B;" parent="1" vertex="1">
+          <mxGeometry x="100" y="350" width="180" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prep1" value="prepare_insar.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="95" y="385" width="95" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prep2" value="prepare_buildings.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="95" y="412" width="95" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prep3" value="link_points_buildings.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="95" y="439" width="95" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prep4" value="load_postgis.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="195" y="385" width="95" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prep5" value="export_geojsonl.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="195" y="412" width="95" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="prep6" value="build_tiles.sh" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="195" y="439" width="95" height="22" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pipeline-note" value="GeoPackage → Parquet → PostGIS → Tiles" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontStyle=2;fontColor=#607D8B;" parent="1" vertex="1">
+          <mxGeometry x="95" y="470" width="195" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== ARROWS ==================== -->
+
+        <!-- User to Frontend -->
+        <mxCell id="arr-user-fe" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1976D2;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" source="user-icon" target="frontend" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend to Backend -->
+        <mxCell id="arr-fe-be" value="HTTP/REST" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#F9A825;strokeWidth=3;endArrow=classic;endFill=1;fontColor=#F9A825;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="200" as="sourcePoint" />
+            <mxPoint x="380" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ML Router to Runner -->
+        <mxCell id="arr-mlr-run" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FB8C00;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="190" as="sourcePoint" />
+            <mxPoint x="570" y="205" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Runner to Pipelines -->
+        <mxCell id="arr-run-pipe" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#8E24AA;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="505" y="255" as="sourcePoint" />
+            <mxPoint x="520" y="255" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Backend to PostgreSQL -->
+        <mxCell id="arr-be-pg" value="SQL" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#43A047;strokeWidth=3;endArrow=classic;endFill=1;startArrow=classic;startFill=1;fontColor=#43A047;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="200" as="sourcePoint" />
+            <mxPoint x="880" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Tiles Router to PMTiles -->
+        <mxCell id="arr-tiles-pm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#43A047;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="780" y="167" as="sourcePoint" />
+            <mxPoint x="880" y="167" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="830" y="167" />
+              <mxPoint x="830" y="167" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Runner to MLflow -->
+        <mxCell id="arr-run-mlf" value="Tracking API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E53935;strokeWidth=3;endArrow=classic;endFill=1;fontColor=#E53935;fontSize=11;labelBackgroundColor=#FFFFFF;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="290" as="sourcePoint" />
+            <mxPoint x="460" y="340" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="460" y="315" />
+              <mxPoint x="460" y="315" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- MLflow Server to Store -->
+        <mxCell id="arr-mlf-store" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#E53935;strokeWidth=2;endArrow=classic;endFill=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="415" as="sourcePoint" />
+            <mxPoint x="600" y="415" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Data Pipeline to PostgreSQL -->
+        <mxCell id="arr-dp-pg" value="Load" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#607D8B;strokeWidth=2;endArrow=classic;endFill=1;dashed=1;fontColor=#607D8B;fontSize=10;labelBackgroundColor=#FFFFFF;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="396" as="sourcePoint" />
+            <mxPoint x="900" y="280" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="340" y="396" />
+              <mxPoint x="340" y="320" />
+              <mxPoint x="860" y="320" />
+              <mxPoint x="860" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Data Pipeline to Files -->
+        <mxCell id="arr-dp-files" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#607D8B;strokeWidth=2;endArrow=classic;endFill=1;dashed=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="300" y="450" as="sourcePoint" />
+            <mxPoint x="1040" y="255" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="340" y="450" />
+              <mxPoint x="340" y="500" />
+              <mxPoint x="1020" y="500" />
+              <mxPoint x="1020" y="255" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#9E9E9E;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="880" y="340" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="Legende" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="980" y="345" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Legend Items -->
+        <mxCell id="leg1-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1976D2;" parent="1" vertex="1">
+          <mxGeometry x="895" y="380" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-txt" value="Frontend (React + MapLibre)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="920" y="375" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg2-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFECB3;strokeColor=#F9A825;" parent="1" vertex="1">
+          <mxGeometry x="895" y="405" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-txt" value="Backend (FastAPI)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="920" y="400" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg3-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#8E24AA;" parent="1" vertex="1">
+          <mxGeometry x="895" y="430" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-txt" value="ML Pipelines" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="920" y="425" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg4-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#43A047;" parent="1" vertex="1">
+          <mxGeometry x="895" y="455" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-txt" value="Datenspeicher" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="920" y="450" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg5-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#E53935;" parent="1" vertex="1">
+          <mxGeometry x="895" y="480" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-txt" value="MLflow Tracking" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="920" y="475" width="150" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg6-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;" parent="1" vertex="1">
+          <mxGeometry x="1050" y="380" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6-txt" value="Offline Pipeline" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1075" y="375" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Docker Compose Note -->
+        <mxCell id="docker-note" value="docker-compose.yml" style="text;html=1;strokeColor=#9E9E9E;fillColor=#FAFAFA;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="480" y="480" width="220" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Port Summary -->
+        <mxCell id="ports-note" value="Ports: Frontend 3000 | Backend 8000 | PostgreSQL 5432 | MLflow 5001" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="380" y="515" width="420" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

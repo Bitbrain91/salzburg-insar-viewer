@@ -4,7 +4,10 @@ import { useAppStore } from "../lib/store";
 
 const tilesBase =
   import.meta.env.VITE_TILES_URL ||
-  (typeof window !== "undefined" ? window.location.origin : "");
+  (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
+const apiBase =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
 const baseStyle =
   import.meta.env.VITE_BASEMAP_STYLE ||
   "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
@@ -29,6 +32,28 @@ const velocityExpression: any[] = [
   "#1c2f4a",
 ];
 
+const mlColors = [
+  "#1b9e77",
+  "#d95f02",
+  "#7570b3",
+  "#e7298a",
+  "#66a61e",
+  "#e6ab02",
+  "#a6761d",
+  "#666666",
+  "#1f78b4",
+  "#b2df8a",
+  "#fb9a99",
+  "#cab2d6",
+];
+
+const mlColorExpression: any[] = [
+  "match",
+  ["get", "color_index"],
+  ...mlColors.flatMap((color, idx) => [idx, color]),
+  "#9aa0a6",
+];
+
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -41,6 +66,9 @@ export default function MapView() {
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const selection = useAppStore((state) => state.selection);
   const setSelection = useAppStore((state) => state.setSelection);
+  const activeRunId = useAppStore((state) => state.activeRunId);
+  const showMlLayer = useAppStore((state) => state.showMlLayer);
+  const setMapBBox = useAppStore((state) => state.setMapBBox);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -56,6 +84,16 @@ export default function MapView() {
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }));
+
+    const updateBBox = () => {
+      const bounds = map.getBounds();
+      setMapBBox([
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth(),
+      ]);
+    };
 
     map.on("load", () => {
       map.addSource("insar_t44", {
@@ -212,10 +250,12 @@ export default function MapView() {
 
       applyLayerVisibility(map, layers);
       applyFilters(map, filters, filtersEnabled);
+      updateBBox();
     });
 
     map.on("mousemove", (event) => handleHover(event, map));
     map.on("click", (event) => handleClick(event, map));
+    map.on("moveend", updateBBox);
 
     mapRef.current = map;
 
@@ -234,6 +274,67 @@ export default function MapView() {
     if (!mapRef.current) return;
     applyFilters(mapRef.current, filters, filtersEnabled);
   }, [filters, filtersEnabled]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    if (map.getLayer("ml_points")) {
+      map.removeLayer("ml_points");
+    }
+    if (map.getSource("ml_points")) {
+      map.removeSource("ml_points");
+    }
+    if (!activeRunId) return;
+
+    map.addSource("ml_points", {
+      type: "vector",
+      tiles: [`${apiBase}/api/ml/runs/${activeRunId}/tiles/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 8,
+      maxzoom: 16,
+    });
+
+    map.addLayer({
+      id: "ml_points",
+      type: "circle",
+      source: "ml_points",
+      "source-layer": "ml_points",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          2,
+          12,
+          3,
+          14,
+          5,
+          16,
+          7,
+        ],
+        "circle-color": mlColorExpression,
+        "circle-opacity": 0.85,
+        "circle-stroke-width": 0.5,
+        "circle-stroke-color": "#ffffff",
+      },
+      layout: {
+        visibility: showMlLayer ? "visible" : "none",
+      },
+    });
+  }, [activeRunId]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (mapRef.current.getLayer("ml_points")) {
+      mapRef.current.setLayoutProperty(
+        "ml_points",
+        "visibility",
+        showMlLayer ? "visible" : "none"
+      );
+    }
+  }, [showMlLayer]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -345,8 +446,12 @@ export default function MapView() {
   }
 
   function handleHover(event: MapMouseEvent, map: MapLibreMap) {
+    const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    if (map.getLayer("ml_points")) {
+      queryLayers.push("ml_points");
+    }
     const features = map.queryRenderedFeatures(event.point, {
-      layers: ["insar_t44", "insar_t95", "gba", "osm"],
+      layers: queryLayers,
     });
     if (!features.length) {
       map.getCanvas().style.cursor = "";
@@ -363,7 +468,13 @@ export default function MapView() {
     const props = feature.properties as any;
     let html = "";
 
-    if (feature.layer.id.startsWith("insar")) {
+    if (feature.layer.id === "ml_points") {
+      html = `
+        <strong>ML Result</strong><br/>
+        Cluster: ${props.cluster_id || "—"}<br/>
+        Building: ${props.building_id || "—"}
+      `;
+    } else if (feature.layer.id.startsWith("insar")) {
       html = `
         <strong>InSAR Point</strong><br/>
         Code: ${props.code || "—"}<br/>
@@ -387,8 +498,12 @@ export default function MapView() {
   }
 
   function handleClick(event: MapMouseEvent, map: MapLibreMap) {
+    const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    if (map.getLayer("ml_points")) {
+      queryLayers.unshift("ml_points");
+    }
     const features = map.queryRenderedFeatures(event.point, {
-      layers: ["insar_t44", "insar_t95", "gba", "osm"],
+      layers: queryLayers,
     });
     if (!features.length) {
       setSelection(null);
@@ -398,7 +513,11 @@ export default function MapView() {
     const feature = features[0];
     const props = feature.properties as any;
 
-    if (feature.layer.id.startsWith("insar")) {
+    if (feature.layer.id === "ml_points") {
+      if (props.code) {
+        setSelection({ type: "point", code: props.code, track: props.track });
+      }
+    } else if (feature.layer.id.startsWith("insar")) {
       const track = feature.layer.id === "insar_t44" ? 44 : 95;
       if (props.code) {
         setSelection({ type: "point", code: props.code, track });

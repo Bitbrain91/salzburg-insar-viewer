@@ -36,6 +36,9 @@ class Settings:
         BASE_DIR / "data" / "tiles_v2",
     )
 
+    mlflow_tracking_uri: str = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001")
+    mlflow_experiment: str = os.getenv("MLFLOW_EXPERIMENT", "insar_assignment")
+
     @property
     def db_dsn(self) -> str:
         return (

@@ -103,7 +103,7 @@ React + MapLibre Frontend
 ## 4) Verwendung / Inbetriebnahme
 
 ### Voraussetzungen
-- Python 3.10+
+- Python 3.12 empfohlen (Python 3.13 benoetigt lokale Builds fuer pyarrow)
 - Node.js 18+ (Windows-Nutzung empfohlen, um OS-Mismatch zu vermeiden)
 - Docker Desktop
 
@@ -112,6 +112,9 @@ React + MapLibre Frontend
 cd insar_viewer_app
 docker compose up -d
 ```
+
+MLflow UI (lokal): `http://localhost:5001`  
+Artefakte werden unter `./mlruns/` gespeichert (inkl. `mlruns/mlflow.db`).
 
 ### 2) Pipeline-Abhaengigkeiten installieren
 Linux / WSL:
@@ -169,11 +172,79 @@ npx vite --host --port 3000
 ```
 Oeffne: `http://localhost:3000`
 
+## 5) ML Pipelines (Assignment / Clustering)
+Die Anwendung enthaelt ein schlankes Pipeline-Framework mit MLflow-Tracking.
+Ergebnisse werden in PostGIS gespeichert (Tabellen: `ml_runs`, `ml_point_results`, `ml_run_metrics`)
+und lassen sich im Frontend als zusaetzliche Layer darstellen. MLflow speichert nur Tracking-Infos
+und Artefakte (keine Geodaten).
+
+### ML-Tabellen anlegen (bestehende DB behalten)
+Wenn du die bestehenden Daten behalten willst, lege nur die neuen Tabellen an:
+```sql
+CREATE TABLE IF NOT EXISTS ml_runs (
+    run_id UUID PRIMARY KEY,
+    mlflow_run_id TEXT,
+    pipeline TEXT NOT NULL,
+    pipeline_version TEXT NOT NULL,
+    run_type TEXT NOT NULL,
+    source TEXT,
+    track INTEGER,
+    bbox JSONB,
+    params JSONB,
+    status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    error TEXT
+);
+CREATE INDEX IF NOT EXISTS ml_runs_status_idx ON ml_runs (status);
+CREATE INDEX IF NOT EXISTS ml_runs_created_idx ON ml_runs (created_at);
+
+CREATE TABLE IF NOT EXISTS ml_point_results (
+    run_id UUID NOT NULL,
+    code TEXT NOT NULL,
+    track INTEGER NOT NULL,
+    cluster_id TEXT,
+    building_source TEXT,
+    building_id TEXT,
+    distance_m DOUBLE PRECISION,
+    score DOUBLE PRECISION,
+    meta JSONB,
+    PRIMARY KEY (run_id, code, track)
+);
+CREATE INDEX IF NOT EXISTS ml_point_results_run_idx ON ml_point_results (run_id);
+CREATE INDEX IF NOT EXISTS ml_point_results_cluster_idx ON ml_point_results (run_id, cluster_id);
+CREATE INDEX IF NOT EXISTS ml_point_results_building_idx ON ml_point_results (run_id, building_id);
+
+CREATE TABLE IF NOT EXISTS ml_run_metrics (
+    run_id UUID NOT NULL,
+    metric TEXT NOT NULL,
+    value DOUBLE PRECISION,
+    meta JSONB,
+    PRIMARY KEY (run_id, metric)
+);
+```
+
+CLI-Beispiel:
+```bash
+python -m backend.app.ml.cli --pipeline assignment --source gba --track 44 \\
+  --bbox 12.98,47.75,13.12,47.85 \\
+  --params '{"max_distance_m":30,"buffer_multiplier":1.0}'
+```
+
+Alternativ lassen sich Runs ueber die UI im linken Panel starten.
+
+### Ergebnisse loeschen (DB + MLflow synchron)
+```bash
+curl -X DELETE "http://127.0.0.1:8000/api/ml/runs/<RUN_ID>?force=true"
+```
+`force=true` loescht die DB-Ergebnisse auch dann, wenn MLflow nicht erreichbar ist.
+
 ## Environment-Variablen
 Frontend (`frontend/.env`):
 ```
-VITE_API_URL=http://localhost:8000
-VITE_TILES_URL=http://localhost:8000
+VITE_API_URL=http://127.0.0.1:8000
+VITE_TILES_URL=http://127.0.0.1:8000
 VITE_BASEMAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 ```
 
@@ -185,12 +256,15 @@ POSTGRES_DB=insar
 POSTGRES_USER=insar
 POSTGRES_PASSWORD=insar
 PMTILES_DIR=../data/tiles_v2
+MLFLOW_TRACKING_URI=http://localhost:5001
+MLFLOW_EXPERIMENT=insar_assignment
 ```
 
 ## Hinweise
 - OSM wird standardmaessig via Overpass geladen und als GeoParquet gespeichert.
 - MBTiles werden direkt aus GeoJSONL via Tippecanoe erzeugt.
 - Filter und Layer-Toggles wirken ausschliesslich auf die InSAR-Punktlayer.
+- Falls `localhost` unerwartete 404 liefert, nutze `127.0.0.1` in den Frontend-Env-Variablen.
 
 ## Troubleshooting
 

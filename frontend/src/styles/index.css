@@ -48,6 +48,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: auto;
 }
 
 .panel h2 {
@@ -229,6 +230,97 @@ body {
   width: 12px;
   height: 12px;
   border-radius: 3px;
+}
+
+.form-row {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.select,
+.input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.button {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent-2);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.run-list {
+  display: grid;
+  gap: 8px;
+}
+
+.run-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #f0f3ef;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.run-item.active {
+  border-color: var(--accent);
+  background: rgba(12, 124, 116, 0.12);
+}
+
+.run-select {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.run-delete {
+  margin-left: 8px;
+  border: none;
+  background: #c6372a;
+  color: white;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.run-title {
+  font-weight: 600;
+}
+
+.run-meta {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-size: 10px;
 }
 
 .tooltip {

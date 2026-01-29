@@ -1,3 +1,3 @@
-from . import api, tiles
+from . import api, tiles, ml
 
-__all__ = ["api", "tiles"]
+__all__ = ["api", "tiles", "ml"]

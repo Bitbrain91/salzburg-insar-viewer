@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import connect_db, disconnect_db
-from .routers import api, tiles
+from .routers import api, tiles, ml
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ app.add_middleware(
 
 app.include_router(api.router)
 app.include_router(tiles.router)
+app.include_router(ml.router)
 
 
 @app.on_event("startup")
@@ -31,6 +32,9 @@ async def on_startup() -> None:
     for name in ("insar_t44", "insar_t95", "gba", "osm"):
         path = tiles_dir / f"{name}.mbtiles"
         logger.warning("Tiles file %s exists=%s", path, path.exists())
+    for route in app.router.routes:
+        if hasattr(route, "path") and "ml" in route.path:
+            logger.warning("ML route registered: %s", route.path)
     await connect_db(app)
 
 

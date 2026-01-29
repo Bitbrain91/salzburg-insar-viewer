@@ -1,4 +1,5 @@
 import { useAppStore } from "../lib/store";
+import PipelinePanel from "./PipelinePanel";
 
 export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
@@ -145,6 +146,8 @@ export default function LayerPanel() {
           </div>
         </div>
       </div>
+
+      <PipelinePanel />
     </div>
   );
 }
