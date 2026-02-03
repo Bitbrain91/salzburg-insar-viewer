@@ -128,3 +128,12 @@ CREATE TABLE ml_run_metrics (
     meta JSONB,
     PRIMARY KEY (run_id, metric)
 );
+
+CREATE TABLE ml_building_colors (
+    run_id UUID NOT NULL,
+    building_source TEXT NOT NULL,
+    building_id TEXT NOT NULL,
+    color_index INTEGER NOT NULL,
+    PRIMARY KEY (run_id, building_source, building_id)
+);
+CREATE INDEX ml_building_colors_run_idx ON ml_building_colors (run_id);

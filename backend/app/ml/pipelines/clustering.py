@@ -52,7 +52,13 @@ class ClusteringPipeline(BasePipeline):
             )
 
         if not rows:
-            return {"total_points": 0, "clusters": 0, "noise_points": 0}
+            return {
+                "total_points": 0,
+                "clusters": 0,
+                "noise_points": 0,
+                "assigned_points": 0,
+                "assigned_buildings": 0,
+            }
 
         features: List[Tuple[float, float, float, float, float]] = []
         keys: List[Tuple[str, int]] = []
@@ -112,4 +118,6 @@ class ClusteringPipeline(BasePipeline):
             "total_points": len(rows),
             "clusters": cluster_count,
             "noise_points": noise_count,
+            "assigned_points": 0,
+            "assigned_buildings": 0,
         }

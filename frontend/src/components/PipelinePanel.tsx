@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { createMlRun, deleteMlRun, listMlRuns } from "../hooks/useApi";
+import {
+  createMlRun,
+  deleteMlRun,
+  getMlRunDetail,
+  listMlRuns,
+  recolorMlRun,
+} from "../hooks/useApi";
 import { useAppStore } from "../lib/store";
 
 export default function PipelinePanel() {
@@ -9,6 +15,11 @@ export default function PipelinePanel() {
   const setActiveRunId = useAppStore((state) => state.setActiveRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
   const setShowMlLayer = useAppStore((state) => state.setShowMlLayer);
+  const showMlBuildings = useAppStore((state) => state.showMlBuildings);
+  const setShowMlBuildings = useAppStore((state) => state.setShowMlBuildings);
+  const mlView = useAppStore((state) => state.mlView);
+  const setMlView = useAppStore((state) => state.setMlView);
+  const bumpMlTileVersion = useAppStore((state) => state.bumpMlTileVersion);
 
   const [pipeline, setPipeline] = useState("assignment");
   const [source, setSource] = useState<"gba" | "osm">("gba");
@@ -25,6 +36,16 @@ export default function PipelinePanel() {
     queryFn: () => listMlRuns(),
     refetchInterval: 5000,
   });
+  const activeRunQuery = useQuery({
+    queryKey: ["ml-run-detail", activeRunId],
+    queryFn: () => getMlRunDetail(activeRunId as string),
+    enabled: Boolean(activeRunId),
+    refetchInterval: 5000,
+  });
+
+  const assignedBuildings = activeRunQuery.data?.metrics?.assigned_buildings;
+  const hasAssignedBuildings =
+    assignedBuildings === undefined ? true : Number(assignedBuildings) > 0;
 
   const bboxLabel = useMemo(() => {
     if (!mapBBox) return "Map extent not ready";
@@ -61,6 +82,18 @@ export default function PipelinePanel() {
     runsQuery.refetch();
   }
 
+  async function handleRefresh() {
+    if (activeRunId && showMlBuildings) {
+      try {
+        await recolorMlRun(activeRunId);
+      } catch (err) {
+        console.warn("Failed to recompute building colors", err);
+      }
+    }
+    bumpMlTileVersion();
+    activeRunQuery.refetch();
+  }
+
   return (
     <div>
       <div className="section-title">ML Pipelines</div>
@@ -68,6 +101,22 @@ export default function PipelinePanel() {
         <span className="label">Map bbox</span>
         <span className="value">{bboxLabel}</span>
       </div>
+      {activeRunQuery.data && (
+        <>
+          <div className="metric">
+            <span className="label">Assigned buildings</span>
+            <span className="value">
+              {activeRunQuery.data.metrics?.assigned_buildings ?? 0}
+            </span>
+          </div>
+          <div className="metric">
+            <span className="label">Assigned points</span>
+            <span className="value">
+              {activeRunQuery.data.metrics?.assigned_points ?? 0}
+            </span>
+          </div>
+        </>
+      )}
 
       <div className="form-row">
         <label className="label">Pipeline</label>
@@ -185,6 +234,37 @@ export default function PipelinePanel() {
           checked={showMlLayer}
           onChange={(e) => setShowMlLayer(e.target.checked)}
         />
+      </div>
+      <div className="toggle-row">
+        <span>Show assigned buildings</span>
+        <input
+          type="checkbox"
+          className="toggle"
+          checked={showMlBuildings}
+          onChange={(e) => setShowMlBuildings(e.target.checked)}
+          disabled={!hasAssignedBuildings}
+        />
+      </div>
+      {activeRunId && assignedBuildings === 0 && (
+        <div className="pill warning">
+          No assigned buildings for this run. Load GBA/OSM into PostGIS or use an
+          assignment/hybrid pipeline.
+        </div>
+      )}
+      <button className="button secondary" onClick={handleRefresh} disabled={!activeRunId}>
+        Refresh ML tiles
+      </button>
+
+      <div className="form-row">
+        <label className="label">Visualization</label>
+        <select className="select" value={mlView} onChange={(e) => setMlView(e.target.value as any)}>
+          <option value="cluster">Cluster colors</option>
+          <option value="building">Building colors</option>
+          <option value="assignment">Assignment method</option>
+          <option value="distance">Distance heat</option>
+          <option value="velocity">Velocity</option>
+          <option value="coherence">Coherence</option>
+        </select>
       </div>
 
       <div className="section-title">Recent Runs</div>

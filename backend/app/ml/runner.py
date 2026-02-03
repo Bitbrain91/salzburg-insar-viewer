@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from datetime import datetime, timezone
@@ -11,7 +12,9 @@ import mlflow
 
 from .registry import get_pipeline
 from .types import RunConfig
+from .colors import assign_building_colors
 
+logger = logging.getLogger(__name__)
 
 async def _update_run_status(conn, run_id: str, status: str, **fields) -> None:
     assignments = ["status = $2"]
@@ -52,49 +55,73 @@ async def run_pipeline_async(
         async with pool.acquire() as conn:
             await _update_run_status(conn, config.run_id, "running", started_at=datetime.now(timezone.utc))
 
-        mlflow.set_tracking_uri(mlflow_tracking_uri)
-        mlflow.set_experiment(mlflow_experiment)
+        mlflow_ok = True
+        try:
+            mlflow.set_tracking_uri(mlflow_tracking_uri)
+            mlflow.set_experiment(mlflow_experiment)
+        except Exception as exc:  # pylint: disable=broad-except
+            mlflow_ok = False
+            metrics: Dict[str, Any] = {}
+            logger.warning("MLflow disabled for this run: %s", exc)
 
         metrics: Dict[str, Any] = {}
-        with mlflow.start_run(run_name=config.run_id) as run:
-            mlflow_run_id = run.info.run_id
-            async with pool.acquire() as conn:
-                await conn.execute(
-                    "UPDATE ml_runs SET mlflow_run_id = $2 WHERE run_id = $1",
-                    config.run_id,
-                    mlflow_run_id,
+        if mlflow_ok:
+            mlflow.end_run()
+            with mlflow.start_run(run_name=config.run_id) as run:
+                mlflow_run_id = run.info.run_id
+                async with pool.acquire() as conn:
+                    await conn.execute(
+                        "UPDATE ml_runs SET mlflow_run_id = $2 WHERE run_id = $1",
+                        config.run_id,
+                        mlflow_run_id,
+                    )
+
+                mlflow.log_params(
+                    {
+                        "pipeline": config.pipeline,
+                        "pipeline_version": pipeline.version,
+                        "source": config.source or "",
+                        "track": config.track if config.track is not None else "",
+                        "bbox": ",".join(map(str, config.bbox)) if config.bbox else "",
+                        **(config.params or {}),
+                    }
                 )
 
-            mlflow.log_params(
-                {
-                    "pipeline": config.pipeline,
-                    "pipeline_version": pipeline.version,
-                    "source": config.source or "",
-                    "track": config.track if config.track is not None else "",
-                    "bbox": ",".join(map(str, config.bbox)) if config.bbox else "",
-                    **(config.params or {}),
-                }
-            )
+                metrics = await pipeline.run(pool, config)
 
+                if pipeline.run_type in {"assignment", "hybrid"}:
+                    try:
+                        await assign_building_colors(pool, config.run_id)
+                    except Exception:  # pylint: disable=broad-except
+                        mlflow.log_param("coloring_status", "failed")
+
+                for key, value in metrics.items():
+                    if isinstance(value, (int, float)):
+                        mlflow.log_metric(key, float(value))
+                        async with pool.acquire() as conn:
+                            await _upsert_metric(conn, config.run_id, key, float(value))
+
+                summary = {
+                    "run_id": config.run_id,
+                    "pipeline": config.pipeline,
+                    "version": pipeline.version,
+                    "metrics": metrics,
+                }
+                with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+                    json.dump(summary, tmp, indent=2)
+                    tmp_path = tmp.name
+                mlflow.log_artifact(tmp_path, artifact_path="summary")
+                os.unlink(tmp_path)
+        else:
             metrics = await pipeline.run(pool, config)
+
+            if pipeline.run_type in {"assignment", "hybrid"}:
+                await assign_building_colors(pool, config.run_id)
 
             for key, value in metrics.items():
                 if isinstance(value, (int, float)):
-                    mlflow.log_metric(key, float(value))
                     async with pool.acquire() as conn:
                         await _upsert_metric(conn, config.run_id, key, float(value))
-
-            summary = {
-                "run_id": config.run_id,
-                "pipeline": config.pipeline,
-                "version": pipeline.version,
-                "metrics": metrics,
-            }
-            with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
-                json.dump(summary, tmp, indent=2)
-                tmp_path = tmp.name
-            mlflow.log_artifact(tmp_path, artifact_path="summary")
-            os.unlink(tmp_path)
 
         async with pool.acquire() as conn:
             await _update_run_status(
@@ -116,4 +143,8 @@ async def run_pipeline_async(
             )
         raise
     finally:
+        try:
+            mlflow.end_run()
+        except Exception:  # pylint: disable=broad-except
+            pass
         await pool.close()

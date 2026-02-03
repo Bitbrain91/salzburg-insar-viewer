@@ -68,6 +68,7 @@ class HybridPipeline(BasePipeline):
             buildings AS (
                 SELECT {building_id} AS building_id, geom, {height_expr} AS height_m
                 FROM {building_table}
+                WHERE geom && ST_MakeEnvelope($1,$2,$3,$4,4326)
             )
             SELECT
                 p.code,
@@ -133,7 +134,7 @@ class HybridPipeline(BasePipeline):
             )
 
         if not rows:
-            return {"total_points": 0, "assigned_points": 0, "clusters": 0}
+            return {"total_points": 0, "assigned_points": 0, "assigned_buildings": 0, "clusters": 0}
 
         by_building: dict[str, list] = defaultdict(list)
         unassigned: list = []
@@ -235,5 +236,6 @@ class HybridPipeline(BasePipeline):
         return {
             "total_points": len(rows),
             "assigned_points": sum(len(v) for v in by_building.values()),
+            "assigned_buildings": len(by_building),
             "clusters": cluster_total,
         }

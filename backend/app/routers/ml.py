@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from ..config import settings
 from ..db import fetch_one
 from ..schemas import MLRunCreate, MLRunDeleteResponse, MLRunDetail, MLRunSummary
+from ..ml.colors import assign_building_colors
 from ..ml.registry import get_pipeline, list_pipelines
 from ..ml.runner import run_pipeline_async
 from ..ml.store import create_run_record, fetch_run_detail, fetch_runs
@@ -130,6 +131,16 @@ async def run_detail(request: Request, run_id: str):
     )
 
 
+@router.post("/runs/{run_id}/recolor")
+async def recolor_run(request: Request, run_id: str):
+    async with request.app.state.db_pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT run_id FROM ml_runs WHERE run_id = $1", run_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+    count = await assign_building_colors(request.app.state.db_pool, run_id)
+    return {"run_id": run_id, "building_colors": count}
+
+
 @router.get("/runs/{run_id}/tiles/{z}/{x}/{y}.pbf")
 async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Response:
     query = """
@@ -145,10 +156,19 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 r.building_id,
                 r.distance_m,
                 r.score,
-                abs(hashtext(coalesce(r.cluster_id, r.building_id, r.code))) % 12 AS color_index,
+                p.velocity,
+                p.coherence,
+                (r.meta->>'method') AS method,
+                (r.building_id IS NOT NULL) AS assigned,
+                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
+                COALESCE(c.color_index, abs(hashtext(coalesce(r.building_id, r.code))) % 60) AS building_color_index,
                 ST_AsMVTGeom(ST_Transform(p.geom, 3857), bounds.geom, 4096, 64, true) AS geom
             FROM ml_point_results r
             JOIN insar_points p ON p.code = r.code AND p.track = r.track
+            LEFT JOIN ml_building_colors c
+              ON c.run_id = r.run_id
+             AND c.building_source = r.building_source
+             AND c.building_id = r.building_id
             JOIN bounds ON ST_Intersects(ST_Transform(p.geom, 3857), bounds.geom)
             WHERE r.run_id = $4::uuid
         )
@@ -163,7 +183,80 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
         content=row["mvt"],
         headers={
             "Content-Type": "application/x-protobuf",
-            "Cache-Control": "public, max-age=86400",
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@router.get("/runs/{run_id}/buildings/{z}/{x}/{y}.pbf")
+async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Response:
+    query = """
+        WITH bounds AS (
+            SELECT ST_TileEnvelope($1, $2, $3) AS geom
+        ),
+        assigned_buildings AS (
+            SELECT DISTINCT building_source, building_id
+            FROM ml_point_results
+            WHERE run_id = $4::uuid AND building_id IS NOT NULL
+        ),
+        gba AS (
+            SELECT b.gba_id::text AS building_id,
+                   'gba'::text AS building_source,
+                   b.geom,
+                   b.height AS height_m
+            FROM gba_buildings b
+            JOIN assigned_buildings ab
+              ON ab.building_source = 'gba' AND ab.building_id = b.gba_id::text
+        ),
+        osm AS (
+            SELECT b.osm_id::text AS building_id,
+                   'osm'::text AS building_source,
+                   b.geom,
+                   NULL::double precision AS height_m
+            FROM osm_buildings b
+            JOIN assigned_buildings ab
+              ON ab.building_source = 'osm' AND ab.building_id = b.osm_id::text
+        ),
+        all_buildings AS (
+            SELECT * FROM gba
+            UNION ALL
+            SELECT * FROM osm
+        ),
+        mvtgeom AS (
+            SELECT
+                all_buildings.building_id,
+                all_buildings.building_source,
+                height_m,
+                COALESCE(
+                    c.color_index,
+                    abs(hashtext(all_buildings.building_id)) % 60
+                ) AS building_color_index,
+                ST_AsMVTGeom(
+                    ST_Transform(all_buildings.geom, 3857),
+                    bounds.geom,
+                    4096,
+                    64,
+                    true
+                ) AS geom
+            FROM all_buildings
+            LEFT JOIN ml_building_colors c
+              ON c.run_id = $4::uuid
+             AND c.building_source = all_buildings.building_source
+             AND c.building_id = all_buildings.building_id
+            JOIN bounds ON ST_Intersects(ST_Transform(all_buildings.geom, 3857), bounds.geom)
+        )
+        SELECT ST_AsMVT(mvtgeom, 'ml_buildings', 4096, 'geom') AS mvt
+        FROM mvtgeom
+    """
+    row = await fetch_one(request.app, query, z, x, y, run_id)
+    if row is None or row["mvt"] is None:
+        raise HTTPException(status_code=404, detail="Tile not found")
+
+    return Response(
+        content=row["mvt"],
+        headers={
+            "Content-Type": "application/x-protobuf",
+            "Cache-Control": "no-store",
         },
     )
 

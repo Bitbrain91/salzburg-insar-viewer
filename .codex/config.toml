@@ -4,3 +4,11 @@ args = ["run", "--with", "mlflow[mcp]==3.8.1", "mlflow", "mcp", "run"]
 
 [mcp_servers.mlflow-mcp.env]
 MLFLOW_TRACKING_URI = "http://localhost:5001"
+
+[mcp_servers.playwright]
+command = "npx"
+args = ["@playwright/mcp@latest"]
+
+[mcp_servers.playwright.env]
+NPM_CONFIG_CACHE = "/tmp/npm-cache"
+NPM_CONFIG_PREFIX = "/tmp/npm-prefix"

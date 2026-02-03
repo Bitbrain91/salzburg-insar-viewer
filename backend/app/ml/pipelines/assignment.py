@@ -50,6 +50,7 @@ class AssignmentPipeline(BasePipeline):
             buildings AS (
                 SELECT {building_id} AS building_id, geom, {height_expr} AS height_m
                 FROM {building_table}
+                WHERE geom && ST_MakeEnvelope($1,$2,$3,$4,4326)
             )
             INSERT INTO ml_point_results (
                 run_id, code, track, cluster_id, building_source, building_id,
@@ -129,6 +130,7 @@ class AssignmentPipeline(BasePipeline):
                 SELECT
                     COUNT(*) AS total_points,
                     COUNT(building_id) AS assigned_points,
+                    COUNT(DISTINCT building_id) AS assigned_buildings,
                     COUNT(*) FILTER (WHERE meta->>'method' = 'buffer') AS buffer_matches,
                     COUNT(*) FILTER (WHERE meta->>'method' = 'nearest') AS nearest_matches
                 FROM ml_point_results
@@ -140,6 +142,7 @@ class AssignmentPipeline(BasePipeline):
         return {
             "total_points": metrics_row["total_points"],
             "assigned_points": metrics_row["assigned_points"],
+            "assigned_buildings": metrics_row["assigned_buildings"],
             "buffer_matches": metrics_row["buffer_matches"],
             "nearest_matches": metrics_row["nearest_matches"],
         }

@@ -233,6 +233,9 @@ python -m backend.app.ml.cli --pipeline assignment --source gba --track 44 \\
 ```
 
 Alternativ lassen sich Runs ueber die UI im linken Panel starten.
+Visualisierung: Im Frontend kann der ML-Layer aktiviert werden; zusaetzlich gibt es
+eine Gebaeude-Overlay-Ansicht und mehrere Darstellungsmodi (Cluster, Building, Assignment,
+Distance, Velocity, Coherence).
 
 ### Ergebnisse loeschen (DB + MLflow synchron)
 ```bash

@@ -58,3 +58,9 @@ export function deleteMlRun(runId: string, force = false) {
     method: "DELETE",
   });
 }
+
+export function recolorMlRun(runId: string) {
+  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}/recolor`, {
+    method: "POST",
+  });
+}

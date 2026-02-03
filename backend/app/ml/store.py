@@ -60,6 +60,14 @@ async def fetch_run_detail(conn, run_id: str):
     )
     if not run:
         return None
+    params = run["params"]
+    if isinstance(params, str):
+        try:
+            params = json.loads(params)
+        except json.JSONDecodeError:
+            params = {}
+    run = dict(run)
+    run["params"] = params
     metrics = await conn.fetch(
         """
         SELECT metric, value
