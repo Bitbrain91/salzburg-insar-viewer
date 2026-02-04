@@ -64,7 +64,8 @@ async def point_detail(
     base_query = """
         SELECT p.code, p.track, p.los, p.velocity, p.velocity_std, p.coherence,
                p.height, p.height_std, p.acceleration, p.acceleration_std,
-               p.season_amp, p.season_phs, p.incidence_angle,
+               p.season_amp, p.season_phs, p.s_amp_std, p.s_phs_std,
+               p.incidence_angle, p.eff_area,
                p.amp_mean, p.amp_std,
                ST_X(p.geom) AS lon,
                ST_Y(p.geom) AS lat,
@@ -109,7 +110,10 @@ async def point_detail(
         acceleration_std=row.get("acceleration_std"),
         season_amp=row.get("season_amp"),
         season_phs=row.get("season_phs"),
+        s_amp_std=row.get("s_amp_std"),
+        s_phs_std=row.get("s_phs_std"),
         incidence_angle=row.get("incidence_angle"),
+        eff_area=row.get("eff_area"),
         amp_mean=row.get("amp_mean"),
         amp_std=row.get("amp_std"),
         geometry={"lon": row["lon"], "lat": row["lat"]},
@@ -125,16 +129,33 @@ async def point_timeseries(
     track: int | None = Query(default=None, description="Optional track (44 or 95)"),
 ):
     app = request.app
-    base_query = """
-        SELECT code, track, date, displacement
-        FROM insar_timeseries
-        WHERE code = $1
+    params = [code]
+    track_filter = ""
+    if track is not None:
+        track_filter = " AND track = $2"
+        params.append(track)
+
+    base_query = f"""
+        WITH disp AS (
+            SELECT code, track, date, displacement
+            FROM insar_timeseries
+            WHERE code = $1{track_filter}
+        ),
+        amp AS (
+            SELECT code, track, date, amplitude
+            FROM insar_amplitude_timeseries
+            WHERE code = $1{track_filter}
+        )
+        SELECT COALESCE(disp.code, amp.code) AS code,
+               COALESCE(disp.track, amp.track) AS track,
+               COALESCE(disp.date, amp.date) AS date,
+               disp.displacement,
+               amp.amplitude
+        FROM disp
+        FULL OUTER JOIN amp
+          ON disp.code = amp.code AND disp.track = amp.track AND disp.date = amp.date
         ORDER BY date ASC
     """
-    params = [code]
-    if track is not None:
-        base_query = base_query.replace("WHERE code = $1", "WHERE code = $1 AND track = $2")
-        params.append(track)
 
     rows = await fetch_all(app, base_query, *params)
     if not rows:
@@ -143,7 +164,10 @@ async def point_timeseries(
     return TimeseriesResponse(
         code=rows[0]["code"],
         track=rows[0]["track"],
-        measurements=[{"date": r["date"], "displacement": r["displacement"]} for r in rows],
+        measurements=[
+            {"date": r["date"], "displacement": r.get("displacement"), "amplitude": r.get("amplitude")}
+            for r in rows
+        ],
     )
 
 

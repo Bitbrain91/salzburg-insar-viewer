@@ -15,16 +15,18 @@ Der Salzburg InSAR Viewer stellt bodenbasierte Deformationsmessungen (InSAR) vis
 Quelle: lokale GeoPackages im Repo unter `insar_viewer_app/data/Daten`.
 Dateien:
 - `data/Daten/Stadt_Salzburg.gpkg` (Bewegungs-/InSAR-Layer, Tracks 44 und 95)
-- `data/Daten/ASC_T44_AMP.gpkg` (Amplitude-Statistiken Track 44)
-- `data/Daten/ASC_T95_AMP.gpkg` (Amplitude-Statistiken Track 95)
+- `data/Daten/ASC_T44_AMP.gpkg` (Amplitude-Zeitreihen Track 44)
+- `data/Daten/ASC_T95_AMP.gpkg` (Amplitude-Zeitreihen Track 95)
 
 Aufbereitung:
 - `pipeline/prepare_insar.py` liest die GPKG-Layer, standardisiert Spalten,
-  berechnet `amp_mean`/`amp_std` und schreibt:
+  berechnet `amp_mean`/`amp_std`, extrahiert Amplitude-Zeitreihen und schreibt:
   - `data/parquet/insar_points_t44.parquet`
   - `data/parquet/insar_points_t95.parquet`
   - `data/parquet/insar_timeseries_t44.parquet`
   - `data/parquet/insar_timeseries_t95.parquet`
+  - `data/parquet/insar_amplitude_timeseries_t44.parquet`
+  - `data/parquet/insar_amplitude_timeseries_t95.parquet`
 
 ### Global Building Atlas (GBA)
 Quelle: lokales GeoJSON
@@ -84,7 +86,8 @@ React + MapLibre Frontend
 
 - Datenbank (PostGIS in Docker)
   - Schema: `backend/sql/schema.sql`
-  - Tabellen: `insar_points`, `insar_timeseries`, `gba_buildings`, `osm_buildings`,
+  - Tabellen: `insar_points`, `insar_timeseries`, `insar_amplitude_timeseries`,
+    `gba_buildings`, `osm_buildings`,
     `insar_to_gba`, `insar_to_osm`
 
 - Pipeline (`pipeline/`)
@@ -147,6 +150,39 @@ Nur Teilbereiche laden (z. B. OSM/GBA):
 ```bash
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only osm
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only gba
+```
+
+### Schema-Update: Amplitude-Zeitreihen (optional)
+Wenn du die bestehende DB behalten willst, fuehre ein inkrementelles Schema-Update aus:
+```sql
+ALTER TABLE insar_points ADD COLUMN s_amp_std DOUBLE PRECISION;
+ALTER TABLE insar_points ADD COLUMN s_phs_std DOUBLE PRECISION;
+ALTER TABLE insar_points ADD COLUMN eff_area DOUBLE PRECISION;
+
+CREATE TABLE insar_amplitude_timeseries (
+    code TEXT NOT NULL,
+    track INTEGER NOT NULL,
+    date DATE NOT NULL,
+    amplitude DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (code, track, date)
+);
+CREATE INDEX insar_amplitude_timeseries_code_idx ON insar_amplitude_timeseries (code);
+```
+Dann nur die Zeitreihen laden (Displacement + Amplitude):
+```sql
+TRUNCATE insar_points;
+TRUNCATE insar_timeseries;
+TRUNCATE insar_amplitude_timeseries;
+```
+Dann nur die InSAR-Tabellen neu laden:
+```bash
+python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only points
+python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only timeseries
+```
+
+Alternative: Voll-Reload (Schema wird neu erstellt, alle Daten neu geladen):
+```bash
+python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar
 ```
 
 ### 5) MBTiles erzeugen

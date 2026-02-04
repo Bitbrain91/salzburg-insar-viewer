@@ -111,8 +111,16 @@ export default function InspectorPanel() {
                       <span className="value">{fmt.num(pointQuery.data.season_amp)}</span>
                     </div>
                     <div className="metric">
+                      <span className="label">Seasonal amplitude std (mm)</span>
+                      <span className="value">{fmt.num(pointQuery.data.s_amp_std)}</span>
+                    </div>
+                    <div className="metric">
                       <span className="label">Seasonal phase</span>
                       <span className="value">{fmt.num(pointQuery.data.season_phs)}</span>
+                    </div>
+                    <div className="metric">
+                      <span className="label">Seasonal phase std</span>
+                      <span className="value">{fmt.num(pointQuery.data.s_phs_std)}</span>
                     </div>
                     <div className="metric">
                       <span className="label">Amplitude mean</span>
@@ -121,6 +129,10 @@ export default function InspectorPanel() {
                     <div className="metric">
                       <span className="label">Amplitude std</span>
                       <span className="value">{fmt.num(pointQuery.data.amp_std, 1)}</span>
+                    </div>
+                    <div className="metric">
+                      <span className="label">Effective area</span>
+                      <span className="value">{fmt.num(pointQuery.data.eff_area, 1)}</span>
                     </div>
                     <div className="metric">
                       <span className="label">Longitude</span>

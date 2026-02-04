@@ -29,7 +29,10 @@ ALIAS_MAP = {
     "acceleration_std": ["acceleration_std", "a_stdev", "A_STDEV"],
     "season_amp": ["season_amp", "SEASON_AMP", "SEAS"],
     "season_phs": ["season_phs", "SEASON_PHS"],
+    "s_amp_std": ["s_amp_std", "S_AMP_STD"],
+    "s_phs_std": ["s_phs_std", "S_PHS_STD"],
     "incidence_angle": ["incidence_angle", "INCIDENCE_ANGLE"],
+    "eff_area": ["eff_area", "EFF_AREA"],
     "track": ["track", "TRACK"],
     "los": ["los", "LOS"],
 }
@@ -86,6 +89,28 @@ def _extract_timeseries(df: pd.DataFrame, track: int, output_path: Path) -> None
     ts_df.to_parquet(output_path, index=False)
 
 
+def _extract_amplitude_timeseries(amp_path: Path, track: int, output_path: Path) -> None:
+    amp_layer = pyogrio.list_layers(amp_path)[:, 0].tolist()[0]
+    amp_columns = pyogrio.read_info(amp_path, layer=amp_layer)["fields"]
+    amp_cols = [c for c in amp_columns if c.startswith(AMP_PREFIX)]
+    if not amp_cols:
+        return
+
+    df = pyogrio.read_dataframe(amp_path, layer=amp_layer, columns=["CODE"] + amp_cols)
+    df = df.rename(columns={"CODE": "code"})
+    df["code"] = df["code"].astype(str)
+    df["track"] = track
+
+    ts_df = df[["code", "track"] + amp_cols].melt(
+        id_vars=["code", "track"],
+        var_name="date",
+        value_name="amplitude",
+    )
+    ts_df["date"] = pd.to_datetime(ts_df["date"].str[1:], format="%Y%m%d")
+    ts_df = ts_df.dropna(subset=["amplitude"])
+    ts_df.to_parquet(output_path, index=False)
+
+
 def prepare_track(track_id: int, layer: str, amp_path: Path) -> None:
     PARQUET_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -120,7 +145,10 @@ def prepare_track(track_id: int, layer: str, amp_path: Path) -> None:
         "acceleration_std",
         "season_amp",
         "season_phs",
+        "s_amp_std",
+        "s_phs_std",
         "incidence_angle",
+        "eff_area",
         "amp_mean",
         "amp_std",
         "geometry",
@@ -137,8 +165,12 @@ def prepare_track(track_id: int, layer: str, amp_path: Path) -> None:
     ts_source = movement[["code", "track"] + [c for c in movement.columns if c.lower().startswith(TIMESERIES_PREFIX)]]
     _extract_timeseries(ts_source, track_id, out_ts)
 
+    out_amp_ts = PARQUET_DIR / f"insar_amplitude_timeseries_t{track_id}.parquet"
+    _extract_amplitude_timeseries(amp_path, track_id, out_amp_ts)
+
     print(f"Saved points: {out_points}")
     print(f"Saved timeseries: {out_ts}")
+    print(f"Saved amplitude timeseries: {out_amp_ts}")
 
 
 def main() -> None:

@@ -2,6 +2,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS insar_to_osm;
 DROP TABLE IF EXISTS insar_to_gba;
+DROP TABLE IF EXISTS insar_amplitude_timeseries;
 DROP TABLE IF EXISTS insar_timeseries;
 DROP TABLE IF EXISTS insar_points;
 DROP TABLE IF EXISTS gba_buildings;
@@ -23,7 +24,10 @@ CREATE TABLE insar_points (
     acceleration_std DOUBLE PRECISION,
     season_amp DOUBLE PRECISION,
     season_phs DOUBLE PRECISION,
+    s_amp_std DOUBLE PRECISION,
+    s_phs_std DOUBLE PRECISION,
     incidence_angle DOUBLE PRECISION,
+    eff_area DOUBLE PRECISION,
     amp_mean DOUBLE PRECISION,
     amp_std DOUBLE PRECISION,
     geom GEOMETRY(Point, 4326) NOT NULL,
@@ -42,6 +46,16 @@ CREATE TABLE insar_timeseries (
 );
 
 CREATE INDEX insar_timeseries_code_idx ON insar_timeseries (code);
+
+CREATE TABLE insar_amplitude_timeseries (
+    code TEXT NOT NULL,
+    track INTEGER NOT NULL,
+    date DATE NOT NULL,
+    amplitude DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (code, track, date)
+);
+
+CREATE INDEX insar_amplitude_timeseries_code_idx ON insar_amplitude_timeseries (code);
 
 CREATE TABLE gba_buildings (
     gba_id TEXT PRIMARY KEY,

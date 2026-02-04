@@ -44,6 +44,20 @@ def _load_timeseries(engine, path: Path) -> None:
     print()
 
 
+def _load_amplitude_timeseries(engine, path: Path) -> None:
+    print(f"  Loading {path.name}...")
+    df = pd.read_parquet(path)
+    print(f"    Read {len(df):,} rows")
+
+    chunk_size = 50000
+    total = len(df)
+    for i in range(0, total, chunk_size):
+        chunk = df.iloc[i:i+chunk_size]
+        chunk.to_sql("insar_amplitude_timeseries", engine, if_exists="append", index=False)
+        print(f"    Progress: {min(i+chunk_size, total):,}/{total:,} rows", end="\r")
+    print()
+
+
 def _load_buildings(engine, path: Path, table: str, id_col: str) -> None:
     print(f"  Loading {path.name} -> {table}...")
     if not path.exists():
@@ -138,6 +152,8 @@ def main() -> None:
         print("\nLoading timeseries...")
         _load_timeseries(engine, PARQUET_DIR / "insar_timeseries_t44.parquet")
         _load_timeseries(engine, PARQUET_DIR / "insar_timeseries_t95.parquet")
+        _load_amplitude_timeseries(engine, PARQUET_DIR / "insar_amplitude_timeseries_t44.parquet")
+        _load_amplitude_timeseries(engine, PARQUET_DIR / "insar_amplitude_timeseries_t95.parquet")
 
     if args.only in {"all", "buildings", "gba"}:
         print("\nLoading GBA buildings...")

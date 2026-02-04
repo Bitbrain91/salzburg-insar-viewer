@@ -24,7 +24,10 @@ class InSARPointDetail(BaseModel):
     acceleration_std: Optional[float] = None
     season_amp: Optional[float] = None
     season_phs: Optional[float] = None
+    s_amp_std: Optional[float] = None
+    s_phs_std: Optional[float] = None
     incidence_angle: Optional[float] = None
+    eff_area: Optional[float] = None
     amp_mean: Optional[float] = None
     amp_std: Optional[float] = None
     geometry: GeometryPoint
@@ -34,7 +37,8 @@ class InSARPointDetail(BaseModel):
 
 class TimeseriesPoint(BaseModel):
     date: date
-    displacement: float
+    displacement: Optional[float] = None
+    amplitude: Optional[float] = None
 
 
 class TimeseriesResponse(BaseModel):
