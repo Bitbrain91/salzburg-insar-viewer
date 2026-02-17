@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
+import { basemaps } from "../lib/basemaps";
+import type { BasemapId } from "../lib/basemaps";
 import { useAppStore } from "../lib/store";
 
 const tilesBase =
@@ -8,9 +10,6 @@ const tilesBase =
 const apiBase =
   import.meta.env.VITE_API_URL ||
   (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
-const baseStyle =
-  import.meta.env.VITE_BASEMAP_STYLE ||
-  "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
 const velocityExpression: any[] = [
   "step",
@@ -134,14 +133,17 @@ const coherenceExpression: any[] = [
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const basemapRef = useRef<BasemapId | null>(null);
   const [tooltip, setTooltip] = useState<
     { x: number; y: number; html: string } | null
   >(null);
+  const [styleVersion, setStyleVersion] = useState(0);
 
   const layers = useAppStore((state) => state.layers);
   const filters = useAppStore((state) => state.filters);
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const selection = useAppStore((state) => state.selection);
+  const basemapId = useAppStore((state) => state.basemapId);
   const setSelection = useAppStore((state) => state.setSelection);
   const activeRunId = useAppStore((state) => state.activeRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
@@ -155,7 +157,7 @@ export default function MapView() {
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
-      style: baseStyle,
+      style: basemaps[basemapId].style,
       center: [13.05, 47.8],
       zoom: 12,
       pitch: 45,
@@ -163,6 +165,7 @@ export default function MapView() {
       hash: true,
     });
 
+    basemapRef.current = basemapId;
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }));
 
     const updateBBox = () => {
@@ -175,162 +178,14 @@ export default function MapView() {
       ]);
     };
 
-    map.on("load", () => {
-      map.addSource("insar_t44", {
-        type: "vector",
-        tiles: [`${tilesBase}/mbtiles/insar_t44/{z}/{x}/{y}.pbf`],
-        tileSize: 512,
-        minzoom: 0,
-        maxzoom: 16,
-      });
-      map.addSource("insar_t95", {
-        type: "vector",
-        tiles: [`${tilesBase}/mbtiles/insar_t95/{z}/{x}/{y}.pbf`],
-        tileSize: 512,
-        minzoom: 0,
-        maxzoom: 16,
-      });
-      map.addSource("gba", {
-        type: "vector",
-        tiles: [`${tilesBase}/mbtiles/gba/{z}/{x}/{y}.pbf`],
-        tileSize: 512,
-        minzoom: 0,
-        maxzoom: 15,
-      });
-      map.addSource("osm", {
-        type: "vector",
-        tiles: [`${tilesBase}/mbtiles/osm/{z}/{x}/{y}.pbf`],
-        tileSize: 512,
-        minzoom: 0,
-        maxzoom: 15,
-      });
-
-      map.addLayer({
-        id: "insar_t44",
-        type: "circle",
-        source: "insar_t44",
-        "source-layer": "insar_t44",
-        paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            8,
-            1.5,
-            12,
-            2.5,
-            14,
-            4,
-            16,
-            6,
-          ],
-          "circle-color": velocityExpression,
-          "circle-opacity": 0.8,
-        },
-      });
-
-      map.addLayer({
-        id: "insar_t95",
-        type: "circle",
-        source: "insar_t95",
-        "source-layer": "insar_t95",
-        paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["zoom"],
-            8,
-            1.5,
-            12,
-            2.5,
-            14,
-            4,
-            16,
-            6,
-          ],
-          "circle-color": velocityExpression,
-          "circle-opacity": 0.8,
-        },
-      });
-
-      map.addLayer({
-        id: "gba",
-        type: "fill-extrusion",
-        source: "gba",
-        "source-layer": "gba",
-        paint: {
-          "fill-extrusion-height": ["get", "height"],
-          "fill-extrusion-color": "#4aa5d5",
-          "fill-extrusion-opacity": 0.6,
-        },
-      });
-
-      map.addLayer({
-        id: "osm",
-        type: "fill",
-        source: "osm",
-        "source-layer": "osm",
-        paint: {
-          "fill-color": "#c9c6bf",
-          "fill-opacity": 0.5,
-        },
-      });
-
-      map.addLayer({
-        id: "insar_selected_t44",
-        type: "circle",
-        source: "insar_t44",
-        "source-layer": "insar_t44",
-        paint: {
-          "circle-radius": 8,
-          "circle-color": "#ffffff",
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#e27d3f",
-        },
-        filter: ["==", ["get", "code"], ""],
-      });
-
-      map.addLayer({
-        id: "insar_selected_t95",
-        type: "circle",
-        source: "insar_t95",
-        "source-layer": "insar_t95",
-        paint: {
-          "circle-radius": 8,
-          "circle-color": "#ffffff",
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#e27d3f",
-        },
-        filter: ["==", ["get", "code"], ""],
-      });
-
-      map.addLayer({
-        id: "gba_highlight",
-        type: "line",
-        source: "gba",
-        "source-layer": "gba",
-        paint: {
-          "line-color": "#e27d3f",
-          "line-width": 2,
-        },
-        filter: ["==", ["get", "gba_id"], ""],
-      });
-
-      map.addLayer({
-        id: "osm_highlight",
-        type: "line",
-        source: "osm",
-        "source-layer": "osm",
-        paint: {
-          "line-color": "#e27d3f",
-          "line-width": 2,
-        },
-        filter: ["==", ["get", "osm_id"], ""],
-      });
-
-      applyLayerVisibility(map, layers);
-      applyFilters(map, filters, filtersEnabled);
+    map.on("style.load", () => {
+      addCoreSourcesAndLayers(map);
+      const state = useAppStore.getState();
+      applyLayerVisibility(map, state.layers);
+      applyFilters(map, state.filters, state.filtersEnabled);
+      applySelection(map, state.selection);
       updateBBox();
+      setStyleVersion((value) => value + 1);
     });
 
     map.on("mousemove", (event) => handleHover(event, map));
@@ -342,8 +197,16 @@ export default function MapView() {
     return () => {
       map.remove();
       mapRef.current = null;
+      basemapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (basemapRef.current === basemapId) return;
+    basemapRef.current = basemapId;
+    mapRef.current.setStyle(basemaps[basemapId].style);
+  }, [basemapId]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -358,14 +221,12 @@ export default function MapView() {
   useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
+    if (!map.isStyleLoaded()) return;
 
-    if (map.getLayer("ml_points")) map.removeLayer("ml_points");
-    if (map.getLayer("ml_buildings_outline")) map.removeLayer("ml_buildings_outline");
-    if (map.getLayer("ml_buildings_fill")) map.removeLayer("ml_buildings_fill");
-    if (map.getLayer("ml_buildings_flat")) map.removeLayer("ml_buildings_flat");
-    if (map.getSource("ml_points")) map.removeSource("ml_points");
-    if (map.getSource("ml_buildings")) map.removeSource("ml_buildings");
+    removeMlLayersAndSources(map);
     if (!activeRunId) return;
+
+    const colorExpression = getMlColorExpression(mlView);
 
     map.addSource("ml_points", {
       type: "vector",
@@ -465,7 +326,7 @@ export default function MapView() {
           22,
           10,
         ],
-        "circle-color": mlClusterColorExpression,
+        "circle-color": colorExpression,
         "circle-opacity": 0.85,
         "circle-stroke-width": 0.5,
         "circle-stroke-color": "#ffffff",
@@ -474,7 +335,7 @@ export default function MapView() {
         visibility: showMlLayer ? "visible" : "none",
       },
     });
-  }, [activeRunId, mlTileVersion]);
+  }, [activeRunId, mlTileVersion, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -511,20 +372,201 @@ export default function MapView() {
   useEffect(() => {
     if (!mapRef.current || !mapRef.current.getLayer("ml_points")) return;
     const map = mapRef.current;
-    let colorExpression: any[] = mlClusterColorExpression;
-    if (mlView === "building") colorExpression = mlBuildingColorExpression;
-    if (mlView === "assignment") colorExpression = assignmentExpression;
-    if (mlView === "distance") colorExpression = distanceExpression;
-    if (mlView === "velocity") colorExpression = velocityExpression;
-    if (mlView === "coherence") colorExpression = coherenceExpression;
+    const colorExpression = getMlColorExpression(mlView);
     map.setPaintProperty("ml_points", "circle-color", colorExpression as any);
   }, [mlView, activeRunId]);
 
   useEffect(() => {
     if (!mapRef.current) return;
-    const map = mapRef.current;
+    applySelection(mapRef.current, selection);
+  }, [selection]);
 
-    if (!selection) {
+  function getMlColorExpression(view: typeof mlView) {
+    if (view === "building") return mlBuildingColorExpression;
+    if (view === "assignment") return assignmentExpression;
+    if (view === "distance") return distanceExpression;
+    if (view === "velocity") return velocityExpression;
+    if (view === "coherence") return coherenceExpression;
+    return mlClusterColorExpression;
+  }
+
+  function addSourceIfMissing(map: MapLibreMap, id: string, source: any) {
+    if (!map.getSource(id)) {
+      map.addSource(id, source);
+    }
+  }
+
+  function addLayerIfMissing(map: MapLibreMap, layer: any) {
+    if (!map.getLayer(layer.id)) {
+      map.addLayer(layer);
+    }
+  }
+
+  function addCoreSourcesAndLayers(map: MapLibreMap) {
+    addSourceIfMissing(map, "insar_t44", {
+      type: "vector",
+      tiles: [`${tilesBase}/mbtiles/insar_t44/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 16,
+    });
+    addSourceIfMissing(map, "insar_t95", {
+      type: "vector",
+      tiles: [`${tilesBase}/mbtiles/insar_t95/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 16,
+    });
+    addSourceIfMissing(map, "gba", {
+      type: "vector",
+      tiles: [`${tilesBase}/mbtiles/gba/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 15,
+    });
+    addSourceIfMissing(map, "osm", {
+      type: "vector",
+      tiles: [`${tilesBase}/mbtiles/osm/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 15,
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_t44",
+      type: "circle",
+      source: "insar_t44",
+      "source-layer": "insar_t44",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          1.5,
+          12,
+          2.5,
+          14,
+          4,
+          16,
+          6,
+        ],
+        "circle-color": velocityExpression,
+        "circle-opacity": 0.8,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_t95",
+      type: "circle",
+      source: "insar_t95",
+      "source-layer": "insar_t95",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          1.5,
+          12,
+          2.5,
+          14,
+          4,
+          16,
+          6,
+        ],
+        "circle-color": velocityExpression,
+        "circle-opacity": 0.8,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "gba",
+      type: "fill-extrusion",
+      source: "gba",
+      "source-layer": "gba",
+      paint: {
+        "fill-extrusion-height": ["get", "height"],
+        "fill-extrusion-color": "#4aa5d5",
+        "fill-extrusion-opacity": 0.6,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "osm",
+      type: "fill",
+      source: "osm",
+      "source-layer": "osm",
+      paint: {
+        "fill-color": "#c9c6bf",
+        "fill-opacity": 0.5,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_selected_t44",
+      type: "circle",
+      source: "insar_t44",
+      "source-layer": "insar_t44",
+      paint: {
+        "circle-radius": 8,
+        "circle-color": "#ffffff",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#e27d3f",
+      },
+      filter: ["==", ["get", "code"], ""],
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_selected_t95",
+      type: "circle",
+      source: "insar_t95",
+      "source-layer": "insar_t95",
+      paint: {
+        "circle-radius": 8,
+        "circle-color": "#ffffff",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#e27d3f",
+      },
+      filter: ["==", ["get", "code"], ""],
+    });
+
+    addLayerIfMissing(map, {
+      id: "gba_highlight",
+      type: "line",
+      source: "gba",
+      "source-layer": "gba",
+      paint: {
+        "line-color": "#e27d3f",
+        "line-width": 2,
+      },
+      filter: ["==", ["get", "gba_id"], ""],
+    });
+
+    addLayerIfMissing(map, {
+      id: "osm_highlight",
+      type: "line",
+      source: "osm",
+      "source-layer": "osm",
+      paint: {
+        "line-color": "#e27d3f",
+        "line-width": 2,
+      },
+      filter: ["==", ["get", "osm_id"], ""],
+    });
+  }
+
+  function removeMlLayersAndSources(map: MapLibreMap) {
+    if (map.getLayer("ml_points")) map.removeLayer("ml_points");
+    if (map.getLayer("ml_buildings_outline")) map.removeLayer("ml_buildings_outline");
+    if (map.getLayer("ml_buildings_fill")) map.removeLayer("ml_buildings_fill");
+    if (map.getLayer("ml_buildings_flat")) map.removeLayer("ml_buildings_flat");
+    if (map.getSource("ml_points")) map.removeSource("ml_points");
+    if (map.getSource("ml_buildings")) map.removeSource("ml_buildings");
+  }
+
+  function applySelection(map: MapLibreMap, currentSelection: typeof selection) {
+    if (!currentSelection) {
       if (map.getLayer("insar_selected_t44")) {
         map.setFilter("insar_selected_t44", ["==", ["get", "code"], ""]);
       }
@@ -540,19 +582,25 @@ export default function MapView() {
       return;
     }
 
-    if (selection.type === "point") {
-      const show44 = selection.track === 44 || selection.track === undefined;
-      const show95 = selection.track === 95 || selection.track === undefined;
+    if (currentSelection.type === "point") {
+      const show44 =
+        currentSelection.track === 44 || currentSelection.track === undefined;
+      const show95 =
+        currentSelection.track === 95 || currentSelection.track === undefined;
       if (map.getLayer("insar_selected_t44")) {
         map.setFilter(
           "insar_selected_t44",
-          show44 ? ["==", ["get", "code"], selection.code] : ["==", ["get", "code"], ""]
+          show44
+            ? ["==", ["get", "code"], currentSelection.code]
+            : ["==", ["get", "code"], ""]
         );
       }
       if (map.getLayer("insar_selected_t95")) {
         map.setFilter(
           "insar_selected_t95",
-          show95 ? ["==", ["get", "code"], selection.code] : ["==", ["get", "code"], ""]
+          show95
+            ? ["==", ["get", "code"], currentSelection.code]
+            : ["==", ["get", "code"], ""]
         );
       }
       if (map.getLayer("gba_highlight")) {
@@ -562,16 +610,24 @@ export default function MapView() {
         map.setFilter("osm_highlight", ["==", ["get", "osm_id"], ""]);
       }
     } else {
-      if (selection.source === "gba") {
+      if (currentSelection.source === "gba") {
         if (map.getLayer("gba_highlight")) {
-          map.setFilter("gba_highlight", ["==", ["get", "gba_id"], selection.id]);
+          map.setFilter("gba_highlight", [
+            "==",
+            ["get", "gba_id"],
+            currentSelection.id,
+          ]);
         }
         if (map.getLayer("osm_highlight")) {
           map.setFilter("osm_highlight", ["==", ["get", "osm_id"], ""]);
         }
       } else {
         if (map.getLayer("osm_highlight")) {
-          map.setFilter("osm_highlight", ["==", ["get", "osm_id"], selection.id]);
+          map.setFilter("osm_highlight", [
+            "==",
+            ["get", "osm_id"],
+            currentSelection.id,
+          ]);
         }
         if (map.getLayer("gba_highlight")) {
           map.setFilter("gba_highlight", ["==", ["get", "gba_id"], ""]);
@@ -584,7 +640,7 @@ export default function MapView() {
         map.setFilter("insar_selected_t95", ["==", ["get", "code"], ""]);
       }
     }
-  }, [selection]);
+  }
 
   function applyLayerVisibility(map: MapLibreMap, vis: typeof layers) {
     if (map.getLayer("insar_t44")) {

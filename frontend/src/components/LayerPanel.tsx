@@ -1,3 +1,4 @@
+import { basemaps } from "../lib/basemaps";
 import { useAppStore } from "../lib/store";
 import PipelinePanel from "./PipelinePanel";
 
@@ -5,15 +6,39 @@ export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
   const filters = useAppStore((state) => state.filters);
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
+  const basemapId = useAppStore((state) => state.basemapId);
   const setLayer = useAppStore((state) => state.setLayer);
   const setFilter = useAppStore((state) => state.setFilter);
   const setFiltersEnabled = useAppStore((state) => state.setFiltersEnabled);
+  const setBasemapId = useAppStore((state) => state.setBasemapId);
 
   return (
     <div className="panel panel-left">
       <div>
         <h2>Layers & Filters</h2>
         <small>Toggle sources and constrain signal quality.</small>
+      </div>
+
+      <div>
+        <div className="section-title">Basemap</div>
+        <div className="toggle-row">
+          <span>{basemaps.light.label}</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={basemapId === basemaps.light.id}
+            onChange={() => setBasemapId(basemaps.light.id)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>Satellite (Luftbild)</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={basemapId === basemaps.satellite.id}
+            onChange={() => setBasemapId(basemaps.satellite.id)}
+          />
+        </div>
       </div>
 
       <div>

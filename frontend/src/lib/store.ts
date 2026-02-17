@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { BasemapId } from "./basemaps";
 
 export type LayerVisibility = {
   insar44: boolean;
@@ -23,6 +24,7 @@ export type AppState = {
   filters: Filters;
   filtersEnabled: boolean;
   selection: Selection;
+  basemapId: BasemapId;
   activeRunId: string | null;
   showMlLayer: boolean;
   showMlBuildings: boolean;
@@ -33,6 +35,7 @@ export type AppState = {
   setFilter: (key: keyof Filters, value: number) => void;
   setFiltersEnabled: (enabled: boolean) => void;
   setSelection: (selection: Selection) => void;
+  setBasemapId: (id: BasemapId) => void;
   setActiveRunId: (runId: string | null) => void;
   setShowMlLayer: (show: boolean) => void;
   setShowMlBuildings: (show: boolean) => void;
@@ -55,6 +58,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   filtersEnabled: true,
   selection: null,
+  basemapId: "light",
   activeRunId: null,
   showMlLayer: true,
   showMlBuildings: true,
@@ -67,6 +71,7 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
   setSelection: (selection) => set(() => ({ selection })),
+  setBasemapId: (id) => set(() => ({ basemapId: id })),
   setActiveRunId: (runId) => set(() => ({ activeRunId: runId })),
   setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
   setShowMlBuildings: (show) => set(() => ({ showMlBuildings: show })),

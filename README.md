@@ -285,6 +285,8 @@ Frontend (`frontend/.env`):
 VITE_API_URL=http://127.0.0.1:8000
 VITE_TILES_URL=http://127.0.0.1:8000
 VITE_BASEMAP_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
+VITE_BASEMAP_LIGHT_STYLE=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
+VITE_BASEMAP_SATELLITE_URL=https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}
 ```
 
 Backend (`backend/.env`):
