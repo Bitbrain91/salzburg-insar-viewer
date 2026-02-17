@@ -1,0 +1,444 @@
+# Trainierbare Qualitäts- und Anomaliedetektion für den Salzburg InSAR Viewer
+
+## Executive Summary
+
+- **Empfehlung (A+B):** Für Salzburg ist ein **Ensemble aus (i) robusten, erklärbaren Feature‑Scores + (ii) self‑supervised Time‑Series‑Anomaly‑Detection (LSTM‑Autoencoder mit Soft‑DTW) + (iii) räumlichem Kontext‑Support (Gebäude/Nachbarschaft) + (iv) Asc/Desc‑Konsistenzprüfung** die technisch sinnvollste Gesamtstrategie, weil sie explizit **ohne Ground Truth** funktioniert und gleichzeitig **trainierbar** bleibt. **Quelle:** Kuzu et al. (2023) zeigen PS‑basierte, unsupervised Gebäude‑Anomaliedetektion via LSTM‑AE+Soft‑DTW (robust gegen Zeitverschiebungen) – **direkt passend** zur Situation „wenig Labels, Gebäude‑Kontext“. citeturn13view0  
+- **Kurzfristig produktiv (A+B):** In 4–6 Wochen kann ein **Point Quality Score** (0–100) in Produktion gehen, basierend auf vorhandenen Attributen (**velocity_std, coherence, amp_std, incidence_angle, season_amp, acceleration**) plus wenigen stabilen TS‑Features (Residuallärm, Sprungindikatoren, Missing‑Rate). **Quelle:** EGMS/Salzburg‑Attributdefinitionen verankern Semantik (z. B. COHERENCE 0–1, V_STDEV, ACC, SEASON_AMP; LOS‑Vorzeichenkonvention) – **identische Feldlogik** wie Salzburg‑Schema. citeturn7view0turn8view0turn26view0  
+- **Kernprinzip „Points validieren sich durch Kontext“ (A):** Spatio‑temporale Qualitätsmodelle, die **Nachbarschaftsrelationen** explizit modellieren (statt starrer Schwellen), sind Stand der Technik für PS‑QA. **Quelle:** Omidalizarandi et al. (JISDM 2022; später J. Applied Geodesy) beschreiben QA über Gebäudeklassifikation + Zeitreihenmodellierung + spatio‑temporale Nachbarschaftspatches (z. B. hierarchische B‑Splines) – **konzeptionell genau** euer Ziel. citeturn16view0  
+- **Unwrapping‑Artefakte sind das zentrale Qualitätsrisiko (A+B):** Salzburg ist „unfiltered from unwrapping“; daher müssen **Sprünge/Phasendiskontinuitäten** explizit detektiert werden (Change‑Point/Step‑Anomalies). **Quelle:** Ein aktueller ISPRS‑Ansatz (3D‑ADAC, 2024) nutzt „phase closure“ zur Detektion/Korrektur von PhU‑Fehlern und diskutiert, dass PhU‑Fehler trotz Verfahren auftreten – **relevant**, weil eure Daten untransformierte Unwrapping‑Artefakte enthalten können, auch wenn ihr sie nicht im Interferogrammraum korrigiert. citeturn18view0  
+- **Asc/Desc als „Praktische Validierung“ (A):** Asc/Desc liefert eine physikalisch begründete Konsistenzprüfung (u. a. unterschiedliche Blickrichtung Ost/West). **Quelle:** EGMS‑ATBD erklärt explizit, dass Descending (N→S) westwärts blickt und Ascending (S→N) ostwärts blickt – **direkte Basis** für Sign‑/Komponentenkonsistenz. citeturn24search19  
+- **SOTA‑Baustein für Gebäude‑Anomalien (A):** LSTM‑AE + **Soft‑DTW‑Loss** + Glättung + Permutations‑Pretext ist ein **publizierter, produktnaher** Ansatz für PS‑Anomaliedetektion auf Gebäudeebene. **Quelle:** Kuzu et al. (IEEE JSTARS 2023) – **Methodik ist exakt** für „Gebäude ohne Ground Truth“ gebaut. citeturn13view0  
+- **SOTA‑Baustein für „Qualitätsscores“ aus Residuen (A, aber eingeschränkt):** Residual‑basierte Quality Indicators (QI) können Unwrapping‑Fehler zeitlich/lokal markieren; in Salzburg fehlen euch allerdings die internen LS‑Residuals der Prozesskette, daher nur indirekt nutzbar. **Quelle:** Wang et al. (Remote Sensing 2022) definieren QIs für Punkte/TS/Images/Interferograms auf post‑PhU‑Residuals – **wissenschaftlich stark**, aber Datenanforderung kollidiert mit eurem Downstream‑Setting. citeturn17view0  
+- **Amplitude ist nicht „nice to have“ (A):** Amplituden‑Zeitreihen enthalten Information über „coherent vs noisy“ und können **temporal_coherence** vorhersagen. **Quelle:** Azadnejad et al. (Int. J. Appl. Earth Obs. Geoinf., 2025) trainieren MLP auf amplitude‑Features zur Vorhersage von temporal coherence und erhöhen so die Dichte kohärenter Punkte (z. B. +40 % über Buildings) – **passt direkt**, weil ihr `insar_amplitude_timeseries` habt. citeturn25view0  
+- **Langfristige SOTA‑Erweiterung (B):** Selbst‑supervised Time‑Series‑Representation‑Learning (z. B. TS2Vec) kann robuste Embeddings liefern, auf die dann Outlier‑Modelle/Classifier aufsetzen. **Quelle:** TS2Vec (AAAI‑22) ist unsupervised und zielt explizit auf robuste Repräsentationen – **nützlich**, weil ihr kaum Labels habt. citeturn1search7turn1search15  
+- **Transformer‑TSAD ist SOTA, aber Deployment‑Risk höher (A+B):** TranAD (VLDB 2022) ist stark für multivariate TSAD; für Salzburg ist der Nutzen erst dann hoch, wenn ihr stabile multivariate Feature‑Sequenzen pro Punkt/Gebäude definiert und Drift kontrolliert. **Quelle:** TranAD (PVLDB 2022) – **wissenschaftlich stark**, engineering‑Aufwand höher. citeturn0search15  
+- **Graph/ST‑GNN ist Phase‑3‑Material (B+C):** Spatio‑temporale GNNs sind SOTA für Anomalien in vernetzten Systemen; für InSAR existieren erste GNN‑Arbeiten (z. B. ST‑GAT für InSAR‑Imputation), aber Produktionsreife/Datendefinition sind der Engpass. **Quelle:** ST‑GAT‑InSAR‑Imputation (Remote Sensing 2025) zeigt Machbarkeit „InSAR als dynamischer Graph“ – **relevant** als Blaupause, nicht als Phase‑1‑Must‑Have. citeturn2search7  
+- **Daten‑/MLOps‑Fit (A):** Eure Stack‑Wahl (PostGIS + MLflow + FastAPI) ist ideal für Feature‑Materialisierung, Modell‑Versionierung und Inferenz‑Jobs. **Quellen:** MLflow Model Registry (Lifecycle/Stages), PostGIS DBSCAN‑Clustering, FastAPI BackgroundTasks. citeturn3search0turn3search1turn3search2  
+- **Entscheidung gegen „nur rules“ (B, aber zwingend):** Regeln bleiben nützlich als **Weak Labels** & Guardrails, aber nicht als alleinige Entscheidungsschicht (insbesondere bei fehlendem Ground Truth). **Quelle:** Kuzu et al. betonen fehlende In‑situ‑Labels und motivieren unsupervised learning – **gleiche Problemklasse** wie Salzburg. citeturn13view0  
+- **Minimaler Produktionsstandard (A+B):** Vor Roll‑out braucht ihr Acceptance‑Gates: (i) Asc/Desc‑Konsistenz verbessert sich für „High‑Confidence“-Subset, (ii) Step‑Artefakte werden signifikant häufiger im Low‑Quality‑Subset gefunden, (iii) Stabilitätsdrift über Zeitfenster ist begrenzt. **Quelle:** EGMS‑Validierungsdokumente betonen transparente, reproduzierbare Validierung (u. a. via Notebooks) – **direkt im Sinne** eures MLflow‑Setups. citeturn24search3turn24search21  
+- **Recommendation‑Now (B, konkret):** Startet mit **Phase‑1 „Feature‑Score + Weak‑Supervision + Asc/Desc‑Gates“**; Backup ist **Phase‑1b „rein unsupervised (IsolationForest + LSTM‑AE Soft‑DTW)“** (am Ende präzisiert). **Quelle:** PostGIS/MLflow/FastAPI‑Docs stützen schnelle Produktintegration. citeturn3search0turn3search1turn3search2  
+
+## Problem Formalization für unser Projekt
+
+**Ziel:** Trainierbare Qualitäts‑ und Anomaliedetektion, die (i) **einzelne Messpunkte** (PS/DS) bewertet und (ii) **Gebäude‑Risiken** aggregiert, ohne verlässliche Ground‑Truth‑Labels in Salzburg.
+
+### Input‑Definition (Datenobjekte)
+
+**Messpunkt \(p\)** (Schlüssel: `insar_points.code`):  
+Punktattribute (Auszug): Track (44/95), LOS (A/D), Velocity (VEL), Velocity_STD (V_STDEV), Coherence, Height, Acceleration (ACC), Season_Amp, Incidence_Angle, Eff_Area, Amp_Mean, Amp_Std, Geometrie.  
+**Relevanz/Quelle:** Salzburg‑Attributdokument definiert u. a. VEL‑Vorzeichen (toward/away), COHERENCE (0–1, bezogen auf Phasenrauschen & Modellfähigkeit), EFF_AREA (DS‑Ausdehnung; PS: 0) – **entscheidend**, um Features korrekt zu interpretieren. citeturn7view0turn8view0  
+
+**Zeitreihe \(x_p(t)\)**: `insar_timeseries` (Displacement relativ zur ersten Akquisition; analog zu EGMS‑Definition „Displacement relative to first acquisition“). **Relevanz/Quelle:** Salzburg‑Dokument beschreibt Dyyyymmdd‑Displacementfelder relativ zur ersten Akquisition; EGMS‑Produktspezifikation beschreibt ebenfalls TS pro Punkt und Referenzierung. citeturn7view0turn26view0  
+
+**Amplitude‑Zeitreihe \(a_p(t)\)**: `insar_amplitude_timeseries`. (Engineering‑Ziel: material-/scatterer‑Stabilitätsindikator.) **Relevanz/Quelle:** Deep‑Learning‑Ansatz für kohärente Pixel selektiert temporal coherence aus amplitude‑Features – **direkter Beleg**, dass Amplitude prädiktiv ist. citeturn25view0  
+
+**Gebäude \(b\)**: `gba_buildings` (inkl. Höhe) und/oder `osm_buildings`. Links Punkt↔Gebäude existieren.
+
+**Orbit‑Geometrie:** Asc/Desc verfügbar. EGMS‑ATBD beschreibt unterschiedliche Blickrichtungen (Asc: ostwärts; Desc: westwärts) – Grundlage für Konsistenzmetriken. citeturn24search19  
+
+### Output‑Definition (was das System produzieren muss)
+
+**Point Quality Score \(Q_p \in [0,100]\)**  
+Interpretation: „Wie vertrauenswürdig ist dieser Punkt als Repräsentation realer Bewegung?“  
+Unterziele: (i) Unwrapping‑Artefakte/Outlier erkennen, (ii) „isolierte“ Punkte ohne Kontextsupport abwerten, (iii) Punkte mit stabiler Amplitude & hoher Kohärenz aufwerten.
+
+**Point Anomaly Score \(A_p \in [0,100]\)** (optional getrennt von Qualität)  
+Interpretation: „Wie ungewöhnlich ist das Bewegungsmuster (Trendwechsel, Step, Rauschanstieg) relativ zur Normalität?“
+
+**Building Risk \(R_b\)** als Klasse (z. B. **Low / Medium / High**) + Score \(S_b \in [0,1]\)**  
+Aggregation aus Punkten auf/nahe Gebäude + Asc/Desc‑Konsistenz.
+
+**Warum Gebäude‑Ebene? (A):** Ein publizierter Ansatz zielt explizit auf „building anomalies“ aus PS‑Zeitreihen ohne Ground Truth. **Quelle:** Kuzu et al. (2023, IEEE JSTARS) – **direkt** „Building anomalies“‑Problem. citeturn13view0  
+
+### Missing Labels: Wie gehen wir ohne Ground Truth um?
+
+**Entscheidung (B, klar):** Wir behandeln Labels als **latent** und nutzen drei Strategien parallel:
+
+1) **Weak Labels / Silver Labels** aus bestehenden Regeln + Geometrie‑Checks:  
+- „Sehr sicher gut“: hohe COHERENCE, niedrige V_STDEV, keine Sprungindikatoren, stabiler Amplituden‑Score, starker Kontextsupport.  
+- „Sehr sicher schlecht“: niedrige COHERENCE, hohe V_STDEV, starke Step‑Signaturen, isoliert ohne Nachbarn/Gebäude‑Support.  
+**Warum sinnvoll:** Unsupervised/weakly supervised ist Standardreaktion auf Labelmangel in PS‑Anwendungen. **Quelle:** Kuzu et al. motivieren unsupervised learning explizit, weil In‑situ‑Ground‑Truth schwer verfügbar ist. citeturn13view0  
+
+2) **Self‑Supervised Learning** (Pretext‑Task) auf Zeitreihen:  
+- Rekonstruktion/Permutation/Forecasting → Anomaly Score über Reconstruction Error (mit DTW‑Robustheit).  
+**Quelle (A):** Kuzu et al. nutzen Rekonstruktion + Soft‑DTW + Permutations‑Objective; explizit für PS‑Anomalien. citeturn13view0  
+
+3) **Consistency‑as‑Supervision**: Asc/Desc‑und Nachbarschaftskonsistenz als „Pseudo‑Ground‑Truth‑Signal“ für Vertrauenswürdigkeit.  
+**Quelle (A):** EGMS‑ATBD macht die geometrische Komplementarität von Asc/Desc explizit; EGMS‑Ortho nutzt beide zur Ableitung vertikal/E‑W. citeturn24search19turn26view0turn24search2  
+
+### Kritische Fehlertypen: Was ist teurer – False Outlier oder False Normal?
+
+**Entscheidung (B, produktorientiert):**
+
+- Für **Point Quality Score** ist **False Normal** (schlechter Punkt als „gut“) teurer als False Outlier, weil er nachgelagerte Gebäude‑Risiken verfälscht und Nutzervertrauen durch „schlecht begründete Alarm‑Hotspots“ zerstört (Kaskadeneffekt).  
+- Für **Building Risk High** ist **False High‑Risk** teurer (rechtlich/kommunikativ), daher muss „High“ nur vergeben werden, wenn **mehrere Punkte + Kontextsupport + Asc/Desc‑Konsistenz** erfüllt sind.  
+**Warum diese Asymmetrie:** Der Kuzu‑Ansatz bewertet Gebäudeanomalien über Muster (Trend/Noise/Step) und zeigt, dass unterschiedliche Anomalietypen existieren – für „High“ wollen wir nur konsistente, starke Evidenz. citeturn13view0  
+
+## Methoden 2022 bis heute und Eignung für Salzburg
+
+### SOTA‑Landkarte (mit Entscheidungen statt „it depends“)
+
+**Klasse klassisch/statistisch (A, robust & deploybar):**  
+Robuste Modellfits (Trend + Saisonalität + Residuen) + MAD/Quantil‑basierte Outlier‑Scores sind sehr effektiv gegen Step‑Sprünge und heavy‑tail Noise. Ein InSAR‑Beitrag (GIS Ostrava 2022) nutzt explizit MAD‑Intervalle zur Outlier‑Detektion und adressiert Phase Jumps als häufiges Problem. **Relevanz:** Passt direkt, weil Salzburg unfiltered unwrapping‑Artefakte enthalten kann und ihr TS‑Daten habt. citeturn5search0  
+
+**Klasse Quality‑Indicators aus Prozessketten‑Residuals (A, aber Daten‑Mismatch):**  
+Residual‑basierte QIs (Punkt/TS/Interferogramm/Image) sind wissenschaftlich stark, verlangen aber Zugriff auf post‑PhU‑Residuals aus der Inversionskette. **Relevanz:** Für Salzburg nur indirekt nutzbar (Proxy‑Features aus TS). citeturn17view0  
+
+**Klasse spatio‑temporale QA über Nachbarschaft (A, sehr passend):**  
+VAR‑/Patch‑basierte spatio‑temporale Modelle für PS‑QA setzen genau auf „Kontextvalidierung“. **Relevanz:** Ihr habt Gebäude‑Links + könnt lokale Patches pro Gebäude/Nachbarschaft bauen. citeturn16view0  
+
+**Klasse Deep TS‑Anomaly für PS/Gebäude (A, produktnah):**  
+LSTM‑Autoencoder + Soft‑DTW + Permutations‑Objective detektiert Trend/Noise/Step‑Anomalien ohne Labels. **Relevanz:** 1:1 Übertragbarkeit auf Salzburg‑PS‑Zeitreihen; Soft‑DTW hilft bei zeitlichen Verschiebungen/leichter Asynchronität. citeturn13view0  
+
+**Klasse Deep Change‑Point Detection (A, aber höherer Aufwand):**  
+InSAR‑spezifische CP‑Detektion via LSTM/TG‑LSTM und Simulation als Label‑Ersatz ist publiziert (IEEE TGRS 2022; via Metadaten/Abstract verfügbar). **Relevanz:** Gut für Step/Trendwechsel‑Signaturen (Unwrapping‑Fehler vs echte Ereignisse), aber Trainingspipeline komplexer. citeturn22search1turn20search12  
+
+**Klasse Transformer‑TSAD (A, SOTA allgemein; B in InSAR‑Transfer):**  
+TranAD (VLDB 2022) ist state‑of‑the‑art für multivariate TSAD; in InSAR muss erst definiert werden, was „multivariat“ pro Punkt/Gebäude ist (Meta‑Features + TS‑Features als Sequenz). **Relevanz:** Phase‑3‑Upgrade oder Phase‑2‑Experiment. citeturn0search15  
+
+**Klasse self‑supervised Representation Learning (A, sehr hilfreich ohne Labels):**  
+TS2Vec (AAAI‑22) liefert universelle TS‑Embeddings; danach kann man IsolationForest/One‑Class‑Classifier/GBDT einsetzen. **Relevanz:** Eure TS sind lang (≈3 Jahre) und heterogen; Embeddings reduzieren Engineering‑Last. citeturn1search7turn1search15  
+
+**Klasse Graph/ST‑GNN (B→C, erst später):**  
+Es gibt frühe InSAR‑GNN‑Ansätze (z. B. ST‑GAT‑Imputation), aber Anomaliedetektion + Produktion erfordert stabile Graph‑Definition (Edges, Heterogenität points↔buildings). **Relevanz:** Sehr passend zu „Kontextvalidierung“, aber Phase‑3. citeturn2search7  
+
+### Methods Comparison Table
+
+| Methode (Evidenz) | Datenanforderungen | Interpretierbarkeit | Robust ohne Labels | Rechenaufwand | Deployment‑Risiko | Salzburg‑Fit (1–5) |
+|---|---|---|---|---|---|---|
+| Robust‑Stats + Modellresiduen (MAD/Quantile; TS‑Fit) **(A)** | Displacement‑TS, optionale Meta‑Features | Hoch (Feature‑/Residual‑basiert) | Hoch | Niedrig–Mittel | Niedrig | **5** citeturn5search0 |
+| Spatio‑temporale QA über Nachbarschaftspatches (VAR/ST‑Patch) **(A)** | TS + Nachbarschaft (kNN oder Gebäude‑Patch) | Mittel (Patch‑Parameter erklärbar) | Hoch | Mittel | Mittel | **5** citeturn16view0 |
+| Residual‑basierte QIs aus Inversionskette **(A, aber eingeschränkt)** | Post‑PhU‑Residuals/Netzwerkinfo (oft nicht vorhanden downstream) | Mittel–Hoch | Hoch | Mittel | Mittel | **3** citeturn17view0 |
+| PCA/Clustering Pattern Mining **(A)** | TS (ev. normalisiert) | Mittel | Mittel | Niedrig–Mittel | Niedrig | **3** citeturn5search30 |
+| Semi‑Supervised: Clustering→Labels→DL **(A)** | TS + räumliche Cluster, dann Labels | Mittel | Mittel–Hoch | Mittel–Hoch | Mittel | **4** citeturn22search24 |
+| LSTM‑Autoencoder + Soft‑DTW (Gebäude‑Anomalien) **(A)** | TS (pro Gebäude/Point Aggregation), keine Labels | Mittel (Score über Rekonstruktionsfehler) | Hoch | Mittel | Mittel | **5** citeturn13view0 |
+| Deep Change‑Point Detection (LSTM/TG‑LSTM + Simulation) **(A)** | TS + Simulationspipeline | Mittel | Mittel–Hoch | Mittel–Hoch | Mittel | **4** citeturn22search1turn20search12 |
+| TranAD / Transformer‑TSAD (multivariat) **(A, Transfer B)** | Multivariate Sequenzen (Feature‑Engineering nötig) | Mittel (Attention‑Diagnostics) | Hoch | Hoch | Hoch | **3** citeturn0search15 |
+| TS2Vec/SSL‑Embeddings + leichter Detector **(A)** | TS, Augmentations | Mittel | Hoch | Mittel | Mittel | **4** citeturn1search7turn1search15 |
+| ST‑GNN / Graph‑Autoencoder (points↔buildings) **(B→C)** | Graph + TS + stabile Edge‑Definition | Niedrig–Mittel | Hoch | Hoch | Hoch | **3** citeturn2search7 |
+
+**Entscheidung daraus (B, festgelegt):**  
+Phase‑1 setzt auf **Robust‑Stats + spatio‑temporale Kontextfeatures + weak supervision** (maximale Produktivität). Phase‑2 integriert **LSTM‑AE+Soft‑DTW** als „SOTA‑Anomaliekanal“. Phase‑3 evaluiert **SSL‑Embeddings/GNN** als langfristiges Upgrade. Die Auswahl ist direkt durch publizierte InSAR‑Anomaly/QA‑Arbeiten motiviert (Kuzu 2023; Omidalizarandi 2022; Wang 2022). citeturn13view0turn16view0turn17view0  
+
+## Recommended Target Architecture
+
+### Feature Engineering (konkret, implementierbar)
+
+**Prinzip (A+B):** Features müssen die drei dominanten Fehler-/Signalquellen abdecken: (i) **Zeitreihen‑Artefakte/Trendwechsel**, (ii) **Messqualität/Scatterer‑Stabilität**, (iii) **räumlicher Kontext & Orbitgeometrie**. Die Relevanz ist durch QA‑/Anomaly‑Literatur für PS‑Zeitreihen gestützt (Kuzu 2023; Omidalizarandi 2022; EGMS‑Dokumente). citeturn13view0turn16view0turn26view0  
+
+#### Point‑wise statische Features (aus `insar_points`)
+
+- **Quality‑Meta:** `coherence`, `velocity_std`, `amp_std`, `eff_area`, `incidence_angle`.  
+  - **A:** COHERENCE ist als Qualitätsmaß 0–1 definiert und verknüpft mit Phasenrauschen & Modellfit – zentraler Input. citeturn7view0turn8view0  
+  - **A:** EGMS beschreibt, dass Qualitätschecks u. a. temporal_coherence, rmse, amplitude_dispersion, std‑Felder umfassen – konzeptionell identisch. citeturn26view0  
+
+- **Kinematik‑Meta:** `velocity`, `acceleration`, `season_amp`.  
+  - **A:** Salzburg‑Doku definiert diese Größen und deren Einheiten – notwendig für Normalisierung & Threshold‑Ableitung. citeturn7view0turn8view0  
+
+#### Zeitreihen‑Features aus `insar_timeseries` (pro Punkt)
+
+**Entscheidung (B):** Wir extrahieren pro Punkt eine kleine, robuste Feature‑Batterie, die in 4–6 Wochen implementierbar ist:
+
+1) **Model‑Fit‑Reste:** Fit \(x(t)=\beta_0+\beta_1 t+\beta_2\sin(\omega t)+\beta_3\cos(\omega t)\) (Trend + Saisonalität). Features: RMS‑Residual, MAD‑Residual, Anteil Residuen > k·MAD.  
+2) **Step/Jump‑Indikatoren:** max|Δx|, #Δx‑Ausreißer, „largest step date“.  
+3) **Nichtstationarität/Turning‑Points:** einfache CP‑Score (z. B. Rolling‑Slope‑Change).  
+4) **Missingness:** fehlende Werte/irreguläre Sampling‑Rate.  
+
+**Warum (A+B):** Phase jumps/Outlier sind in InSAR‑TS als häufiges Problem adressiert (GIS Ostrava 2022). CP‑Detektion ist als InSAR‑Task etabliert (TGRS 2022; auch wenn ihr zunächst vereinfachte CP‑Scores nutzt). citeturn5search0turn22search1turn20search12  
+
+#### Amplituden‑Features aus `insar_amplitude_timeseries`
+
+**Entscheidung (A+B):** Wir nutzen Amplituden‑Features als eigener Qualitätskanal:
+
+- Zeitdomäne: mean/std, CV, trend, #spikes, entropieähnliche Maße  
+- Frequenzdomäne: dominante Frequenz / spektrale Energie (leicht implementierbar via FFT)  
+
+**Warum (A):** Azadnejad et al. (2025) zeigen, dass temporal coherence aus amplitude‑TS‑Features per MLP/LSTM vorhergesagt werden kann und dadurch kohärente Punkte über Infrastruktur deutlich dichter werden – direkte Evidenz, dass Amplitude prädiktiv für Qualität ist. citeturn25view0  
+
+#### Räumliche Features (PostGIS)
+
+**Entscheidung (B, aber zentral):** Kontext‑Validierung als Features:
+
+- **kNN‑Nachbarschaft (z. B. k=8–20 innerhalb r=30–80 m):** lokale Median‑Velocity, lokalen MAD, Abweichung des Punkts von lokalem Median (z‑Score robust).  
+- **Gebäude‑Patch:** Für Punkte mit Gebäudezuordnung: Median‑Velocity/ACC/SeasonAmp innerhalb desselben Gebäudes; „Support“ = Anteil benachbarter Punkte mit gleicher Bewegungsrichtung/ähnlichem Trend.
+
+**Warum (A):** Spatio‑temporale QA über Nachbarschaftsrelationen ist Kernelement der QA‑Methodik (Omidalizarandi 2022). citeturn16view0  
+
+#### Asc/Desc‑Features (Konsistenz)
+
+**Entscheidung (A+B):** Pro Gebäude (oder lokaler Patch) berechnen wir eine **2‑Orbit‑Konsistenz**.
+
+- **Geometrie‑Fakt:** Asc blickt ostwärts, Desc westwärts. (A) citeturn24search19  
+- **Building‑Level LOS‑Konsistenz:**  
+  - \(\mathrm{corr}(x_A(t), x_D(t))\) nach Normierung (z. B. z‑Score)  
+  - Sign‑Pattern‑Check für v (vertikal dominiert → gleiche Richtung; E‑W dominiert → oft gegensätzlich), als **Heuristik**. (B)  
+
+- **Optionale 2D‑Decomposition (B):** Unter Annahme „North‑South vernachlässigbar“ (wie EGMS‑Ortho Limitationen diskutiert) lösen wir aus \(v_{LOS,A}, v_{LOS,D}\) und incidence_angles eine Approximation \(v_{vert}, v_{east}\). EGMS‑Ortho beschreibt explizit die Ableitung vertikal und E‑W aus Asc/Desc (nicht voll‑3D). citeturn26view0turn24search2  
+
+### Model Core (konkretes Ensemble)
+
+**Entscheidung (B, konkret):** Drei Modelle + ein deterministischer Konsistenz‑Layer.
+
+1) **M1: Point‑Quality‑Classifier (GBDT, weakly supervised)**  
+Input: statische Features + TS‑Features + amplitude‑Features + spatial support.  
+Output: \(Q^{(1)}_p \in [0,1]\).  
+**Warum:** Maximale Interpretierbarkeit (SHAP), schnelle Trainingszyklen; Weak‑Labels aus Regeln/Überlappungschecks. (B)  
+**Stütze:** EGMS‑Qualitätsfelder zeigen, dass Std/RMSE/temporal_coherence als QA‑Inputs üblich sind. citeturn26view0turn7view0  
+
+2) **M2: Self‑Supervised Time‑Series Anomaly (LSTM‑AE + Soft‑DTW) auf Gebäude‑ oder Punkt‑TS**  
+- Training ohne Labels, Score über Soft‑DTW‑Reconstruction‑Error; optional Permutations‑Pretext (wie Kuzu).  
+- Output: \(A^{(2)}_p\) bzw. \(A^{(2)}_b\).  
+**Warum (A):** Publizierter, domänennaher Ansatz genau für PS‑Gebäudeanomalien ohne Ground Truth. citeturn13view0  
+
+3) **M3: Spatio‑Temporal Consistency Model (Patch‑Score)**  
+- Kein „ML“ nötig: Score = Abweichung von Patch‑Modell + Support‑Metriken.  
+**Warum (A):** Entspricht dem QA‑Paradigma „neighbourhood relations“ und „local geometric patches“. citeturn16view0  
+
+4) **Rule‑Gates (A/B):**  
+- Harte Ausschlüsse nur für offensichtliche Defekte (z. B. extrem niedrige coherence + extrem hohe velocity_std + sehr viele missing), um den ML‑Layer zu schützen.  
+**Warum:** Residual‑QIs zeigen, dass einzelne Elemente (Images/Interferograms) als „unreliable“ behandelt/ausgeschlossen werden können; analog auf Point‑Ebene als Guardrail. citeturn17view0  
+
+### Score Definition
+
+**Point Quality Score \(Q_p\)** (B, implementierbar):  
+\[
+Q_p = 100 \cdot \sigma\Big(w_1\cdot \text{logit}(Q^{(1)}_p) - w_2\cdot A^{(2)}_p + w_3\cdot \text{Support}_p + w_4\cdot \text{AscDescCons}_p\Big)
+\]
+mit initialen Gewichten \(w\) per Kalibrierung (siehe Appendix).  
+
+**Building Risk \(S_b\)** (B):  
+Konservative Aggregation:  
+- \(S_b = \mathrm{max}\big(\mathrm{quantile}_{0.9}(A^{(2)}_{p\in b}), \mathrm{quantile}_{0.9}(\text{|velocity|}_{p\in b})\big)\)  
+- **High** nur wenn (i) \#Punkte ≥ Nmin, (ii) median(Qp) ≥ Qmin, (iii) Asc/Desc‑Konsistenz ≥ Cmin.  
+**Warum:** Kuzu et al. evaluieren verschiedene Anomalietypen (trend/noise/step) auf Gebäudeebene; eure Risk‑Klasse muss diese konsistent zusammenfassen. citeturn13view0  
+
+### Explainability
+
+**Entscheidung (A+B):**  
+- Für M1 (GBDT): **Feature‑Attribution via SHAP** + „Top‑3 Gründe“ pro Punkt/Gebäude. (B)  
+- Für M2 (LSTM‑AE): „Welche Zeitpunkte treiben den Score?“ → Top‑k Zeitpunkte mit größtem Rekonstruktionsfehler (lokale Heatmap). (A‑nahe, da Rekonstruktions‑Score direkt interpretierbar; Kuzu nutzt Rekonstruktionslogik). citeturn13view0  
+
+## Validation ohne Ground Truth
+
+### Asc/Desc‑Konsistenzmetriken (A+B)
+
+**Metrik‑Set (B, verbindlich):**
+
+1) **Building‑Level Velocity Agreement**  
+- \( \Delta v = | \mathrm{median}(v_A) - \mathrm{median}(v_D) |\) nach einfacher Normierung über incidence_angle.  
+- Erwartung: Für High‑Quality‑Buildings sinkt \(\Delta v\).  
+
+2) **Time‑Series Correlation**  
+- \(\rho = \mathrm{SpearmanCorr}(x_A(t), x_D(t))\) (z‑normalisiert).  
+- Erwartung: Für stabile vertikale Signale ist \(\rho\) hoch; für reine E‑W‑Signale kann Vorzeichenwechsel auftreten (daher optional \(\rho\) auf |.|).  
+
+3) **2D‑Decomposition Residual (optional, B):**  
+- Wenn \(v_{vert}, v_{east}\) geschätzt werden: überprüfe Reconstruction‑Residual in LOS.  
+
+**Begründung (A):** Asc/Desc‑Geometrieunterschied ist offiziell dokumentiert (EGMS‑ATBD) und EGMS‑Ortho nutzt beide Geometrien zur Ableitung vertikal/E‑W – das legitimiert Konsistenz als Validierungsprinzip. citeturn24search19turn26view0turn24search2  
+
+### Robustness & Sensitivity Tests (A+B)
+
+**Testfamilien (B, verbindlich):**
+
+- **Synthetic Injection** (trend/noise/step) in reale Salzburg‑Zeitreihen (random subset):  
+  - Step‑Größe: 5–30 mm  
+  - Trendwechsel: Δslope 1–10 mm/yr  
+  - Noise inflation: ×1.5–×4  
+  **Begründung (A):** Kuzu et al. evaluieren explizit trend/noise/step anomalies; wir übernehmen diese Taxonomie für Salzburg‑Injektionen. citeturn13view0  
+
+- **Temporal Holdout:** Trainiere auf ersten 70 % der Zeit, teste auf letzten 30 % (Drift‑Check).  
+  **Begründung (A):** EGMS‑Validierung betont reproduzierbare, transparente Tests (Notebooks) und Vergleich über Zeitfenster. citeturn24search3turn24search21  
+
+- **Spatial Stress‑Test:** Innenstadt vs Randgebiete vs Vegetationsnähe (Proxy über OSM/GBA/point density).  
+  **Begründung (A):** PhU‑Fehleranfälligkeit steigt bei niedriger Kohärenz/Geometrieproblemen (ISPRS 2024 unwrapping error paper diskutiert dies). citeturn18view0  
+
+### Minimum Acceptance Criteria vor „Production Default“
+
+**Gate‑Definition (B, messbar):**
+
+1) **Asc/Desc‑Gate:** Für Gebäude im High‑Risk‑Vorschlag muss \(\rho \ge 0{,}6\) *oder* ein konsistentes Sign‑Muster (vertikal/E‑W) vorliegen; andernfalls max „Medium“. (B)  
+2) **Step‑Artefakt‑Gate:** Top‑5 % niedrigster \(Q_p\) müssen ≥3× höhere Step‑Rate (max|Δx|‑Outlier) aufweisen als Top‑50 % \(Q_p\). (B)  
+3) **Stabilität:** Median‑Score‑Drift zwischen zwei aufeinanderfolgenden Trainingsläufen (monatlich) < 10 Punkte für „Stable class“‑Gebäude. (B)  
+4) **Performance:** Inferenzlauf (gesamtes Salzburg) < 2h auf Standard‑VM (Phase‑1) bzw. < 6h (Phase‑2 mit LSTM‑AE batch). (B)
+
+## Concrete Implementation Plan, Stack‑Integration, Risiken, Quellen, Appendix
+
+### Phasenplan
+
+#### Phase 1: 4–6 Wochen (Produktiver Baseline‑Rollout)
+
+**Ziel:** Point Quality Score + einfache Building‑Risk‑Aggregation live im Viewer.
+
+**Deliverables (B, konkret):**  
+1) **Feature‑Materialisierung**  
+- Python‑Job: TS‑Features aus `insar_timeseries` + amplitude‑Features aus `insar_amplitude_timeseries` → neue Tabelle `insar_point_features_v1`.  
+- PostGIS‑Job: kNN‑Edges & Gebäude‑Aggregationen → `insar_point_neighbors` / `insar_building_agg_v1`.
+
+2) **Baseline‑Model M1 (GBDT / Logistic Regression als Start) + Rule‑Gates**  
+- Training mit weak labels aus existierenden Rules/Filters + Auto‑Label‐Heuristiken.  
+- MLflow Tracking + Model Registry Eintrag. **Quelle (A):** MLflow Model Registry unterstützt Versionierung/Lifecycle (Staging/Production). citeturn3search0turn3search4  
+
+3) **Scoring Pipeline**  
+- Batch‑Inference: Scores → `insar_point_scores` + `insar_building_scores`.  
+- FastAPI Endpoint: bbox‑Query liefert Punkte/Gebäude + Scores.
+
+4) **MapLibre UI Layer**  
+- Style‑Layer nach Score‑Klassen, Tooltip: Top‑Features. **Quelle (A):** MapLibre Style Spec beschreibt Style‑Dokument als JSON‑Definition der visuellen Darstellung. citeturn3search15turn3search3  
+
+**Risiken (B) & Mitigation:**  
+- Weak labels können Bias eintragen → strikte Trennung „training labels“ vs „production score“ + Monitoring.  
+- Performance: TS‑Feature extraction teuer → inkrementell nach `updated_at` und Partitionierung.
+
+**Exit Criteria (B):**  
+- Acceptance‑Gates (oben) erfüllt; UI zeigt plausible „Low‑Quality“‑Cluster an bekannten Problemzonen.
+
+#### Phase 2: Expansion (SOTA‑Anomaliekanal + bessere Validierung)
+
+**Ziel:** Self‑supervised Anomaly Detection (M2) + bessere Building‑Risk‑Logik.
+
+**Deliverables (A+B):**  
+1) **M2: LSTM‑Autoencoder + Soft‑DTW** (building‑level preferred, weil stabiler)  
+- Implementiert nach Kuzu et al. (2023): Soft‑DTW‑Loss, Glättung (Hann), Permutation‑Pretext optional. **Quelle (A):** Paper beschreibt genau diese Komponenten. citeturn13view0turn12view0  
+
+2) **Injections & Benchmark‑Suite**  
+- trend/noise/step‑Injection‑Suite identisch zur Paper‑Taxonomie. citeturn13view0  
+
+3) **Asc/Desc‑Decomposition Prototype**  
+- Building‑Level \(v_{vert}, v_{east}\) Approx; report residuals.
+
+**Risiken & Mitigation (B):**  
+- Soft‑DTW Implementierung/Speed: nur auf gebäudeaggregierten TS; Caching; GPU optional.  
+- Drift (saisonale Effekte): explizite seasonal component removal.
+
+**Exit Criteria:**  
+- M2‑Scores korrelieren signifikant mit Step/Noise‑Injections (AUC > 0.8 im Injection‑Test, B).  
+- High‑Risk‑Gebäude zeigen bessere Asc/Desc‑Konsistenz als Baseline.
+
+#### Phase 3: Advanced (Graph/SSL, echte Kontext‑Modelle)
+
+**Ziel:** Kontextvalidierung wird modellseitig „first class“ (GNN/SSL).
+
+**Deliverables (B→C):**  
+1) **SSL‑Embeddings (TS2Vec/Series2Vec)** + leichter Outlier‑Head  
+- TS‑Embeddings per self‑supervised learning; danach IsolationForest/GBDT. **Quellen:** TS2Vec AAAI‑22; Series2Vec 2024 zeigt Leistungsverbesserungen ggü. SOTA SSL‑Methoden. citeturn1search7turn1search15turn1search11turn1search23  
+
+2) **Heterogener Graph (points↔buildings↔neighbors)**  
+- Graph Autoencoder / ST‑GNN als Experiment.  
+- **InSAR‑Blueprint:** ST‑GAT‑Framework für InSAR‑Imputation zeigt Graph‑Formulierung „nodes=pixel@time, edges spatial+temporal“. citeturn2search7  
+
+**Risiko (C):** Modellkomplexität & Debuggability; daher nur nach Phase‑2‑Stabilisierung.
+
+**Exit Criteria (B):**  
+- Bessere Out‑of‑Distribution Robustheit als M2 (z. B. neue Stadtteile/Materialklassen).  
+- Erklärbarkeit über Graph‑Neighborhood‑Contributions.
+
+### Technische Integration in FastAPI/PostGIS/MLflow/MapLibre
+
+#### Neue Tabellen (Vorschlag)
+
+**`insar_point_features_v1`**  
+- `code` (PK), `run_feature_id`, `ts_features` (jsonb), `amp_features` (jsonb), `spatial_features` (jsonb), `computed_at`.
+
+**`insar_point_scores`**  
+- `run_id` (MLflow run), `code`, `q_score`, `a_score`, `quality_class`, `top_factors` (jsonb), `created_at`.
+
+**`insar_building_scores`**  
+- `run_id`, `building_id` (GBA/OSM), `risk_score`, `risk_class`, `support_stats` (jsonb), `asc_desc_stats` (jsonb).
+
+**Warum (A):** EGMS stellt pro Punkt TS + Qualitätsmaße bereit; wir spiegeln dieses Pattern produktintern nach (Scores + QA‑Felder). citeturn26view0turn7view0  
+
+#### Endpoints (FastAPI)
+
+- `GET /insar/points?bbox=…&run_id=…` → GeoJSON/MVT mit `q_score`, `a_score`, top_factors  
+- `GET /insar/buildings?bbox=…&run_id=…` → Gebäude‑Polygone mit Risk  
+- `GET /insar/runs` → verfügbare MLflow‑Runs/Model‑Versions
+
+**Batch Jobs:** via BackgroundTasks nur für kleine Jobs; große Läufe besser über Worker/Queue. **Quelle (A):** FastAPI BackgroundTasks sind für Tasks nach Response gedacht; für schwere Jobs begrenzt. citeturn3search2turn3search6  
+
+#### SQL vs Python: klare Trennung
+
+**In SQL/PostGIS (A):**  
+- räumliche Joins, Distanz/Containment, kNN‑Selektion (GiST), Cluster (DBSCAN). **Quelle:** ST_ClusterDBSCAN ist DBSCAN‑Window‑Function; geeignet für räumliches Baseline‑Clustering. citeturn3search1turn3search21  
+
+**In Python (B):**  
+- Zeitreihenfeature‑Extraktion, LSTM‑AE Training/Inference, Calibration, SHAP‑Berechnung, MLflow Logging.  
+- MLflow Model Registry für Stage‑Transitions. citeturn3search0turn3search12  
+
+### Open Risks + Mitigations
+
+- **North‑South Komponente unbekannt (B):** 2D‑Decomposition (vert/E‑W) ignoriert N‑S; EGMS betont „nicht full‑3D“ und geringere Sensitivität entlang Flugrichtung. **Mitigation:** Decomposition nur als Konsistenzfeature, nicht als alleinige Wahrheit; High‑Risk verlangt zusätzlich Kontextsupport. citeturn26view0  
+- **Unwrapping‑Artefakte ohne Interferogramm‑Residuals (B):** Ihr seht Artefakte nur downstream. **Mitigation:** Step‑/CP‑Features + Injection‑Testing; langfristig optional: Integration von PhU‑Korrekturalgorithmen upstream (z. B. phase closure basierte Verfahren) – wissenschaftlich belegt, aber operativ evtl. außerhalb eures Scopes. citeturn18view0turn17view0  
+- **Weak‑Label Bias (B):** Regeln schreiben „Vergangenheit“ fest. **Mitigation:** Zwei Modelle parallel tracken (weakly supervised vs pure self‑supervised) und Divergenz monitoren; „High Risk“ nur bei Übereinstimmung. citeturn13view0  
+- **Gebäudezuordnung fehlerhaft (B):** Radar‑Geometrie/Layover führt zu Offsets. **Mitigation:** Gebäude‑Höhe (GBA) als Feature + Distanz‑Weighting; Risikoaggregation nur bei hoher Zuordnungskonfidenz. (Engineering‑Assumption; keine harte Quelle in den abgerufenen Primärquellen → explizit B.)  
+- **Performance (B):** Zeitreihen in großer Zahl können teuer sein. **Mitigation:** Feature‑Caching, inkrementelles Update, Gebäudebündelung für Deep‑Model. citeturn3search0turn25view0  
+
+### Priorisierte Source List (mind. 20, mit Annotation)
+
+1) **Kuzu et al., 2023 (IEEE JSTARS):** Unsupervised building anomaly detection aus PS‑InSAR via LSTM‑AE + Soft‑DTW; genau „wenig Labels, Gebäuderisiko“. citeturn13view0  
+2) **Omidalizarandi et al., 2022 (JISDM):** Spatio‑temporale QA über Gebäude‑Klassifikation + Patch‑Modelle; trifft euer Kontext‑Prinzip. citeturn16view0  
+3) **Wang et al., 2022 (Remote Sensing):** Post‑PhU residual‑basierte QIs für Punkt/TS/Image/Interferogramm; Vorlage für QA‑Scores (auch wenn euch Residuen fehlen). citeturn17view0  
+4) **EGMS Product Description v3, 2025 (Copernicus/EEA):** Offizielle Definitionen von Produkten/Attributen/Qualitätsfeldern; Schema‑Blueprint für eure Datenprodukte. citeturn26view0  
+5) **EGMS ATBD (PDF; Copernicus):** Offizielle Geometrieerklärung Asc/Desc (ost-/westwärts schauen); Basis für Konsistenz‑Checks. citeturn24search19  
+6) **EGMS Ortho Produktbeschreibung (CLMS):** Vertikal/E‑W Komponenten aus Asc/Desc; legitimiert Decomposition/Consistency. citeturn24search2  
+7) **Azadnejad et al., 2025 (Int. J. Appl. Earth Obs. Geoinf.):** temporal coherence aus amplitude‑Features per MLP/LSTM; stützt Amplituden‑Nutzung im Viewer. citeturn25view0  
+8) **ISPRS JPRS, 2024 (3D‑ADAC, ScienceDirect):** PhU‑Fehlerdetektion/Korrektur via phase closure; zeigt Relevanz von Unwrapping‑Fehlern. citeturn18view0  
+9) **Salzburg SAGIS InSAR Attributbeschreibung (o.J., Land Salzburg):** Felddefinitionen (VEL‑Vorzeichen, COHERENCE‑Bedeutung, DS/PS via EFF_AREA). citeturn7view0turn8view0  
+10) **TranAD, 2022 (PVLDB/VLDB):** Transformer‑basierte TSAD; Kandidat für Phase‑3/Experiment. citeturn0search15  
+11) **Anomaly Transformer, ICLR 2022 (Code/ArXiv‑Verweis):** Unsupervised Transformer‑TSAD; Referenz‑Baseline für Phase‑3. citeturn2search19turn2search31  
+12) **TS2Vec, AAAI‑22:** Self‑supervised TS‑Embeddings; nützlich ohne Labels. citeturn1search7turn1search15  
+13) **Series2Vec, 2024 (Data Mining and Knowledge Discovery):** SSL‑Weiterentwicklung; potenziell bessere Embeddings. citeturn1search11turn1search23  
+14) **Semi‑Supervised InSAR mining (ScienceDirect, 2023):** Clustering→Labels→DL; Option für weak supervision skalierend. citeturn22search24  
+15) **Unsupervised pattern detection PCA+k‑means (ScienceDirect, 2023):** Baseline für Muster‑Mining/Cluster‑Support. citeturn5search30  
+16) **GIS Ostrava 2022:** Outlier/Phase Jump Detektion via robusten Intervallen + Clusterlogik; praktische InSAR‑TS‑Postprocessing‑Ideen. citeturn5search0  
+17) **PostGIS ST_ClusterDBSCAN Docs:** DBSCAN direkt in SQL; nützlich für räumliche Cluster/Support‑Features. citeturn3search1  
+18) **MLflow Model Registry Docs:** Versionierung, Staging/Production, Tags; direkt für euren MLflow‑Stack. citeturn3search0turn3search4  
+19) **FastAPI BackgroundTasks Docs:** Saubere Abgrenzung synchrone Endpoints vs Jobs. citeturn3search2  
+20) **MapLibre Style Spec:** Score‑Rendering/Styling im Frontend standardkonform. citeturn3search15turn3search3  
+21) **EGMS Validation White Paper / Reports:** Transparente, reproduzierbare Validierung; Vorbild für eure Experiment‑Notebooks. citeturn24search21turn24search3  
+22) **ESA TM‑19 InSAR Principles (Guidelines):** Grundlegende InSAR‑Fehlerquellen/Unwrapping‑Hintergrund; Kontext für QA‑Design. citeturn1search14  
+
+### Appendix: Reproducible Experiment Design (Workflow, Parameter Space, Protocol)
+
+**Workflow (B, reproduzierbar in MLflow):**
+
+1) **Dataset Build**  
+- Select Region/Time window (z. B. Salzburg‑Tile oder Verwaltungsgrenzen).  
+- Join points ↔ TS ↔ amplitude TS ↔ buildings.  
+- Create train/val/test splits:  
+  - Temporal split (train early, test late) + Spatial split (holdout areas).
+
+2) **Experiment Matrix (Phase‑1)**  
+- Baselines:  
+  - (B1) Robust‑Z/MAD‑Score  
+  - (B2) IsolationForest auf Feature‑Vektor  
+  - (B3) GBDT weakly supervised  
+- Parameter space (Beispiele):  
+  - kNN radius r ∈ {30, 50, 80} m; k ∈ {8, 12, 20}  
+  - Step threshold kMAD ∈ {4, 6, 8}  
+  - High‑Risk gating: Nmin ∈ {3, 5, 8}, Qmin ∈ {70, 80}, Cmin ∈ {0.6, 0.7}
+
+3) **Experiment Matrix (Phase‑2)**  
+- LSTM‑AE: latent_dim ∈ {8, 16, 32}, window_size ∈ {32, 64, 96}  
+- Soft‑DTW gamma ∈ {0.1, 1, 10}  
+- Permutation objective on/off (wie in Kuzu) citeturn13view0  
+
+4) **Comparison Protocol**  
+- Primary metrics ohne Ground Truth:  
+  - Asc/Desc agreement improvement (Δρ, ΔΔv)  
+  - Injection AUC (trend/noise/step)  
+  - Stability metrics (score drift)  
+- Secondary: runtime, memory, %points scored, %buildings with stable risk.
+
+5) **MLflow Logging**  
+- Log: params, metrics, artifacts (confusion vs weak labels, injection curves), model version → Registry. citeturn3search0turn3search20  
+
+### Recommendation Now (genau 1 Startpfad + 1 Backuppfad)
+
+**Preferred Starting Path (B):**  
+**Phase‑1 „Feature‑Score + Weak‑Supervision (GBDT) + Kontextsupport + Asc/Desc‑Gates“**  
+weil ihr damit in 4–6 Wochen produktiv werdet, erklärbare Scores im Viewer bekommt und sofort die zentrale Produktlogik („Points validieren sich über Kontext“) operationalisiert. Stützt sich auf: spatio‑temporale QA‑Idee (Omidalizarandi 2022) + InSAR‑konforme Qualitätsfelder (Salzburg/EGMS) + schnelle MLOps‑Integration (MLflow/PostGIS/FastAPI). citeturn16view0turn7view0turn26view0turn3search0turn3search1turn3search2  
+
+**Backup Path (B):**  
+**Phase‑1b „Rein unsupervised: IsolationForest auf Features + LSTM‑AE Soft‑DTW (building‑level)“**  
+falls Weak Labels politisch/organisatorisch nicht akzeptabel sind oder zu viel Bias erzeugen. Stützt sich auf: Kuzu et al. 2023 als domänennahes unsupervised Gebäude‑Anomaly‑System und auf klassische unsupervised Detector‑Ideen als Baseline. citeturn13view0turn0search15
