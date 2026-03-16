@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -98,3 +98,64 @@ class MLRunDeleteResponse(BaseModel):
     db_deleted: bool
     mlflow_deleted: bool
     mlflow_error: Optional[str] = None
+
+
+class MLExplainReason(BaseModel):
+    key: str
+    severity: float
+    summary: str
+
+
+class MLPointAnalysis(BaseModel):
+    run_id: str
+    pipeline: str
+    run_type: str
+    code: str
+    track: int
+    quality_score: Optional[float] = None
+    anomaly_score: Optional[float] = None
+    cross_track_consistency: Optional[float] = None
+    label: Optional[str] = None
+    building_source: Optional[str] = None
+    building_id: Optional[str] = None
+    distance_m: Optional[float] = None
+    feature_set_version: Optional[str] = None
+    model_set_version: Optional[str] = None
+    detector_scores: dict[str, float] = Field(default_factory=dict)
+    feature_flags: dict[str, Any] = Field(default_factory=dict)
+    building_context: dict[str, Any] = Field(default_factory=dict)
+    cross_track_summary: dict[str, Any] = Field(default_factory=dict)
+    explain_top_features: List[MLExplainReason] = Field(default_factory=list)
+
+
+class MLBuildingPointSummary(BaseModel):
+    code: str
+    track: int
+    label: Optional[str] = None
+    quality_score: Optional[float] = None
+    anomaly_score: Optional[float] = None
+    cross_track_consistency: Optional[float] = None
+    distance_m: Optional[float] = None
+
+
+class MLBuildingAnalysis(BaseModel):
+    run_id: str
+    pipeline: str
+    run_type: str
+    building_source: str
+    building_id: str
+    point_count: int = 0
+    track_counts: dict[str, int] = Field(default_factory=dict)
+    label_counts: dict[str, int] = Field(default_factory=dict)
+    assignment_methods: dict[str, int] = Field(default_factory=dict)
+    avg_quality_score: Optional[float] = None
+    avg_anomaly_score: Optional[float] = None
+    avg_cross_track_consistency: Optional[float] = None
+    median_distance_m: Optional[float] = None
+    top_points: List[MLBuildingPointSummary] = Field(default_factory=list)
+
+
+class MLPointAnalysisResponse(BaseModel):
+    status: Literal["ready", "pending", "missing"]
+    analysis: Optional[MLPointAnalysis] = None
+    message: Optional[str] = None

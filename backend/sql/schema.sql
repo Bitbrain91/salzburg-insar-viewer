@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS insar_timeseries;
 DROP TABLE IF EXISTS insar_points;
 DROP TABLE IF EXISTS gba_buildings;
 DROP TABLE IF EXISTS osm_buildings;
+DROP TABLE IF EXISTS ml_building_colors;
 DROP TABLE IF EXISTS ml_run_metrics;
 DROP TABLE IF EXISTS ml_point_results;
 DROP TABLE IF EXISTS ml_runs;
@@ -127,6 +128,12 @@ CREATE TABLE ml_point_results (
     building_id TEXT,
     distance_m DOUBLE PRECISION,
     score DOUBLE PRECISION,
+    anomaly_score DOUBLE PRECISION,
+    quality_score DOUBLE PRECISION,
+    cross_track_consistency DOUBLE PRECISION,
+    label TEXT,
+    feature_set_version TEXT,
+    model_set_version TEXT,
     meta JSONB,
     PRIMARY KEY (run_id, code, track)
 );
@@ -134,6 +141,9 @@ CREATE TABLE ml_point_results (
 CREATE INDEX ml_point_results_run_idx ON ml_point_results (run_id);
 CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, cluster_id);
 CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, building_id);
+CREATE INDEX ml_point_results_label_idx ON ml_point_results (run_id, label);
+CREATE INDEX ml_point_results_quality_idx ON ml_point_results (run_id, quality_score);
+CREATE INDEX ml_point_results_anomaly_idx ON ml_point_results (run_id, anomaly_score);
 
 CREATE TABLE ml_run_metrics (
     run_id UUID NOT NULL,

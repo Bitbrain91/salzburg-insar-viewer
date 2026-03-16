@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from .pipelines.anomaly_v1 import AnomalyV1Pipeline
 from .pipelines.assignment import AssignmentPipeline
 from .pipelines.clustering import ClusteringPipeline
 from .pipelines.hybrid import HybridPipeline
 
 
 _PIPELINES = {
+    AnomalyV1Pipeline.name: AnomalyV1Pipeline,
     AssignmentPipeline.name: AssignmentPipeline,
     ClusteringPipeline.name: ClusteringPipeline,
     HybridPipeline.name: HybridPipeline,

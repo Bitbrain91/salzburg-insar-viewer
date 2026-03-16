@@ -89,7 +89,7 @@ async def run_pipeline_async(
 
                 metrics = await pipeline.run(pool, config)
 
-                if pipeline.run_type in {"assignment", "hybrid"}:
+                if pipeline.run_type in {"assignment", "hybrid", "anomaly"}:
                     try:
                         await assign_building_colors(pool, config.run_id)
                     except Exception:  # pylint: disable=broad-except
@@ -115,7 +115,7 @@ async def run_pipeline_async(
         else:
             metrics = await pipeline.run(pool, config)
 
-            if pipeline.run_type in {"assignment", "hybrid"}:
+            if pipeline.run_type in {"assignment", "hybrid", "anomaly"}:
                 await assign_building_colors(pool, config.run_id)
 
             for key, value in metrics.items():

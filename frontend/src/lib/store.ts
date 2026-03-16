@@ -28,7 +28,17 @@ export type AppState = {
   activeRunId: string | null;
   showMlLayer: boolean;
   showMlBuildings: boolean;
-  mlView: "cluster" | "building" | "assignment" | "distance" | "velocity" | "coherence";
+  mlView:
+    | "cluster"
+    | "building"
+    | "assignment"
+    | "distance"
+    | "velocity"
+    | "coherence"
+    | "quality"
+    | "anomaly"
+    | "cross-track"
+    | "label";
   mlTileVersion: number;
   mapBBox: [number, number, number, number] | null;
   setLayer: (key: keyof LayerVisibility, value: boolean) => void;

@@ -102,6 +102,7 @@ React + MapLibre Frontend
 
 ## Dokumentation
 - Analysebericht der Rohdaten: `docs/Datenanalyse_InSAR_Salzburg.md`
+- Phase-1-Dokumentation fuer Reliability/Anomaly Detection: `docs/anomaly_v1_phase1.md`
 
 ## 4) Verwendung / Inbetriebnahme
 
@@ -208,11 +209,17 @@ npx vite --host --port 3000
 ```
 Oeffne: `http://localhost:3000`
 
-## 5) ML Pipelines (Assignment / Clustering)
+## 5) ML Pipelines (Assignment / Clustering / Anomaly)
 Die Anwendung enthaelt ein schlankes Pipeline-Framework mit MLflow-Tracking.
 Ergebnisse werden in PostGIS gespeichert (Tabellen: `ml_runs`, `ml_point_results`, `ml_run_metrics`)
 und lassen sich im Frontend als zusaetzliche Layer darstellen. MLflow speichert nur Tracking-Infos
 und Artefakte (keine Geodaten).
+
+Verfuegbare Pipeline-Typen im aktuellen Stand:
+- `assignment`
+- `clustering`
+- `hybrid`
+- `anomaly_v1` fuer punktbasiertes Reliability-/Anomaly-Scoring mit GBA-Kontext und Cross-Track-Konsistenz
 
 ### ML-Tabellen anlegen (bestehende DB behalten)
 Wenn du die bestehenden Daten behalten willst, lege nur die neuen Tabellen an:

@@ -130,6 +130,100 @@ const coherenceExpression: any[] = [
   "#1b9e77",
 ];
 
+const qualityExpression: any[] = [
+  "interpolate",
+  ["linear"],
+  ["coalesce", ["get", "quality_score"], 0],
+  0,
+  "#8e0f2f",
+  0.4,
+  "#d97b29",
+  0.7,
+  "#f2c14e",
+  1,
+  "#1b9e77",
+];
+
+const anomalyExpression: any[] = [
+  "interpolate",
+  ["linear"],
+  ["coalesce", ["get", "anomaly_score"], 0],
+  0,
+  "#1b9e77",
+  0.4,
+  "#f2c14e",
+  0.7,
+  "#d97b29",
+  1,
+  "#8e0f2f",
+];
+
+const crossTrackExpression: any[] = [
+  "case",
+  ["==", ["get", "cross_track_consistency"], null],
+  "#9aa0a6",
+  [
+    "interpolate",
+    ["linear"],
+    ["coalesce", ["get", "cross_track_consistency"], 0],
+    0,
+    "#8e0f2f",
+    0.5,
+    "#f2c14e",
+    1,
+    "#1b9e77",
+  ],
+];
+
+const labelExpression: any[] = [
+  "match",
+  ["get", "label"],
+  "normal",
+  "#1b9e77",
+  "suspect",
+  "#f2c14e",
+  "outlier",
+  "#c6372a",
+  "#9aa0a6",
+];
+
+const buildingQualityExpression: any[] = [
+  "interpolate",
+  ["linear"],
+  ["coalesce", ["get", "avg_quality_score"], 0],
+  0,
+  "#8e0f2f",
+  0.4,
+  "#d97b29",
+  0.7,
+  "#f2c14e",
+  1,
+  "#1b9e77",
+];
+
+const buildingAnomalyExpression: any[] = [
+  "interpolate",
+  ["linear"],
+  ["coalesce", ["get", "avg_anomaly_score"], 0],
+  0,
+  "#1b9e77",
+  0.4,
+  "#f2c14e",
+  0.7,
+  "#d97b29",
+  1,
+  "#8e0f2f",
+];
+
+const buildingLabelExpression: any[] = [
+  "case",
+  [">", ["coalesce", ["get", "outlier_count"], 0], 0],
+  "#c6372a",
+  [">", ["coalesce", ["get", "point_count"], 0], 0],
+  "#1b9e77",
+  "#9aa0a6",
+];
+
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -205,7 +299,8 @@ export default function MapView() {
     if (!mapRef.current) return;
     if (basemapRef.current === basemapId) return;
     basemapRef.current = basemapId;
-    mapRef.current.setStyle(basemaps[basemapId].style);
+    // Force a full style swap so background styles can't keep stale overlay ordering.
+    mapRef.current.setStyle(basemaps[basemapId].style, { diff: false });
   }, [basemapId]);
 
   useEffect(() => {
@@ -224,9 +319,13 @@ export default function MapView() {
     if (!map.isStyleLoaded()) return;
 
     removeMlLayersAndSources(map);
-    if (!activeRunId) return;
+    if (!activeRunId) {
+      ensureLayerOrder(map);
+      return;
+    }
 
     const colorExpression = getMlColorExpression(mlView);
+    const buildingColorExpression = getMlBuildingColorExpression(mlView);
 
     map.addSource("ml_points", {
       type: "vector",
@@ -254,7 +353,7 @@ export default function MapView() {
       source: "ml_buildings",
       "source-layer": "ml_buildings",
       paint: {
-        "fill-color": mlBuildingColorExpression,
+        "fill-color": buildingColorExpression,
         "fill-opacity": 0.35,
       },
       layout: {
@@ -268,7 +367,7 @@ export default function MapView() {
       source: "ml_buildings",
       "source-layer": "ml_buildings",
       paint: {
-        "fill-extrusion-color": mlBuildingColorExpression,
+        "fill-extrusion-color": buildingColorExpression,
         "fill-extrusion-height": mlBuildingHeightExpression,
         "fill-extrusion-base": 0,
         "fill-extrusion-opacity": 0.6,
@@ -284,7 +383,7 @@ export default function MapView() {
       source: "ml_buildings",
       "source-layer": "ml_buildings",
       paint: {
-        "line-color": mlBuildingColorExpression,
+        "line-color": buildingColorExpression,
         "line-opacity": 0.95,
         "line-width": [
           "interpolate",
@@ -335,6 +434,8 @@ export default function MapView() {
         visibility: showMlLayer ? "visible" : "none",
       },
     });
+
+    ensureLayerOrder(map);
   }, [activeRunId, mlTileVersion, styleVersion]);
 
   useEffect(() => {
@@ -372,8 +473,22 @@ export default function MapView() {
   useEffect(() => {
     if (!mapRef.current || !mapRef.current.getLayer("ml_points")) return;
     const map = mapRef.current;
-    const colorExpression = getMlColorExpression(mlView);
-    map.setPaintProperty("ml_points", "circle-color", colorExpression as any);
+    const pointColorExpression = getMlColorExpression(mlView);
+    const buildingColorExpression = getMlBuildingColorExpression(mlView);
+    map.setPaintProperty("ml_points", "circle-color", pointColorExpression as any);
+    if (map.getLayer("ml_buildings_flat")) {
+      map.setPaintProperty("ml_buildings_flat", "fill-color", buildingColorExpression as any);
+    }
+    if (map.getLayer("ml_buildings_fill")) {
+      map.setPaintProperty(
+        "ml_buildings_fill",
+        "fill-extrusion-color",
+        buildingColorExpression as any
+      );
+    }
+    if (map.getLayer("ml_buildings_outline")) {
+      map.setPaintProperty("ml_buildings_outline", "line-color", buildingColorExpression as any);
+    }
   }, [mlView, activeRunId]);
 
   useEffect(() => {
@@ -382,12 +497,23 @@ export default function MapView() {
   }, [selection]);
 
   function getMlColorExpression(view: typeof mlView) {
+    if (view === "quality") return qualityExpression;
+    if (view === "anomaly") return anomalyExpression;
+    if (view === "cross-track") return crossTrackExpression;
+    if (view === "label") return labelExpression;
     if (view === "building") return mlBuildingColorExpression;
     if (view === "assignment") return assignmentExpression;
     if (view === "distance") return distanceExpression;
     if (view === "velocity") return velocityExpression;
     if (view === "coherence") return coherenceExpression;
     return mlClusterColorExpression;
+  }
+
+  function getMlBuildingColorExpression(view: typeof mlView) {
+    if (view === "quality") return buildingQualityExpression;
+    if (view === "anomaly") return buildingAnomalyExpression;
+    if (view === "label") return buildingLabelExpression;
+    return mlBuildingColorExpression;
   }
 
   function addSourceIfMissing(map: MapLibreMap, id: string, source: any) {
@@ -399,6 +525,29 @@ export default function MapView() {
   function addLayerIfMissing(map: MapLibreMap, layer: any) {
     if (!map.getLayer(layer.id)) {
       map.addLayer(layer);
+    }
+  }
+
+  function ensureLayerOrder(map: MapLibreMap) {
+    // Move operational layers above any basemap style layers (including satellite raster).
+    const orderedLayerIds = [
+      "osm",
+      "gba",
+      "ml_buildings_flat",
+      "ml_buildings_fill",
+      "ml_buildings_outline",
+      "insar_t44",
+      "insar_t95",
+      "ml_points",
+      "insar_selected_t44",
+      "insar_selected_t95",
+      "gba_highlight",
+      "osm_highlight",
+    ];
+    for (const layerId of orderedLayerIds) {
+      if (map.getLayer(layerId)) {
+        map.moveLayer(layerId);
+      }
     }
   }
 
@@ -554,6 +703,8 @@ export default function MapView() {
       },
       filter: ["==", ["get", "osm_id"], ""],
     });
+
+    ensureLayerOrder(map);
   }
 
   function removeMlLayersAndSources(map: MapLibreMap) {
@@ -722,15 +873,35 @@ export default function MapView() {
         <strong>ML Building</strong><br/>
         Source: ${props.building_source || "—"}<br/>
         ID: ${props.building_id || "—"}<br/>
-        Height: ${props.height_m ? Number(props.height_m).toFixed(1) + " m" : "—"}
+        Height: ${props.height_m ? Number(props.height_m).toFixed(1) + " m" : "—"}<br/>
+        Avg quality: ${
+          props.avg_quality_score !== undefined && props.avg_quality_score !== null
+            ? Number(props.avg_quality_score).toFixed(2)
+            : "—"
+        }<br/>
+        Outliers: ${props.outlier_count ?? "—"} / ${props.point_count ?? "—"}
       `;
     } else if (feature.layer.id === "ml_points") {
       html = `
         <strong>ML Result</strong><br/>
-        Cluster: ${props.cluster_id || "—"}<br/>
+        Label: ${props.label || props.cluster_id || "—"}<br/>
         Building: ${props.building_id || "—"}<br/>
-        Method: ${props.method || "—"}<br/>
-        Distance: ${props.distance_m ? Number(props.distance_m).toFixed(1) + " m" : "—"}
+        Quality: ${
+          props.quality_score !== undefined && props.quality_score !== null
+            ? Number(props.quality_score).toFixed(2)
+            : "—"
+        }<br/>
+        Anomaly: ${
+          props.anomaly_score !== undefined && props.anomaly_score !== null
+            ? Number(props.anomaly_score).toFixed(2)
+            : "—"
+        }<br/>
+        Cross-track: ${
+          props.cross_track_consistency !== undefined && props.cross_track_consistency !== null
+            ? Number(props.cross_track_consistency).toFixed(2)
+            : "—"
+        }<br/>
+        Reason: ${props.top_reason || props.degraded_reason || props.method || "—"}
       `;
     } else if (feature.layer.id.startsWith("insar")) {
       html = `
@@ -790,7 +961,11 @@ export default function MapView() {
       }
     } else if (feature.layer.id === "ml_points") {
       if (props.code) {
-        setSelection({ type: "point", code: props.code, track: props.track });
+        setSelection({
+          type: "point",
+          code: String(props.code),
+          track: props.track === undefined || props.track === null ? undefined : Number(props.track),
+        });
       }
     } else if (feature.layer.id.startsWith("insar")) {
       const track = feature.layer.id === "insar_t44" ? 44 : 95;

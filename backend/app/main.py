@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import connect_db, disconnect_db
+from .ml.schema import ensure_ml_schema
+from .ml.store import fail_incomplete_runs
 from .routers import api, tiles, ml
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,16 @@ async def on_startup() -> None:
         if hasattr(route, "path") and "ml" in route.path:
             logger.warning("ML route registered: %s", route.path)
     await connect_db(app)
+    async with app.state.db_pool.acquire() as conn:
+        await ensure_ml_schema(conn)
+        stale_runs = await fail_incomplete_runs(conn)
+    for run in stale_runs:
+        logger.warning(
+            "Marked stale ML run as failed on startup: run_id=%s pipeline=%s mlflow_run_id=%s",
+            run["run_id"],
+            run["pipeline"],
+            run["mlflow_run_id"],
+        )
 
 
 @app.on_event("shutdown")

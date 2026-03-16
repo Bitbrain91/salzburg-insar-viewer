@@ -44,6 +44,24 @@ wait_port_ready() {
   return 1
 }
 
+wait_http_ready() {
+  local url="$1"
+  local name="$2"
+  local timeout_seconds="${3:-120}"
+  local elapsed=0
+
+  while [ "$elapsed" -lt "$timeout_seconds" ]; do
+    if curl -fsS -o /dev/null "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+
+  echo "    ERROR: $name did not become ready at $url within ${timeout_seconds}s."
+  return 1
+}
+
 # --- 0) Docker Desktop pruefen ---
 echo "==> Checking Docker..."
 if ! docker info >/dev/null 2>&1; then
@@ -87,7 +105,7 @@ fi
 echo "==> Starting backend (uvicorn :8000)..."
 (
   cd "$ROOT_DIR/backend"
-  "$VENV_PY" -m uvicorn app.main:app --reload --port 8000
+  "$VENV_PY" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ) &
 BACKEND_PID=$!
 PIDS+=("$BACKEND_PID")
@@ -121,6 +139,11 @@ fi
 
 echo "==> Waiting for frontend on :3000..."
 if ! wait_port_ready 3000 "Frontend" "$FRONTEND_PID"; then
+  exit 1
+fi
+
+echo "==> Waiting for MLflow on :5001..."
+if ! wait_http_ready "http://127.0.0.1:5001/" "MLflow" 180; then
   exit 1
 fi
 

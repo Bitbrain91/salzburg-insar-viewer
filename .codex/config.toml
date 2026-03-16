@@ -1,6 +1,7 @@
 [mcp_servers.mlflow-mcp]
 command = "/home/wsl_user/.local/bin/uv"
 args = ["run", "--with", "mlflow[mcp]==3.8.1", "mlflow", "mcp", "run"]
+startup_timeout_sec = 60
 
 [mcp_servers.mlflow-mcp.env]
 MLFLOW_TRACKING_URI = "http://localhost:5001"

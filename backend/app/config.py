@@ -11,29 +11,9 @@ BACKEND_DIR = BASE_DIR / "backend"
 load_dotenv(BACKEND_DIR / ".env")
 
 
-def _is_wsl() -> bool:
-    try:
-        return "microsoft" in Path("/proc/version").read_text().lower()
-    except Exception:
-        return False
-
-
-def _wsl_gateway_ip() -> str | None:
-    try:
-        for line in Path("/etc/resolv.conf").read_text().splitlines():
-            if line.startswith("nameserver"):
-                parts = line.split()
-                if len(parts) >= 2:
-                    return parts[1]
-    except Exception:
-        return None
-    return None
-
-
-def _default_docker_host() -> str:
-    if _is_wsl():
-        return _wsl_gateway_ip() or "host.docker.internal"
-    return "host.docker.internal"
+def _default_service_host() -> str:
+    # Local development uses Docker-published ports on the host.
+    return "127.0.0.1"
 
 
 def _resolve_host(env_value: str | None, fallback: str) -> str:
@@ -56,7 +36,7 @@ class Settings:
     app_name: str = "Salzburg InSAR Viewer API"
     env: str = os.getenv("APP_ENV", "dev")
 
-    db_host: str = _resolve_host(os.getenv("POSTGRES_HOST"), _default_docker_host())
+    db_host: str = _resolve_host(os.getenv("POSTGRES_HOST"), _default_service_host())
     db_port: int = int(os.getenv("POSTGRES_PORT", "5432"))
     db_name: str = os.getenv("POSTGRES_DB", "insar")
     db_user: str = os.getenv("POSTGRES_USER", "insar")
@@ -71,7 +51,7 @@ class Settings:
         os.getenv("MLFLOW_TRACKING_URI")
         if os.getenv("MLFLOW_TRACKING_URI")
         and os.getenv("MLFLOW_TRACKING_URI", "").strip().lower() != "auto"
-        else f"http://{_default_docker_host()}:5001"
+        else f"http://{_default_service_host()}:5001"
     )
     mlflow_experiment: str = os.getenv("MLFLOW_EXPERIMENT", "insar_assignment")
 

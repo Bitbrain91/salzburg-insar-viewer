@@ -25,6 +25,37 @@ function Wait-PortReady {
     return $false
 }
 
+function Wait-HttpReady {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][System.Diagnostics.Process]$Process,
+        [int]$TimeoutSeconds = 120
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if ($Process.HasExited) {
+            Write-Host "    ERROR: $Name process exited early (exit code $($Process.ExitCode))." -ForegroundColor Red
+            return $false
+        }
+
+        try {
+            $response = Invoke-WebRequest -Uri $Url -TimeoutSec 2 -ErrorAction Stop
+            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
+                return $true
+            }
+        } catch {
+            # Backend is still starting up.
+        }
+
+        Start-Sleep -Milliseconds 500
+    }
+
+    Write-Host "    ERROR: $Name did not become healthy at $Url within $TimeoutSeconds seconds." -ForegroundColor Red
+    return $false
+}
+
 # --- 0) Docker Desktop pruefen ---
 Write-Host "==> Checking Docker..."
 & docker info *>$null
@@ -107,8 +138,10 @@ if ($procs.Count -eq 0) {
 }
 
 try {
-    Write-Host "==> Waiting for backend on :8000..."
-    if (-not (Wait-PortReady -Port 8000 -Name "Backend" -Process $backendProc)) { throw "Backend startup failed" }
+    Write-Host "==> Waiting for backend health on :8000..."
+    if (-not (Wait-HttpReady -Url "http://127.0.0.1:8000/api/health" -Name "Backend" -Process $backendProc -TimeoutSeconds 120)) {
+        throw "Backend startup failed"
+    }
 
     Write-Host "==> Waiting for frontend on :3000..."
     if (-not (Wait-PortReady -Port 3000 -Name "Frontend" -Process $frontendProc)) { throw "Frontend startup failed" }

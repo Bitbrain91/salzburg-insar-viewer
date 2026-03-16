@@ -1,17 +1,26 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
-from uuid import uuid4
-
 from datetime import datetime, timezone
+from uuid import uuid4
 
 import mlflow
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from ..config import settings
 from ..db import fetch_one
-from ..schemas import MLRunCreate, MLRunDeleteResponse, MLRunDetail, MLRunSummary
+from ..schemas import (
+    MLBuildingAnalysis,
+    MLBuildingPointSummary,
+    MLPointAnalysis,
+    MLPointAnalysisResponse,
+    MLRunCreate,
+    MLRunDeleteResponse,
+    MLRunDetail,
+    MLRunSummary,
+)
 from ..ml.colors import assign_building_colors
 from ..ml.registry import get_pipeline, list_pipelines
 from ..ml.runner import run_pipeline_async
@@ -27,6 +36,21 @@ def _log_task_result(task: asyncio.Task) -> None:
         task.result()
     except Exception as exc:  # pylint: disable=broad-except
         logger.exception("ML pipeline task failed: %s", exc)
+
+
+def _parse_meta(value):
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _count_map(rows, key_field: str = "key") -> dict[str, int]:
+    return {str(row[key_field]): int(row["count"]) for row in rows}
+
+
 @router.get("/pipelines")
 async def pipelines() -> dict:
     return {"pipelines": list_pipelines()}
@@ -141,6 +165,243 @@ async def recolor_run(request: Request, run_id: str):
     return {"run_id": run_id, "building_colors": count}
 
 
+@router.get("/runs/{run_id}/points/{code}", response_model=MLPointAnalysisResponse)
+async def ml_point_analysis(
+    request: Request,
+    run_id: str,
+    code: str,
+    track: int = Query(..., description="Track number for the selected point"),
+):
+    query = """
+        SELECT
+            r.run_id,
+            m.pipeline,
+            m.run_type,
+            r.code,
+            r.track,
+            r.quality_score,
+            r.anomaly_score,
+            r.cross_track_consistency,
+            r.label,
+            r.building_source,
+            r.building_id,
+            r.distance_m,
+            r.feature_set_version,
+            r.model_set_version,
+            r.meta
+        FROM ml_point_results r
+        JOIN ml_runs m ON m.run_id = r.run_id
+        WHERE r.run_id = $1::uuid
+          AND r.code = $2
+          AND r.track = $3
+    """
+    row = await fetch_one(request.app, query, run_id, code, track)
+    if row is None:
+        run = await fetch_one(
+            request.app,
+            """
+            SELECT status
+            FROM ml_runs
+            WHERE run_id = $1::uuid
+            """,
+            run_id,
+        )
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+        if run["status"] in {"queued", "running"}:
+            return MLPointAnalysisResponse(
+                status="pending",
+                message="ML point result is not available yet for this run.",
+            )
+        return MLPointAnalysisResponse(
+            status="missing",
+            message="ML point result not found for this point in the selected run.",
+        )
+
+    meta = _parse_meta(row.get("meta"))
+    explain = [
+        {
+            "key": item.get("key", "unknown"),
+            "severity": float(item.get("severity", 0.0) or 0.0),
+            "summary": item.get("summary", ""),
+        }
+        for item in meta.get("explain_top_features", [])
+        if isinstance(item, dict)
+    ]
+
+    return MLPointAnalysisResponse(
+        status="ready",
+        analysis=MLPointAnalysis(
+            run_id=str(row["run_id"]),
+            pipeline=row["pipeline"],
+            run_type=row["run_type"],
+            code=row["code"],
+            track=row["track"],
+            quality_score=row.get("quality_score"),
+            anomaly_score=row.get("anomaly_score"),
+            cross_track_consistency=row.get("cross_track_consistency"),
+            label=row.get("label"),
+            building_source=row.get("building_source"),
+            building_id=row.get("building_id"),
+            distance_m=row.get("distance_m"),
+            feature_set_version=row.get("feature_set_version"),
+            model_set_version=row.get("model_set_version"),
+            detector_scores=meta.get("detector_scores") or {},
+            feature_flags=meta.get("feature_flags") or {},
+            building_context=meta.get("building_context") or {},
+            cross_track_summary=meta.get("cross_track_summary") or {},
+            explain_top_features=explain,
+        ),
+    )
+
+
+@router.get("/runs/{run_id}/buildings/{source}/{building_id}", response_model=MLBuildingAnalysis)
+async def ml_building_analysis(
+    request: Request,
+    run_id: str,
+    source: str,
+    building_id: str,
+):
+    if source not in {"gba", "osm"}:
+        raise HTTPException(status_code=400, detail="Invalid source")
+
+    async with request.app.state.db_pool.acquire() as conn:
+        run = await conn.fetchrow(
+            """
+            SELECT run_id, pipeline, run_type
+            FROM ml_runs
+            WHERE run_id = $1
+            """,
+            run_id,
+        )
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        summary = await conn.fetchrow(
+            """
+            WITH building_points AS (
+                SELECT
+                    quality_score,
+                    anomaly_score,
+                    cross_track_consistency,
+                    distance_m
+                FROM ml_point_results
+                WHERE run_id = $1::uuid
+                  AND building_source = $2
+                  AND building_id = $3
+            )
+            SELECT
+                COUNT(*)::integer AS point_count,
+                AVG(quality_score) AS avg_quality_score,
+                AVG(anomaly_score) AS avg_anomaly_score,
+                AVG(cross_track_consistency) AS avg_cross_track_consistency,
+                percentile_disc(0.5) WITHIN GROUP (ORDER BY distance_m)
+                    FILTER (WHERE distance_m IS NOT NULL) AS median_distance_m
+            FROM building_points
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+        track_counts = await conn.fetch(
+            """
+            SELECT track::text AS key, COUNT(*)::integer AS count
+            FROM ml_point_results
+            WHERE run_id = $1::uuid
+              AND building_source = $2
+              AND building_id = $3
+            GROUP BY track
+            ORDER BY track
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+        label_counts = await conn.fetch(
+            """
+            SELECT COALESCE(label, 'unlabeled') AS key, COUNT(*)::integer AS count
+            FROM ml_point_results
+            WHERE run_id = $1::uuid
+              AND building_source = $2
+              AND building_id = $3
+            GROUP BY COALESCE(label, 'unlabeled')
+            ORDER BY key
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+        assignment_methods = await conn.fetch(
+            """
+            SELECT
+                COALESCE(
+                    meta->'building_context'->>'assignment_method',
+                    meta->'feature_flags'->>'assignment_method',
+                    'unknown'
+                ) AS key,
+                COUNT(*)::integer AS count
+            FROM ml_point_results
+            WHERE run_id = $1::uuid
+              AND building_source = $2
+              AND building_id = $3
+            GROUP BY key
+            ORDER BY key
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+        top_points = await conn.fetch(
+            """
+            SELECT
+                code,
+                track,
+                label,
+                quality_score,
+                anomaly_score,
+                cross_track_consistency,
+                distance_m
+            FROM ml_point_results
+            WHERE run_id = $1::uuid
+              AND building_source = $2
+              AND building_id = $3
+            ORDER BY quality_score ASC NULLS LAST, anomaly_score DESC NULLS LAST, code, track
+            LIMIT 8
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+
+    return MLBuildingAnalysis(
+        run_id=str(run["run_id"]),
+        pipeline=run["pipeline"],
+        run_type=run["run_type"],
+        building_source=source,
+        building_id=building_id,
+        point_count=int(summary["point_count"] or 0),
+        track_counts=_count_map(track_counts),
+        label_counts=_count_map(label_counts),
+        assignment_methods=_count_map(assignment_methods),
+        avg_quality_score=summary["avg_quality_score"],
+        avg_anomaly_score=summary["avg_anomaly_score"],
+        avg_cross_track_consistency=summary["avg_cross_track_consistency"],
+        median_distance_m=summary["median_distance_m"],
+        top_points=[
+            MLBuildingPointSummary(
+                code=row["code"],
+                track=row["track"],
+                label=row["label"],
+                quality_score=row["quality_score"],
+                anomaly_score=row["anomaly_score"],
+                cross_track_consistency=row["cross_track_consistency"],
+                distance_m=row["distance_m"],
+            )
+            for row in top_points
+        ],
+    )
+
+
 @router.get("/runs/{run_id}/tiles/{z}/{x}/{y}.pbf")
 async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Response:
     query = """
@@ -156,9 +417,22 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 r.building_id,
                 r.distance_m,
                 r.score,
+                r.anomaly_score,
+                r.quality_score,
+                r.cross_track_consistency,
+                r.label,
+                r.feature_set_version,
+                r.model_set_version,
                 p.velocity,
                 p.coherence,
                 (r.meta->>'method') AS method,
+                (r.meta->'feature_flags'->>'height_band') AS height_band,
+                (r.meta->'feature_flags'->>'degraded_reason') AS degraded_reason,
+                (r.meta->'building_context'->>'track_point_count')::integer AS building_track_point_count,
+                (r.meta->'building_context'->>'other_track_point_count')::integer AS other_track_point_count,
+                (r.meta->'building_context'->>'step_support')::double precision AS step_support,
+                (r.meta->'building_context'->>'building_velocity_robust_z')::double precision AS building_velocity_robust_z,
+                (r.meta->'explain_top_features'->0->>'summary') AS top_reason,
                 (r.building_id IS NOT NULL) AS assigned,
                 abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
                 COALESCE(c.color_index, abs(hashtext(coalesce(r.building_id, r.code))) % 60) AS building_color_index,
@@ -194,6 +468,19 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
         WITH bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
+        building_scores AS (
+            SELECT
+                building_source,
+                building_id,
+                AVG(quality_score) AS avg_quality_score,
+                AVG(anomaly_score) AS avg_anomaly_score,
+                COUNT(*) FILTER (WHERE label = 'outlier') AS outlier_count,
+                COUNT(*) AS point_count
+            FROM ml_point_results
+            WHERE run_id = $4::uuid
+              AND building_id IS NOT NULL
+            GROUP BY building_source, building_id
+        ),
         assigned_buildings AS (
             SELECT DISTINCT building_source, building_id
             FROM ml_point_results
@@ -227,6 +514,10 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 all_buildings.building_id,
                 all_buildings.building_source,
                 height_m,
+                scores.avg_quality_score,
+                scores.avg_anomaly_score,
+                scores.outlier_count,
+                scores.point_count,
                 COALESCE(
                     c.color_index,
                     abs(hashtext(all_buildings.building_id)) % 60
@@ -243,6 +534,9 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
               ON c.run_id = $4::uuid
              AND c.building_source = all_buildings.building_source
              AND c.building_id = all_buildings.building_id
+            LEFT JOIN building_scores scores
+              ON scores.building_source = all_buildings.building_source
+             AND scores.building_id = all_buildings.building_id
             JOIN bounds ON ST_Intersects(ST_Transform(all_buildings.geom, 3857), bounds.geom)
         )
         SELECT ST_AsMVT(mvtgeom, 'ml_buildings', 4096, 'geom') AS mvt

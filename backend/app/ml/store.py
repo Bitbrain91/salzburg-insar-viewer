@@ -77,3 +77,28 @@ async def fetch_run_detail(conn, run_id: str):
         run_id,
     )
     return run, metrics
+
+
+async def fail_incomplete_runs(
+    conn,
+    *,
+    finished_at: datetime | None = None,
+    error_message: str | None = None,
+):
+    finished_at = finished_at or datetime.now(timezone.utc)
+    error_message = (
+        error_message
+        or "Run marked failed on startup because the backend process restarted before completion."
+    )
+    return await conn.fetch(
+        """
+        UPDATE ml_runs
+        SET status = 'failed',
+            finished_at = COALESCE(finished_at, $1),
+            error = COALESCE(error, $2)
+        WHERE status IN ('queued', 'running')
+        RETURNING run_id, pipeline, status, started_at, finished_at, mlflow_run_id
+        """,
+        finished_at,
+        error_message,
+    )
