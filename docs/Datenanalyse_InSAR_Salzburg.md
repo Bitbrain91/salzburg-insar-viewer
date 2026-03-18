@@ -1,321 +1,381 @@
-# Analysebericht: InSAR-Datensätze Stadt Salzburg
+# Analysebericht und Dateninventar: InSAR Stadt Salzburg
 
 **Erstellt:** 27.11.2025
-**Aktualisiert:** 22.01.2026 (Erweiterte Analyse aller 3 Datensätze)
+**Aktualisiert:** 18.03.2026
+**Pruefstand:** Repository-Inhalt, Pipeline-Skripte, Parquet-/Tile-Artefakte und Backend-Schema wurden gegen den aktuellen Workspace verifiziert.
 
 ---
 
-## 1. Zusammenfassung
+## 1. Kurzfazit
 
-Der Ordner `insar_viewer_app/data/Daten` enthält **3 GeoPackage-Dateien** mit InSAR-Daten für das Stadtgebiet Salzburg. Die Daten stammen vom **Sentinel-1 Satellitensystem** der ESA und erfassen Bodenbewegungen über einen Zeitraum von fast **3 Jahren** (April 2022 - März 2025).
+Der aktuelle Datenstand im Repository besteht nicht nur aus den drei InSAR-GeoPackages unter `data/Daten/`, sondern aus einer gesamten Verarbeitungskette:
 
-| Datei | Größe | Typ | Messpunkte | Beschreibung |
-|-------|-------|-----|------------|--------------|
-| `ASC_T44_AMP.gpkg` | ca. 289 MB | Rohdaten | 338.728 | SAR-Amplituden Track 44 |
-| `ASC_T95_AMP.gpkg` | ca. 285 MB | Rohdaten | 336.497 | SAR-Amplituden Track 95 |
-| `Stadt_Salzburg.gpkg` | ca. 539 MB | Verarbeitet | 550.764 | Bewegungsmessungen (beide Tracks) |
+1. **Quell-GPKGs** mit Bewegungs- und Amplitudendaten
+2. **abgeleitete GeoParquet-Dateien** fuer Punkte, Zeitreihen, Verknuepfungen und Terrain-Kontext
+3. **GeoJSONL- und MBTiles-Artefakte** fuer die Kartenanzeige
+4. **PostGIS-Tabellen** fuer API-Abfragen im Backend
 
----
+**Wichtige Antwort auf die Provenienzfrage:** Ja, die Zeitreihen stammen aus den GPKG-Dateien, aber nicht alle aus derselben Datei:
 
-## 2. Datensätze im Detail
+- Die **Verschiebungszeitreihen** stammen aus `data/Daten/Stadt_Salzburg.gpkg`
+  - Layer `44`: Spalten `d20220405` bis `d20250320`
+  - Layer `95`: Spalten `d20220409` bis `d20250324`
+- Die **Amplitudenzeitreihen** stammen aus den beiden AMP-GPKGs
+  - `data/Daten/ASC_T44_AMP.gpkg`: Spalten `D20220405` bis `D20250320`
+  - `data/Daten/ASC_T95_AMP.gpkg`: Spalten `D20220409` bis `D20250324`
 
-### 2.1 ASC_T44_AMP.gpkg (SAR-Amplituden Track 44)
-
-| Parameter | Wert |
-|-----------|------|
-| **Layer** | AUSTRIA_SNT_T44_A_ES10968A004S_AMP |
-| **Geometrie** | Point (EPSG:4326) |
-| **Messpunkte** | 338.728 |
-| **Zeitreihe** | 90 Termine (05.04.2022 - 20.03.2025) |
-
-**Attribute:**
-- `CODE`: Eindeutiger Messpunkt-Identifikator
-- `D20220405`, `D20220417`, ... : Amplitudenwerte pro Aufnahmedatum (90 Spalten)
-
-### 2.2 ASC_T95_AMP.gpkg (SAR-Amplituden Track 95)
-
-| Parameter | Wert |
-|-----------|------|
-| **Layer** | AUSTRIA_SNT_T95_D_ES10968A003S_4_AMP |
-| **Geometrie** | Point (EPSG:4326) |
-| **Messpunkte** | 336.497 |
-| **Zeitreihe** | 88 Termine (09.04.2022 - 24.03.2025) |
-
-**Attribute:**
-- `CODE`: Eindeutiger Messpunkt-Identifikator
-- `D20220409`, `D20220421`, ... : Amplitudenwerte pro Aufnahmedatum (88 Spalten)
-
-### 2.3 Stadt_Salzburg.gpkg (Verarbeitete Bewegungsdaten)
-
-| Parameter | Layer "44" | Layer "95" |
-|-----------|------------|------------|
-| **Geometrie** | Point (EPSG:4326) | Point (EPSG:4326) |
-| **Messpunkte** | 247.388 | 303.376 |
-| **Blickrichtung (LOS)** | A (Ascending) | D (Descending) |
-| **Einfallswinkel** | 38,79° (38,53° - 39,15°) | 38,52° (38,16° - 38,78°) |
-| **Zeitreihe** | 90 Termine | 88 Termine |
-
-**Vollständige Attributstruktur:**
-
-| Attribut | Typ | Beschreibung | Einheit |
-|----------|-----|--------------|---------|
-| `id` | INTEGER | Interne Feature-ID | - |
-| `file_id` | INTEGER | Datenquellen-ID | - |
-| `code` | TEXT | Messpunkt-Identifikator | - |
-| `track` | REAL | Orbit-Track Nummer | - |
-| `los` | TEXT | Line of Sight (A/D) | - |
-| `vel` | REAL | Mittlere Bewegungsgeschwindigkeit | mm/Jahr |
-| `v_stdev` | REAL | Standardabweichung Geschwindigkeit | mm/Jahr |
-| `acc` | REAL | Beschleunigung der Bewegung | mm/Jahr² |
-| `a_stdev` | REAL | Standardabweichung Beschleunigung | mm/Jahr² |
-| `height` | REAL | Ellipsoidische Höhe | m |
-| `h_stdev` | REAL | Standardabweichung Höhe | m |
-| `coherence` | REAL | Kohärenz (Signalqualität) | 0-1 |
-| `incidence_angle` | REAL | Einfallswinkel des Radarsignals | Grad |
-| `season_amp` | REAL | Amplitude saisonaler Schwankungen | mm |
-| `s_amp_std` | REAL | Standardabweichung saisonale Amplitude | mm |
-| `season_phs` | REAL | Phase saisonaler Schwankungen | - |
-| `s_phs_std` | REAL | Standardabweichung saisonale Phase | - |
-| `eff_area` | INTEGER | Effektive Fläche des Streuers | - |
-| `dYYYYMMDD` | REAL | Kumulative Verschiebung pro Datum | mm |
+Die App arbeitet im laufenden Betrieb jedoch **nicht direkt auf den GPKGs**, sondern auf den daraus abgeleiteten Parquet-Dateien, PostGIS-Tabellen und MBTiles.
 
 ---
 
-## 3. Zusammenhänge zwischen den Datensätzen
+## 2. Gepruefte Quell-Datensaetze
 
-### 3.1 Hierarchische Datenstruktur
+### 2.1 Originale InSAR-GPKGs in `data/Daten/`
 
-Die drei Datensätze bilden eine **hierarchische Verarbeitungskette**:
+| Datei | Rolle | Layer | Punkte | Zeitliche Abdeckung | Geometrie | Dateigroesse |
+|------|-------|-------|-------:|---------------------|-----------|-------------:|
+| `ASC_T44_AMP.gpkg` | Rohdaten Amplitude | `AUSTRIA_SNT_T44_A_ES10968A004S_AMP` | 338.728 | 90 Termine, 05.04.2022 bis 20.03.2025 | `POINT`, EPSG:4326 | ca. 290 MB |
+| `ASC_T95_AMP.gpkg` | Rohdaten Amplitude | `AUSTRIA_SNT_T95_D_ES10968A003S_4_AMP` | 336.497 | 88 Termine, 09.04.2022 bis 24.03.2025 | `POINT`, EPSG:4326 | ca. 285 MB |
+| `Stadt_Salzburg.gpkg` | verarbeitete Bewegungsdaten | `44`, `95` | 247.388 + 303.376 = 550.764 | Track 44: 90 Termine, Track 95: 88 Termine | `POINT`, EPSG:4326 | ca. 540 MB |
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         ROHDATEN (Amplituden)                           │
-│                                                                         │
-│   ┌──────────────────────────┐      ┌──────────────────────────┐       │
-│   │    ASC_T44_AMP.gpkg      │      │    ASC_T95_AMP.gpkg      │       │
-│   │    338.728 Punkte        │      │    336.497 Punkte        │       │
-│   │    SAR-Signalstärke      │      │    SAR-Signalstärke      │       │
-│   │    (kein Bewegung!)      │      │    (kein Bewegung!)      │       │
-│   └────────────┬─────────────┘      └────────────┬─────────────┘       │
-│                │                                 │                      │
-│                └─────────────┬───────────────────┘                      │
-│                              │                                          │
-│                              ▼                                          │
-│                    ┌─────────────────────┐                              │
-│                    │  PSI-Verarbeitung   │                              │
-│                    │  (Interferometrie)  │                              │
-│                    └─────────┬───────────┘                              │
-│                              │                                          │
-│                              ▼                                          │
-│              ┌───────────────────────────────────┐                      │
-│              │      Stadt_Salzburg.gpkg          │                      │
-│              │  ┌─────────────┐ ┌─────────────┐  │                      │
-│              │  │  Layer 44   │ │  Layer 95   │  │                      │
-│              │  │ 247.388 Pkt │ │ 303.376 Pkt │  │                      │
-│              │  │ Ascending   │ │ Descending  │  │                      │
-│              │  │ + Bewegung  │ │ + Bewegung  │  │                      │
-│              │  │ + Metadaten │ │ + Metadaten │  │                      │
-│              │  └─────────────┘ └─────────────┘  │                      │
-│              └───────────────────────────────────┘                      │
-│                         VERARBEITETE DATEN                              │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+### 2.2 Inhaltliche Bedeutung der drei GPKGs
 
-### 3.2 Fundamentaler Unterschied der Datentypen
+| Datei | Inhalt | Einheit | Bemerkung |
+|------|--------|---------|-----------|
+| `ASC_T44_AMP.gpkg` | SAR-Amplitude / Rueckstreuintensitaet | dimensionslos | keine Bodenbewegung |
+| `ASC_T95_AMP.gpkg` | SAR-Amplitude / Rueckstreuintensitaet | dimensionslos | keine Bodenbewegung |
+| `Stadt_Salzburg.gpkg` | LOS-Verschiebung, Geschwindigkeit und Metadaten | mm, mm/Jahr, mm/Jahr^2 | fachlicher Hauptdatensatz fuer Bewegungsanalyse |
 
-| Aspekt | AMP-Dateien | Stadt_Salzburg.gpkg |
-|--------|-------------|---------------------|
-| **Datentyp** | SAR-Amplitude (Signalstärke) | Verschiebung/Bewegung |
-| **Bedeutung** | Rückstreuintensität | Bodenbewegung in LOS-Richtung |
-| **Einheit** | Dimensionslos | Millimeter (mm) |
-| **Verarbeitungsstufe** | Rohdaten | Endergebnis der PSI-Analyse |
-| **Anwendung** | Qualitätskontrolle, Punktauswahl | Bewegungsanalyse, Monitoring |
+### 2.3 Verifizierte Attributstruktur der GPKGs
 
-**Wichtig:** Die Amplitudenwerte in den AMP-Dateien repräsentieren **NICHT** die Bodenbewegung! Sie zeigen lediglich, wie stark das Radarsignal vom jeweiligen Punkt reflektiert wird.
+**AMP-Dateien (`ASC_T44_AMP.gpkg`, `ASC_T95_AMP.gpkg`)**
 
-### 3.3 CODE-Verknüpfung zwischen Datensätzen
+- `fid`
+- `geom`
+- `CODE`
+- `DYYYYMMDD` fuer jede Amplitudenaufnahme
 
-Die Messpunkte können über das `CODE`-Attribut verknüpft werden:
+**Bewegungsdatei (`Stadt_Salzburg.gpkg`, Layer `44` und `95`)**
 
-| Verknüpfung | Übereinstimmung | Quote |
-|-------------|-----------------|-------|
-| ASC_T44_AMP → Stadt_Salzburg (Layer 44) | 246.865 von 247.388 | **99,8%** |
-| ASC_T95_AMP → Stadt_Salzburg (Layer 95) | 242.836 von 303.376 | **80,0%** |
-
-**Interpretation:**
-- Fast alle Punkte in Stadt_Salzburg Layer 44 haben ein Pendant in ASC_T44_AMP
-- Bei Track 95 haben ca. 20% der verarbeiteten Punkte kein direktes Pendant in den AMP-Daten. Moegliche Ursachen sind Filterung/Selektion oder Verarbeitungsschritte; zusaetzlich existieren auch AMP-Punkte, die nicht in der verarbeiteten Datei enthalten sind.
-
-### 3.4 Räumliche Beziehung
-
-| Bereich | ASC_T44_AMP | ASC_T95_AMP | Stadt_Salzburg |
-|---------|-------------|-------------|----------------|
-| **Lon (West)** | 12,9750° | 12,9743° | 12,9857° |
-| **Lon (Ost)** | 13,0996° | 13,0947° | 13,1236° |
-| **Lat (Süd)** | 47,7506° | 47,7497° | 47,7513° |
-| **Lat (Nord)** | 47,8542° | 47,8543° | 47,8535° |
-
-**Gemeinsamer Überlappungsbereich (Track 44 & 95):**
-- Longitude: 12,9858° - 13,1195°
-- Latitude: 47,7514° - 47,8535°
-- Abgedeckte Fläche: ca. 13,4 km × 11,4 km
-
-### 3.5 Zeitliche Beziehung
-
-| Parameter | Track 44 | Track 95 |
-|-----------|----------|----------|
-| **Erstes Datum** | 05.04.2022 | 09.04.2022 |
-| **Letztes Datum** | 20.03.2025 | 24.03.2025 |
-| **Anzahl Aufnahmen** | 90 | 88 |
-| **Mittleres Intervall** | 12,1 Tage | 12,4 Tage |
-| **Minimales Intervall** | 12 Tage | 12 Tage |
-| **Maximales Intervall** | 24 Tage | 36 Tage |
-
-Die zeitlichen Abstände von ca. 12 Tagen entsprechen dem Sentinel-1 Repeat Cycle.
-
-### 3.6 Bedeutung der zwei Blickrichtungen
-
-| Eigenschaft | Track 44 (Ascending) | Track 95 (Descending) |
-|-------------|---------------------|----------------------|
-| **Flugrichtung** | Süd → Nord | Nord → Süd |
-| **Blickrichtung** | Nach Osten | Nach Westen |
-| **LOS-Kennzeichnung** | A | D |
-| **Einfallswinkel** | ~38,8° | ~38,5° |
-
-**Nutzen der Kombination:**
-1. **Dekomposition:** Trennung von vertikaler und horizontaler Bewegung
-2. **Validierung:** Gegenseitige Prüfung der Messungen
-3. **Abdeckung:** Bessere Erfassung unterschiedlich orientierter Oberflächen
-4. **Redundanz:** Kompensation von Datenlücken
+- `fid`
+- `id`
+- `file_id`
+- `code`
+- `track`
+- `los`
+- `height`
+- `h_stdev`
+- `vel`
+- `v_stdev`
+- `acc`
+- `a_stdev`
+- `season_amp`
+- `s_amp_std`
+- `season_phs`
+- `s_phs_std`
+- `coherence`
+- `incidence_angle`
+- `eff_area`
+- `dYYYYMMDD` fuer jede Verschiebungsaufnahme
+- `geometry`
 
 ---
 
-## 4. Statistische Analyse der Bewegungsdaten
+## 3. Ableitungskette und Provenienz
 
-### 4.1 Geschwindigkeitsstatistik
+### 3.1 Was wird aus welchem GPKG erzeugt?
 
-| Parameter | Track 44 (Ascending) | Track 95 (Descending) |
-|-----------|---------------------|----------------------|
-| **Minimum** | -17,0 mm/Jahr | -21,9 mm/Jahr |
-| **Maximum** | +17,0 mm/Jahr | +17,9 mm/Jahr |
-| **Mittelwert** | -0,25 mm/Jahr | +0,25 mm/Jahr |
-| **Median** | -0,20 mm/Jahr | +0,30 mm/Jahr |
-| **Standardabweichung** | 2,03 mm/Jahr | 1,98 mm/Jahr |
-| **Ø v_stdev** | 1,04 mm/Jahr | 0,66 mm/Jahr |
+Die Datei `pipeline/prepare_insar.py` verarbeitet die drei GPKGs wie folgt:
 
-**Interpretation:**
-- Der Mittelwert nahe Null zeigt eine insgesamt **stabile Situation**
-- Die leichte Diskrepanz zwischen Ascending (-0,25) und Descending (+0,25) deutet auf eine **geringe horizontale Bewegungskomponente** hin
-- Track 95 zeigt **höhere Präzision** (niedrigere Standardabweichung)
+1. `Stadt_Salzburg.gpkg`, Layer `44` und `95`
+   - werden zu punktbasierten GeoParquet-Dateien normalisiert
+   - liefern die **Verschiebungszeitreihen** im Long-Format
+2. `ASC_T44_AMP.gpkg` und `ASC_T95_AMP.gpkg`
+   - liefern die **Amplitudenzeitreihen** im Long-Format
+   - liefern zusaetzlich `amp_mean` und `amp_std` je Punkt
+3. Die daraus entstehenden Punktdaten werden weiterverarbeitet zu
+   - Gebaeude-Verknuepfungen
+   - Terrain-Kontext
+   - GeoJSONL
+   - MBTiles
+   - PostGIS-Tabellen
 
-### 4.2 Klassifizierung der Bodenbewegungen
+### 3.2 Fachlich korrekte Herkunft der Zeitreihen
 
-| Kategorie | Geschwindigkeit | Track 44 | % | Track 95 | % |
-|-----------|-----------------|----------|---|----------|---|
-| **Stabil** | -2 bis +2 mm/Jahr | 207.888 | **84,0%** | 254.972 | **84,0%** |
-| **Leichte Senkung** | -2 bis -5 mm/Jahr | 19.976 | 8,1% | 16.284 | 5,4% |
-| **Moderate Senkung** | -5 bis -10 mm/Jahr | 3.764 | 1,5% | 3.458 | 1,1% |
-| **Starke Senkung** | < -10 mm/Jahr | 1.104 | 0,4% | 1.047 | 0,3% |
-| **Hebung** | > +2 mm/Jahr | 14.656 | 5,9% | 27.615 | 9,1% |
+**Verschiebung**
 
-**Fazit:** Rund **84% aller Messpunkte** zeigen stabile Verhältnisse (< ±2 mm/Jahr).
+- Quelle: `Stadt_Salzburg.gpkg`
+- Feldfamilie: `dYYYYMMDD`
+- Exportziel: `data/parquet/insar_timeseries_t44.parquet` und `data/parquet/insar_timeseries_t95.parquet`
 
-### 4.3 Qualitätsanalyse (Kohärenz)
+**Amplitude**
 
-| Qualitätsstufe | Kohärenz | Track 44 | % | Track 95 | % |
-|----------------|----------|----------|---|----------|---|
-| **Hoch** | > 0,8 | 87.494 | 35,4% | 105.479 | 34,8% |
-| **Mittel** | 0,6 - 0,8 | 98.192 | 39,7% | 124.780 | 41,1% |
-| **Niedrig** | < 0,6 | 61.702 | 24,9% | 73.117 | 24,1% |
+- Quelle: `ASC_T44_AMP.gpkg` und `ASC_T95_AMP.gpkg`
+- Feldfamilie: `DYYYYMMDD`
+- Exportziel: `data/parquet/insar_amplitude_timeseries_t44.parquet` und `data/parquet/insar_amplitude_timeseries_t95.parquet`
 
-**Bewertung:** Die Datenqualität ist **gut** - über 75% der Punkte haben eine Kohärenz ≥ 0,6.
+### 3.3 Wichtige fachliche Abgrenzung
 
-### 4.4 Kritische Punkte (stärkste Bewegungen)
-
-#### Stärkste Senkungen - Track 44
-| Code | Geschw. [mm/a] | Std.Abw. | Höhe [m] | Kohärenz |
-|------|----------------|----------|----------|----------|
-| OA3SWPR01 | -17,0 | ±1,2 | 488,9 | 0,41 |
-| O0IHI7401 | -17,0 | ±1,1 | 456,0 | 0,41 |
-| NZSAF9401 | -17,0 | ±1,2 | 482,9 | 0,69 |
-| NU5V1LM01 | -17,0 | ±1,1 | 467,5 | 0,73 |
-| OEIRNJZ01 | -16,9 | ±1,1 | 488,7 | 0,51 |
-
-#### Stärkste Senkungen - Track 95
-| Code | Geschw. [mm/a] | Std.Abw. | Höhe [m] | Kohärenz |
-|------|----------------|----------|----------|----------|
-| NJE9U7G01 | **-21,9** | ±0,7 | 482 | **0,82** ✓ |
-| NICRL6101 | **-21,9** | ±0,7 | 473 | **0,85** ✓ |
-| NHUWKZZ01 | -18,0 | ±0,6 | 474 | **0,88** ✓ |
-| NJLF1G301 | -17,3 | ±0,6 | 474 | **0,85** ✓ |
-| NUN4LJH01 | -17,1 | ±0,7 | 457 | **0,81** ✓ |
-
-**Bemerkenswert:** Die stärksten Absenkungen in Track 95 haben eine **hohe Kohärenz (>0,8)** und sind damit als zuverlässig einzustufen.
+- Die AMP-GPKGs sind **keine Bewegungsdatensaetze**
+- `Stadt_Salzburg.gpkg` ist der **verarbeitete Bewegungsdatensatz**
+- Im Repository ist **nicht** implementiert, wie `Stadt_Salzburg.gpkg` aus den AMP-Dateien erzeugt wurde
+- Im Repository ist aber sehr wohl implementiert, wie **aus den vorhandenen GPKGs** die aktuelle operative Datenbasis fuer App und Backend erzeugt wird
 
 ---
 
-## 5. Saisonale und Beschleunigungsanalyse
+## 4. Aktuelle abgeleitete Datensaetze im Repository
 
-### 5.1 Saisonale Effekte
+### 4.1 InSAR-GeoParquet
 
-| Parameter | Track 44 | Track 95 |
-|-----------|----------|----------|
-| **Ø Saisonale Amplitude** | 1,26 mm | 1,17 mm |
-| **Max. Saisonale Amplitude** | 13,72 mm | 11,92 mm |
+| Datei | Quelle | Zeilen | Inhalt |
+|------|--------|-------:|--------|
+| `data/parquet/insar_points_t44.parquet` | `Stadt_Salzburg.gpkg`, Layer `44` + AMP-Statistik | 247.388 | Punktdaten Track 44 inkl. `amp_mean`, `amp_std` |
+| `data/parquet/insar_points_t95.parquet` | `Stadt_Salzburg.gpkg`, Layer `95` + AMP-Statistik | 303.376 | Punktdaten Track 95 inkl. `amp_mean`, `amp_std` |
+| `data/parquet/insar_timeseries_t44.parquet` | `Stadt_Salzburg.gpkg`, Layer `44` | 22.264.920 | Verschiebungszeitreihe Track 44 |
+| `data/parquet/insar_timeseries_t95.parquet` | `Stadt_Salzburg.gpkg`, Layer `95` | 26.697.088 | Verschiebungszeitreihe Track 95 |
+| `data/parquet/insar_amplitude_timeseries_t44.parquet` | `ASC_T44_AMP.gpkg` | 30.485.520 | Amplitudenzeitreihe Track 44 |
+| `data/parquet/insar_amplitude_timeseries_t95.parquet` | `ASC_T95_AMP.gpkg` | 29.611.736 | Amplitudenzeitreihe Track 95 |
 
-Die saisonalen Schwankungen sind moderat und entsprechen typischen thermischen Ausdehnungseffekten.
+**Bemerkung zu den Zeilenanzahlen**
 
-### 5.2 Beschleunigung
+- `247.388 x 90 = 22.264.920`
+- `303.376 x 88 = 26.697.088`
+- `338.728 x 90 = 30.485.520`
+- `336.497 x 88 = 29.611.736`
 
-| Parameter | Track 44 | Track 95 |
-|-----------|----------|----------|
-| **Ø Beschleunigung** | -0,03 mm/Jahr² | -0,01 mm/Jahr² |
-| **Min. Beschleunigung** | -11,9 mm/Jahr² | -11,6 mm/Jahr² |
-| **Max. Beschleunigung** | +11,0 mm/Jahr² | +11,0 mm/Jahr² |
+Die Long-Format-Zeitreihen sind damit fuer den aktuellen Datenstand **vollstaendig befuellt**; es gibt keine erkennbaren Luecken nach dem `melt`/`dropna`-Export.
+
+### 4.2 Gebaeude-, Link- und Terrain-Datensaetze
+
+| Datei | Zeilen | Inhalt |
+|------|-------:|--------|
+| `data/parquet/gba_buildings.parquet` | 57.489 | GBA-Gebaeude |
+| `data/parquet/osm_buildings.parquet` | 49.240 | OSM-Gebaeude |
+| `data/parquet/insar_to_gba.parquet` | 483.015 | InSAR-Punkt zu GBA-Gebaeude |
+| `data/parquet/insar_to_osm.parquet` | 481.423 | InSAR-Punkt zu OSM-Gebaeude |
+| `data/parquet/insar_point_terrain.parquet` | 550.764 | Terrain-Kontext je InSAR-Punkt |
+| `data/parquet/building_terrain_context.parquet` | 106.729 | Terrain-Kontext je Gebaeude |
+
+**Verknuepfungsabdeckung**
+
+- `insar_to_gba.parquet`
+  - 482.900 eindeutige InSAR-Punkte verknuepft
+  - entspricht **87,68 %** aller 550.764 Bewegungs-Punkte
+  - 31.081 eindeutige GBA-Gebaeude
+  - Match-Methoden: `nearest` 300.168, `within` 182.847
+- `insar_to_osm.parquet`
+  - 479.491 eindeutige InSAR-Punkte verknuepft
+  - entspricht **87,06 %** aller 550.764 Bewegungs-Punkte
+  - 30.268 eindeutige OSM-Gebaeude
+  - Match-Methoden: `nearest` 299.450, `within` 181.973
+
+**Terrain-Kontext**
+
+- `insar_point_terrain.parquet`
+  - deckt **alle 550.764** Bewegungs-Punkte ab
+  - `terrain_source = srtm`
+  - `terrain_resolution_m = 25.82`
+- `building_terrain_context.parquet`
+  - deckt **alle 106.729** Gebaeude aus GBA und OSM ab
+  - Aufteilung: `gba` 57.489, `osm` 49.240
+  - `terrain_source = srtm`
+  - `terrain_resolution_m = 25.82`
+
+### 4.3 GeoJSONL- und Tile-Artefakte
+
+Die Datei `pipeline/build_tiles.sh` exportiert die GeoParquets nach GeoJSONL und erzeugt daraus MBTiles.
+
+**GeoJSONL**
+
+| Datei | Features |
+|------|---------:|
+| `data/geojson/insar_t44.geojsonl` | 247.388 |
+| `data/geojson/insar_t95.geojsonl` | 303.376 |
+| `data/geojson/gba.geojsonl` | 57.489 |
+| `data/geojson/osm.geojsonl` | 49.240 |
+
+**MBTiles in `data/tiles_v2/`**
+
+| Datei | Bounds | Zoom | Tile-Anzahl |
+|------|--------|------|------------:|
+| `insar_t44.mbtiles` | 12.985767,47.751343,13.123573,47.853511 | 8-16 | 666 |
+| `insar_t95.mbtiles` | 12.985729,47.751379,13.119458,47.853543 | 8-16 | 654 |
+| `gba.mbtiles` | 12.950006,47.750001,13.149997,47.869998 | 0-15 | 465 |
+| `osm.mbtiles` | 12.948391,47.749585,13.150468,47.850321 | 0-15 | 403 |
+
+**Zusatzpfad `data/pmtiles/`**
+
+- Es existiert zusaetzlich ein Verzeichnis `data/pmtiles/` mit gleichnamigen `.mbtiles`-Dateien
+- Die aktuelle Backend-Default-Konfiguration zeigt jedoch auf **`data/tiles_v2/`**
+- Fuer den laufenden App-Betrieb ist daher `data/tiles_v2/` der primaere Tile-Bestand
 
 ---
 
-## 6. Empfehlungen für die Datennutzung
+## 5. Verifizierte Bewegungsstatistik aus `Stadt_Salzburg.gpkg`
 
-### 6.1 Welche Datei für welchen Zweck?
+### 5.1 Kernstatistik pro Track
 
-| Anwendungsfall | Empfohlene Datei |
-|----------------|------------------|
-| **Bewegungsanalyse** | `Stadt_Salzburg.gpkg` |
-| **Zeitreihenanalyse** | `Stadt_Salzburg.gpkg` |
-| **Qualitätskontrolle** | AMP-Dateien + `Stadt_Salzburg.gpkg` |
-| **Punktauswahl/Filterung** | AMP-Dateien (Signalstärke) |
-| **2D/3D-Dekomposition** | `Stadt_Salzburg.gpkg` (beide Layer) |
+| Kennzahl | Track 44 | Track 95 |
+|---------|---------:|---------:|
+| Punkte | 247.388 | 303.376 |
+| LOS | `A` | `D` |
+| Datumsanzahl | 90 | 88 |
+| Zeitraum | 05.04.2022 bis 20.03.2025 | 09.04.2022 bis 24.03.2025 |
+| mittleres Intervall | 12,13 Tage | 12,41 Tage |
+| minimales Intervall | 12 Tage | 12 Tage |
+| maximales Intervall | 24 Tage | 36 Tage |
+| mittlerer Einfallswinkel | 38,7863 Grad | 38,5246 Grad |
+| Einfallswinkel min/max | 38,5305 bis 39,1528 | 38,1574 bis 38,7847 |
+| Geschwindigkeit min | -17,0 mm/Jahr | -21,9 mm/Jahr |
+| Geschwindigkeit max | +17,0 mm/Jahr | +17,9 mm/Jahr |
+| Geschwindigkeit Mittelwert | -0,2544 mm/Jahr | +0,2537 mm/Jahr |
+| Geschwindigkeit Median | -0,2 mm/Jahr | +0,3 mm/Jahr |
+| Geschwindigkeit Std.-Abw. | 2,0288 mm/Jahr | 1,9787 mm/Jahr |
+| mittlere `v_stdev` | 1,0381 mm/Jahr | 0,6552 mm/Jahr |
+| mittlere Kohaerenz | 0,7211 | 0,7224 |
+| mittlere saisonale Amplitude | 1,2627 mm | 1,1688 mm |
+| maximale saisonale Amplitude | 13,72 mm | 11,92 mm |
+| mittlere Beschleunigung | -0,0343 mm/Jahr^2 | -0,0070 mm/Jahr^2 |
+| Beschleunigung min/max | -11,9 bis +11,0 mm/Jahr^2 | -11,6 bis +11,0 mm/Jahr^2 |
 
-### 6.2 Qualitätsfilter
+### 5.2 Klassifikation der Geschwindigkeiten
 
-Empfohlene Filterkriterien für zuverlässige Analysen:
-- Kohärenz ≥ 0,6 (besser ≥ 0,7)
-- v_stdev ≤ 1,5 mm/Jahr
-- Bei Extremwerten: Kohärenz ≥ 0,8
+| Kategorie | Definition | Track 44 | Track 95 |
+|----------|------------|---------:|---------:|
+| stabil | -2 bis +2 mm/Jahr | 207.888 (84,0 %) | 254.972 (84,0 %) |
+| leichte Senkung | -5 bis < -2 mm/Jahr | 19.976 (8,1 %) | 16.284 (5,4 %) |
+| moderate Senkung | -10 bis < -5 mm/Jahr | 3.764 (1,5 %) | 3.458 (1,1 %) |
+| starke Senkung | < -10 mm/Jahr | 1.104 (0,4 %) | 1.047 (0,3 %) |
+| Hebung | > +2 mm/Jahr | 14.656 (5,9 %) | 27.615 (9,1 %) |
 
-### 6.3 Handlungsempfehlungen
+### 5.3 Kohaerenzklassen
 
-1. **Hotspot-Untersuchung:** Die Punkte mit Senkungsraten > 15 mm/Jahr lokalisieren und vor Ort prüfen
-2. **Dekomposition:** Vertikale und horizontale Bewegungskomponenten durch Kombination beider Tracks trennen
-3. **Monitoring:** Punkte mit signifikanter Beschleunigung überwachen
-4. **Validierung:** Bei wichtigen Entscheidungen beide Tracks vergleichen
+| Kohaerenzklasse | Track 44 | Track 95 |
+|----------------|---------:|---------:|
+| > 0,8 | 87.494 (35,4 %) | 105.479 (34,8 %) |
+| 0,6 bis 0,8 | 98.192 (39,7 %) | 124.780 (41,1 %) |
+| < 0,6 | 61.702 (24,9 %) | 73.117 (24,1 %) |
+
+### 5.4 CODE-Verknuepfung zwischen Quell- und Bewegungsdaten
+
+| Vergleich | Treffer | Quote |
+|----------|--------:|------:|
+| AMP T44 `CODE` vs. Bewegungs-Layer `44` `code` | 246.865 von 247.388 | 99,79 % |
+| AMP T95 `CODE` vs. Bewegungs-Layer `95` `code` | 242.836 von 303.376 | 80,04 % |
+
+Interpretation:
+
+- Track 44 ist nahezu vollstaendig zwischen AMP- und Bewegungsdaten deckungsgleich
+- Track 95 weist deutlich mehr Codes im Bewegungsdatensatz auf, die in der AMP-Datei nicht vorkommen
+- Diese Differenz ist real im Bestand vorhanden und sollte bei Punkt- oder Zeitreihenjoins beruecksichtigt werden
 
 ---
 
-## 7. Technische Metadaten
+## 6. Raeumliche Abdeckung
 
-```
-Koordinatensystem:     EPSG:4326 (WGS 84)
-Geometrietyp:          POINT
-Datenquelle:           Sentinel-1 (ESA Copernicus)
-Verarbeitungsmethode:  Persistent Scatterer Interferometry (PSI)
-Beobachtungszeitraum:  April 2022 - März 2025 (~3 Jahre)
-Mittleres Intervall:   ~12 Tage (Sentinel-1 Repeat Cycle)
-Gesamtpunkte:          675.225 (AMP) / 550.764 (verarbeitet)
-```
+### 6.1 Verifizierte Bounding Boxes der Quell-AMP-GPKGs
+
+| Datensatz | West | Ost | Sued | Nord |
+|----------|-----:|----:|-----:|-----:|
+| `ASC_T44_AMP.gpkg` | 12,9750389 | 13,0996305 | 47,7505758 | 47,8541804 |
+| `ASC_T95_AMP.gpkg` | 12,9742967 | 13,0947458 | 47,7497277 | 47,8542833 |
+
+### 6.2 Verifizierte Bounding Boxes der verarbeiteten Bewegungsdaten
+
+Fuer `Stadt_Salzburg.gpkg` sind die Bounding-Box-Werte in `gpkg_contents` nicht brauchbar, da dort fuer beide Layer die globale Ausdehnung `(-180, -90, 180, 90)` hinterlegt ist. Die tatsaechliche Ausdehnung wurde daher ueber die abgeleiteten GeoParquets und MBTiles verifiziert.
+
+| Datensatz | West | Ost | Sued | Nord |
+|----------|-----:|----:|-----:|-----:|
+| Bewegungsdaten Track 44 | 12,9857670 | 13,1235728 | 47,7513428 | 47,8535112 |
+| Bewegungsdaten Track 95 | 12,9857294 | 13,1194578 | 47,7513792 | 47,8535426 |
+
+### 6.3 Gemeinsamer Kernbereich der Bewegungsdaten
+
+- West: 12,9857670
+- Ost: 13,1194578
+- Sued: 47,7513792
+- Nord: 47,8535112
+
+Dieser Bereich entspricht dem fuer die App relevanten gemeinsamen Beobachtungsraum der beiden Tracks.
 
 ---
 
-*Bericht erstellt: 27.11.2025*
-*Letzte Aktualisierung: 22.01.2026*
+## 7. Operative Nutzung im Backend
+
+Die folgenden Tabellen bilden den aktuellen operativen Datenkern des Backends:
+
+- `insar_points`
+- `insar_timeseries`
+- `insar_amplitude_timeseries`
+- `insar_to_gba`
+- `insar_to_osm`
+- `insar_point_terrain`
+- `building_terrain_context`
+- `gba_buildings`
+- `osm_buildings`
+
+Wichtige Konsequenz:
+
+- Punktdetails kommen aus `insar_points`
+- Zeitreihenabfragen kombinieren `insar_timeseries` und `insar_amplitude_timeseries`
+- Terrain-Information wird ueber `insar_point_terrain` bzw. `building_terrain_context` angereichert
+- Kacheln werden standardmaessig aus `data/tiles_v2/` ausgeliefert
+
+---
+
+## 8. Datenstand und Aktualitaet zum 18.03.2026
+
+### 8.1 Was ist aktuell?
+
+- Die **InSAR-Quell-GPKGs** sind im Repository vorhanden und inhaltlich konsistent
+- Die **analytischen Kerndaten** in den bisherigen Abschnitten 2 bis 6 lassen sich direkt aus diesen GPKGs bestaetigen
+- Die **abgeleiteten InSAR-Parquets** sind vorhanden und wurden zuletzt Anfang Februar 2026 erzeugt
+- Die **Terrain-Kontext-Daten** wurden Mitte Maerz 2026 erzeugt und sind vollstaendig vorhanden
+- Die **Tile-Artefakte** fuer Karte und Frontend sind vorhanden
+
+### 8.2 Was im alten Bericht fehlte und nun ergaenzt wurde
+
+- die explizite Trennung zwischen
+  - Bewegungszeitreihen aus `Stadt_Salzburg.gpkg`
+  - Amplitudenzeitreihen aus den AMP-GPKGs
+- die operativ genutzten GeoParquet-Dateien
+- Gebaeude-Datensaetze aus GBA und OSM
+- die Link-Tabellen zwischen InSAR und Gebaeuden
+- der Terrain-Kontext fuer Punkte und Gebaeude
+- GeoJSONL- und MBTiles-Ausgaben
+- die Backend-relevanten Tabellen
+- der Hinweis auf die fehlerhafte GPKG-Bounding-Box in `Stadt_Salzburg.gpkg`
+
+---
+
+## 9. Empfehlungen fuer die Datennutzung
+
+| Anwendungsfall | Empfohlene Datenbasis |
+|---------------|-----------------------|
+| Rohdatenpruefung / Originalquelle | `data/Daten/*.gpkg` |
+| Punktanalyse in der App / API | `data/parquet/insar_points_t44.parquet`, `data/parquet/insar_points_t95.parquet` bzw. PostGIS `insar_points` |
+| Verschiebungszeitreihen | `data/parquet/insar_timeseries_t44.parquet`, `data/parquet/insar_timeseries_t95.parquet` bzw. PostGIS `insar_timeseries` |
+| Amplitudenzeitreihen | `data/parquet/insar_amplitude_timeseries_t44.parquet`, `data/parquet/insar_amplitude_timeseries_t95.parquet` bzw. PostGIS `insar_amplitude_timeseries` |
+| Punkt-Gebaeude-Verknuepfung | `data/parquet/insar_to_gba.parquet`, `data/parquet/insar_to_osm.parquet` |
+| Terrain-Kontext | `data/parquet/insar_point_terrain.parquet`, `data/parquet/building_terrain_context.parquet` |
+| Kartenanzeige | `data/tiles_v2/*.mbtiles` |
+
+### Empfohlene Qualitaetsfilter fuer Bewegungsanalysen
+
+- `coherence >= 0.6`, besser `>= 0.7`
+- `velocity_std <= 1.5`
+- bei Extremwerten zusaetzlich `coherence >= 0.8`
+- bei Track-vergleichenden Analysen immer `track` und `code` gemeinsam verwenden
+
+---
+
+## 10. Schlussbewertung
+
+Die Daten-Dokumentation ist jetzt auf den aktuellen Repo-Stand gebracht:
+
+- Die drei InSAR-GPKGs sind weiterhin die **fachlichen Quelldaten**
+- Die Zeitreihen stammen tatsaechlich aus diesen GPKGs
+- Fuer die Anwendung relevant sind heute jedoch vor allem die **abgeleiteten Parquet-, Link-, Terrain- und Tile-Datensaetze**
+- Der aktuelle Datenbestand des Repositories ist damit wesentlich umfassender als nur die drei Dateien unter `data/Daten/`
+
+Diese Datei ist damit nicht mehr nur ein GPKG-Bericht, sondern eine belastbare Uebersicht ueber die tatsaechlich vorhandene Datenbasis des Projekts.
