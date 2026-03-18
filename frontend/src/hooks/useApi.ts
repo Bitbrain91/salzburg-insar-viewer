@@ -14,6 +14,61 @@ export async function fetchJson<T>(url: string, options: RequestInit = {}): Prom
   return res.json();
 }
 
+export type PointTerrainContext = {
+  source: string;
+  resolution_m: number | null;
+  elevation_m: number | null;
+  slope_deg: number | null;
+  aspect_deg: number | null;
+};
+
+export type BuildingTerrainContext = {
+  source: string;
+  resolution_m: number | null;
+  elevation_mean_m: number | null;
+  elevation_min_m: number | null;
+  elevation_max_m: number | null;
+  slope_mean_deg: number | null;
+  slope_max_deg: number | null;
+  relief_range_m: number | null;
+};
+
+export type PointDetail = {
+  code: string;
+  track: number;
+  los: string;
+  velocity: number;
+  velocity_std: number | null;
+  coherence: number | null;
+  height: number | null;
+  height_std: number | null;
+  acceleration: number | null;
+  acceleration_std: number | null;
+  season_amp: number | null;
+  season_phs: number | null;
+  s_amp_std: number | null;
+  s_phs_std: number | null;
+  incidence_angle: number | null;
+  eff_area: number | null;
+  amp_mean: number | null;
+  amp_std: number | null;
+  geometry: { lon: number; lat: number };
+  gba_id: string | null;
+  osm_id: number | null;
+  terrain: PointTerrainContext | null;
+};
+
+export type BuildingDetail = {
+  id: string;
+  source: "gba" | "osm";
+  height: number | null;
+  name?: string | null;
+  building_type?: string | null;
+  geometry: Record<string, unknown>;
+  attributes: Record<string, unknown>;
+  terrain: BuildingTerrainContext | null;
+};
+
 export type MlPointExplainReason = {
   key: string;
   severity: number;
@@ -77,7 +132,7 @@ export type MlBuildingAnalysis = {
 
 export function getPointDetail(code: string, track?: number) {
   const query = track ? `?track=${track}` : "";
-  return fetchJson(`/api/points/${encodeURIComponent(code)}${query}`);
+  return fetchJson<PointDetail>(`/api/points/${encodeURIComponent(code)}${query}`);
 }
 
 export function getPointTimeseries(code: string, track?: number) {
@@ -87,7 +142,7 @@ export function getPointTimeseries(code: string, track?: number) {
 
 export function getBuildingDetail(source: "gba" | "osm", id: string) {
   const suffix = source === "gba" ? "gba" : "osm";
-  return fetchJson(`/api/buildings/${suffix}/${encodeURIComponent(id)}`);
+  return fetchJson<BuildingDetail>(`/api/buildings/${suffix}/${encodeURIComponent(id)}`);
 }
 
 export function getBuildingPoints(source: "gba" | "osm", id: string) {

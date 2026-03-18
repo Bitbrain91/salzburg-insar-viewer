@@ -11,6 +11,25 @@ class GeometryPoint(BaseModel):
     lat: float
 
 
+class PointTerrainContext(BaseModel):
+    source: str
+    resolution_m: Optional[float] = None
+    elevation_m: Optional[float] = None
+    slope_deg: Optional[float] = None
+    aspect_deg: Optional[float] = None
+
+
+class BuildingTerrainContext(BaseModel):
+    source: str
+    resolution_m: Optional[float] = None
+    elevation_mean_m: Optional[float] = None
+    elevation_min_m: Optional[float] = None
+    elevation_max_m: Optional[float] = None
+    slope_mean_deg: Optional[float] = None
+    slope_max_deg: Optional[float] = None
+    relief_range_m: Optional[float] = None
+
+
 class InSARPointDetail(BaseModel):
     code: str
     track: int
@@ -33,6 +52,7 @@ class InSARPointDetail(BaseModel):
     geometry: GeometryPoint
     gba_id: Optional[str] = None
     osm_id: Optional[int] = None
+    terrain: Optional[PointTerrainContext] = None
 
 
 class TimeseriesPoint(BaseModel):
@@ -55,6 +75,7 @@ class BuildingDetail(BaseModel):
     building_type: Optional[str] = None
     geometry: dict
     attributes: dict = {}
+    terrain: Optional[BuildingTerrainContext] = None
 
 
 class HealthResponse(BaseModel):

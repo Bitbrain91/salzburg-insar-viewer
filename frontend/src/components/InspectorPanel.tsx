@@ -173,13 +173,38 @@ export default function InspectorPanel() {
                       <span className="value">{fmt.num(pointQuery.data.incidence_angle)}</span>
                     </div>
                     <div className="metric">
-                      <span className="label">Height (m)</span>
+                      <span className="label">InSAR height (m)</span>
                       <span className="value">{fmt.num(pointQuery.data.height, 1)}</span>
                     </div>
                     <div className="metric">
                       <span className="label">Height std (m)</span>
                       <span className="value">{fmt.num(pointQuery.data.height_std, 1)}</span>
                     </div>
+                    {pointQuery.data.terrain && (
+                      <>
+                        <div className="section-title">Terrain Context</div>
+                        <div className="metric">
+                          <span className="label">Terrain source</span>
+                          <span className="value">{fmt.str(pointQuery.data.terrain.source)}</span>
+                        </div>
+                        <div className="metric">
+                          <span className="label">Terrain resolution (m)</span>
+                          <span className="value">{fmt.num(pointQuery.data.terrain.resolution_m, 1)}</span>
+                        </div>
+                        <div className="metric">
+                          <span className="label">Terrain elevation (m)</span>
+                          <span className="value">{fmt.num(pointQuery.data.terrain.elevation_m, 1)}</span>
+                        </div>
+                        <div className="metric">
+                          <span className="label">Slope (°)</span>
+                          <span className="value">{fmt.num(pointQuery.data.terrain.slope_deg, 1)}</span>
+                        </div>
+                        <div className="metric">
+                          <span className="label">Aspect (°)</span>
+                          <span className="value">{fmt.num(pointQuery.data.terrain.aspect_deg, 1)}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="metric">
                       <span className="label">Acceleration (mm/yr²)</span>
                       <span className="value">{fmt.num(pointQuery.data.acceleration)}</span>
@@ -382,9 +407,52 @@ export default function InspectorPanel() {
               </div>
               {buildingDetailQuery.data.height !== null && (
                 <div className="metric">
-                  <span className="label">Height (m)</span>
+                  <span className="label">Building height (m)</span>
                   <span className="value">{buildingDetailQuery.data.height?.toFixed(1)}</span>
                 </div>
+              )}
+              {buildingDetailQuery.data.terrain && (
+                <>
+                  <div className="section-title">Terrain Context</div>
+                  <div className="metric">
+                    <span className="label">Terrain source</span>
+                    <span className="value">{buildingDetailQuery.data.terrain.source}</span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Terrain resolution (m)</span>
+                    <span className="value">
+                      {fmtNum(buildingDetailQuery.data.terrain.resolution_m, 1)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Mean terrain elevation (m)</span>
+                    <span className="value">
+                      {fmtNum(buildingDetailQuery.data.terrain.elevation_mean_m, 1)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Terrain elevation min/max (m)</span>
+                    <span className="value">
+                      {fmtNum(buildingDetailQuery.data.terrain.elevation_min_m, 1)}
+                      {" / "}
+                      {fmtNum(buildingDetailQuery.data.terrain.elevation_max_m, 1)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Mean / max slope (°)</span>
+                    <span className="value">
+                      {fmtNum(buildingDetailQuery.data.terrain.slope_mean_deg, 1)}
+                      {" / "}
+                      {fmtNum(buildingDetailQuery.data.terrain.slope_max_deg, 1)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Relief range (m)</span>
+                    <span className="value">
+                      {fmtNum(buildingDetailQuery.data.terrain.relief_range_m, 1)}
+                    </span>
+                  </div>
+                </>
               )}
               {buildingDetailQuery.data.name && (
                 <div className="metric">

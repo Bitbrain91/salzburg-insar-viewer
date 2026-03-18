@@ -1,16 +1,61 @@
 import { basemaps } from "../lib/basemaps";
+import { satelliteCameraPresets } from "../lib/cameraModes";
+import {
+  HEIGHT_PALETTE,
+  TRACK_44_OUTLINE_COLOR,
+  TRACK_95_OUTLINE_COLOR,
+  getHeightCycleLength,
+  formatHeightLegendValue,
+  formatHeightSensitivity,
+  getHeightLegendAnchors,
+  heightSensitivityToSlider,
+  sliderToHeightSensitivity,
+} from "../lib/pointStyling";
 import { useAppStore } from "../lib/store";
 import PipelinePanel from "./PipelinePanel";
+
+const velocityLegendItems = [
+  { color: "#8e0f2f", label: "Strong subsidence (< -5)" },
+  { color: "#e67f1c", label: "Moderate subsidence (-5 to -2)" },
+  { color: "#f2c14e", label: "Slight subsidence (-2 to -1)" },
+  { color: "#2c9f7a", label: "Stable (-1 to 1)" },
+  { color: "#4aa5d5", label: "Uplift (1 to 5)" },
+  { color: "#1c2f4a", label: "Strong uplift (> 5)" },
+];
+
+const trackLegendItems = [
+  { color: TRACK_44_OUTLINE_COLOR, label: "Track 44 Rand" },
+  { color: TRACK_95_OUTLINE_COLOR, label: "Track 95 Rand" },
+];
 
 export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
   const filters = useAppStore((state) => state.filters);
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const basemapId = useAppStore((state) => state.basemapId);
+  const cameraMode = useAppStore((state) => state.cameraMode);
+  const pointColorMode = useAppStore((state) => state.pointColorMode);
+  const heightSensitivityM = useAppStore((state) => state.heightSensitivityM);
+  const showTrackOutlines = useAppStore((state) => state.showTrackOutlines);
   const setLayer = useAppStore((state) => state.setLayer);
   const setFilter = useAppStore((state) => state.setFilter);
   const setFiltersEnabled = useAppStore((state) => state.setFiltersEnabled);
   const setBasemapId = useAppStore((state) => state.setBasemapId);
+  const setCameraMode = useAppStore((state) => state.setCameraMode);
+  const setPointColorMode = useAppStore((state) => state.setPointColorMode);
+  const setHeightSensitivityM = useAppStore((state) => state.setHeightSensitivityM);
+  const setShowTrackOutlines = useAppStore((state) => state.setShowTrackOutlines);
+
+  const heightLegendAnchors = getHeightLegendAnchors(heightSensitivityM);
+  const heightCycleLength = getHeightCycleLength(heightSensitivityM);
+  const heightLegendItems = HEIGHT_PALETTE.map((color, index) => ({
+    color,
+    label: `${formatHeightLegendValue(heightLegendAnchors[index])}-${formatHeightLegendValue(
+      heightLegendAnchors[index] + heightSensitivityM
+    )} m`,
+  }));
+  const heightSliderValue = heightSensitivityToSlider(heightSensitivityM);
+  const legendItems = pointColorMode === "height" ? heightLegendItems : velocityLegendItems;
 
   return (
     <div className="panel panel-left">
@@ -64,6 +109,30 @@ export default function LayerPanel() {
       </div>
 
       <div>
+        <div className="section-title">Kameraansicht</div>
+        <div className="form-row">
+          <label className="label">Perspektive</label>
+          <select
+            className="select"
+            value={cameraMode}
+            onChange={(e) =>
+              setCameraMode(
+                e.target.value as "default" | "satellite_track44" | "satellite_track95"
+              )
+            }
+          >
+            <option value="default">Standard</option>
+            <option value="satellite_track44">{satelliteCameraPresets.satellite_track44.label}</option>
+            <option value="satellite_track95">{satelliteCameraPresets.satellite_track95.label}</option>
+          </select>
+        </div>
+        <small>
+          LOS-basiert: Track 44 blickt nach Osten, Track 95 nach Westen. Der Modus fixiert
+          Blickrichtung und Winkel, Pan und Zoom bleiben aktiv.
+        </small>
+      </div>
+
+      <div>
         <div className="section-title">Buildings</div>
         <div className="toggle-row">
           <span>Global Building Atlas (3D)</span>
@@ -83,6 +152,77 @@ export default function LayerPanel() {
             onChange={(e) => setLayer("osm", e.target.checked)}
           />
         </div>
+      </div>
+
+      <div>
+        <div className="section-title">Terrain (SRTM)</div>
+        <div className="toggle-row">
+          <span>Relief</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.reliefHillshade}
+            onChange={(e) => setLayer("reliefHillshade", e.target.checked)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>Hangneigung</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.reliefSlope}
+            onChange={(e) => setLayer("reliefSlope", e.target.checked)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="section-title">Punktdarstellung</div>
+        <div className="form-row">
+          <label className="label">Farblogik</label>
+          <select
+            className="select"
+            value={pointColorMode}
+            onChange={(e) => setPointColorMode(e.target.value as "velocity" | "height")}
+          >
+            <option value="velocity">Geschwindigkeit</option>
+            <option value="height">InSAR-Hoehe</option>
+          </select>
+        </div>
+        <div className="toggle-row">
+          <span>Track-Raender</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={showTrackOutlines}
+            onChange={(e) => setShowTrackOutlines(e.target.checked)}
+          />
+        </div>
+
+        {pointColorMode === "height" && (
+          <>
+            <div className="metric">
+              <span className="label">Empfindlichkeit (m)</span>
+              <span className="value">{formatHeightSensitivity(heightSensitivityM)}</span>
+            </div>
+            <input
+              type="range"
+              className="slider"
+              min={0}
+              max={2}
+              step={0.01}
+              value={heightSliderValue}
+              onChange={(e) =>
+                setHeightSensitivityM(sliderToHeightSensitivity(Number(e.target.value)))
+              }
+            />
+            <small>
+              Die Hoehenfaerbung arbeitet in festen Hoehenklassen. Kleinere Werte erzeugen
+              feinere Klassen und kuerzere Farbzyklen. Grundlage ist nur das vorhandene
+              InSAR-Attribut `height`.
+            </small>
+          </>
+        )}
       </div>
 
       <div>
@@ -145,31 +285,36 @@ export default function LayerPanel() {
       <div>
         <div className="section-title">Legend</div>
         <div className="legend">
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#8e0f2f" }} />
-            Strong subsidence (&lt; -5)
-          </div>
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#e67f1c" }} />
-            Moderate subsidence (-5 to -2)
-          </div>
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#f2c14e" }} />
-            Slight subsidence (-2 to -1)
-          </div>
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#2c9f7a" }} />
-            Stable (-1 to 1)
-          </div>
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#4aa5d5" }} />
-            Uplift (1 to 5)
-          </div>
-          <div className="legend-item">
-            <span className="legend-swatch" style={{ background: "#1c2f4a" }} />
-            Strong uplift (&gt; 5)
-          </div>
+          {legendItems.map((item) => (
+            <div className="legend-item" key={item.label}>
+              <span className="legend-swatch" style={{ background: item.color }} />
+              {item.label}
+            </div>
+          ))}
         </div>
+        {pointColorMode === "height" && (
+          <small>
+            Die Hoehenklassen starten bei 450 m und wiederholen sich alle{" "}
+            {formatHeightLegendValue(heightCycleLength)} m.
+          </small>
+        )}
+        {showTrackOutlines && (
+          <div className="legend" style={{ marginTop: 12 }}>
+            {trackLegendItems.map((item) => (
+              <div className="legend-item" key={item.label}>
+                <span
+                  className="legend-swatch"
+                  style={{
+                    background: "#fbfaf7",
+                    border: `2px solid ${item.color}`,
+                    boxShadow: "0 0 0 1px rgba(251, 250, 247, 0.95)",
+                  }}
+                />
+                {item.label}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <PipelinePanel />

@@ -46,6 +46,10 @@ class Settings:
         os.getenv("PMTILES_DIR"),
         BASE_DIR / "data" / "tiles_v2",
     )
+    raster_tiles_dir: Path = _resolve_dir(
+        os.getenv("RASTER_TILES_DIR"),
+        BASE_DIR / "data" / "raster_tiles",
+    )
 
     mlflow_tracking_uri: str = (
         os.getenv("MLFLOW_TRACKING_URI")

@@ -2,6 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl, { Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 import { basemaps } from "../lib/basemaps";
 import type { BasemapId } from "../lib/basemaps";
+import {
+  DEFAULT_MAP_BEARING,
+  DEFAULT_MAP_PITCH,
+  isSatelliteCameraMode,
+  satelliteCameraPresets,
+} from "../lib/cameraModes";
+import type { CameraMode } from "../lib/cameraModes";
+import {
+  TRACK_44_OUTLINE_COLOR,
+  TRACK_95_OUTLINE_COLOR,
+  TRACK_OUTLINE_SEPARATOR_COLOR,
+  basePointInnerStrokeWidthExpression,
+  basePointRadiusExpression,
+  formatHeightLegendValue,
+  getBasePointColorExpression,
+  trackOutlineRingRadiusExpression,
+  trackOutlineRingStrokeWidthExpression,
+  velocityExpression,
+} from "../lib/pointStyling";
 import { useAppStore } from "../lib/store";
 
 const tilesBase =
@@ -11,25 +30,56 @@ const apiBase =
   import.meta.env.VITE_API_URL ||
   (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
 
-const velocityExpression: any[] = [
-  "step",
-  ["get", "velocity"],
-  "#8e0f2f",
-  -5,
-  "#c6372a",
-  -2,
-  "#e67f1c",
-  -1,
-  "#f2c14e",
-  1,
-  "#2c9f7a",
-  2,
-  "#4aa5d5",
-  5,
-  "#345995",
-  10,
-  "#1c2f4a",
-];
+const CAMERA_TRANSITION_MS = 700;
+const CAMERA_EPSILON = 0.05;
+
+function getReliefOpacity(basemap: BasemapId) {
+  return basemap === "satellite" ? 0.22 : 0.35;
+}
+
+function getBearingDifference(a: number, b: number) {
+  return Math.abs((((a - b) % 360) + 540) % 360 - 180);
+}
+
+function setCameraInteractionLock(map: MapLibreMap, locked: boolean) {
+  if (locked) {
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+    map.touchPitch.disable();
+    map.keyboard.disableRotation();
+    return;
+  }
+
+  map.dragRotate.enable();
+  map.touchZoomRotate.enableRotation();
+  map.touchPitch.enable();
+  map.keyboard.enableRotation();
+}
+
+function applyCameraMode(
+  map: MapLibreMap,
+  mode: CameraMode,
+  freeCamera: { bearing: number; pitch: number },
+  animate: boolean
+) {
+  const target = isSatelliteCameraMode(mode)
+    ? satelliteCameraPresets[mode]
+    : freeCamera;
+
+  const needsBearing = getBearingDifference(map.getBearing(), target.bearing) > CAMERA_EPSILON;
+  const needsPitch = Math.abs(map.getPitch() - target.pitch) > CAMERA_EPSILON;
+
+  if (!needsBearing && !needsPitch) {
+    return;
+  }
+
+  map.easeTo({
+    bearing: target.bearing,
+    pitch: target.pitch,
+    duration: animate ? CAMERA_TRANSITION_MS : 0,
+    essential: true,
+  });
+}
 
 function hslToHex(h: number, s: number, l: number) {
   const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -224,10 +274,41 @@ const buildingLabelExpression: any[] = [
   "#9aa0a6",
 ];
 
+function applyBasePointColors(
+  map: MapLibreMap,
+  pointColorMode: "velocity" | "height",
+  heightSensitivityM: number
+) {
+  const pointColorExpression = getBasePointColorExpression(pointColorMode, heightSensitivityM);
+  if (map.getLayer("insar_t44")) {
+    map.setPaintProperty("insar_t44", "circle-color", pointColorExpression as any);
+  }
+  if (map.getLayer("insar_t95")) {
+    map.setPaintProperty("insar_t95", "circle-color", pointColorExpression as any);
+  }
+}
+
+function applyTrackOutlineStyle(map: MapLibreMap, enabled: boolean) {
+  const innerStrokeWidth = enabled ? (basePointInnerStrokeWidthExpression as any) : 0;
+  if (map.getLayer("insar_t44")) {
+    map.setPaintProperty("insar_t44", "circle-stroke-width", innerStrokeWidth);
+  }
+  if (map.getLayer("insar_t95")) {
+    map.setPaintProperty("insar_t95", "circle-stroke-width", innerStrokeWidth);
+  }
+}
+
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const basemapRef = useRef<BasemapId | null>(null);
+  const cameraModeRef = useRef<CameraMode>("default");
+  const previousCameraModeRef = useRef<CameraMode>("default");
+  const lastFreeCameraRef = useRef({
+    bearing: DEFAULT_MAP_BEARING,
+    pitch: DEFAULT_MAP_PITCH,
+  });
+  const pointColorModeRef = useRef<"velocity" | "height">("velocity");
   const [tooltip, setTooltip] = useState<
     { x: number; y: number; html: string } | null
   >(null);
@@ -238,6 +319,10 @@ export default function MapView() {
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const selection = useAppStore((state) => state.selection);
   const basemapId = useAppStore((state) => state.basemapId);
+  const cameraMode = useAppStore((state) => state.cameraMode);
+  const pointColorMode = useAppStore((state) => state.pointColorMode);
+  const heightSensitivityM = useAppStore((state) => state.heightSensitivityM);
+  const showTrackOutlines = useAppStore((state) => state.showTrackOutlines);
   const setSelection = useAppStore((state) => state.setSelection);
   const activeRunId = useAppStore((state) => state.activeRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
@@ -245,17 +330,35 @@ export default function MapView() {
   const mlView = useAppStore((state) => state.mlView);
   const mlTileVersion = useAppStore((state) => state.mlTileVersion);
   const setMapBBox = useAppStore((state) => state.setMapBBox);
+  const activeSatellitePreset = isSatelliteCameraMode(cameraMode)
+    ? satelliteCameraPresets[cameraMode]
+    : null;
+
+  useEffect(() => {
+    pointColorModeRef.current = pointColorMode;
+  }, [pointColorMode]);
+
+  useEffect(() => {
+    cameraModeRef.current = cameraMode;
+  }, [cameraMode]);
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
+
+    const initialCameraMode = useAppStore.getState().cameraMode;
+    const initialPreset = isSatelliteCameraMode(initialCameraMode)
+      ? satelliteCameraPresets[initialCameraMode]
+      : null;
+    cameraModeRef.current = initialCameraMode;
+    previousCameraModeRef.current = initialCameraMode;
 
     const map = new maplibregl.Map({
       container: mapContainer.current,
       style: basemaps[basemapId].style,
       center: [13.05, 47.8],
       zoom: 12,
-      pitch: 45,
-      bearing: -10,
+      pitch: initialPreset?.pitch ?? DEFAULT_MAP_PITCH,
+      bearing: initialPreset?.bearing ?? DEFAULT_MAP_BEARING,
       hash: true,
     });
 
@@ -272,19 +375,37 @@ export default function MapView() {
       ]);
     };
 
+    const handleMoveEnd = () => {
+      updateBBox();
+      if (cameraModeRef.current === "default") {
+        lastFreeCameraRef.current = {
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+        };
+        return;
+      }
+
+      applyCameraMode(map, cameraModeRef.current, lastFreeCameraRef.current, false);
+    };
+
     map.on("style.load", () => {
       addCoreSourcesAndLayers(map);
       const state = useAppStore.getState();
-      applyLayerVisibility(map, state.layers);
+      applyLayerVisibility(map, state.layers, state.showTrackOutlines);
+      applyTrackOutlineStyle(map, state.showTrackOutlines);
       applyFilters(map, state.filters, state.filtersEnabled);
       applySelection(map, state.selection);
+      setCameraInteractionLock(map, state.cameraMode !== "default");
+      if (isSatelliteCameraMode(state.cameraMode)) {
+        applyCameraMode(map, state.cameraMode, lastFreeCameraRef.current, false);
+      }
       updateBBox();
       setStyleVersion((value) => value + 1);
     });
 
     map.on("mousemove", (event) => handleHover(event, map));
     map.on("click", (event) => handleClick(event, map));
-    map.on("moveend", updateBBox);
+    map.on("moveend", handleMoveEnd);
 
     mapRef.current = map;
 
@@ -305,8 +426,43 @@ export default function MapView() {
 
   useEffect(() => {
     if (!mapRef.current) return;
-    applyLayerVisibility(mapRef.current, layers);
-  }, [layers]);
+    const map = mapRef.current;
+    const previousMode = previousCameraModeRef.current;
+
+    if (previousMode === "default" && cameraMode !== "default") {
+      lastFreeCameraRef.current = {
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+      };
+    }
+
+    setCameraInteractionLock(map, cameraMode !== "default");
+    applyCameraMode(map, cameraMode, lastFreeCameraRef.current, true);
+    previousCameraModeRef.current = cameraMode;
+  }, [cameraMode]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    if (map.getLayer("relief_hillshade")) {
+      map.setPaintProperty("relief_hillshade", "raster-opacity", getReliefOpacity(basemapId));
+    }
+  }, [basemapId]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyLayerVisibility(mapRef.current, layers, showTrackOutlines);
+  }, [layers, showTrackOutlines]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyBasePointColors(mapRef.current, pointColorMode, heightSensitivityM);
+  }, [pointColorMode, heightSensitivityM]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyTrackOutlineStyle(mapRef.current, showTrackOutlines);
+  }, [showTrackOutlines]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -531,12 +687,16 @@ export default function MapView() {
   function ensureLayerOrder(map: MapLibreMap) {
     // Move operational layers above any basemap style layers (including satellite raster).
     const orderedLayerIds = [
+      "relief_hillshade",
+      "relief_slope",
       "osm",
       "gba",
       "ml_buildings_flat",
       "ml_buildings_fill",
       "ml_buildings_outline",
+      "insar_t44_outline",
       "insar_t44",
+      "insar_t95_outline",
       "insar_t95",
       "ml_points",
       "insar_selected_t44",
@@ -552,6 +712,16 @@ export default function MapView() {
   }
 
   function addCoreSourcesAndLayers(map: MapLibreMap) {
+    const currentBasemapId = useAppStore.getState().basemapId;
+    const {
+      pointColorMode: currentPointColorMode,
+      heightSensitivityM: currentHeightSensitivityM,
+      showTrackOutlines: currentShowTrackOutlines,
+    } = useAppStore.getState();
+    const pointColorExpression = getBasePointColorExpression(
+      currentPointColorMode,
+      currentHeightSensitivityM
+    );
     addSourceIfMissing(map, "insar_t44", {
       type: "vector",
       tiles: [`${tilesBase}/mbtiles/insar_t44/{z}/{x}/{y}.pbf`],
@@ -580,6 +750,62 @@ export default function MapView() {
       minzoom: 0,
       maxzoom: 15,
     });
+    addSourceIfMissing(map, "relief_hillshade", {
+      type: "raster",
+      tiles: [`${apiBase}/raster/relief_hillshade/{z}/{x}/{y}.png`],
+      tileSize: 256,
+      minzoom: 8,
+      maxzoom: 15,
+    });
+    addSourceIfMissing(map, "relief_slope", {
+      type: "raster",
+      tiles: [`${apiBase}/raster/relief_slope/{z}/{x}/{y}.png`],
+      tileSize: 256,
+      minzoom: 8,
+      maxzoom: 15,
+    });
+
+    addLayerIfMissing(map, {
+      id: "relief_hillshade",
+      type: "raster",
+      source: "relief_hillshade",
+      paint: {
+        "raster-opacity": getReliefOpacity(currentBasemapId),
+        "raster-resampling": "linear",
+      },
+      layout: {
+        visibility: "none",
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "relief_slope",
+      type: "raster",
+      source: "relief_slope",
+      paint: {
+        "raster-opacity": 0.45,
+        "raster-resampling": "nearest",
+      },
+      layout: {
+        visibility: "none",
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_t44_outline",
+      type: "circle",
+      source: "insar_t44",
+      "source-layer": "insar_t44",
+      paint: {
+        "circle-radius": trackOutlineRingRadiusExpression,
+        "circle-color": "rgba(0, 0, 0, 0)",
+        "circle-stroke-width": trackOutlineRingStrokeWidthExpression,
+        "circle-stroke-color": TRACK_44_OUTLINE_COLOR,
+      },
+      layout: {
+        visibility: currentShowTrackOutlines ? "visible" : "none",
+      },
+    });
 
     addLayerIfMissing(map, {
       id: "insar_t44",
@@ -587,21 +813,27 @@ export default function MapView() {
       source: "insar_t44",
       "source-layer": "insar_t44",
       paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          8,
-          1.5,
-          12,
-          2.5,
-          14,
-          4,
-          16,
-          6,
-        ],
-        "circle-color": velocityExpression,
-        "circle-opacity": 0.8,
+        "circle-radius": basePointRadiusExpression,
+        "circle-color": pointColorExpression,
+        "circle-opacity": 1,
+        "circle-stroke-width": currentShowTrackOutlines ? basePointInnerStrokeWidthExpression : 0,
+        "circle-stroke-color": TRACK_OUTLINE_SEPARATOR_COLOR,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "insar_t95_outline",
+      type: "circle",
+      source: "insar_t95",
+      "source-layer": "insar_t95",
+      paint: {
+        "circle-radius": trackOutlineRingRadiusExpression,
+        "circle-color": "rgba(0, 0, 0, 0)",
+        "circle-stroke-width": trackOutlineRingStrokeWidthExpression,
+        "circle-stroke-color": TRACK_95_OUTLINE_COLOR,
+      },
+      layout: {
+        visibility: currentShowTrackOutlines ? "visible" : "none",
       },
     });
 
@@ -611,21 +843,11 @@ export default function MapView() {
       source: "insar_t95",
       "source-layer": "insar_t95",
       paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          8,
-          1.5,
-          12,
-          2.5,
-          14,
-          4,
-          16,
-          6,
-        ],
-        "circle-color": velocityExpression,
-        "circle-opacity": 0.8,
+        "circle-radius": basePointRadiusExpression,
+        "circle-color": pointColorExpression,
+        "circle-opacity": 1,
+        "circle-stroke-width": currentShowTrackOutlines ? basePointInnerStrokeWidthExpression : 0,
+        "circle-stroke-color": TRACK_OUTLINE_SEPARATOR_COLOR,
       },
     });
 
@@ -793,12 +1015,40 @@ export default function MapView() {
     }
   }
 
-  function applyLayerVisibility(map: MapLibreMap, vis: typeof layers) {
+  function applyLayerVisibility(
+    map: MapLibreMap,
+    vis: typeof layers,
+    showTrackOutlines: boolean
+  ) {
+    if (map.getLayer("insar_t44_outline")) {
+      map.setLayoutProperty(
+        "insar_t44_outline",
+        "visibility",
+        vis.insar44 && showTrackOutlines ? "visible" : "none"
+      );
+    }
     if (map.getLayer("insar_t44")) {
       map.setLayoutProperty("insar_t44", "visibility", vis.insar44 ? "visible" : "none");
     }
+    if (map.getLayer("insar_t95_outline")) {
+      map.setLayoutProperty(
+        "insar_t95_outline",
+        "visibility",
+        vis.insar95 && showTrackOutlines ? "visible" : "none"
+      );
+    }
     if (map.getLayer("insar_t95")) {
       map.setLayoutProperty("insar_t95", "visibility", vis.insar95 ? "visible" : "none");
+    }
+    if (map.getLayer("relief_hillshade")) {
+      map.setLayoutProperty(
+        "relief_hillshade",
+        "visibility",
+        vis.reliefHillshade ? "visible" : "none"
+      );
+    }
+    if (map.getLayer("relief_slope")) {
+      map.setLayoutProperty("relief_slope", "visibility", vis.reliefSlope ? "visible" : "none");
     }
     if (map.getLayer("gba")) {
       map.setLayoutProperty("gba", "visibility", vis.gba ? "visible" : "none");
@@ -814,8 +1064,14 @@ export default function MapView() {
     enabled: boolean
   ) {
     if (!enabled) {
+      if (map.getLayer("insar_t44_outline")) {
+        map.setFilter("insar_t44_outline", null);
+      }
       if (map.getLayer("insar_t44")) {
         map.setFilter("insar_t44", null);
+      }
+      if (map.getLayer("insar_t95_outline")) {
+        map.setFilter("insar_t95_outline", null);
       }
       if (map.getLayer("insar_t95")) {
         map.setFilter("insar_t95", null);
@@ -828,8 +1084,14 @@ export default function MapView() {
       ["<=", ["get", "velocity"], filterState.velocityMax],
       [">=", ["get", "coherence"], filterState.coherenceMin],
     ] as any;
+    if (map.getLayer("insar_t44_outline")) {
+      map.setFilter("insar_t44_outline", filterExpr);
+    }
     if (map.getLayer("insar_t44")) {
       map.setFilter("insar_t44", filterExpr);
+    }
+    if (map.getLayer("insar_t95_outline")) {
+      map.setFilter("insar_t95_outline", filterExpr);
     }
     if (map.getLayer("insar_t95")) {
       map.setFilter("insar_t95", filterExpr);
@@ -904,11 +1166,34 @@ export default function MapView() {
         Reason: ${props.top_reason || props.degraded_reason || props.method || "—"}
       `;
     } else if (feature.layer.id.startsWith("insar")) {
+      const currentPointColorMode = pointColorModeRef.current;
+      const heightValue =
+        props.height !== undefined && props.height !== null
+          ? `${formatHeightLegendValue(Number(props.height))} m`
+          : "—";
+      const velocityValue =
+        props.velocity !== undefined && props.velocity !== null
+          ? `${Number(props.velocity).toFixed(2)} mm/yr`
+          : "—";
+      const coherenceValue =
+        props.coherence !== undefined && props.coherence !== null
+          ? Number(props.coherence).toFixed(2)
+          : "—";
       html = `
         <strong>InSAR Point</strong><br/>
         Code: ${props.code || "—"}<br/>
-        Velocity: ${Number(props.velocity).toFixed(2)} mm/yr<br/>
-        Coherence: ${Number(props.coherence).toFixed(2)}
+        ${
+          currentPointColorMode === "height"
+            ? `<strong>Height: ${heightValue}</strong><br/>`
+            : ""
+        }
+        Velocity: ${velocityValue}<br/>
+        Coherence: ${coherenceValue}<br/>
+        ${
+          currentPointColorMode === "height"
+            ? "Color mode: InSAR height"
+            : `Height: ${heightValue}`
+        }
       `;
     } else if (feature.layer.id === "gba") {
       html = `
@@ -985,6 +1270,12 @@ export default function MapView() {
 
   return (
     <div className="map" ref={mapContainer}>
+      {activeSatellitePreset && (
+        <div className="map-camera-badge">
+          <span className="badge">{activeSatellitePreset.overlayTitle}</span>
+          <span>{activeSatellitePreset.overlayText}</span>
+        </div>
+      )}
       {tooltip && (
         <div
           className="tooltip"

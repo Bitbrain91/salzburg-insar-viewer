@@ -100,6 +100,37 @@ React + MapLibre Frontend
 - Backend zeigt diese Dateien als Vector-Tiles an
 - Frontend konsumiert sie direkt (MapLibre)
 
+### Terrain- und Rasterdaten (nicht im Git)
+Terrain-Quelldaten und die daraus generierten Raster-Tiles sind **nicht versioniert** und
+muessen lokal erzeugt bzw. bereitgestellt werden, wenn du Relief, Hangneigung oder
+Terrain-Kontext im Backend/Frontend nutzen willst.
+
+Erwartete lokale Struktur:
+- Rohdaten: `data/terrain/srtm/raw/`
+- Abgeleitete Raster: `data/terrain/derived/`
+- Ausgelieferte Raster-Tiles: `data/raster_tiles/`
+
+Vorgehen:
+1. SRTM- oder andere kompatible Hoehenraster (`.hgt`, `.hgt.gz`, `.tif`, `.tiff`, `.img`)
+   nach `data/terrain/srtm/raw/` legen.
+2. Terrain-Kontext und abgeleitete Raster erzeugen:
+   ```bash
+   python pipeline/prepare_terrain.py --overwrite
+   ```
+3. Terrain-Kontext optional in PostGIS laden:
+   ```bash
+   python pipeline/load_terrain_context.py --dsn postgresql://insar:insar@localhost:5432/insar
+   ```
+4. Raster-Tiles fuer Hillshade und Slope generieren:
+   ```bash
+   ./pipeline/build_terrain_tiles.sh
+   ```
+
+Zur Laufzeit erwartet das Backend standardmaessig die Raster-Tiles unter
+`data/raster_tiles/relief_hillshade` und `data/raster_tiles/relief_slope`.
+Falls du einen anderen Speicherort verwenden willst, setze `RASTER_TILES_DIR`
+im Backend-Environment.
+
 ## Dokumentation
 - Analysebericht der Rohdaten: `docs/Datenanalyse_InSAR_Salzburg.md`
 - Phase-1-Dokumentation fuer Reliability/Anomaly Detection: `docs/anomaly_v1_phase1.md`
@@ -191,6 +222,17 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 ./pipeline/build_tiles.sh
 ```
 Ergebnis liegt in `data/tiles_v2/`.
+
+### 5b) Terrain-Kontext und Raster-Tiles erzeugen (optional)
+Wenn du Relief, Hangneigung und Terrain-Werte im Inspector nutzen willst:
+```bash
+python pipeline/prepare_terrain.py --overwrite
+python pipeline/load_terrain_context.py --dsn postgresql://insar:insar@localhost:5432/insar
+./pipeline/build_terrain_tiles.sh
+```
+
+Die Roh-Hoehendaten muessen vorher lokal in `data/terrain/srtm/raw/` liegen.
+Die generierten Raster-Tiles landen standardmaessig in `data/raster_tiles/`.
 
 ### 6) Backend starten
 ```bash

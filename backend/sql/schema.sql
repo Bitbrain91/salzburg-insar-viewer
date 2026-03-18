@@ -2,6 +2,8 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 DROP TABLE IF EXISTS insar_to_osm;
 DROP TABLE IF EXISTS insar_to_gba;
+DROP TABLE IF EXISTS building_terrain_context;
+DROP TABLE IF EXISTS insar_point_terrain;
 DROP TABLE IF EXISTS insar_amplitude_timeseries;
 DROP TABLE IF EXISTS insar_timeseries;
 DROP TABLE IF EXISTS insar_points;
@@ -76,6 +78,36 @@ CREATE TABLE osm_buildings (
 );
 
 CREATE INDEX osm_buildings_geom_idx ON osm_buildings USING GIST (geom);
+
+CREATE TABLE insar_point_terrain (
+    code TEXT NOT NULL,
+    track INTEGER NOT NULL,
+    terrain_source TEXT NOT NULL,
+    terrain_resolution_m DOUBLE PRECISION,
+    terrain_elevation_m DOUBLE PRECISION,
+    slope_deg DOUBLE PRECISION,
+    aspect_deg DOUBLE PRECISION,
+    PRIMARY KEY (code, track)
+);
+
+CREATE INDEX insar_point_terrain_source_idx ON insar_point_terrain (terrain_source);
+
+CREATE TABLE building_terrain_context (
+    building_source TEXT NOT NULL,
+    building_id TEXT NOT NULL,
+    terrain_source TEXT NOT NULL,
+    terrain_resolution_m DOUBLE PRECISION,
+    terrain_elevation_mean_m DOUBLE PRECISION,
+    terrain_elevation_min_m DOUBLE PRECISION,
+    terrain_elevation_max_m DOUBLE PRECISION,
+    slope_mean_deg DOUBLE PRECISION,
+    slope_max_deg DOUBLE PRECISION,
+    relief_range_m DOUBLE PRECISION,
+    PRIMARY KEY (building_source, building_id)
+);
+
+CREATE INDEX building_terrain_context_source_idx
+    ON building_terrain_context (terrain_source, building_source);
 
 CREATE TABLE insar_to_gba (
     code TEXT NOT NULL,

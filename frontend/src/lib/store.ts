@@ -1,9 +1,13 @@
 import { create } from "zustand";
 import type { BasemapId } from "./basemaps";
+import type { CameraMode } from "./cameraModes";
+import type { PointColorMode } from "./pointStyling";
 
 export type LayerVisibility = {
   insar44: boolean;
   insar95: boolean;
+  reliefHillshade: boolean;
+  reliefSlope: boolean;
   gba: boolean;
   osm: boolean;
 };
@@ -25,6 +29,10 @@ export type AppState = {
   filtersEnabled: boolean;
   selection: Selection;
   basemapId: BasemapId;
+  cameraMode: CameraMode;
+  pointColorMode: PointColorMode;
+  heightSensitivityM: number;
+  showTrackOutlines: boolean;
   activeRunId: string | null;
   showMlLayer: boolean;
   showMlBuildings: boolean;
@@ -46,6 +54,10 @@ export type AppState = {
   setFiltersEnabled: (enabled: boolean) => void;
   setSelection: (selection: Selection) => void;
   setBasemapId: (id: BasemapId) => void;
+  setCameraMode: (mode: CameraMode) => void;
+  setPointColorMode: (mode: PointColorMode) => void;
+  setHeightSensitivityM: (value: number) => void;
+  setShowTrackOutlines: (show: boolean) => void;
   setActiveRunId: (runId: string | null) => void;
   setShowMlLayer: (show: boolean) => void;
   setShowMlBuildings: (show: boolean) => void;
@@ -58,6 +70,8 @@ export const useAppStore = create<AppState>((set) => ({
   layers: {
     insar44: true,
     insar95: true,
+    reliefHillshade: false,
+    reliefSlope: false,
     gba: false,
     osm: false,
   },
@@ -69,6 +83,10 @@ export const useAppStore = create<AppState>((set) => ({
   filtersEnabled: true,
   selection: null,
   basemapId: "light",
+  cameraMode: "default",
+  pointColorMode: "velocity",
+  heightSensitivityM: 10,
+  showTrackOutlines: true,
   activeRunId: null,
   showMlLayer: true,
   showMlBuildings: true,
@@ -82,6 +100,10 @@ export const useAppStore = create<AppState>((set) => ({
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
   setSelection: (selection) => set(() => ({ selection })),
   setBasemapId: (id) => set(() => ({ basemapId: id })),
+  setCameraMode: (mode) => set(() => ({ cameraMode: mode })),
+  setPointColorMode: (mode) => set(() => ({ pointColorMode: mode })),
+  setHeightSensitivityM: (value) => set(() => ({ heightSensitivityM: value })),
+  setShowTrackOutlines: (show) => set(() => ({ showTrackOutlines: show })),
   setActiveRunId: (runId) => set(() => ({ activeRunId: runId })),
   setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
   setShowMlBuildings: (show) => set(() => ({ showMlBuildings: show })),

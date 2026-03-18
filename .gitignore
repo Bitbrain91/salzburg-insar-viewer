@@ -23,6 +23,8 @@ data/gba/
 data/parquet/
 data/tiles_v2/
 data/pmtiles/
+data/terrain/
+data/raster_tiles/
 data/geojson/
 data/extracts/
 *.parquet

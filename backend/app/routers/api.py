@@ -7,9 +7,11 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from ..db import fetch_all, fetch_one
 from ..schemas import (
     BuildingDetail,
+    BuildingTerrainContext,
     ConfigResponse,
     HealthResponse,
     InSARPointDetail,
+    PointTerrainContext,
     TimeseriesResponse,
 )
 router = APIRouter(prefix="/api", tags=["api"])
@@ -44,6 +46,35 @@ def _ensure_dict(value) -> dict:
     return parsed if isinstance(parsed, dict) else {"value": parsed}
 
 
+def _build_point_terrain(row) -> PointTerrainContext | None:
+    source = row.get("terrain_source")
+    if source is None:
+        return None
+    return PointTerrainContext(
+        source=source,
+        resolution_m=row.get("terrain_resolution_m"),
+        elevation_m=row.get("terrain_elevation_m"),
+        slope_deg=row.get("terrain_slope_deg"),
+        aspect_deg=row.get("terrain_aspect_deg"),
+    )
+
+
+def _build_building_terrain(row) -> BuildingTerrainContext | None:
+    source = row.get("terrain_source")
+    if source is None:
+        return None
+    return BuildingTerrainContext(
+        source=source,
+        resolution_m=row.get("terrain_resolution_m"),
+        elevation_mean_m=row.get("terrain_elevation_mean_m"),
+        elevation_min_m=row.get("terrain_elevation_min_m"),
+        elevation_max_m=row.get("terrain_elevation_max_m"),
+        slope_mean_deg=row.get("terrain_slope_mean_deg"),
+        slope_max_deg=row.get("terrain_slope_max_deg"),
+        relief_range_m=row.get("terrain_relief_range_m"),
+    )
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="ok")
@@ -69,9 +100,16 @@ async def point_detail(
                p.amp_mean, p.amp_std,
                ST_X(p.geom) AS lon,
                ST_Y(p.geom) AS lat,
+               terrain.terrain_source,
+               terrain.terrain_resolution_m,
+               terrain.terrain_elevation_m,
+               terrain.slope_deg AS terrain_slope_deg,
+               terrain.aspect_deg AS terrain_aspect_deg,
                gba.gba_id,
                osm.osm_id
         FROM insar_points p
+        LEFT JOIN insar_point_terrain terrain
+               ON terrain.code = p.code AND terrain.track = p.track
         LEFT JOIN LATERAL (
             SELECT gba_id
             FROM insar_to_gba
@@ -119,6 +157,7 @@ async def point_detail(
         geometry={"lon": row["lon"], "lat": row["lat"]},
         gba_id=row.get("gba_id"),
         osm_id=row.get("osm_id"),
+        terrain=_build_point_terrain(row),
     )
 
 
@@ -178,8 +217,18 @@ async def gba_building_detail(request: Request, building_id: str):
         SELECT gba_id AS id,
                height,
                properties,
+               terrain.terrain_source,
+               terrain.terrain_resolution_m,
+               terrain.terrain_elevation_mean_m,
+               terrain.terrain_elevation_min_m,
+               terrain.terrain_elevation_max_m,
+               terrain.slope_mean_deg AS terrain_slope_mean_deg,
+               terrain.slope_max_deg AS terrain_slope_max_deg,
+               terrain.relief_range_m AS terrain_relief_range_m,
                ST_AsGeoJSON(geom)::jsonb AS geometry
         FROM gba_buildings
+        LEFT JOIN building_terrain_context terrain
+          ON terrain.building_source = 'gba' AND terrain.building_id = gba_id::text
         WHERE gba_id = $1
     """
     row = await fetch_one(app, query, building_id)
@@ -196,6 +245,7 @@ async def gba_building_detail(request: Request, building_id: str):
         height=row.get("height"),
         geometry=geometry,
         attributes=attributes,
+        terrain=_build_building_terrain(row),
     )
 
 
@@ -207,8 +257,18 @@ async def osm_building_detail(request: Request, osm_id: int):
                name,
                building_type,
                tags,
+               terrain.terrain_source,
+               terrain.terrain_resolution_m,
+               terrain.terrain_elevation_mean_m,
+               terrain.terrain_elevation_min_m,
+               terrain.terrain_elevation_max_m,
+               terrain.slope_mean_deg AS terrain_slope_mean_deg,
+               terrain.slope_max_deg AS terrain_slope_max_deg,
+               terrain.relief_range_m AS terrain_relief_range_m,
                ST_AsGeoJSON(geom)::jsonb AS geometry
         FROM osm_buildings
+        LEFT JOIN building_terrain_context terrain
+          ON terrain.building_source = 'osm' AND terrain.building_id = osm_id::text
         WHERE osm_id = $1
     """
     row = await fetch_one(app, query, osm_id)
@@ -226,6 +286,7 @@ async def osm_building_detail(request: Request, osm_id: int):
         building_type=row.get("building_type") or None,
         geometry=geometry,
         attributes=attributes,
+        terrain=_build_building_terrain(row),
     )
 
 

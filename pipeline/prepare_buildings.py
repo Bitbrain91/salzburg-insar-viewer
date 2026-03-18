@@ -11,9 +11,7 @@ import pandas as pd
 import requests
 from shapely.geometry import Polygon, MultiPolygon
 
-from config import EXTRACTS_DIR, PARQUET_DIR, GBA_SOURCE
-
-SALZBURG_BBOX = (12.95, 47.75, 13.15, 47.85)
+from config import EXTRACTS_DIR, PARQUET_DIR, GBA_SOURCE, SALZBURG_BBOX
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
 
