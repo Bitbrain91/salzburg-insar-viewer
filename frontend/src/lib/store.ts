@@ -36,6 +36,9 @@ export type AppState = {
   activeRunId: string | null;
   showMlLayer: boolean;
   showMlBuildings: boolean;
+  mlBuildingTrackFilter: "both" | "44" | "95";
+  mlBuildingShowExcluded: boolean;
+  mlBuildingShowHulls: boolean;
   mlView:
     | "cluster"
     | "building"
@@ -61,6 +64,9 @@ export type AppState = {
   setActiveRunId: (runId: string | null) => void;
   setShowMlLayer: (show: boolean) => void;
   setShowMlBuildings: (show: boolean) => void;
+  setMlBuildingTrackFilter: (value: AppState["mlBuildingTrackFilter"]) => void;
+  setMlBuildingShowExcluded: (show: boolean) => void;
+  setMlBuildingShowHulls: (show: boolean) => void;
   setMlView: (view: AppState["mlView"]) => void;
   bumpMlTileVersion: () => void;
   setMapBBox: (bbox: [number, number, number, number] | null) => void;
@@ -90,6 +96,9 @@ export const useAppStore = create<AppState>((set) => ({
   activeRunId: null,
   showMlLayer: true,
   showMlBuildings: true,
+  mlBuildingTrackFilter: "both",
+  mlBuildingShowExcluded: true,
+  mlBuildingShowHulls: true,
   mlView: "cluster",
   mlTileVersion: 0,
   mapBBox: null,
@@ -107,6 +116,9 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveRunId: (runId) => set(() => ({ activeRunId: runId })),
   setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
   setShowMlBuildings: (show) => set(() => ({ showMlBuildings: show })),
+  setMlBuildingTrackFilter: (value) => set(() => ({ mlBuildingTrackFilter: value })),
+  setMlBuildingShowExcluded: (show) => set(() => ({ mlBuildingShowExcluded: show })),
+  setMlBuildingShowHulls: (show) => set(() => ({ mlBuildingShowHulls: show })),
   setMlView: (view) => set(() => ({ mlView: view })),
   bumpMlTileVersion: () => set((state) => ({ mlTileVersion: state.mlTileVersion + 1 })),
   setMapBBox: (bbox) => set(() => ({ mapBBox: bbox })),

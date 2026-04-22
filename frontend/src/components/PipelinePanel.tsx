@@ -10,6 +10,7 @@ import {
 import { useAppStore } from "../lib/store";
 
 const anomalyViews = ["quality", "anomaly", "cross-track", "label"] as const;
+const localAnomalyViews = ["cluster", "quality", "anomaly", "cross-track", "label"] as const;
 const classicViews = [
   "cluster",
   "building",
@@ -57,10 +58,16 @@ export default function PipelinePanel() {
   const hasAssignedBuildings =
     assignedBuildings === undefined ? true : Number(assignedBuildings) > 0;
   const activeRunPipeline = activeRunQuery.data?.pipeline;
-  const isSelectedPipelineAnomaly = pipeline === "anomaly_v1";
-  const isActiveRunAnomaly = activeRunPipeline === "anomaly_v1";
+  const isSelectedPipelineAnomaly = ["anomaly_v1", "anomaly_local_v1"].includes(pipeline);
+  const isSelectedLocalAnomaly = pipeline === "anomaly_local_v1";
+  const isActiveRunAnomaly = ["anomaly_v1", "anomaly_local_v1"].includes(activeRunPipeline ?? "");
+  const isActiveRunLocalAnomaly = activeRunPipeline === "anomaly_local_v1";
+  const showLocalAnomalyViews =
+    activeRunPipeline !== undefined ? activeRunPipeline === "anomaly_local_v1" : isSelectedLocalAnomaly;
   const showAnomalyViews =
-    activeRunPipeline !== undefined ? activeRunPipeline === "anomaly_v1" : isSelectedPipelineAnomaly;
+    activeRunPipeline !== undefined
+      ? ["anomaly_v1", "anomaly_local_v1"].includes(activeRunPipeline)
+      : isSelectedPipelineAnomaly;
 
   const bboxLabel = useMemo(() => {
     if (!mapBBox) return "Map extent not ready";
@@ -76,17 +83,18 @@ export default function PipelinePanel() {
       return;
     }
     if (!anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
-      setMlView("quality");
+      setMlView(isSelectedLocalAnomaly ? "cluster" : "quality");
     }
-  }, [activeRunId, isSelectedPipelineAnomaly, mlView, setMlView, source]);
+  }, [activeRunId, isSelectedLocalAnomaly, isSelectedPipelineAnomaly, mlView, setMlView, source]);
 
   useEffect(() => {
     if (!activeRunId || activeRunPipeline === undefined) {
       return;
     }
-    if (activeRunPipeline === "anomaly_v1") {
-      if (!anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
-        setMlView("quality");
+    if (isActiveRunAnomaly) {
+      const validViews = isActiveRunLocalAnomaly ? localAnomalyViews : anomalyViews;
+      if (!validViews.includes(mlView as (typeof validViews)[number])) {
+        setMlView(isActiveRunLocalAnomaly ? "cluster" : "quality");
       }
       return;
     }
@@ -96,7 +104,7 @@ export default function PipelinePanel() {
     if (anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
       setMlView("cluster");
     }
-  }, [activeRunId, activeRunPipeline, mlView, setMlView]);
+  }, [activeRunId, activeRunPipeline, isActiveRunAnomaly, isActiveRunLocalAnomaly, mlView, setMlView]);
 
   async function handleRun() {
     if (!mapBBox) return;
@@ -120,7 +128,9 @@ export default function PipelinePanel() {
     const result = await createMlRun(payload);
     if (result?.run_id) {
       setActiveRunId(result.run_id);
-      if (pipeline === "anomaly_v1") {
+      if (pipeline === "anomaly_local_v1") {
+        setMlView("cluster");
+      } else if (pipeline === "anomaly_v1") {
         setMlView("quality");
       }
     }
@@ -181,6 +191,7 @@ export default function PipelinePanel() {
           <option value="clustering">Clustering (DBSCAN)</option>
           <option value="hybrid">Hybrid (Assign + Cluster)</option>
           <option value="anomaly_v1">Anomaly v1 (Reliability + Cross-Track)</option>
+          <option value="anomaly_local_v1">Anomaly Local v1 (Building Clusters)</option>
         </select>
       </div>
 
@@ -199,7 +210,9 @@ export default function PipelinePanel() {
       )}
 
       {isSelectedPipelineAnomaly && (
-        <div className="pill">Building source is fixed to GBA for `anomaly_v1`.</div>
+        <div className="pill">
+          Building source is fixed to GBA for `{pipeline}`.
+        </div>
       )}
 
       <div className="form-row">
@@ -330,6 +343,23 @@ export default function PipelinePanel() {
               {Number(activeRunQuery.data?.metrics?.cross_track_improvement ?? 0).toFixed(2)}
             </span>
           </div>
+          {isActiveRunLocalAnomaly && (
+            <>
+              <div className="metric">
+                <span className="label">Buildings with clusters</span>
+                <span className="value">
+                  {activeRunQuery.data?.metrics?.buildings_with_clusters ?? 0}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Noise / gate-excluded</span>
+                <span className="value">
+                  {activeRunQuery.data?.metrics?.noise_points ?? 0}/
+                  {activeRunQuery.data?.metrics?.gate_excluded_points ?? 0}
+                </span>
+              </div>
+            </>
+          )}
         </>
       )}
       <button className="button secondary" onClick={handleRefresh} disabled={!activeRunId}>
@@ -343,7 +373,15 @@ export default function PipelinePanel() {
           value={mlView}
           onChange={(e) => setMlView(e.target.value as any)}
         >
-          {showAnomalyViews ? (
+          {showLocalAnomalyViews ? (
+            <>
+              <option value="cluster">Cluster colors</option>
+              <option value="quality">Quality score</option>
+              <option value="anomaly">Anomaly score</option>
+              <option value="cross-track">Cross-track consistency</option>
+              <option value="label">Reliability label</option>
+            </>
+          ) : showAnomalyViews ? (
             <>
               <option value="quality">Quality score</option>
               <option value="anomaly">Anomaly score</option>
@@ -376,7 +414,9 @@ export default function PipelinePanel() {
                 className="run-select"
                 onClick={() => {
                   setActiveRunId(run.run_id);
-                  if (run.pipeline === "anomaly_v1") {
+                  if (run.pipeline === "anomaly_local_v1") {
+                    setMlView("cluster");
+                  } else if (run.pipeline === "anomaly_v1") {
                     setMlView("quality");
                   } else if (anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
                     setMlView("cluster");

@@ -8,7 +8,7 @@ from uuid import uuid4
 import asyncpg
 
 from ..config import settings
-from .registry import get_pipeline
+from .registry import get_pipeline, list_pipelines
 from .runner import run_pipeline_async
 from .store import create_run_record
 from .types import RunConfig
@@ -55,7 +55,7 @@ async def _run(config: RunConfig) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run InSAR ML pipelines.")
-    parser.add_argument("--pipeline", required=True, choices=["assignment", "clustering", "hybrid"])
+    parser.add_argument("--pipeline", required=True, choices=list_pipelines())
     parser.add_argument("--source", choices=["gba", "osm"])
     parser.add_argument("--track", type=int, choices=[44, 95])
     parser.add_argument("--bbox", help="min_lon,min_lat,max_lon,max_lat")

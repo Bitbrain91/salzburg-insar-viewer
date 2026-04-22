@@ -146,17 +146,35 @@ class MLPointAnalysis(BaseModel):
     feature_flags: dict[str, Any] = Field(default_factory=dict)
     building_context: dict[str, Any] = Field(default_factory=dict)
     cross_track_summary: dict[str, Any] = Field(default_factory=dict)
+    cluster_role: Optional[str] = None
+    cluster_probability: Optional[float] = None
+    cluster_outlier_score: Optional[float] = None
+    gate_excluded: Optional[bool] = None
+    gate_reasons: List[str] = Field(default_factory=list)
+    kept_for_scoring: Optional[bool] = None
     explain_top_features: List[MLExplainReason] = Field(default_factory=list)
 
 
 class MLBuildingPointSummary(BaseModel):
     code: str
     track: int
+    cluster_id: Optional[str] = None
+    cluster_role: Optional[str] = None
     label: Optional[str] = None
     quality_score: Optional[float] = None
     anomaly_score: Optional[float] = None
     cross_track_consistency: Optional[float] = None
     distance_m: Optional[float] = None
+    gate_excluded: Optional[bool] = None
+
+
+class MLBuildingClusterSummary(BaseModel):
+    cluster_id: str
+    track: int
+    point_count: int
+    median_velocity: Optional[float] = None
+    median_coherence: Optional[float] = None
+    median_height_rank: Optional[float] = None
 
 
 class MLBuildingAnalysis(BaseModel):
@@ -166,6 +184,12 @@ class MLBuildingAnalysis(BaseModel):
     building_source: str
     building_id: str
     point_count: int = 0
+    kept_point_count: int = 0
+    noise_point_count: int = 0
+    excluded_point_count: int = 0
+    cluster_count: int = 0
+    track_agreement_score: Optional[float] = None
+    building_status: Optional[str] = None
     track_counts: dict[str, int] = Field(default_factory=dict)
     label_counts: dict[str, int] = Field(default_factory=dict)
     assignment_methods: dict[str, int] = Field(default_factory=dict)
@@ -173,6 +197,7 @@ class MLBuildingAnalysis(BaseModel):
     avg_anomaly_score: Optional[float] = None
     avg_cross_track_consistency: Optional[float] = None
     median_distance_m: Optional[float] = None
+    clusters: List[MLBuildingClusterSummary] = Field(default_factory=list)
     top_points: List[MLBuildingPointSummary] = Field(default_factory=list)
 
 
@@ -180,3 +205,37 @@ class MLPointAnalysisResponse(BaseModel):
     status: Literal["ready", "pending", "missing"]
     analysis: Optional[MLPointAnalysis] = None
     message: Optional[str] = None
+
+
+class GeoJsonFeature(BaseModel):
+    type: Literal["Feature"] = "Feature"
+    geometry: dict[str, Any]
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class GeoJsonFeatureCollection(BaseModel):
+    type: Literal["FeatureCollection"] = "FeatureCollection"
+    features: List[GeoJsonFeature] = Field(default_factory=list)
+
+
+class MLBuildingVisualizationPointsResponse(BaseModel):
+    run_id: str
+    pipeline: str
+    run_type: str
+    building_source: str
+    building_id: str
+    point_count: int = 0
+    feature_collection: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
+
+
+class MLBuildingVisualizationContextResponse(BaseModel):
+    run_id: str
+    pipeline: str
+    run_type: str
+    building_source: str
+    building_id: str
+    bounds: List[float] = Field(default_factory=list)
+    building: Optional[GeoJsonFeature] = None
+    candidate_areas: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
+    cluster_hulls: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
+    summary: dict[str, Any] = Field(default_factory=dict)

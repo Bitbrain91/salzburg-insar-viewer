@@ -3,17 +3,24 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
 import mlflow
+import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
 from ..config import settings
 from ..db import fetch_one
 from ..schemas import (
+    GeoJsonFeature,
     MLBuildingAnalysis,
+    MLBuildingClusterSummary,
     MLBuildingPointSummary,
+    MLBuildingVisualizationContextResponse,
+    MLBuildingVisualizationPointsResponse,
     MLPointAnalysis,
     MLPointAnalysisResponse,
     MLRunCreate,
@@ -49,6 +56,65 @@ def _parse_meta(value):
 
 def _count_map(rows, key_field: str = "key") -> dict[str, int]:
     return {str(row[key_field]): int(row["count"]) for row in rows}
+
+
+def _json_object(value) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _nested_dict(meta: dict, *keys: str) -> dict:
+    current: Any = meta
+    for key in keys:
+        if not isinstance(current, dict):
+            return {}
+        current = current.get(key)
+    return current if isinstance(current, dict) else {}
+
+
+def _nested_list(meta: dict, *keys: str) -> list:
+    current: Any = meta
+    for key in keys:
+        if not isinstance(current, dict):
+            return []
+        current = current.get(key)
+    return current if isinstance(current, list) else []
+
+
+def _nested_bool(meta: dict, *keys: str) -> bool | None:
+    current: Any = meta
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if isinstance(current, bool):
+        return current
+    if isinstance(current, str):
+        lowered = current.strip().lower()
+        if lowered in {"true", "false"}:
+            return lowered == "true"
+    return None
+
+
+def _nested_float(meta: dict, *keys: str) -> float | None:
+    current: Any = meta
+    for key in keys:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    if current is None:
+        return None
+    try:
+        return float(current)
+    except (TypeError, ValueError):
+        return None
 
 
 @router.get("/pipelines")
@@ -219,6 +285,8 @@ async def ml_point_analysis(
         )
 
     meta = _parse_meta(row.get("meta"))
+    cluster_meta = _nested_dict(meta, "cluster")
+    visual_meta = _nested_dict(meta, "visual_context")
     explain = [
         {
             "key": item.get("key", "unknown"),
@@ -250,6 +318,15 @@ async def ml_point_analysis(
             feature_flags=meta.get("feature_flags") or {},
             building_context=meta.get("building_context") or {},
             cross_track_summary=meta.get("cross_track_summary") or {},
+            cluster_role=cluster_meta.get("cluster_role"),
+            cluster_probability=_nested_float(meta, "cluster", "cluster_probability"),
+            cluster_outlier_score=_nested_float(meta, "cluster", "cluster_outlier_score"),
+            gate_excluded=_nested_bool(meta, "visual_context", "gate_excluded"),
+            gate_reasons=[
+                str(item)
+                for item in _nested_list(meta, "visual_context", "gate_reasons")
+            ],
+            kept_for_scoring=_nested_bool(meta, "visual_context", "kept_for_scoring"),
             explain_top_features=explain,
         ),
     )
@@ -277,101 +354,110 @@ async def ml_building_analysis(
         if run is None:
             raise HTTPException(status_code=404, detail="Run not found")
 
-        summary = await conn.fetchrow(
+        rows = await conn.fetch(
             """
-            WITH building_points AS (
-                SELECT
-                    quality_score,
-                    anomaly_score,
-                    cross_track_consistency,
-                    distance_m
-                FROM ml_point_results
-                WHERE run_id = $1::uuid
-                  AND building_source = $2
-                  AND building_id = $3
+            SELECT
+                r.code,
+                r.track,
+                r.cluster_id,
+                r.label,
+                r.quality_score,
+                r.anomaly_score,
+                r.cross_track_consistency,
+                r.distance_m,
+                r.meta,
+                p.velocity,
+                p.coherence
+            FROM ml_point_results r
+            LEFT JOIN insar_points p
+              ON p.code = r.code AND p.track = r.track
+            WHERE r.run_id = $1::uuid
+              AND r.building_source = $2
+              AND r.building_id = $3
+            ORDER BY r.quality_score ASC NULLS LAST, r.anomaly_score DESC NULLS LAST, r.code, r.track
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+
+    point_count = len(rows)
+    track_counts: dict[str, int] = defaultdict(int)
+    label_counts: dict[str, int] = defaultdict(int)
+    assignment_methods: dict[str, int] = defaultdict(int)
+    cluster_rollup: dict[str, dict[str, Any]] = {}
+    kept_point_count = 0
+    noise_point_count = 0
+    excluded_point_count = 0
+    quality_values: list[float] = []
+    anomaly_values: list[float] = []
+    cross_track_values: list[float] = []
+    distance_values: list[float] = []
+
+    for row in rows:
+        meta = _parse_meta(row.get("meta"))
+        cluster_meta = _nested_dict(meta, "cluster")
+        visual_meta = _nested_dict(meta, "visual_context")
+        building_meta = _nested_dict(meta, "building_context")
+        cluster_role = str(cluster_meta.get("cluster_role") or "unknown")
+        cluster_id = row.get("cluster_id")
+        gate_excluded = bool(visual_meta.get("gate_excluded", False))
+        assignment_method = (
+            building_meta.get("assignment_method")
+            or _nested_dict(meta, "feature_flags").get("assignment_method")
+            or "unknown"
+        )
+
+        track_counts[str(row["track"])] += 1
+        label_counts[str(row.get("label") or "unlabeled")] += 1
+        assignment_methods[str(assignment_method)] += 1
+        if row.get("quality_score") is not None:
+            quality_values.append(float(row["quality_score"]))
+        if row.get("anomaly_score") is not None:
+            anomaly_values.append(float(row["anomaly_score"]))
+        if row.get("cross_track_consistency") is not None:
+            cross_track_values.append(float(row["cross_track_consistency"]))
+        if row.get("distance_m") is not None:
+            distance_values.append(float(row["distance_m"]))
+
+        if gate_excluded:
+            excluded_point_count += 1
+        else:
+            kept_point_count += 1
+        if cluster_role == "noise":
+            noise_point_count += 1
+
+        if cluster_role == "core" and cluster_id:
+            stats = cluster_rollup.setdefault(
+                str(cluster_id),
+                {
+                    "track": int(row["track"]),
+                    "count": 0,
+                    "velocities": [],
+                    "coherences": [],
+                    "height_ranks": [],
+                },
             )
-            SELECT
-                COUNT(*)::integer AS point_count,
-                AVG(quality_score) AS avg_quality_score,
-                AVG(anomaly_score) AS avg_anomaly_score,
-                AVG(cross_track_consistency) AS avg_cross_track_consistency,
-                percentile_disc(0.5) WITHIN GROUP (ORDER BY distance_m)
-                    FILTER (WHERE distance_m IS NOT NULL) AS median_distance_m
-            FROM building_points
-            """,
-            run_id,
-            source,
-            building_id,
-        )
-        track_counts = await conn.fetch(
-            """
-            SELECT track::text AS key, COUNT(*)::integer AS count
-            FROM ml_point_results
-            WHERE run_id = $1::uuid
-              AND building_source = $2
-              AND building_id = $3
-            GROUP BY track
-            ORDER BY track
-            """,
-            run_id,
-            source,
-            building_id,
-        )
-        label_counts = await conn.fetch(
-            """
-            SELECT COALESCE(label, 'unlabeled') AS key, COUNT(*)::integer AS count
-            FROM ml_point_results
-            WHERE run_id = $1::uuid
-              AND building_source = $2
-              AND building_id = $3
-            GROUP BY COALESCE(label, 'unlabeled')
-            ORDER BY key
-            """,
-            run_id,
-            source,
-            building_id,
-        )
-        assignment_methods = await conn.fetch(
-            """
-            SELECT
-                COALESCE(
-                    meta->'building_context'->>'assignment_method',
-                    meta->'feature_flags'->>'assignment_method',
-                    'unknown'
-                ) AS key,
-                COUNT(*)::integer AS count
-            FROM ml_point_results
-            WHERE run_id = $1::uuid
-              AND building_source = $2
-              AND building_id = $3
-            GROUP BY key
-            ORDER BY key
-            """,
-            run_id,
-            source,
-            building_id,
-        )
-        top_points = await conn.fetch(
-            """
-            SELECT
-                code,
-                track,
-                label,
-                quality_score,
-                anomaly_score,
-                cross_track_consistency,
-                distance_m
-            FROM ml_point_results
-            WHERE run_id = $1::uuid
-              AND building_source = $2
-              AND building_id = $3
-            ORDER BY quality_score ASC NULLS LAST, anomaly_score DESC NULLS LAST, code, track
-            LIMIT 8
-            """,
-            run_id,
-            source,
-            building_id,
-        )
+            stats["count"] += 1
+            if row.get("velocity") is not None:
+                stats["velocities"].append(float(row["velocity"]))
+            if row.get("coherence") is not None:
+                stats["coherences"].append(float(row["coherence"]))
+            height_rank = _nested_float(meta, "building_context", "height_rank_in_building")
+            if height_rank is not None:
+                stats["height_ranks"].append(float(height_rank))
+
+    cluster_count = len(cluster_rollup)
+    if kept_point_count < 3:
+        building_status = "insufficient_support"
+    elif noise_point_count > kept_point_count * 0.5:
+        building_status = "noise_dominated"
+    elif cluster_count > 1:
+        building_status = "multi_cluster"
+    elif cluster_count == 1:
+        building_status = "single_cluster"
+    else:
+        building_status = "insufficient_support"
 
     return MLBuildingAnalysis(
         run_id=str(run["run_id"]),
@@ -379,26 +465,405 @@ async def ml_building_analysis(
         run_type=run["run_type"],
         building_source=source,
         building_id=building_id,
-        point_count=int(summary["point_count"] or 0),
-        track_counts=_count_map(track_counts),
-        label_counts=_count_map(label_counts),
-        assignment_methods=_count_map(assignment_methods),
-        avg_quality_score=summary["avg_quality_score"],
-        avg_anomaly_score=summary["avg_anomaly_score"],
-        avg_cross_track_consistency=summary["avg_cross_track_consistency"],
-        median_distance_m=summary["median_distance_m"],
+        point_count=point_count,
+        kept_point_count=kept_point_count,
+        noise_point_count=noise_point_count,
+        excluded_point_count=excluded_point_count,
+        cluster_count=cluster_count,
+        track_agreement_score=float(np.mean(cross_track_values)) if cross_track_values else None,
+        building_status=building_status,
+        track_counts=dict(track_counts),
+        label_counts=dict(label_counts),
+        assignment_methods=dict(assignment_methods),
+        avg_quality_score=float(np.mean(quality_values)) if quality_values else None,
+        avg_anomaly_score=float(np.mean(anomaly_values)) if anomaly_values else None,
+        avg_cross_track_consistency=float(np.mean(cross_track_values)) if cross_track_values else None,
+        median_distance_m=float(np.median(distance_values)) if distance_values else None,
+        clusters=[
+            MLBuildingClusterSummary(
+                cluster_id=cluster_id,
+                track=values["track"],
+                point_count=values["count"],
+                median_velocity=float(np.median(values["velocities"])) if values["velocities"] else None,
+                median_coherence=float(np.median(values["coherences"])) if values["coherences"] else None,
+                median_height_rank=float(np.median(values["height_ranks"])) if values["height_ranks"] else None,
+            )
+            for cluster_id, values in sorted(
+                cluster_rollup.items(),
+                key=lambda item: (-item[1]["count"], item[0]),
+            )
+        ],
         top_points=[
             MLBuildingPointSummary(
                 code=row["code"],
                 track=row["track"],
+                cluster_id=row.get("cluster_id"),
+                cluster_role=_nested_dict(_parse_meta(row.get("meta")), "cluster").get("cluster_role"),
                 label=row["label"],
                 quality_score=row["quality_score"],
                 anomaly_score=row["anomaly_score"],
                 cross_track_consistency=row["cross_track_consistency"],
                 distance_m=row["distance_m"],
+                gate_excluded=_nested_bool(_parse_meta(row.get("meta")), "visual_context", "gate_excluded"),
             )
-            for row in top_points
+            for row in rows[:8]
         ],
+    )
+
+
+@router.get(
+    "/runs/{run_id}/buildings/{source}/{building_id}/points",
+    response_model=MLBuildingVisualizationPointsResponse,
+)
+async def ml_building_points_visualization(
+    request: Request,
+    run_id: str,
+    source: str,
+    building_id: str,
+):
+    if source not in {"gba", "osm"}:
+        raise HTTPException(status_code=400, detail="Invalid source")
+
+    async with request.app.state.db_pool.acquire() as conn:
+        run = await conn.fetchrow(
+            """
+            SELECT run_id, pipeline, run_type
+            FROM ml_runs
+            WHERE run_id = $1
+            """,
+            run_id,
+        )
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        rows = await conn.fetch(
+            """
+            SELECT
+                r.code,
+                r.track,
+                r.cluster_id,
+                r.label,
+                r.anomaly_score,
+                r.quality_score,
+                r.cross_track_consistency,
+                r.distance_m,
+                r.meta,
+                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
+                ST_AsGeoJSON(p.geom)::jsonb AS geometry
+            FROM ml_point_results r
+            JOIN insar_points p
+              ON p.code = r.code AND p.track = r.track
+            WHERE r.run_id = $1::uuid
+              AND r.building_source = $2
+              AND r.building_id = $3
+            ORDER BY r.track, r.code
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+
+    features = []
+    for row in rows:
+        meta = _parse_meta(row.get("meta"))
+        cluster_meta = _nested_dict(meta, "cluster")
+        visual_meta = _nested_dict(meta, "visual_context")
+        building_meta = _nested_dict(meta, "building_context")
+        cross_meta = _nested_dict(meta, "cross_track_summary")
+        features.append(
+            GeoJsonFeature(
+                geometry=_json_object(row["geometry"]),
+                properties={
+                    "code": row["code"],
+                    "track": row["track"],
+                    "cluster_id": row.get("cluster_id"),
+                    "cluster_role": cluster_meta.get("cluster_role"),
+                    "cluster_probability": _nested_float(meta, "cluster", "cluster_probability"),
+                    "cluster_outlier_score": _nested_float(meta, "cluster", "cluster_outlier_score"),
+                    "cluster_color_index": int(row["cluster_color_index"]),
+                    "label": row.get("label"),
+                    "anomaly_score": row.get("anomaly_score"),
+                    "quality_score": row.get("quality_score"),
+                    "cross_track_consistency": row.get("cross_track_consistency"),
+                    "assignment_method": building_meta.get("assignment_method") or visual_meta.get("assignment_method"),
+                    "distance_m": row.get("distance_m"),
+                    "kept_for_scoring": bool(visual_meta.get("kept_for_scoring", False)),
+                    "gate_excluded": bool(visual_meta.get("gate_excluded", False)),
+                    "gate_reasons": [
+                        str(item) for item in _nested_list(meta, "visual_context", "gate_reasons")
+                    ],
+                    "small_n_fallback": bool(cluster_meta.get("small_n_fallback", False)),
+                    "range_offset_m": building_meta.get("range_offset_m"),
+                    "buffer_m": building_meta.get("buffer_m"),
+                    "along_look_offset_m": building_meta.get("along_look_offset_m"),
+                    "cross_look_offset_m": building_meta.get("cross_look_offset_m"),
+                    "height_rank_in_building": building_meta.get("height_rank_in_building"),
+                    "allowed_diff_mm_a": cross_meta.get("allowed_diff_mm_a"),
+                },
+            )
+        )
+
+    return MLBuildingVisualizationPointsResponse(
+        run_id=str(run["run_id"]),
+        pipeline=run["pipeline"],
+        run_type=run["run_type"],
+        building_source=source,
+        building_id=building_id,
+        point_count=len(features),
+        feature_collection={"type": "FeatureCollection", "features": features},
+    )
+
+
+@router.get(
+    "/runs/{run_id}/buildings/{source}/{building_id}/context",
+    response_model=MLBuildingVisualizationContextResponse,
+)
+async def ml_building_context_visualization(
+    request: Request,
+    run_id: str,
+    source: str,
+    building_id: str,
+):
+    if source not in {"gba", "osm"}:
+        raise HTTPException(status_code=400, detail="Invalid source")
+
+    async with request.app.state.db_pool.acquire() as conn:
+        run = await conn.fetchrow(
+            """
+            SELECT run_id, pipeline, run_type, params
+            FROM ml_runs
+            WHERE run_id = $1
+            """,
+            run_id,
+        )
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        params = _parse_meta(run.get("params"))
+        default_incidence = float(params.get("default_incidence_angle_deg", 38.5) or 38.5)
+        min_buffer_m = float(params.get("min_buffer_m", 3.0) or 3.0)
+        max_buffer_m = float(params.get("max_buffer_m", 30.0) or 30.0)
+        default_height_m = float(params.get("default_height_m", 12.0) or 12.0)
+        buffer_multiplier = float(params.get("buffer_multiplier", 1.0) or 1.0)
+        lateral_slack_m = float(params.get("lateral_slack_m", 2.0) or 2.0)
+
+        if source == "gba":
+            building_row = await conn.fetchrow(
+                """
+                SELECT
+                    gba_id::text AS building_id,
+                    height,
+                    ST_AsGeoJSON(geom)::jsonb AS geometry,
+                    ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
+                FROM gba_buildings
+                WHERE gba_id::text = $1
+                """,
+                building_id,
+            )
+        else:
+            building_row = await conn.fetchrow(
+                """
+                SELECT
+                    osm_id::text AS building_id,
+                    NULL::double precision AS height,
+                    ST_AsGeoJSON(geom)::jsonb AS geometry,
+                    ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
+                FROM osm_buildings
+                WHERE osm_id::text = $1
+                """,
+                building_id,
+            )
+        if building_row is None:
+            raise HTTPException(status_code=404, detail="Building not found")
+
+        candidate_rows = []
+        if source == "gba":
+            candidate_rows = await conn.fetch(
+                """
+                WITH building AS (
+                    SELECT
+                        gba_id::text AS building_id,
+                        height AS building_height,
+                        ST_Transform(geom, 32633) AS geom_utm
+                    FROM gba_buildings
+                    WHERE gba_id::text = $1
+                ),
+                track_settings AS (
+                    SELECT
+                        44 AS track,
+                        COALESCE(
+                            (
+                                SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY p.incidence_angle)
+                                FROM ml_point_results r
+                                JOIN insar_points p ON p.code = r.code AND p.track = r.track
+                                WHERE r.run_id = $2::uuid
+                                  AND r.building_source = $3
+                                  AND r.building_id = $1
+                                  AND r.track = 44
+                                  AND p.incidence_angle IS NOT NULL
+                            ),
+                            $4::double precision
+                        ) AS incidence_angle
+                    UNION ALL
+                    SELECT
+                        95 AS track,
+                        COALESCE(
+                            (
+                                SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY p.incidence_angle)
+                                FROM ml_point_results r
+                                JOIN insar_points p ON p.code = r.code AND p.track = r.track
+                                WHERE r.run_id = $2::uuid
+                                  AND r.building_source = $3
+                                  AND r.building_id = $1
+                                  AND r.track = 95
+                                  AND p.incidence_angle IS NOT NULL
+                            ),
+                            $4::double precision
+                        ) AS incidence_angle
+                ),
+                candidate AS (
+                    SELECT
+                        track,
+                        incidence_angle,
+                        GREATEST(
+                            $5::double precision,
+                            LEAST(
+                                $6::double precision,
+                                COALESCE(building_height, $7::double precision)
+                                * tan(radians(incidence_angle))
+                                * $8::double precision
+                            )
+                        ) AS range_offset_m,
+                        geom_utm
+                    FROM building
+                    CROSS JOIN track_settings
+                )
+                SELECT
+                    track,
+                    incidence_angle,
+                    range_offset_m,
+                    ST_AsGeoJSON(
+                        ST_Transform(
+                            ST_Buffer(
+                                ST_Union(
+                                    geom_utm,
+                                    ST_Translate(
+                                    geom_utm,
+                                        CASE WHEN track = 44 THEN -range_offset_m ELSE range_offset_m END,
+                                        0.0
+                                    )
+                                ),
+                                $9::double precision
+                            ),
+                            4326
+                        )
+                    )::jsonb AS geometry
+                FROM candidate
+                ORDER BY track
+                """,
+                building_id,
+                run_id,
+                source,
+                default_incidence,
+                min_buffer_m,
+                max_buffer_m,
+                default_height_m,
+                buffer_multiplier,
+                lateral_slack_m,
+            )
+
+        hull_rows = await conn.fetch(
+            """
+            SELECT
+                r.cluster_id,
+                r.track,
+                COUNT(*)::integer AS point_count,
+                abs(hashtext(r.cluster_id)) % 60 AS cluster_color_index,
+                ST_AsGeoJSON(ST_ConvexHull(ST_Collect(p.geom)))::jsonb AS geometry
+            FROM ml_point_results r
+            JOIN insar_points p
+              ON p.code = r.code AND p.track = r.track
+            WHERE r.run_id = $1::uuid
+              AND r.building_source = $2
+              AND r.building_id = $3
+              AND COALESCE(r.meta->'cluster'->>'cluster_role', '') = 'core'
+              AND COALESCE(r.meta->'visual_context'->>'gate_excluded', 'false') = 'false'
+            GROUP BY r.cluster_id, r.track
+            ORDER BY point_count DESC, r.cluster_id
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+
+        summary_row = await conn.fetchrow(
+            """
+            SELECT
+                COUNT(*)::integer AS point_count,
+                COUNT(*) FILTER (
+                    WHERE COALESCE(meta->'visual_context'->>'gate_excluded', 'false') = 'false'
+                )::integer AS kept_point_count,
+                COUNT(*) FILTER (
+                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'noise'
+                )::integer AS noise_point_count,
+                AVG(cross_track_consistency) AS track_agreement_score
+            FROM ml_point_results
+            WHERE run_id = $1::uuid
+              AND building_source = $2
+              AND building_id = $3
+            """,
+            run_id,
+            source,
+            building_id,
+        )
+
+    candidate_features = [
+        GeoJsonFeature(
+            geometry=_json_object(row["geometry"]),
+            properties={
+                "track": row["track"],
+                "incidence_angle_deg": row["incidence_angle"],
+                "range_offset_m": row["range_offset_m"],
+            },
+        )
+        for row in candidate_rows
+    ]
+    hull_features = [
+        GeoJsonFeature(
+            geometry=_json_object(row["geometry"]),
+            properties={
+                "cluster_id": row["cluster_id"],
+                "track": row["track"],
+                "point_count": row["point_count"],
+                "cluster_color_index": int(row["cluster_color_index"]),
+            },
+        )
+        for row in hull_rows
+    ]
+
+    return MLBuildingVisualizationContextResponse(
+        run_id=str(run["run_id"]),
+        pipeline=run["pipeline"],
+        run_type=run["run_type"],
+        building_source=source,
+        building_id=building_id,
+        bounds=[float(value) for value in (building_row.get("bounds") or [])],
+        building=GeoJsonFeature(
+            geometry=_json_object(building_row["geometry"]),
+            properties={
+                "building_id": building_id,
+                "building_source": source,
+                "height_m": building_row.get("height"),
+            },
+        ),
+        candidate_areas={"type": "FeatureCollection", "features": candidate_features},
+        cluster_hulls={"type": "FeatureCollection", "features": hull_features},
+        summary={
+            "point_count": int(summary_row["point_count"] or 0) if summary_row else 0,
+            "kept_point_count": int(summary_row["kept_point_count"] or 0) if summary_row else 0,
+            "noise_point_count": int(summary_row["noise_point_count"] or 0) if summary_row else 0,
+            "track_agreement_score": summary_row["track_agreement_score"] if summary_row else None,
+        },
     )
 
 
@@ -428,7 +893,13 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 (r.meta->>'method') AS method,
                 (r.meta->'feature_flags'->>'height_band') AS height_band,
                 (r.meta->'feature_flags'->>'degraded_reason') AS degraded_reason,
+                (r.meta->'cluster'->>'cluster_role') AS cluster_role,
+                (r.meta->'cluster'->>'cluster_probability')::double precision AS cluster_probability,
+                (r.meta->'cluster'->>'cluster_outlier_score')::double precision AS cluster_outlier_score,
+                COALESCE((r.meta->'visual_context'->>'gate_excluded')::boolean, false) AS gate_excluded,
+                COALESCE((r.meta->'visual_context'->>'kept_for_scoring')::boolean, false) AS kept_for_scoring,
                 (r.meta->'building_context'->>'track_point_count')::integer AS building_track_point_count,
+                (r.meta->'building_context'->>'kept_point_count_track')::integer AS kept_point_count_track,
                 (r.meta->'building_context'->>'other_track_point_count')::integer AS other_track_point_count,
                 (r.meta->'building_context'->>'step_support')::double precision AS step_support,
                 (r.meta->'building_context'->>'building_velocity_robust_z')::double precision AS building_velocity_robust_z,
@@ -475,6 +946,16 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 AVG(quality_score) AS avg_quality_score,
                 AVG(anomaly_score) AS avg_anomaly_score,
                 COUNT(*) FILTER (WHERE label = 'outlier') AS outlier_count,
+                COUNT(*) FILTER (
+                    WHERE COALESCE(meta->'visual_context'->>'gate_excluded', 'false') = 'false'
+                ) AS kept_point_count,
+                COUNT(*) FILTER (
+                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'noise'
+                ) AS noise_point_count,
+                COUNT(DISTINCT cluster_id) FILTER (
+                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'core'
+                ) AS cluster_count,
+                AVG(cross_track_consistency) AS track_agreement_score,
                 COUNT(*) AS point_count
             FROM ml_point_results
             WHERE run_id = $4::uuid
@@ -517,6 +998,10 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 scores.avg_quality_score,
                 scores.avg_anomaly_score,
                 scores.outlier_count,
+                scores.kept_point_count,
+                scores.noise_point_count,
+                scores.cluster_count,
+                scores.track_agreement_score,
                 scores.point_count,
                 COALESCE(
                     c.color_index,

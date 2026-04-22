@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import maplibregl, { Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 import { basemaps } from "../lib/basemaps";
 import type { BasemapId } from "../lib/basemaps";
@@ -21,6 +22,11 @@ import {
   trackOutlineRingStrokeWidthExpression,
   velocityExpression,
 } from "../lib/pointStyling";
+import {
+  getMlBuildingContext,
+  getMlBuildingPoints,
+  getMlRunDetail,
+} from "../hooks/useApi";
 import { useAppStore } from "../lib/store";
 
 const tilesBase =
@@ -118,11 +124,24 @@ const mlPalette = Array.from({ length: mlPaletteSize }, (_, i) => {
   return hslToHex(hue, 0.7, 0.5);
 });
 
-const mlClusterColorExpression: any[] = [
+const clusterPaletteExpression: any[] = [
   "match",
   ["get", "cluster_color_index"],
   ...mlPalette.flatMap((color, idx) => [idx, color]),
   "#9aa0a6",
+];
+
+const mlClusterColorExpression: any[] = [
+  "case",
+  ["==", ["get", "gate_excluded"], true],
+  "#9aa0a6",
+  ["==", ["get", "cluster_role"], "excluded"],
+  "#9aa0a6",
+  ["==", ["get", "cluster_role"], "noise"],
+  "#c6372a",
+  ["==", ["get", "cluster_role"], "insufficient_support"],
+  "#f2c14e",
+  clusterPaletteExpression,
 ];
 
 const mlBuildingColorExpression: any[] = [
@@ -274,6 +293,26 @@ const buildingLabelExpression: any[] = [
   "#9aa0a6",
 ];
 
+const focusCandidateColorExpression: any[] = [
+  "match",
+  ["get", "track"],
+  44,
+  "rgba(41, 128, 185, 0.28)",
+  95,
+  "rgba(216, 112, 52, 0.28)",
+  "rgba(140, 140, 140, 0.18)",
+];
+
+const focusCandidateLineExpression: any[] = [
+  "match",
+  ["get", "track"],
+  44,
+  "#2980b9",
+  95,
+  "#d87034",
+  "#7f8c8d",
+];
+
 function applyBasePointColors(
   map: MapLibreMap,
   pointColorMode: "velocity" | "height",
@@ -327,12 +366,42 @@ export default function MapView() {
   const activeRunId = useAppStore((state) => state.activeRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
   const showMlBuildings = useAppStore((state) => state.showMlBuildings);
+  const mlBuildingTrackFilter = useAppStore((state) => state.mlBuildingTrackFilter);
+  const mlBuildingShowExcluded = useAppStore((state) => state.mlBuildingShowExcluded);
+  const mlBuildingShowHulls = useAppStore((state) => state.mlBuildingShowHulls);
   const mlView = useAppStore((state) => state.mlView);
   const mlTileVersion = useAppStore((state) => state.mlTileVersion);
   const setMapBBox = useAppStore((state) => state.setMapBBox);
   const activeSatellitePreset = isSatelliteCameraMode(cameraMode)
     ? satelliteCameraPresets[cameraMode]
     : null;
+  const focusBuildingSelection = selection?.type === "building" ? selection : null;
+
+  const activeRunQuery = useQuery({
+    queryKey: ["map-ml-run-detail", activeRunId],
+    queryFn: () => getMlRunDetail(activeRunId as string),
+    enabled: Boolean(activeRunId),
+    refetchInterval: activeRunId ? 5000 : false,
+  });
+  const isLocalAnomalyRun = activeRunQuery.data?.pipeline === "anomaly_local_v1";
+  const focusPointsQuery = useQuery({
+    queryKey: ["map-ml-building-points", activeRunId, focusBuildingSelection],
+    queryFn: () =>
+      focusBuildingSelection && activeRunId
+        ? getMlBuildingPoints(activeRunId, focusBuildingSelection.source, focusBuildingSelection.id)
+        : Promise.resolve(null),
+    enabled: Boolean(activeRunId && focusBuildingSelection && isLocalAnomalyRun),
+    retry: false,
+  });
+  const focusContextQuery = useQuery({
+    queryKey: ["map-ml-building-context", activeRunId, focusBuildingSelection],
+    queryFn: () =>
+      focusBuildingSelection && activeRunId
+        ? getMlBuildingContext(activeRunId, focusBuildingSelection.source, focusBuildingSelection.id)
+        : Promise.resolve(null),
+    enabled: Boolean(activeRunId && focusBuildingSelection && isLocalAnomalyRun),
+    retry: false,
+  });
 
   useEffect(() => {
     pointColorModeRef.current = pointColorMode;
@@ -452,22 +521,22 @@ export default function MapView() {
   useEffect(() => {
     if (!mapRef.current) return;
     applyLayerVisibility(mapRef.current, layers, showTrackOutlines);
-  }, [layers, showTrackOutlines]);
+  }, [layers, showTrackOutlines, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current) return;
     applyBasePointColors(mapRef.current, pointColorMode, heightSensitivityM);
-  }, [pointColorMode, heightSensitivityM]);
+  }, [pointColorMode, heightSensitivityM, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current) return;
     applyTrackOutlineStyle(mapRef.current, showTrackOutlines);
-  }, [showTrackOutlines]);
+  }, [showTrackOutlines, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current) return;
     applyFilters(mapRef.current, filters, filtersEnabled);
-  }, [filters, filtersEnabled]);
+  }, [filters, filtersEnabled, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -486,7 +555,7 @@ export default function MapView() {
     map.addSource("ml_points", {
       type: "vector",
       tiles: [
-        `${apiBase}/api/ml/runs/${activeRunId}/tiles/{z}/{x}/{y}.pbf?v=${mlTileVersion}`,
+        `${apiBase}/api/ml/runs/${activeRunId}/tiles/{z}/{x}/{y}.pbf?v=${mlTileVersion}&sv=${styleVersion}`,
       ],
       tileSize: 512,
       minzoom: 0,
@@ -496,7 +565,7 @@ export default function MapView() {
     map.addSource("ml_buildings", {
       type: "vector",
       tiles: [
-        `${apiBase}/api/ml/runs/${activeRunId}/buildings/{z}/{x}/{y}.pbf?v=${mlTileVersion}`,
+        `${apiBase}/api/ml/runs/${activeRunId}/buildings/{z}/{x}/{y}.pbf?v=${mlTileVersion}&sv=${styleVersion}`,
       ],
       tileSize: 512,
       minzoom: 0,
@@ -596,6 +665,7 @@ export default function MapView() {
 
   useEffect(() => {
     if (!mapRef.current) return;
+    const map = mapRef.current;
     if (mapRef.current.getLayer("ml_points")) {
       mapRef.current.setLayoutProperty(
         "ml_points",
@@ -624,7 +694,8 @@ export default function MapView() {
         showMlBuildings ? "visible" : "none"
       );
     }
-  }, [showMlLayer, showMlBuildings]);
+    ensureLayerOrder(map);
+  }, [showMlLayer, showMlBuildings, styleVersion]);
 
   useEffect(() => {
     if (!mapRef.current || !mapRef.current.getLayer("ml_points")) return;
@@ -645,7 +716,97 @@ export default function MapView() {
     if (map.getLayer("ml_buildings_outline")) {
       map.setPaintProperty("ml_buildings_outline", "line-color", buildingColorExpression as any);
     }
-  }, [mlView, activeRunId]);
+    ensureLayerOrder(map);
+  }, [mlView, activeRunId, styleVersion]);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
+    const map = mapRef.current;
+
+    const restack = () => {
+      if (!map.getStyle()) return;
+      ensureLayerOrder(map);
+      applyMlBuildingFocusFilters(
+        map,
+        mlBuildingTrackFilter,
+        mlBuildingShowExcluded,
+        mlBuildingShowHulls
+      );
+    };
+
+    restack();
+    const frameId = window.requestAnimationFrame(restack);
+    const timeoutId = window.setTimeout(restack, 250);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [styleVersion, mlBuildingTrackFilter, mlBuildingShowExcluded, mlBuildingShowHulls]);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapRef.current.isStyleLoaded()) return;
+    const map = mapRef.current;
+
+    if (
+      !isLocalAnomalyRun ||
+      !focusBuildingSelection ||
+      !focusPointsQuery.data?.feature_collection ||
+      !focusContextQuery.data?.building
+    ) {
+      removeMlBuildingFocusLayersAndSources(map);
+      ensureLayerOrder(map);
+      return;
+    }
+
+    addOrUpdateGeoJsonSource(map, "ml_focus_building", {
+      type: "FeatureCollection",
+      features: [focusContextQuery.data.building],
+    });
+    addOrUpdateGeoJsonSource(map, "ml_focus_candidates", focusContextQuery.data.candidate_areas);
+    addOrUpdateGeoJsonSource(map, "ml_focus_hulls", focusContextQuery.data.cluster_hulls);
+    addOrUpdateGeoJsonSource(map, "ml_focus_points", focusPointsQuery.data.feature_collection);
+    addMlBuildingFocusLayers(map);
+    applyMlBuildingFocusFilters(
+      map,
+      mlBuildingTrackFilter,
+      mlBuildingShowExcluded,
+      mlBuildingShowHulls
+    );
+    ensureLayerOrder(map);
+  }, [
+    focusBuildingSelection,
+    focusContextQuery.data,
+    focusPointsQuery.data,
+    isLocalAnomalyRun,
+    mlBuildingShowExcluded,
+    mlBuildingShowHulls,
+    mlBuildingTrackFilter,
+    styleVersion,
+  ]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    applyMlBuildingFocusFilters(
+      mapRef.current,
+      mlBuildingTrackFilter,
+      mlBuildingShowExcluded,
+      mlBuildingShowHulls
+    );
+  }, [mlBuildingTrackFilter, mlBuildingShowExcluded, mlBuildingShowHulls]);
+
+  useEffect(() => {
+    if (!mapRef.current || !focusContextQuery.data?.bounds?.length || !focusBuildingSelection) return;
+    if (!isLocalAnomalyRun) return;
+    const [minLon, minLat, maxLon, maxLat] = focusContextQuery.data.bounds;
+    mapRef.current.fitBounds(
+      [
+        [minLon, minLat],
+        [maxLon, maxLat],
+      ],
+      { padding: 80, duration: 700, maxZoom: 18 }
+    );
+  }, [focusBuildingSelection?.id, focusContextQuery.data?.bounds, isLocalAnomalyRun]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -678,6 +839,18 @@ export default function MapView() {
     }
   }
 
+  function addOrUpdateGeoJsonSource(map: MapLibreMap, id: string, data: any) {
+    const source = map.getSource(id) as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(data);
+      return;
+    }
+    map.addSource(id, {
+      type: "geojson",
+      data,
+    });
+  }
+
   function addLayerIfMissing(map: MapLibreMap, layer: any) {
     if (!map.getLayer(layer.id)) {
       map.addLayer(layer);
@@ -694,6 +867,14 @@ export default function MapView() {
       "ml_buildings_flat",
       "ml_buildings_fill",
       "ml_buildings_outline",
+      "ml_focus_candidate_fill",
+      "ml_focus_candidate_line",
+      "ml_focus_hulls_fill",
+      "ml_focus_hulls_line",
+      "ml_focus_points_excluded",
+      "ml_focus_points_noise",
+      "ml_focus_points_core",
+      "ml_focus_building_outline",
       "insar_t44_outline",
       "insar_t44",
       "insar_t95_outline",
@@ -708,6 +889,177 @@ export default function MapView() {
       if (map.getLayer(layerId)) {
         map.moveLayer(layerId);
       }
+    }
+  }
+
+  function addMlBuildingFocusLayers(map: MapLibreMap) {
+    addLayerIfMissing(map, {
+      id: "ml_focus_candidate_fill",
+      type: "fill",
+      source: "ml_focus_candidates",
+      paint: {
+        "fill-color": focusCandidateColorExpression,
+        "fill-opacity": 0.12,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_candidate_line",
+      type: "line",
+      source: "ml_focus_candidates",
+      paint: {
+        "line-color": focusCandidateLineExpression,
+        "line-width": 1.6,
+        "line-opacity": 0.9,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_hulls_fill",
+      type: "fill",
+      source: "ml_focus_hulls",
+      paint: {
+        "fill-color": clusterPaletteExpression,
+        "fill-opacity": 0.18,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_hulls_line",
+      type: "line",
+      source: "ml_focus_hulls",
+      paint: {
+        "line-color": clusterPaletteExpression,
+        "line-width": 2,
+        "line-opacity": 0.95,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_building_outline",
+      type: "line",
+      source: "ml_focus_building",
+      paint: {
+        "line-color": "#111827",
+        "line-width": 2.4,
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_points_core",
+      type: "circle",
+      source: "ml_focus_points",
+      paint: {
+        "circle-radius": 7,
+        "circle-color": mlClusterColorExpression,
+        "circle-opacity": 0.96,
+        "circle-stroke-width": 1.2,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_points_noise",
+      type: "circle",
+      source: "ml_focus_points",
+      paint: {
+        "circle-radius": 8,
+        "circle-color": "#c6372a",
+        "circle-opacity": 0.98,
+        "circle-stroke-width": 1.4,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_points_excluded",
+      type: "circle",
+      source: "ml_focus_points",
+      paint: {
+        "circle-radius": 6,
+        "circle-color": "#9aa0a6",
+        "circle-opacity": 0.4,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#f9fafb",
+      },
+    });
+  }
+
+  function removeMlBuildingFocusLayersAndSources(map: MapLibreMap) {
+    const layerIds = [
+      "ml_focus_points_excluded",
+      "ml_focus_points_noise",
+      "ml_focus_points_core",
+      "ml_focus_hulls_line",
+      "ml_focus_hulls_fill",
+      "ml_focus_candidate_line",
+      "ml_focus_candidate_fill",
+      "ml_focus_building_outline",
+    ];
+    const sourceIds = ["ml_focus_points", "ml_focus_hulls", "ml_focus_candidates", "ml_focus_building"];
+    for (const layerId of layerIds) {
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+    }
+    for (const sourceId of sourceIds) {
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
+    }
+  }
+
+  function trackFilterExpression(trackFilter: "both" | "44" | "95") {
+    if (trackFilter === "both") {
+      return null;
+    }
+    return ["==", ["get", "track"], Number(trackFilter)] as any;
+  }
+
+  function applyMlBuildingFocusFilters(
+    map: MapLibreMap,
+    trackFilter: "both" | "44" | "95",
+    showExcluded: boolean,
+    showHulls: boolean
+  ) {
+    const trackExpr = trackFilterExpression(trackFilter);
+    const coreFilter = [
+      "all",
+      ...(trackExpr ? [trackExpr] : []),
+      ["==", ["get", "gate_excluded"], false],
+      ["!=", ["get", "cluster_role"], "noise"],
+    ] as any;
+    const noiseFilter = [
+      "all",
+      ...(trackExpr ? [trackExpr] : []),
+      ["==", ["get", "gate_excluded"], false],
+      ["==", ["get", "cluster_role"], "noise"],
+    ] as any;
+    const excludedFilter = showExcluded
+      ? (["all", ...(trackExpr ? [trackExpr] : []), ["==", ["get", "gate_excluded"], true]] as any)
+      : (["==", ["get", "code"], ""] as any);
+    const areaFilter = trackExpr ?? null;
+
+    if (map.getLayer("ml_focus_points_core")) {
+      map.setFilter("ml_focus_points_core", coreFilter);
+    }
+    if (map.getLayer("ml_focus_points_noise")) {
+      map.setFilter("ml_focus_points_noise", noiseFilter);
+    }
+    if (map.getLayer("ml_focus_points_excluded")) {
+      map.setFilter("ml_focus_points_excluded", excludedFilter);
+    }
+    if (map.getLayer("ml_focus_candidate_fill")) {
+      map.setFilter("ml_focus_candidate_fill", areaFilter);
+    }
+    if (map.getLayer("ml_focus_candidate_line")) {
+      map.setFilter("ml_focus_candidate_line", areaFilter);
+    }
+    if (map.getLayer("ml_focus_hulls_fill")) {
+      map.setFilter("ml_focus_hulls_fill", showHulls ? areaFilter : ["==", ["get", "cluster_id"], ""]);
+    }
+    if (map.getLayer("ml_focus_hulls_line")) {
+      map.setFilter("ml_focus_hulls_line", showHulls ? areaFilter : ["==", ["get", "cluster_id"], ""]);
     }
   }
 
@@ -1100,6 +1452,18 @@ export default function MapView() {
 
   function handleHover(event: MapMouseEvent, map: MapLibreMap) {
     const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    if (map.getLayer("ml_focus_points_core")) {
+      queryLayers.unshift("ml_focus_points_core");
+    }
+    if (map.getLayer("ml_focus_points_noise")) {
+      queryLayers.unshift("ml_focus_points_noise");
+    }
+    if (map.getLayer("ml_focus_points_excluded")) {
+      queryLayers.unshift("ml_focus_points_excluded");
+    }
+    if (map.getLayer("ml_focus_building_outline")) {
+      queryLayers.unshift("ml_focus_building_outline");
+    }
     if (map.getLayer("ml_points")) {
       queryLayers.push("ml_points");
     }
@@ -1130,6 +1494,35 @@ export default function MapView() {
         Source: ${props.building_source || "—"}<br/>
         ID: ${props.building_id || "—"}
       `;
+    } else if (feature.layer.id.startsWith("ml_focus_points")) {
+      html = `
+        <strong>Building Focus Point</strong><br/>
+        Code: ${props.code || "—"}<br/>
+        Track: ${props.track || "—"}<br/>
+        Cluster: ${props.cluster_id || props.cluster_role || "—"}<br/>
+        Quality: ${
+          props.quality_score !== undefined && props.quality_score !== null
+            ? Number(props.quality_score).toFixed(2)
+            : "—"
+        }<br/>
+        Anomaly: ${
+          props.anomaly_score !== undefined && props.anomaly_score !== null
+            ? Number(props.anomaly_score).toFixed(2)
+            : "—"
+        }<br/>
+        Gate: ${
+          Array.isArray(props.gate_reasons) && props.gate_reasons.length > 0
+            ? props.gate_reasons.join(", ")
+            : props.gate_excluded
+              ? "excluded"
+              : "kept"
+        }
+      `;
+    } else if (feature.layer.id === "ml_focus_building_outline") {
+      html = `
+        <strong>Building Focus</strong><br/>
+        Cluster hulls and candidate buffers are active for this building.
+      `;
     } else if (feature.layer.id.startsWith("ml_buildings")) {
       html = `
         <strong>ML Building</strong><br/>
@@ -1141,7 +1534,8 @@ export default function MapView() {
             ? Number(props.avg_quality_score).toFixed(2)
             : "—"
         }<br/>
-        Outliers: ${props.outlier_count ?? "—"} / ${props.point_count ?? "—"}
+        Outliers: ${props.outlier_count ?? "—"} / ${props.point_count ?? "—"}<br/>
+        Clusters: ${props.cluster_count ?? "—"} / Noise: ${props.noise_point_count ?? "—"}
       `;
     } else if (feature.layer.id === "ml_points") {
       html = `
@@ -1213,6 +1607,18 @@ export default function MapView() {
 
   function handleClick(event: MapMouseEvent, map: MapLibreMap) {
     const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    if (map.getLayer("ml_focus_points_core")) {
+      queryLayers.unshift("ml_focus_points_core");
+    }
+    if (map.getLayer("ml_focus_points_noise")) {
+      queryLayers.unshift("ml_focus_points_noise");
+    }
+    if (map.getLayer("ml_focus_points_excluded")) {
+      queryLayers.unshift("ml_focus_points_excluded");
+    }
+    if (map.getLayer("ml_focus_building_outline")) {
+      queryLayers.unshift("ml_focus_building_outline");
+    }
     if (map.getLayer("ml_points")) {
       queryLayers.unshift("ml_points");
     }
@@ -1236,7 +1642,15 @@ export default function MapView() {
     const feature = features[0];
     const props = feature.properties as any;
 
-    if (feature.layer.id.startsWith("ml_buildings")) {
+    if (feature.layer.id.startsWith("ml_focus_points")) {
+      if (props.code) {
+        setSelection({
+          type: "point",
+          code: String(props.code),
+          track: props.track === undefined || props.track === null ? undefined : Number(props.track),
+        });
+      }
+    } else if (feature.layer.id.startsWith("ml_buildings")) {
       if (props.building_id && props.building_source) {
         setSelection({
           type: "building",

@@ -42,6 +42,7 @@ data/extracts/
 # OS
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 
 # Logs
 *.log
@@ -49,3 +50,7 @@ npm-debug.log*
 
 # MLflow
 mlruns/
+
+# Local debug screenshots / scratch
+/ml-*.png
+Temp/

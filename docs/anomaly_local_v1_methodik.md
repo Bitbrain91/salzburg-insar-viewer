@@ -1,0 +1,277 @@
+# `anomaly_local_v1` Methodik
+
+## Ziel
+`anomaly_local_v1` ist die neue Phase-1-Pipeline fuer die Gebaeude-nahe Analyse von InSAR-Punkten. Sie ersetzt den fachlich unzureichenden globalen `IsolationForest` nicht im System, sondern fuegt parallel eine lokalere Alternative hinzu.
+
+Die Kernfrage lautet nicht mehr: `Ist dieser Punkt in der gesamten Stadt ungewoehnlich?`
+
+Sondern: `Passt dieser Punkt geometrisch, signaltechnisch und zeitlich zu genau diesem Gebaeude und zu den anderen Punkten dieses Gebaeudes?`
+
+## Warum ein lokaler Ansatz
+Der erste Implementierungsversuch (`anomaly_v1`) arbeitet track-weit ueber alle Punkte in der gewaehlten BBox. Das ist fuer die eigentliche Fragestellung zu grob:
+
+- Ein Punkt kann global unauffaellig, aber fuer sein Gebaeude ein klarer Ausreisser sein.
+- Mehrere konsistente Teilcluster an einem Gebaeude sind fachlich plausibel, z. B. Dach vs. Balkon.
+- Viele Gebaeude haben nur sehr wenige Punkte. Der relevante Kontext ist deshalb der lokale Gebaeudeverband, nicht die ganze Stadt.
+- Das Projektmeeting hat explizit gefordert, dass Nachbargebaeude-Reflexionen, Wintergaerten, Terrassen oder Hinterhofpunkte getrennt betrachtet werden.
+
+Deshalb verarbeitet `anomaly_local_v1` jedes `Gebaeude x Track` separat.
+
+## InSAR-Kontext
+Die wichtigsten Annahmen aus dem Handbook, die direkt in die Pipeline einfliessen:
+
+- InSAR misst primär Bewegung in Blickrichtung (`LOS`), nicht direkt vertikal.
+- Track 44 ist in Salzburg aufsteigend (`ASC`), Track 95 absteigend (`DSC`).
+- Aufsteigende und absteigende Tracks sehen die Szene aus unterschiedlichen Richtungen; dieselbe Gebaeudestruktur kann deshalb seitlich versetzt erscheinen.
+- Niedrige Kohärenz deutet oft auf unzuverlaessige Reflexionen hin.
+- Punkt-`height` liegt im ellipsoidischen Bezugssystem; SRTM-Gelaende ist nicht direkt ohne Datumsharmonisierung abziehbar.
+- Steile Hänge, Vegetation, Mehrwegeffekte und geometrische Verzerrungen erzeugen systematische Problemfaelle.
+
+Konsequenz fuer Phase 1:
+
+- Punkt-zu-Gelaende-Hoehen als absolute Differenz werden nicht direkt verwendet.
+- Terrain geht ueber `slope_mean_deg`, `slope_max_deg` und `relief_range_m` ein.
+- Cross-Track-Konsistenz wird nur als robuster Plausibilisierungsmechanismus benutzt, nicht als harte Wahrheit.
+
+## Datenkontext im Repository
+Relevante Tabellen und Datensaetze:
+
+- `insar_points`
+- `insar_timeseries`
+- `insar_amplitude_timeseries`
+- `gba_buildings`
+- `building_terrain_context`
+- `insar_point_terrain`
+- `ml_runs`
+- `ml_point_results`
+
+Wichtige empirische Beobachtungen aus Salzburg:
+
+- Viele Gebaeude haben nur sehr wenige Punkte; kleine Stichproben sind der Normalfall.
+- Ein grosser Anteil der bisherigen Zuordnungen kam nur ueber `nearest`, nicht ueber polygoninterne Treffer.
+- `eff_area` ist in den Salzburg-Testdaten praktisch nicht brauchbar.
+- Amplitudenfeatures fehlen fuer Track 95 teilweise; sie bleiben optional.
+- Die Hoehenbeziehung Punkt vs. Terrain ist ohne Vertikal-Datumsharmonisierung nicht robust genug fuer harte Schlussfolgerungen.
+
+## Pipeline-Ueberblick
+Die Pipeline besteht aus sechs Schritten:
+
+1. Lokale Punktzuordnung an GBA-Gebaeude.
+2. Zeitreihen- und Qualitaetsfeatures pro Punkt.
+3. Gate-Rules fuer harte Ausschluesse.
+4. Lokale Clusterung pro `Gebaeude x Track`.
+5. Outlier- und Qualitaetsscore.
+6. Cross-Track-Validierung zwischen `ASC` und `DSC`.
+
+## 1. Punktzuordnung
+### Richtungssensitiver Buffer
+Fuer jedes GBA-Gebaeude wird eine richtungsabhaengige Kandidatenflaeche gebaut:
+
+- Ausgangspunkt ist das Originalpolygon.
+- Dann wird das Polygon in UTM 33N in Ground-Range-Richtung zum Sensor hin verschoben.
+- Fuer `ASC` wird nach Westen, fuer `DSC` nach Osten verschoben.
+- Aus Originalpolygon und verschobenem Polygon wird eine vereinigte Kandidatenflaeche erzeugt.
+- Darauf kommt ein kleiner lateraler Slack-Buffer.
+
+Formel:
+
+`range_offset = clamp(height_m * tan(incidence_angle) * buffer_multiplier, min_buffer_m, max_buffer_m)`
+
+### Warum diese Strategie
+- Sie ist fachlich naeher an der InSAR-Geometrie als ein isotroper Kreisbuffer.
+- Sie bildet den typischen Layover-Versatz erhoehter Scatterer zur Sensor- bzw. Near-Range-Seite ab.
+- Sie erklaert den haeufigen seitlichen Versatz von Gebaeudereflektionen.
+- Sie ist generalisierbarer als Salzburg-spezifische Starroffsets.
+
+### Fallback
+Wenn weder `within` noch `directional_buffer` greift, wird nur noch `nearest <= 15 m` verwendet.
+
+Wichtig:
+
+- `nearest` ist bewusst nur Fallback.
+- Die Zuordnungsart wird fuer jeden Punkt gespeichert und visualisiert.
+
+## 2. Features
+### Clustering-Features
+Diese Features bestimmen die lokale Gruppierung:
+
+- `along_look_offset_m`
+- `cross_look_offset_m`
+- `height_rank_in_building`
+- `velocity`
+- `acceleration`
+- `coherence_penalty`
+
+Warum:
+
+- Die ersten drei Features modellieren die geometrische Lage relativ zum Gebaeude.
+- `velocity` und `acceleration` erfassen das Bewegungsverhalten.
+- `coherence_penalty` bestraft signaltechnisch schwache Punkte.
+
+### Scoring-Features
+Diese Features beeinflussen Outlier- und Qualitaetsbewertung:
+
+- `velocity_std`
+- `season_amp`
+- `ts_slope`
+- `ts_residual_std`
+- `ts_max_abs_delta`
+- `ts_roughness`
+- `ts_missing_rate`
+- `amp_ts_cv`
+- `amp_ts_spike_rate`
+- `building_height`
+- `slope_mean_deg`
+- `slope_max_deg`
+- `relief_range_m`
+- `local_density`
+
+Warum:
+
+- Diese Groessen bewerten Stabilitaet, Signalqualitaet und topografischen Kontext.
+- Sie sind fuer Soft-Penalties geeigneter als fuer harte Clusterbildung.
+
+## 3. Gate-Rules
+Phase 1 darf pragmatisch harte Regeln nutzen, aber nur zentral, dokumentiert und spaeter ersetzbar.
+
+### Aktive Hard Rules
+1. Kein Gebaeude gefunden
+2. Weniger als `24` gueltige Displacement-Epochen
+3. Weniger als `50%` der erwarteten Track-Epochen
+4. `coherence < max(0.45, track_p05)`
+
+### Begruendung
+1. Ohne Gebaeudezuordnung gibt es keinen lokalen Kontext.
+2. Mit extrem kurzer Zeitreihe sind Trend- und Step-Features nicht belastbar.
+3. Hohe Missingness verfälscht lokale Vergleiche.
+4. Sehr niedrige Kohärenz ist in InSAR typischerweise ein starkes Warnsignal.
+
+### Einordnung
+- `24` Epochen und `50%` Ratio sind pragmatische Phase-1-Schwellen und spaeter lernbar.
+- Die Kohärenzregel ist teils universell, teils datengetrieben, weil ein Track-Perzentil einbezogen wird.
+
+## 4. Clustering und Outlier-Erkennung
+### Standardfall: HDBSCAN
+Ab `>= 6` behaltenen Punkten wird lokal pro `Gebaeude x Track` mit HDBSCAN geclustert.
+
+Parameterlogik:
+
+- `allow_single_cluster=True`
+- `cluster_selection_method="eom"`
+- `min_cluster_size = max(2, ceil(0.2 * n))`, gedeckelt bei `8`
+- `min_samples = max(1, floor(min_cluster_size / 2))`
+
+Warum HDBSCAN:
+
+- Unbekannte Clusterzahl
+- robuste Behandlung von Noise
+- lokale Dichteunterschiede besser als klassisches DBSCAN
+- sinnvoll fuer heterogene Punktdichten innerhalb einzelner Gebaeude
+
+Wenn `hdbscan` im Laufzeitumfeld nicht verfuegbar ist, faellt die Implementierung auf `OPTICS` zurueck.
+
+### Small-N-Fallback
+Fuer `3-5` behaltene Punkte ist Phase 1 explizit konservativer:
+
+- Es wird von einer Ein-Cluster-Hypothese ausgegangen.
+- Ein robuster Lokalscore auf Raumlage, Bewegung und Kohärenz trennt Kernpunkte von Noise.
+
+Warum:
+
+- Bei sehr kleinen Stichproben sind dichtebasierte Entscheidungen instabil.
+- Das Meeting hat genau diese kleinen Gebaeude als Praxisfall benannt.
+
+### Insufficient Support
+Bei `< 3` behaltenen Punkten wird nicht geclustert.
+
+Dann gilt:
+
+- Status `insufficient_support`
+- Label mindestens `suspect`
+- visuelle Kennzeichnung bleibt trotzdem erhalten
+
+## 5. Scoring
+### Teilkomponenten
+- `cluster_outlier_score`
+- `local_deviation_score`
+- `rule_penalty`
+
+### Endscore
+`anomaly_score = 0.60 * cluster_outlier_score + 0.25 * local_deviation_score + 0.15 * rule_penalty`
+
+### Qualitaet
+`quality_score = 0.45 * (1 - anomaly_score) + 0.25 * cross_track_consistency_or_neutral + 0.20 * kept_support_ratio + 0.10 * signal_quality`
+
+### Labels
+- `normal >= 0.70`
+- `suspect 0.40-0.69`
+- `outlier < 0.40`
+- harte Gate-Ausschluesse werden ebenfalls als `outlier` markiert
+
+## 6. Cross-Track-Validierung
+Die Pipeline vergleicht `ASC` und `DSC` nach dem lokalen Filtern erneut.
+
+Verwendet wird ein robuster vertikaler Proxy:
+
+`vertical_proxy = velocity / cos(incidence_angle)`
+
+Die Toleranz steigt mit der Hangneigung:
+
+`allowed_diff_mm_a = 1.0 + 0.15 * slope_mean_deg`
+
+Warum:
+
+- In Hanglagen und komplexer Topografie ist ein enger Vergleich unplausibel.
+- Cross-Track-Uebereinstimmung ist ein starker Vertrauensindikator, aber kein perfekter Ground Truth.
+
+## Visualisierung
+Phase 1 sieht bewusst eine visuelle Gebaeudeansicht vor.
+
+Fuer ein selektiertes Gebaeude zeigt die UI:
+
+- Originalpolygon
+- richtungsabhaengige Kandidatenflaechen fuer `ASC` und `DSC`
+- Cluster-Huellen
+- Clusterpunkte
+- Noise-Punkte
+- Gate-ausgeschlossene Punkte
+
+Diese Ansicht ist kein Nice-to-have, sondern Teil der Methodik. Ohne sie lassen sich Fehlzuordnungen und fachliche Grenzfaelle nicht sauber beurteilen.
+
+## Failure Modes
+Bekannte Grenzfaelle:
+
+- sehr kleine Gebaeude mit nur 1-2 Punkten
+- nur ein vorhandener Track
+- Hanglagen mit starker Reliefwirkung
+- verschobene Reflexionen an Dachkanten
+- Wintergaerten, Terrassen, Nebengebaeude
+- fehlende Amplitudendaten
+
+Die Pipeline versucht diese Faelle sichtbar und nachvollziehbar zu machen, nicht sie in Phase 1 vollautomatisch perfekt zu loesen.
+
+## Hard-Rule-Register
+| Rule | Zweck | Typ |
+|---|---|---|
+| `no_building_assignment` | kein lokaler Gebaeudekontext | spaeter lernbar |
+| `too_few_valid_epochs` | instabile Zeitreihenbasis vermeiden | spaeter lernbar |
+| `too_sparse_timeseries` | fehlende Beobachtungen begrenzen | spaeter lernbar |
+| `low_coherence` | signaltechnisch schlechte Punkte ausschliessen | teils universell, teils datengetrieben |
+
+## Warum diese Methodik verwendet wurde
+Kurz gesagt:
+
+- Sie passt zur fachlichen Frage auf Gebaeudeebene.
+- Sie verarbeitet kleine Stichproben besser als ein globales Modell.
+- Sie laesst mehrere legitime Teilcluster zu.
+- Sie trennt harte Ausschluesse von weichen Penalties.
+- Sie ist fuer spaetere lernbare Schritte offen, ohne in Phase 1 ueberengineert zu sein.
+
+## Ausblick Phase 2+
+Naechste sinnvolle Schritte:
+
+- lernbare Gebaeudezuordnung statt fixer Buffer-Formel
+- adaptivere Gate-Schwellen pro Stadt/Track
+- clusterweises statt nur gebaeudeweises Cross-Track-Matching
+- schwach ueberwachte Labels aus stabilen Asc/Desc-Uebereinstimmungen
+- spaetere Verdichtung zu einem Gebaeude-Scoring mit Konfidenzintervall

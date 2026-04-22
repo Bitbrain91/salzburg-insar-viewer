@@ -13,6 +13,12 @@ import {
 export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
   const activeRunId = useAppStore((state) => state.activeRunId);
+  const mlBuildingTrackFilter = useAppStore((state) => state.mlBuildingTrackFilter);
+  const setMlBuildingTrackFilter = useAppStore((state) => state.setMlBuildingTrackFilter);
+  const mlBuildingShowExcluded = useAppStore((state) => state.mlBuildingShowExcluded);
+  const setMlBuildingShowExcluded = useAppStore((state) => state.setMlBuildingShowExcluded);
+  const mlBuildingShowHulls = useAppStore((state) => state.mlBuildingShowHulls);
+  const setMlBuildingShowHulls = useAppStore((state) => state.setMlBuildingShowHulls);
   const [pointAnalysisRunId, setPointAnalysisRunId] = useState<string | null>(null);
 
   const activeRunQuery = useQuery({
@@ -26,7 +32,10 @@ export default function InspectorPanel() {
   const activeRunStatus = hasResolvedActiveRun ? activeRunQuery.data?.status : undefined;
   const isActiveRunPending = activeRunStatus === "queued" || activeRunStatus === "running";
   const isActiveAnomalyRun =
-    hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_v1";
+    hasResolvedActiveRun &&
+    ["anomaly_v1", "anomaly_local_v1"].includes(activeRunQuery.data?.pipeline ?? "");
+  const isActiveLocalAnomalyRun =
+    hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_local_v1";
 
   useEffect(() => {
     if (
@@ -323,6 +332,26 @@ export default function InspectorPanel() {
                 <span className="value">{fmtNum(mlPointAnalysis.distance_m, 1)} m</span>
               </div>
               <div className="metric">
+                <span className="label">Cluster role / probability</span>
+                <span className="value">
+                  {fmtStr(mlPointAnalysis.cluster_role)} / {fmtNum(mlPointAnalysis.cluster_probability)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Cluster outlier score</span>
+                <span className="value">{fmtNum(mlPointAnalysis.cluster_outlier_score)}</span>
+              </div>
+              <div className="metric">
+                <span className="label">Kept for scoring</span>
+                <span className="value">
+                  {mlPointAnalysis.kept_for_scoring === null
+                    ? "—"
+                    : mlPointAnalysis.kept_for_scoring
+                      ? "yes"
+                      : "no"}
+                </span>
+              </div>
+              <div className="metric">
                 <span className="label">Assignment</span>
                 <span className="value">
                   {fmtStr(
@@ -357,8 +386,9 @@ export default function InspectorPanel() {
               <div className="metric">
                 <span className="label">Detector scores</span>
                 <span className="value">
-                  IF {fmtNum(mlPointAnalysis.detector_scores.isolation_forest)} / Rule{" "}
-                  {fmtNum(mlPointAnalysis.detector_scores.rule_gate)}
+                  {Object.entries(mlPointAnalysis.detector_scores)
+                    .map(([key, value]) => `${key} ${fmtNum(value)}`)
+                    .join(" / ") || "—"}
                 </span>
               </div>
               <div className="metric">
@@ -369,6 +399,14 @@ export default function InspectorPanel() {
                       ? mlPointAnalysis.feature_flags.degraded_reason
                       : null
                   )}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Gate reasons</span>
+                <span className="value">
+                  {mlPointAnalysis.gate_reasons.length > 0
+                    ? mlPointAnalysis.gate_reasons.join(", ")
+                    : "—"}
                 </span>
               </div>
               <div className="section-title">Top Reasons</div>
@@ -496,6 +534,21 @@ export default function InspectorPanel() {
                 <span className="value">{mlBuildingAnalysisQuery.data.point_count}</span>
               </div>
               <div className="metric">
+                <span className="label">Kept / excluded / noise</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.kept_point_count}/
+                  {mlBuildingAnalysisQuery.data.excluded_point_count}/
+                  {mlBuildingAnalysisQuery.data.noise_point_count}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Clusters / status</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.cluster_count} /{" "}
+                  {fmtStr(mlBuildingAnalysisQuery.data.building_status)}
+                </span>
+              </div>
+              <div className="metric">
                 <span className="label">Average quality</span>
                 <span className="value">
                   {fmtNum(mlBuildingAnalysisQuery.data.avg_quality_score)}
@@ -514,11 +567,59 @@ export default function InspectorPanel() {
                 </span>
               </div>
               <div className="metric">
+                <span className="label">Track agreement</span>
+                <span className="value">
+                  {fmtNum(mlBuildingAnalysisQuery.data.track_agreement_score)}
+                </span>
+              </div>
+              <div className="metric">
                 <span className="label">Median distance</span>
                 <span className="value">
                   {fmtNum(mlBuildingAnalysisQuery.data.median_distance_m, 1)} m
                 </span>
               </div>
+              {isActiveLocalAnomalyRun && (
+                <>
+                  <div className="section-title">Building Cluster View</div>
+                  <div className="pill">
+                    Die Karte zeigt jetzt Kandidatenflaechen, Cluster-Huellen und Punktrollen fuer dieses Gebaeude.
+                  </div>
+                  <div className="form-row">
+                    <label className="label">Track filter</label>
+                    <select
+                      className="select"
+                      value={mlBuildingTrackFilter}
+                      onChange={(e) =>
+                        setMlBuildingTrackFilter(
+                          e.target.value as "both" | "44" | "95"
+                        )
+                      }
+                    >
+                      <option value="both">ASC + DSC</option>
+                      <option value="44">ASC only</option>
+                      <option value="95">DSC only</option>
+                    </select>
+                  </div>
+                  <div className="toggle-row">
+                    <span>Show gate-excluded points</span>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={mlBuildingShowExcluded}
+                      onChange={(e) => setMlBuildingShowExcluded(e.target.checked)}
+                    />
+                  </div>
+                  <div className="toggle-row">
+                    <span>Show cluster hulls</span>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={mlBuildingShowHulls}
+                      onChange={(e) => setMlBuildingShowHulls(e.target.checked)}
+                    />
+                  </div>
+                </>
+              )}
               {isActiveRunPending && (
                 <div className="pill">This summary refreshes while the active run is processing.</div>
               )}
@@ -549,11 +650,27 @@ export default function InspectorPanel() {
                       </div>
                     )
                   )}
+                  {mlBuildingAnalysisQuery.data.clusters.length > 0 && (
+                    <>
+                      <div className="section-title">Clusters</div>
+                      {mlBuildingAnalysisQuery.data.clusters.map((cluster) => (
+                        <div className="metric" key={cluster.cluster_id}>
+                          <span className="label">
+                            {cluster.cluster_id} / T{cluster.track}
+                          </span>
+                          <span className="value">
+                            {cluster.point_count} pts, V {fmtNum(cluster.median_velocity)}, C{" "}
+                            {fmtNum(cluster.median_coherence)}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                   <div className="section-title">Lowest-Quality Points</div>
                   {mlBuildingAnalysisQuery.data.top_points.map((point) => (
                     <div className="metric" key={`${point.code}-${point.track}`}>
                       <span className="label">
-                        {point.code} / {point.track}
+                        {point.code} / {point.track} / {fmtStr(point.cluster_role)}
                       </span>
                       <span className="value">
                         Q {fmtNum(point.quality_score)} / A {fmtNum(point.anomaly_score)}

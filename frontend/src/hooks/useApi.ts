@@ -94,6 +94,12 @@ export type MlPointAnalysis = {
   feature_flags: Record<string, unknown>;
   building_context: Record<string, unknown>;
   cross_track_summary: Record<string, unknown>;
+  cluster_role: string | null;
+  cluster_probability: number | null;
+  cluster_outlier_score: number | null;
+  gate_excluded: boolean | null;
+  gate_reasons: string[];
+  kept_for_scoring: boolean | null;
   explain_top_features: MlPointExplainReason[];
 };
 
@@ -106,11 +112,23 @@ export type MlPointAnalysisResponse = {
 export type MlBuildingPointSummary = {
   code: string;
   track: number;
+  cluster_id: string | null;
+  cluster_role: string | null;
   label: string | null;
   quality_score: number | null;
   anomaly_score: number | null;
   cross_track_consistency: number | null;
   distance_m: number | null;
+  gate_excluded: boolean | null;
+};
+
+export type MlBuildingClusterSummary = {
+  cluster_id: string;
+  track: number;
+  point_count: number;
+  median_velocity: number | null;
+  median_coherence: number | null;
+  median_height_rank: number | null;
 };
 
 export type MlBuildingAnalysis = {
@@ -120,6 +138,12 @@ export type MlBuildingAnalysis = {
   building_source: string;
   building_id: string;
   point_count: number;
+  kept_point_count: number;
+  noise_point_count: number;
+  excluded_point_count: number;
+  cluster_count: number;
+  track_agreement_score: number | null;
+  building_status: string | null;
   track_counts: Record<string, number>;
   label_counts: Record<string, number>;
   assignment_methods: Record<string, number>;
@@ -127,7 +151,42 @@ export type MlBuildingAnalysis = {
   avg_anomaly_score: number | null;
   avg_cross_track_consistency: number | null;
   median_distance_m: number | null;
+  clusters: MlBuildingClusterSummary[];
   top_points: MlBuildingPointSummary[];
+};
+
+export type GeoJsonFeature = {
+  type: "Feature";
+  geometry: Record<string, unknown>;
+  properties: Record<string, unknown>;
+};
+
+export type GeoJsonFeatureCollection = {
+  type: "FeatureCollection";
+  features: GeoJsonFeature[];
+};
+
+export type MlBuildingVisualizationPointsResponse = {
+  run_id: string;
+  pipeline: string;
+  run_type: string;
+  building_source: string;
+  building_id: string;
+  point_count: number;
+  feature_collection: GeoJsonFeatureCollection;
+};
+
+export type MlBuildingVisualizationContextResponse = {
+  run_id: string;
+  pipeline: string;
+  run_type: string;
+  building_source: string;
+  building_id: string;
+  bounds: number[];
+  building: GeoJsonFeature | null;
+  candidate_areas: GeoJsonFeatureCollection;
+  cluster_hulls: GeoJsonFeatureCollection;
+  summary: Record<string, unknown>;
 };
 
 export function getPointDetail(code: string, track?: number) {
@@ -156,6 +215,26 @@ export function getMlBuildingAnalysis(
 ) {
   return fetchJson<MlBuildingAnalysis>(
     `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}`
+  );
+}
+
+export function getMlBuildingPoints(
+  runId: string,
+  source: "gba" | "osm",
+  id: string
+) {
+  return fetchJson<MlBuildingVisualizationPointsResponse>(
+    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/points`
+  );
+}
+
+export function getMlBuildingContext(
+  runId: string,
+  source: "gba" | "osm",
+  id: string
+) {
+  return fetchJson<MlBuildingVisualizationContextResponse>(
+    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/context`
   );
 }
 
