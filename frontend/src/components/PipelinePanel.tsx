@@ -9,16 +9,8 @@ import {
 } from "../hooks/useApi";
 import { useAppStore } from "../lib/store";
 
-const anomalyViews = ["quality", "anomaly", "cross-track", "label"] as const;
 const localAnomalyViews = ["cluster", "quality", "anomaly", "cross-track", "label"] as const;
-const classicViews = [
-  "cluster",
-  "building",
-  "assignment",
-  "distance",
-  "velocity",
-  "coherence",
-] as const;
+const PIPELINE_NAME = "anomaly_local_v1";
 
 export default function PipelinePanel() {
   const mapBBox = useAppStore((state) => state.mapBBox);
@@ -32,15 +24,12 @@ export default function PipelinePanel() {
   const setMlView = useAppStore((state) => state.setMlView);
   const bumpMlTileVersion = useAppStore((state) => state.bumpMlTileVersion);
 
-  const [pipeline, setPipeline] = useState("assignment");
-  const [source, setSource] = useState<"gba" | "osm">("gba");
+  const pipeline = PIPELINE_NAME;
   const [track, setTrack] = useState<string>("all");
   const [maxDistance, setMaxDistance] = useState(30);
   const [bufferMultiplier, setBufferMultiplier] = useState(1.0);
   const [minBuffer, setMinBuffer] = useState(3.0);
   const [defaultHeight, setDefaultHeight] = useState(12.0);
-  const [eps, setEps] = useState(0.9);
-  const [minSamples, setMinSamples] = useState(8);
 
   const runsQuery = useQuery({
     queryKey: ["ml-runs"],
@@ -58,53 +47,38 @@ export default function PipelinePanel() {
   const hasAssignedBuildings =
     assignedBuildings === undefined ? true : Number(assignedBuildings) > 0;
   const activeRunPipeline = activeRunQuery.data?.pipeline;
-  const isSelectedPipelineAnomaly = ["anomaly_v1", "anomaly_local_v1"].includes(pipeline);
-  const isSelectedLocalAnomaly = pipeline === "anomaly_local_v1";
-  const isActiveRunAnomaly = ["anomaly_v1", "anomaly_local_v1"].includes(activeRunPipeline ?? "");
-  const isActiveRunLocalAnomaly = activeRunPipeline === "anomaly_local_v1";
-  const showLocalAnomalyViews =
-    activeRunPipeline !== undefined ? activeRunPipeline === "anomaly_local_v1" : isSelectedLocalAnomaly;
-  const showAnomalyViews =
-    activeRunPipeline !== undefined
-      ? ["anomaly_v1", "anomaly_local_v1"].includes(activeRunPipeline)
-      : isSelectedPipelineAnomaly;
+  const isActiveRunLocalAnomaly = activeRunPipeline === PIPELINE_NAME;
 
   const bboxLabel = useMemo(() => {
     if (!mapBBox) return "Map extent not ready";
     return mapBBox.map((v) => v.toFixed(4)).join(", ");
   }, [mapBBox]);
+  const visibleRuns = useMemo(
+    () => (runsQuery.data ?? []).filter((run: any) => run.pipeline === PIPELINE_NAME),
+    [runsQuery.data]
+  );
 
   useEffect(() => {
-    if (!isSelectedPipelineAnomaly) return;
-    if (source !== "gba") {
-      setSource("gba");
-    }
     if (activeRunId) {
       return;
     }
-    if (!anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
-      setMlView(isSelectedLocalAnomaly ? "cluster" : "quality");
+    if (!localAnomalyViews.includes(mlView as (typeof localAnomalyViews)[number])) {
+      setMlView("cluster");
     }
-  }, [activeRunId, isSelectedLocalAnomaly, isSelectedPipelineAnomaly, mlView, setMlView, source]);
+  }, [activeRunId, mlView, setMlView]);
 
   useEffect(() => {
     if (!activeRunId || activeRunPipeline === undefined) {
       return;
     }
-    if (isActiveRunAnomaly) {
-      const validViews = isActiveRunLocalAnomaly ? localAnomalyViews : anomalyViews;
-      if (!validViews.includes(mlView as (typeof validViews)[number])) {
-        setMlView(isActiveRunLocalAnomaly ? "cluster" : "quality");
+    if (isActiveRunLocalAnomaly) {
+      if (!localAnomalyViews.includes(mlView as (typeof localAnomalyViews)[number])) {
+        setMlView("cluster");
       }
-      return;
-    }
-    if (classicViews.includes(mlView as (typeof classicViews)[number])) {
-      return;
-    }
-    if (anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
+    } else {
       setMlView("cluster");
     }
-  }, [activeRunId, activeRunPipeline, isActiveRunAnomaly, isActiveRunLocalAnomaly, mlView, setMlView]);
+  }, [activeRunId, activeRunPipeline, isActiveRunLocalAnomaly, mlView, setMlView]);
 
   async function handleRun() {
     if (!mapBBox) return;
@@ -114,13 +88,9 @@ export default function PipelinePanel() {
       min_buffer_m: minBuffer,
       default_height_m: defaultHeight,
     };
-    if (pipeline === "clustering" || pipeline === "hybrid") {
-      params.eps = eps;
-      params.min_samples = minSamples;
-    }
     const payload = {
       pipeline,
-      source: pipeline === "clustering" ? null : isSelectedPipelineAnomaly ? "gba" : source,
+      source: "gba",
       track: track === "all" ? null : Number(track),
       bbox: mapBBox,
       params,
@@ -128,11 +98,7 @@ export default function PipelinePanel() {
     const result = await createMlRun(payload);
     if (result?.run_id) {
       setActiveRunId(result.run_id);
-      if (pipeline === "anomaly_local_v1") {
-        setMlView("cluster");
-      } else if (pipeline === "anomaly_v1") {
-        setMlView("quality");
-      }
+      setMlView("cluster");
     }
   }
 
@@ -182,38 +148,10 @@ export default function PipelinePanel() {
 
       <div className="form-row">
         <label className="label">Pipeline</label>
-        <select
-          className="select"
-          value={pipeline}
-          onChange={(e) => setPipeline(e.target.value)}
-        >
-          <option value="assignment">Assignment (Adaptive Buffer)</option>
-          <option value="clustering">Clustering (DBSCAN)</option>
-          <option value="hybrid">Hybrid (Assign + Cluster)</option>
-          <option value="anomaly_v1">Anomaly v1 (Reliability + Cross-Track)</option>
-          <option value="anomaly_local_v1">Anomaly Local v1 (Building Clusters)</option>
-        </select>
+        <input className="input" value="Anomaly Local v1" readOnly />
       </div>
 
-      {pipeline !== "clustering" && !isSelectedPipelineAnomaly && (
-        <div className="form-row">
-          <label className="label">Building source</label>
-          <select
-            className="select"
-            value={source}
-            onChange={(e) => setSource(e.target.value as "gba" | "osm")}
-          >
-            <option value="gba">GBA (with height)</option>
-            <option value="osm">OSM (no height)</option>
-          </select>
-        </div>
-      )}
-
-      {isSelectedPipelineAnomaly && (
-        <div className="pill">
-          Building source is fixed to GBA for `{pipeline}`.
-        </div>
-      )}
+      <div className="pill">Building source is fixed to GBA for `{pipeline}`.</div>
 
       <div className="form-row">
         <label className="label">Track</label>
@@ -224,73 +162,45 @@ export default function PipelinePanel() {
         </select>
       </div>
 
-      {pipeline !== "clustering" && (
-        <>
-          <div className="form-row">
-            <label className="label">Max distance (m)</label>
-            <input
-              className="input"
-              type="number"
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Buffer multiplier</label>
-            <input
-              className="input"
-              type="number"
-              step="0.1"
-              value={bufferMultiplier}
-              onChange={(e) => setBufferMultiplier(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Min buffer (m)</label>
-            <input
-              className="input"
-              type="number"
-              step="0.5"
-              value={minBuffer}
-              onChange={(e) => setMinBuffer(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Default height (m)</label>
-            <input
-              className="input"
-              type="number"
-              step="0.5"
-              value={defaultHeight}
-              onChange={(e) => setDefaultHeight(Number(e.target.value))}
-            />
-          </div>
-        </>
-      )}
-
-      {pipeline !== "assignment" && pipeline !== "anomaly_v1" && (
-        <>
-          <div className="form-row">
-            <label className="label">DBSCAN eps</label>
-            <input
-              className="input"
-              type="number"
-              step="0.1"
-              value={eps}
-              onChange={(e) => setEps(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Min samples</label>
-            <input
-              className="input"
-              type="number"
-              value={minSamples}
-              onChange={(e) => setMinSamples(Number(e.target.value))}
-            />
-          </div>
-        </>
-      )}
+      <div className="form-row">
+        <label className="label">Max distance (m)</label>
+        <input
+          className="input"
+          type="number"
+          value={maxDistance}
+          onChange={(e) => setMaxDistance(Number(e.target.value))}
+        />
+      </div>
+      <div className="form-row">
+        <label className="label">Buffer multiplier</label>
+        <input
+          className="input"
+          type="number"
+          step="0.1"
+          value={bufferMultiplier}
+          onChange={(e) => setBufferMultiplier(Number(e.target.value))}
+        />
+      </div>
+      <div className="form-row">
+        <label className="label">Min buffer (m)</label>
+        <input
+          className="input"
+          type="number"
+          step="0.5"
+          value={minBuffer}
+          onChange={(e) => setMinBuffer(Number(e.target.value))}
+        />
+      </div>
+      <div className="form-row">
+        <label className="label">Default height (m)</label>
+        <input
+          className="input"
+          type="number"
+          step="0.5"
+          value={defaultHeight}
+          onChange={(e) => setDefaultHeight(Number(e.target.value))}
+        />
+      </div>
 
       <button className="button" onClick={handleRun} disabled={!mapBBox}>
         Run pipeline
@@ -317,11 +227,11 @@ export default function PipelinePanel() {
       </div>
       {activeRunId && assignedBuildings === 0 && (
         <div className="pill warning">
-          No assigned buildings for this run. Load GBA/OSM into PostGIS or use an
-          assignment/hybrid pipeline.
+          No assigned buildings for this run. Ensure GBA data is loaded in PostGIS and
+          that the current AOI intersects supported building footprints.
         </div>
       )}
-      {isActiveRunAnomaly && (
+      {isActiveRunLocalAnomaly && (
         <>
           <div className="metric">
             <span className="label">Normal / suspect / outlier</span>
@@ -343,23 +253,19 @@ export default function PipelinePanel() {
               {Number(activeRunQuery.data?.metrics?.cross_track_improvement ?? 0).toFixed(2)}
             </span>
           </div>
-          {isActiveRunLocalAnomaly && (
-            <>
-              <div className="metric">
-                <span className="label">Buildings with clusters</span>
-                <span className="value">
-                  {activeRunQuery.data?.metrics?.buildings_with_clusters ?? 0}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Noise / gate-excluded</span>
-                <span className="value">
-                  {activeRunQuery.data?.metrics?.noise_points ?? 0}/
-                  {activeRunQuery.data?.metrics?.gate_excluded_points ?? 0}
-                </span>
-              </div>
-            </>
-          )}
+          <div className="metric">
+            <span className="label">Buildings with clusters</span>
+            <span className="value">
+              {activeRunQuery.data?.metrics?.buildings_with_clusters ?? 0}
+            </span>
+          </div>
+          <div className="metric">
+            <span className="label">Noise / gate-excluded</span>
+            <span className="value">
+              {activeRunQuery.data?.metrics?.noise_points ?? 0}/
+              {activeRunQuery.data?.metrics?.gate_excluded_points ?? 0}
+            </span>
+          </div>
         </>
       )}
       <button className="button secondary" onClick={handleRefresh} disabled={!activeRunId}>
@@ -373,31 +279,11 @@ export default function PipelinePanel() {
           value={mlView}
           onChange={(e) => setMlView(e.target.value as any)}
         >
-          {showLocalAnomalyViews ? (
-            <>
-              <option value="cluster">Cluster colors</option>
-              <option value="quality">Quality score</option>
-              <option value="anomaly">Anomaly score</option>
-              <option value="cross-track">Cross-track consistency</option>
-              <option value="label">Reliability label</option>
-            </>
-          ) : showAnomalyViews ? (
-            <>
-              <option value="quality">Quality score</option>
-              <option value="anomaly">Anomaly score</option>
-              <option value="cross-track">Cross-track consistency</option>
-              <option value="label">Reliability label</option>
-            </>
-          ) : (
-            <>
-              <option value="cluster">Cluster colors</option>
-              <option value="building">Building colors</option>
-              <option value="assignment">Assignment method</option>
-              <option value="distance">Distance heat</option>
-              <option value="velocity">Velocity</option>
-              <option value="coherence">Coherence</option>
-            </>
-          )}
+          <option value="cluster">Cluster colors</option>
+          <option value="quality">Quality score</option>
+          <option value="anomaly">Anomaly score</option>
+          <option value="cross-track">Cross-track consistency</option>
+          <option value="label">Reliability label</option>
         </select>
       </div>
 
@@ -405,7 +291,7 @@ export default function PipelinePanel() {
       {runsQuery.isLoading && <div className="pill">Loading runs…</div>}
       {runsQuery.data && (
         <div className="run-list">
-          {runsQuery.data.map((run: any) => (
+          {visibleRuns.map((run: any) => (
             <div
               key={run.run_id}
               className={`run-item ${run.run_id === activeRunId ? "active" : ""}`}
@@ -414,13 +300,7 @@ export default function PipelinePanel() {
                 className="run-select"
                 onClick={() => {
                   setActiveRunId(run.run_id);
-                  if (run.pipeline === "anomaly_local_v1") {
-                    setMlView("cluster");
-                  } else if (run.pipeline === "anomaly_v1") {
-                    setMlView("quality");
-                  } else if (anomalyViews.includes(mlView as (typeof anomalyViews)[number])) {
-                    setMlView("cluster");
-                  }
+                  setMlView("cluster");
                 }}
               >
                 <span className="run-title">{run.pipeline}</span>
@@ -432,6 +312,9 @@ export default function PipelinePanel() {
             </div>
           ))}
         </div>
+      )}
+      {runsQuery.data && visibleRuns.length === 0 && (
+        <div className="pill">No `anomaly_local_v1` runs yet.</div>
       )}
     </div>
   );

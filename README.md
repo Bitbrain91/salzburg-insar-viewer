@@ -132,8 +132,8 @@ Falls du einen anderen Speicherort verwenden willst, setze `RASTER_TILES_DIR`
 im Backend-Environment.
 
 ## Dokumentation
-- Analysebericht der Rohdaten: `docs/Datenanalyse_InSAR_Salzburg.md`
-- Phase-1-Dokumentation fuer Reliability/Anomaly Detection: `docs/anomaly_v1_phase1.md`
+- Analysebericht der Rohdaten: `docs/research/Datenanalyse_InSAR_Salzburg.md`
+- Methodik der aktuellen lokalen Anomalie-Pipeline: `docs/pipelines/anomaly_local_v1/methodik.md`
 
 ## 4) Verwendung / Inbetriebnahme
 
@@ -251,17 +251,14 @@ npx vite --host --port 3000
 ```
 Oeffne: `http://localhost:3000`
 
-## 5) ML Pipelines (Assignment / Clustering / Anomaly)
+## 5) ML Pipeline (`anomaly_local_v1`)
 Die Anwendung enthaelt ein schlankes Pipeline-Framework mit MLflow-Tracking.
 Ergebnisse werden in PostGIS gespeichert (Tabellen: `ml_runs`, `ml_point_results`, `ml_run_metrics`)
 und lassen sich im Frontend als zusaetzliche Layer darstellen. MLflow speichert nur Tracking-Infos
 und Artefakte (keine Geodaten).
 
-Verfuegbare Pipeline-Typen im aktuellen Stand:
-- `assignment`
-- `clustering`
-- `hybrid`
-- `anomaly_v1` fuer punktbasiertes Reliability-/Anomaly-Scoring mit GBA-Kontext und Cross-Track-Konsistenz
+Aktiv gepflegt und im Frontend auswählbar ist nur noch:
+- `anomaly_local_v1` fuer gebaeudelokale Zuordnung, lokale Clusterbildung und Cross-Track-Qualifizierung auf GBA-Basis
 
 ### ML-Tabellen anlegen (bestehende DB behalten)
 Wenn du die bestehenden Daten behalten willst, lege nur die neuen Tabellen an:
@@ -312,15 +309,15 @@ CREATE TABLE IF NOT EXISTS ml_run_metrics (
 
 CLI-Beispiel:
 ```bash
-python -m backend.app.ml.cli --pipeline assignment --source gba --track 44 \\
+python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source gba --track 44 \\
   --bbox 12.98,47.75,13.12,47.85 \\
   --params '{"max_distance_m":30,"buffer_multiplier":1.0}'
 ```
 
 Alternativ lassen sich Runs ueber die UI im linken Panel starten.
 Visualisierung: Im Frontend kann der ML-Layer aktiviert werden; zusaetzlich gibt es
-eine Gebaeude-Overlay-Ansicht und mehrere Darstellungsmodi (Cluster, Building, Assignment,
-Distance, Velocity, Coherence).
+eine Gebaeude-Overlay-Ansicht und die aktiven Darstellungsmodi `Cluster`, `Quality`,
+`Anomaly`, `Cross-track` und `Label`.
 
 ### Ergebnisse loeschen (DB + MLflow synchron)
 ```bash
@@ -347,7 +344,7 @@ POSTGRES_USER=insar
 POSTGRES_PASSWORD=insar
 PMTILES_DIR=../data/tiles_v2
 MLFLOW_TRACKING_URI=http://localhost:5001
-MLFLOW_EXPERIMENT=insar_assignment
+MLFLOW_EXPERIMENT=insar_anomaly_local_v1
 ```
 
 ## Hinweise

@@ -57,7 +57,7 @@ class Settings:
         and os.getenv("MLFLOW_TRACKING_URI", "").strip().lower() != "auto"
         else f"http://{_default_service_host()}:5001"
     )
-    mlflow_experiment: str = os.getenv("MLFLOW_EXPERIMENT", "insar_assignment")
+    mlflow_experiment: str = os.getenv("MLFLOW_EXPERIMENT", "insar_anomaly_local_v1")
 
     @property
     def db_dsn(self) -> str:

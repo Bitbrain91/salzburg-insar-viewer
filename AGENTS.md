@@ -41,6 +41,13 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 - No automated test suite is present. For now, smoke‑test by starting Docker + backend + frontend and verifying the UI loads and map layers respond.
 - If adding tests, place them alongside the relevant package (e.g., `backend/tests/` or `frontend/src/__tests__/`) and document the new command in this file.
 
+## AI Workflow
+- For larger or research-heavy tasks, prefer the repository standard described in `docs/workflows/ai_supervisor_workflow.md`.
+- Default pattern for substantial work: planning session first, then create a repo plan structured as `Plan -> Phase -> Welle -> Ticket`, then execute it in a fresh supervisor session with subagents.
+- Permanent repo rule for supervisor sessions: ticket work is delegated to subagents. The supervisor is responsible for scheduling, ticket slicing, gate checks, integration, and status updates, but should not silently do ticket implementation work in the main thread.
+- Supervisor sessions should be bootstrappable from a single prompt file: the new session should usually only need to be told to read `docs/<...>_supervisor_prompt.md` and execute it fully.
+- Keep supervisor context small, let delegated agents verify and refine their own work before reporting back, and use `gpt-5.4` with `xhigh` reasoning for this workflow by default; no mini/nano downgrades unless explicitly requested.
+
 ## Commit & Pull Request Guidelines
 - Current history uses short, imperative summaries (e.g., “Add InSAR documentation PDFs”). Keep messages concise and descriptive.
 - PRs should include: what changed, how to run/verify, and screenshots for UI changes. Note any data regeneration steps (pipelines, tiles) explicitly.
@@ -56,7 +63,7 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 - Runs are tracked in MLflow and stored in PostGIS tables `ml_runs`, `ml_point_results`, `ml_run_metrics`.
 - Start runs in the left UI panel or via CLI:
   ```bash
-  python -m backend.app.ml.cli --pipeline assignment --source gba --track 44 \
+  python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source gba --track 44 \
     --bbox 12.98,47.75,13.12,47.85
   ```
 - Delete a run (DB + MLflow):

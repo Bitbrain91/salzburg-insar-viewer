@@ -1,6 +1,3 @@
-from .anomaly_v1 import AnomalyV1Pipeline
-from .assignment import AssignmentPipeline
-from .clustering import ClusteringPipeline
-from .hybrid import HybridPipeline
+from .anomaly_local_v1 import AnomalyLocalV1Pipeline
 
-__all__ = ["AnomalyV1Pipeline", "AssignmentPipeline", "ClusteringPipeline", "HybridPipeline"]
+__all__ = ["AnomalyLocalV1Pipeline"]

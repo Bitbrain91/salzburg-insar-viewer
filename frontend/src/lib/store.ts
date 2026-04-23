@@ -41,11 +41,6 @@ export type AppState = {
   mlBuildingShowHulls: boolean;
   mlView:
     | "cluster"
-    | "building"
-    | "assignment"
-    | "distance"
-    | "velocity"
-    | "coherence"
     | "quality"
     | "anomaly"
     | "cross-track"

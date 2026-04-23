@@ -157,48 +157,6 @@ const mlBuildingHeightExpression: any[] = [
   4,
 ];
 
-const assignmentExpression: any[] = [
-  "match",
-  ["get", "method"],
-  "buffer",
-  "#1b9e77",
-  "nearest",
-  "#d95f02",
-  "unassigned",
-  "#999999",
-  "dbscan",
-  "#7570b3",
-  "#9aa0a6",
-];
-
-const distanceExpression: any[] = [
-  "interpolate",
-  ["linear"],
-  ["coalesce", ["get", "distance_m"], 0],
-  0,
-  "#1b9e77",
-  10,
-  "#66a61e",
-  20,
-  "#e6ab02",
-  30,
-  "#d95f02",
-  50,
-  "#a6761d",
-];
-
-const coherenceExpression: any[] = [
-  "interpolate",
-  ["linear"],
-  ["coalesce", ["get", "coherence"], 0],
-  0.2,
-  "#c6372a",
-  0.6,
-  "#f2c14e",
-  1.0,
-  "#1b9e77",
-];
-
 const qualityExpression: any[] = [
   "interpolate",
   ["linear"],
@@ -818,11 +776,7 @@ export default function MapView() {
     if (view === "anomaly") return anomalyExpression;
     if (view === "cross-track") return crossTrackExpression;
     if (view === "label") return labelExpression;
-    if (view === "building") return mlBuildingColorExpression;
-    if (view === "assignment") return assignmentExpression;
-    if (view === "distance") return distanceExpression;
-    if (view === "velocity") return velocityExpression;
-    if (view === "coherence") return coherenceExpression;
+    if (view === "cluster") return mlClusterColorExpression;
     return mlClusterColorExpression;
   }
 

@@ -1069,6 +1069,7 @@ async def delete_run(
 
     async with request.app.state.db_pool.acquire() as conn:
         async with conn.transaction():
+            await conn.execute("DELETE FROM ml_building_colors WHERE run_id = $1", run_id)
             await conn.execute("DELETE FROM ml_point_results WHERE run_id = $1", run_id)
             await conn.execute("DELETE FROM ml_run_metrics WHERE run_id = $1", run_id)
             await conn.execute("DELETE FROM ml_runs WHERE run_id = $1", run_id)

@@ -31,9 +31,6 @@ export default function InspectorPanel() {
     Boolean(activeRunId) && activeRunQuery.data?.run_id === activeRunId;
   const activeRunStatus = hasResolvedActiveRun ? activeRunQuery.data?.status : undefined;
   const isActiveRunPending = activeRunStatus === "queued" || activeRunStatus === "running";
-  const isActiveAnomalyRun =
-    hasResolvedActiveRun &&
-    ["anomaly_v1", "anomaly_local_v1"].includes(activeRunQuery.data?.pipeline ?? "");
   const isActiveLocalAnomalyRun =
     hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_local_v1";
 
@@ -68,12 +65,12 @@ export default function InspectorPanel() {
   });
 
   const buildingPointsQuery = useQuery({
-    queryKey: ["building-points", selection, isActiveAnomalyRun],
+    queryKey: ["building-points", selection, isActiveLocalAnomalyRun],
     queryFn: () =>
       selection && selection.type === "building"
         ? getBuildingPoints(selection.source, selection.id)
         : Promise.resolve(null),
-    enabled: selection?.type === "building" && !isActiveAnomalyRun,
+    enabled: selection?.type === "building" && !isActiveLocalAnomalyRun,
   });
 
   const mlBuildingAnalysisQuery = useQuery({
@@ -362,21 +359,9 @@ export default function InspectorPanel() {
                 </span>
               </div>
               <div className="metric">
-                <span className="label">Height band</span>
-                <span className="value">
-                  {fmtStr(
-                    typeof mlPointAnalysis.feature_flags.height_band === "string"
-                      ? mlPointAnalysis.feature_flags.height_band
-                      : null
-                  )}
-                </span>
-              </div>
-              <div className="metric">
                 <span className="label">Track support</span>
                 <span className="value">
                   {fmtNum(getNumber(mlPointAnalysis.building_context.track_point_count), 0)}
-                  {" / "}
-                  {fmtNum(getNumber(mlPointAnalysis.building_context.other_track_point_count), 0)}
                 </span>
               </div>
               <div className="metric">
