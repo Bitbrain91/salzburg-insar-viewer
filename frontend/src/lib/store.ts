@@ -44,7 +44,7 @@ export type AppState = {
     | "quality"
     | "anomaly"
     | "cross-track"
-    | "label";
+    | "reliability";
   mlTileVersion: number;
   mapBBox: [number, number, number, number] | null;
   setLayer: (key: keyof LayerVisibility, value: boolean) => void;

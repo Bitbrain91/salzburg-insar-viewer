@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "anomaly_local_v1 phase2 AI input",
+  "type": "object",
+  "required": [
+    "case_id",
+    "aoi",
+    "run_id",
+    "building_source",
+    "building_id",
+    "case_type",
+    "bounds",
+    "terrain_context",
+    "building_analysis",
+    "cluster_summaries",
+    "points",
+    "stability"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "aoi": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "building_source": {
+      "type": "string"
+    },
+    "building_id": {
+      "type": "string"
+    },
+    "case_type": {
+      "type": "string"
+    },
+    "expected_status": {
+      "type": "string"
+    },
+    "bounds": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number"
+      }
+    },
+    "terrain_context": {
+      "type": "object"
+    },
+    "building_analysis": {
+      "type": "object"
+    },
+    "cluster_summaries": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "points": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "stability": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

@@ -124,11 +124,29 @@ export type MlBuildingPointSummary = {
 
 export type MlBuildingClusterSummary = {
   cluster_id: string;
+  building_source: string;
+  building_id: string;
   track: number;
+  cluster_role: string;
+  is_main_cluster: boolean;
+  cluster_rank: number | null;
   point_count: number;
-  median_velocity: number | null;
+  median_velocity_mm_a: number | null;
+  median_vertical_proxy_mm_a: number | null;
   median_coherence: number | null;
   median_height_rank: number | null;
+  cluster_reliability_score: number | null;
+  motion_delta_to_main_mm_a: number | null;
+};
+
+export type MlReliabilityPenalty = {
+  key: string;
+  score_delta: number | null;
+  cap_band: string | null;
+  tracks: string[];
+  threshold_min_points: number | null;
+  threshold_max_score: number | null;
+  observed_score: number | null;
 };
 
 export type MlBuildingAnalysis = {
@@ -142,8 +160,19 @@ export type MlBuildingAnalysis = {
   noise_point_count: number;
   excluded_point_count: number;
   cluster_count: number;
+  reliable_cluster_count: number;
+  building_motion_mm_a: number | null;
+  building_reliability_score: number | null;
+  building_reliability_band: string | null;
   track_agreement_score: number | null;
+  weak_secondary_track_flag: boolean;
+  agreement_tension_flag: boolean;
+  reliability_penalties: MlReliabilityPenalty[];
+  differential_motion_flag: boolean;
   building_status: string | null;
+  main_cluster_track_44_id: string | null;
+  main_cluster_track_95_id: string | null;
+  track_motion_mm_a: Record<string, number | null>;
   track_counts: Record<string, number>;
   label_counts: Record<string, number>;
   assignment_methods: Record<string, number>;
@@ -186,7 +215,23 @@ export type MlBuildingVisualizationContextResponse = {
   building: GeoJsonFeature | null;
   candidate_areas: GeoJsonFeatureCollection;
   cluster_hulls: GeoJsonFeatureCollection;
-  summary: Record<string, unknown>;
+  summary: {
+    point_count: number;
+    kept_point_count: number;
+    noise_point_count: number;
+    excluded_point_count: number;
+    cluster_count: number;
+    reliable_cluster_count: number;
+    building_motion_mm_a: number | null;
+    building_reliability_score: number | null;
+    building_reliability_band: string | null;
+    track_agreement_score: number | null;
+    weak_secondary_track_flag: boolean;
+    agreement_tension_flag: boolean;
+    reliability_penalties: MlReliabilityPenalty[];
+    building_status: string | null;
+    differential_motion_flag: boolean;
+  };
 };
 
 export function getPointDetail(code: string, track?: number) {

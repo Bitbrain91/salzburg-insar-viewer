@@ -65,6 +65,8 @@ class LocalPointRecord:
     cross_track_summary: dict[str, Any] = field(default_factory=dict)
     detector_scores: dict[str, float] = field(default_factory=dict)
     explain_top_features: list[dict[str, Any]] = field(default_factory=list)
+    cluster_rollup: dict[str, Any] = field(default_factory=dict)
+    building_rollup: dict[str, Any] = field(default_factory=dict)
     gate_excluded: bool = False
     gate_reasons: list[str] = field(default_factory=list)
     kept_for_scoring: bool = False
@@ -382,7 +384,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         self._compute_building_group_features(records, track_stats)
         self._apply_gate_rules(records, track_stats, params)
         self._cluster_building_groups(records, params)
-        cross_track_metrics = self._compute_cross_track_consistency(records)
+        cross_track_metrics = self._compute_phase1_rollups(records)
         self._score_records(records, track_stats, params)
         metrics = self._evaluate_run(records, cross_track_metrics)
         return records, metrics
@@ -866,66 +868,56 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
         return labels, probabilities, outlier_scores
 
-    def _compute_cross_track_consistency(self, records: list[LocalPointRecord]) -> dict[str, float]:
-        by_building_before: dict[str, dict[int, list[LocalPointRecord]]] = defaultdict(lambda: defaultdict(list))
-        by_building_after: dict[str, dict[int, list[LocalPointRecord]]] = defaultdict(lambda: defaultdict(list))
-
+    def _compute_phase1_rollups(self, records: list[LocalPointRecord]) -> dict[str, float]:
+        by_building: dict[str, list[LocalPointRecord]] = defaultdict(list)
         for record in records:
-            if not record.building_id or record.gate_excluded:
-                continue
-            by_building_before[record.building_id][record.track].append(record)
-            if record.cluster_role != "noise":
-                by_building_after[record.building_id][record.track].append(record)
+            if record.building_id:
+                by_building[record.building_id].append(record)
 
         diffs_before: list[float] = []
         diffs_after: list[float] = []
         buildings_with_both_tracks_kept = 0
 
-        for building_id, tracks_after in by_building_after.items():
-            tracks_before = by_building_before.get(building_id, {})
-            slope_mean = max(
-                [
-                    self._safe_value(record.slope_mean_deg)
-                    for track_records in tracks_after.values()
-                    for record in track_records
-                ]
-                or [0.0]
+        for building_id, building_records in by_building.items():
+            building_rollup, cluster_rollups, cross_track_summary = self._build_building_rollup(
+                building_id,
+                building_records,
             )
-            allowed_diff = 1.0 + (0.15 * slope_mean)
-
-            before_44 = tracks_before.get(44, [])
-            before_95 = tracks_before.get(95, [])
-            after_44 = tracks_after.get(44, [])
-            after_95 = tracks_after.get(95, [])
-            before_diff = None
-            after_diff = None
-            consistency = None
-            full_support = False
-
-            if before_44 and before_95:
-                before_diff = abs(self._median_vertical_proxy(before_44) - self._median_vertical_proxy(before_95))
-                diffs_before.append(before_diff)
-            if after_44 and after_95:
-                after_diff = abs(self._median_vertical_proxy(after_44) - self._median_vertical_proxy(after_95))
-                diffs_after.append(after_diff)
-                consistency = float(math.exp(-(after_diff / max(allowed_diff, EPSILON))))
-                full_support = len(after_44) >= 2 and len(after_95) >= 2
+            if cross_track_summary.get("diff_before_mm_a") is not None:
+                diffs_before.append(float(cross_track_summary["diff_before_mm_a"]))
+            if cross_track_summary.get("diff_after_mm_a") is not None:
+                diffs_after.append(float(cross_track_summary["diff_after_mm_a"]))
+            if cross_track_summary.get("full_support"):
                 buildings_with_both_tracks_kept += 1
 
-            summary = {
-                "building_id": building_id,
-                "allowed_diff_mm_a": allowed_diff,
-                "diff_before_mm_a": before_diff,
-                "diff_after_mm_a": after_diff,
-                "consistency": consistency,
-                "full_support": full_support,
-            }
-
-            for track_records in tracks_before.values():
-                for record in track_records:
-                    record.cross_track_summary = summary
-                    record.cross_track_consistency = consistency
-                    record.flags["cross_track_full_support"] = full_support
+            for record in building_records:
+                cluster_rollup = cluster_rollups.get((record.track, record.cluster_id))
+                record.cluster_rollup = dict(cluster_rollup) if cluster_rollup else {}
+                record.building_rollup = dict(building_rollup)
+                record.cross_track_summary = dict(cross_track_summary)
+                record.cross_track_consistency = building_rollup.get("track_agreement_score")
+                record.flags["cross_track_full_support"] = bool(cross_track_summary.get("full_support"))
+                record.flags["is_main_cluster"] = bool(record.cluster_rollup.get("is_main_cluster", False))
+                record.flags["cluster_rank"] = record.cluster_rollup.get("cluster_rank")
+                if record.building_context:
+                    record.building_context["main_cluster_track_44_id"] = building_rollup.get(
+                        "main_cluster_track_44_id"
+                    )
+                    record.building_context["main_cluster_track_95_id"] = building_rollup.get(
+                        "main_cluster_track_95_id"
+                    )
+                    record.building_context["building_motion_mm_a"] = building_rollup.get(
+                        "building_motion_mm_a"
+                    )
+                    record.building_context["building_reliability_score"] = building_rollup.get(
+                        "building_reliability_score"
+                    )
+                    record.building_context["building_reliability_band"] = building_rollup.get(
+                        "building_reliability_band"
+                    )
+                    record.building_context["differential_motion_flag"] = building_rollup.get(
+                        "differential_motion_flag"
+                    )
 
         return {
             "median_cross_track_diff_before": float(np.median(diffs_before)) if diffs_before else 0.0,
@@ -941,6 +933,370 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 )
             ),
         }
+
+    def _build_building_rollup(
+        self,
+        building_id: str,
+        records: list[LocalPointRecord],
+    ) -> tuple[dict[str, Any], dict[tuple[int, str | None], dict[str, Any]], dict[str, Any]]:
+        kept_records = [record for record in records if not record.gate_excluded]
+        excluded_point_count = len(records) - len(kept_records)
+        noise_point_count = sum(1 for record in kept_records if record.cluster_role == "noise")
+        cluster_rollups: dict[tuple[int, str | None], dict[str, Any]] = {}
+        track_rollups: dict[int, dict[str, Any]] = {}
+        reliable_cluster_count = 0
+        cluster_count = 0
+
+        for track in sorted({record.track for record in records}):
+            track_records = [
+                record
+                for record in kept_records
+                if record.track == track and record.cluster_id is not None
+            ]
+            track_cluster_records: dict[str, list[LocalPointRecord]] = defaultdict(list)
+            for record in track_records:
+                track_cluster_records[str(record.cluster_id)].append(record)
+
+            track_cluster_rollups: list[dict[str, Any]] = []
+            for cluster_id, cluster_records in track_cluster_records.items():
+                cluster_role = str(cluster_records[0].cluster_role or "unknown")
+                point_count = len(cluster_records)
+                median_velocity = float(np.median([record.velocity for record in cluster_records]))
+                median_vertical_proxy = float(
+                    np.median([self._vertical_proxy(record) for record in cluster_records])
+                )
+                coherence_values = [
+                    float(record.coherence)
+                    for record in cluster_records
+                    if record.coherence is not None
+                ]
+                median_coherence = float(np.median(coherence_values)) if coherence_values else None
+                height_ranks = [
+                    float(record.features.get("height_rank_in_building", 0.0))
+                    for record in cluster_records
+                ]
+                median_height_rank = float(np.median(height_ranks)) if height_ranks else None
+                assignment_quality = sum(
+                    1 for record in cluster_records if record.assignment_method != "nearest"
+                ) / max(point_count, 1)
+                reliable_core = cluster_role == "core" and point_count >= 2
+                cluster_reliability_score = None
+                if cluster_role == "core":
+                    support_score = min(point_count / 4.0, 1.0)
+                    signal_score = float(np.clip(self._safe_value(median_coherence), 0.0, 1.0))
+                    cluster_reliability_score = float(
+                        np.clip(
+                            (0.45 * support_score)
+                            + (0.35 * signal_score)
+                            + (0.20 * assignment_quality),
+                            0.0,
+                            1.0,
+                        )
+                    )
+
+                track_cluster_rollups.append(
+                    {
+                        "cluster_id": cluster_id,
+                        "building_source": "gba",
+                        "building_id": building_id,
+                        "track": track,
+                        "cluster_role": cluster_role,
+                        "is_main_cluster": False,
+                        "cluster_rank": None,
+                        "point_count": point_count,
+                        "median_velocity_mm_a": median_velocity,
+                        "median_vertical_proxy_mm_a": median_vertical_proxy,
+                        "median_coherence": median_coherence,
+                        "median_height_rank": median_height_rank,
+                        "cluster_reliability_score": cluster_reliability_score,
+                        "motion_delta_to_main_mm_a": None,
+                        "assignment_quality": assignment_quality,
+                        "reliable_core": reliable_core,
+                    }
+                )
+
+            reliable_clusters = [
+                cluster for cluster in track_cluster_rollups if cluster.get("reliable_core")
+            ]
+            main_cluster = None
+            if reliable_clusters:
+                main_cluster = sorted(
+                    reliable_clusters,
+                    key=lambda cluster: (
+                        -int(cluster["point_count"]),
+                        -self._safe_value(cluster.get("median_coherence"), -1.0),
+                        -self._safe_value(cluster.get("median_height_rank"), -1.0),
+                        str(cluster["cluster_id"]),
+                    ),
+                )[0]
+            main_cluster_id = str(main_cluster["cluster_id"]) if main_cluster else None
+            main_cluster_motion = (
+                float(main_cluster["median_vertical_proxy_mm_a"]) if main_cluster else None
+            )
+
+            ranked_clusters = sorted(
+                track_cluster_rollups,
+                key=lambda cluster: (
+                    0 if str(cluster["cluster_id"]) == main_cluster_id else 1,
+                    {"core": 0, "insufficient_support": 1, "noise": 2, "excluded": 3}.get(
+                        str(cluster["cluster_role"]),
+                        4,
+                    ),
+                    -int(cluster["point_count"]),
+                    -self._safe_value(cluster.get("median_coherence"), -1.0),
+                    -self._safe_value(cluster.get("median_height_rank"), -1.0),
+                    str(cluster["cluster_id"]),
+                ),
+            )
+
+            for rank, cluster in enumerate(ranked_clusters, start=1):
+                cluster["is_main_cluster"] = str(cluster["cluster_id"]) == main_cluster_id
+                cluster["cluster_rank"] = rank
+                if main_cluster_motion is None or cluster.get("median_vertical_proxy_mm_a") is None:
+                    cluster["motion_delta_to_main_mm_a"] = None
+                elif cluster["is_main_cluster"]:
+                    cluster["motion_delta_to_main_mm_a"] = 0.0
+                else:
+                    cluster["motion_delta_to_main_mm_a"] = float(
+                        abs(float(cluster["median_vertical_proxy_mm_a"]) - main_cluster_motion)
+                    )
+                cluster_rollups[(track, str(cluster["cluster_id"]))] = {
+                    key: value
+                    for key, value in cluster.items()
+                    if key not in {"assignment_quality", "reliable_core"}
+                }
+
+            reliable_cluster_count += len(reliable_clusters)
+            cluster_count += len(track_cluster_rollups)
+            track_rollups[track] = {
+                "track": track,
+                "main_cluster_id": main_cluster_id,
+                "track_motion_mm_a": main_cluster_motion,
+                "main_cluster_support": int(main_cluster["point_count"]) if main_cluster else 0,
+                "main_cluster_signal": (
+                    self._safe_value(main_cluster.get("median_coherence"))
+                    if main_cluster
+                    else 0.0
+                ),
+                "main_cluster_assignment_quality": (
+                    float(main_cluster["assignment_quality"]) if main_cluster else 0.0
+                ),
+            }
+
+        slope_mean = max(
+            [self._safe_value(record.slope_mean_deg) for record in records if record.slope_mean_deg is not None]
+            or [0.0]
+        )
+        allowed_diff = 1.0 + (0.15 * slope_mean)
+        kept_by_track: dict[int, list[LocalPointRecord]] = defaultdict(list)
+        for record in kept_records:
+            kept_by_track[record.track].append(record)
+
+        before_diff = None
+        if kept_by_track.get(44) and kept_by_track.get(95):
+            before_diff = abs(
+                self._median_vertical_proxy(kept_by_track[44])
+                - self._median_vertical_proxy(kept_by_track[95])
+            )
+
+        motion_44 = track_rollups.get(44, {}).get("track_motion_mm_a")
+        motion_95 = track_rollups.get(95, {}).get("track_motion_mm_a")
+        after_diff = None
+        track_agreement_score = None
+        if motion_44 is not None and motion_95 is not None:
+            after_diff = abs(float(motion_44) - float(motion_95))
+            track_agreement_score = float(math.exp(-(after_diff / max(allowed_diff, EPSILON))))
+
+        full_support = bool(
+            track_rollups.get(44, {}).get("main_cluster_support", 0) >= 2
+            and track_rollups.get(95, {}).get("main_cluster_support", 0) >= 2
+            and motion_44 is not None
+            and motion_95 is not None
+        )
+
+        differential_motion_flag = False
+        for track, track_rollup in track_rollups.items():
+            main_cluster_id = track_rollup.get("main_cluster_id")
+            main_cluster_motion = track_rollup.get("track_motion_mm_a")
+            if main_cluster_id is None or main_cluster_motion is None:
+                continue
+            reliable_clusters = [
+                cluster
+                for cluster in cluster_rollups.values()
+                if cluster["track"] == track
+                and cluster["cluster_role"] == "core"
+                and int(cluster["point_count"]) >= 2
+            ]
+            if len(reliable_clusters) < 2:
+                continue
+            threshold = max(1.5, allowed_diff)
+            for cluster in reliable_clusters:
+                if cluster["cluster_id"] == main_cluster_id:
+                    continue
+                delta = cluster.get("motion_delta_to_main_mm_a")
+                if delta is not None and float(delta) >= threshold:
+                    differential_motion_flag = True
+                    break
+            if differential_motion_flag:
+                break
+
+        main_tracks = [
+            track for track, values in track_rollups.items() if values.get("main_cluster_id") is not None
+        ]
+        weak_main_cluster_tracks = sorted(
+            track
+            for track, values in track_rollups.items()
+            if values.get("main_cluster_id") is not None
+            and int(values.get("main_cluster_support", 0)) < 3
+        )
+        weak_secondary_track_flag = len(main_tracks) >= 2 and bool(weak_main_cluster_tracks)
+        main_cluster_support_total = sum(
+            int(values.get("main_cluster_support", 0)) for values in track_rollups.values()
+        )
+        building_motion_values = [
+            float(values["track_motion_mm_a"])
+            for values in track_rollups.values()
+            if values.get("track_motion_mm_a") is not None
+        ]
+        building_motion_mm_a = (
+            float(np.mean(building_motion_values)) if building_motion_values else None
+        )
+
+        if len(kept_records) < 3 or not main_tracks:
+            building_status = "insufficient_support"
+        elif noise_point_count > len(kept_records) * 0.5:
+            building_status = "noise_dominated"
+        elif main_cluster_support_total < 4:
+            building_status = "small_n"
+        elif len(main_tracks) == 1:
+            building_status = "single_track_only"
+        else:
+            building_status = "ok"
+
+        agreement_tension_flag = bool(
+            track_agreement_score is not None and float(track_agreement_score) < 0.25
+        )
+        low_agreement_band_cap = bool(
+            building_status == "ok"
+            and len(main_tracks) >= 2
+            and track_agreement_score is not None
+            and float(track_agreement_score) < 0.10
+        )
+        reliability_penalties: list[dict[str, Any]] = []
+        retuning_penalty_total = 0.0
+        if weak_main_cluster_tracks:
+            retuning_penalty_total += 0.10
+            reliability_penalties.append(
+                {
+                    "key": "weak_main_cluster_support",
+                    "score_delta": -0.10,
+                    "tracks": [str(track) for track in weak_main_cluster_tracks],
+                    "threshold_min_points": 3,
+                }
+            )
+        if weak_secondary_track_flag:
+            reliability_penalties.append(
+                {
+                    "key": "weak_secondary_track_band_cap",
+                    "cap_band": "medium",
+                    "tracks": [str(track) for track in weak_main_cluster_tracks],
+                }
+            )
+        if agreement_tension_flag:
+            retuning_penalty_total += 0.10
+            reliability_penalties.append(
+                {
+                    "key": "low_track_agreement",
+                    "score_delta": -0.10,
+                    "threshold_max_score": 0.25,
+                    "observed_score": float(track_agreement_score) if track_agreement_score is not None else None,
+                }
+            )
+        if low_agreement_band_cap:
+            reliability_penalties.append(
+                {
+                    "key": "very_low_track_agreement_band_cap",
+                    "cap_band": "low",
+                    "threshold_max_score": 0.10,
+                    "observed_score": float(track_agreement_score) if track_agreement_score is not None else None,
+                }
+            )
+
+        building_reliability_score = None
+        building_reliability_band = None
+        if building_status != "insufficient_support":
+            support_component = min(main_cluster_support_total / 6.0, 1.0)
+            signal_values = [
+                float(values["main_cluster_signal"])
+                for values in track_rollups.values()
+                if values.get("main_cluster_id") is not None
+            ]
+            assignment_values = [
+                float(values["main_cluster_assignment_quality"])
+                for values in track_rollups.values()
+                if values.get("main_cluster_id") is not None
+            ]
+            signal_component = float(np.mean(signal_values)) if signal_values else 0.0
+            assignment_component = float(np.mean(assignment_values)) if assignment_values else 0.0
+            agreement_component = (
+                float(track_agreement_score) if track_agreement_score is not None else 0.5
+            )
+            building_reliability_score = float(
+                np.clip(
+                    (0.35 * support_component)
+                    + (0.25 * signal_component)
+                    + (0.20 * assignment_component)
+                    + (0.20 * agreement_component)
+                    - (0.15 if len(main_tracks) == 1 else 0.0)
+                    - (0.10 if main_cluster_support_total < 4 else 0.0)
+                    - (0.15 if noise_point_count > len(kept_records) * 0.5 else 0.0)
+                    - (0.15 if differential_motion_flag else 0.0)
+                    - retuning_penalty_total,
+                    0.0,
+                    1.0,
+                )
+            )
+            building_reliability_band = self._reliability_band(building_reliability_score)
+            if weak_secondary_track_flag:
+                building_reliability_band = self._cap_reliability_band(building_reliability_band, "medium")
+            if low_agreement_band_cap:
+                building_reliability_band = self._cap_reliability_band(building_reliability_band, "low")
+
+        building_rollup = {
+            "building_source": "gba",
+            "building_id": building_id,
+            "building_status": building_status,
+            "building_motion_mm_a": building_motion_mm_a,
+            "building_reliability_score": building_reliability_score,
+            "building_reliability_band": building_reliability_band,
+            "track_agreement_score": track_agreement_score,
+            "weak_secondary_track_flag": weak_secondary_track_flag,
+            "agreement_tension_flag": agreement_tension_flag,
+            "reliability_penalties": reliability_penalties,
+            "differential_motion_flag": differential_motion_flag,
+            "main_cluster_track_44_id": track_rollups.get(44, {}).get("main_cluster_id"),
+            "main_cluster_track_95_id": track_rollups.get(95, {}).get("main_cluster_id"),
+            "track_motion_mm_a": {
+                str(track): values.get("track_motion_mm_a") for track, values in sorted(track_rollups.items())
+            },
+            "cluster_count": cluster_count,
+            "reliable_cluster_count": reliable_cluster_count,
+            "point_count": len(records),
+            "kept_point_count": len(kept_records),
+            "noise_point_count": noise_point_count,
+            "excluded_point_count": excluded_point_count,
+        }
+        cross_track_summary = {
+            "building_id": building_id,
+            "allowed_diff_mm_a": allowed_diff,
+            "diff_before_mm_a": before_diff,
+            "diff_after_mm_a": after_diff,
+            "consistency": track_agreement_score,
+            "full_support": full_support,
+            "main_cluster_track_44_id": building_rollup["main_cluster_track_44_id"],
+            "main_cluster_track_95_id": building_rollup["main_cluster_track_95_id"],
+        }
+        return building_rollup, cluster_rollups, cross_track_summary
 
     def _score_records(
         self,
@@ -1063,13 +1419,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         records: list[LocalPointRecord],
         cross_track_metrics: dict[str, float],
     ) -> dict[str, Any]:
-        building_cluster_counts: dict[str, set[str]] = defaultdict(set)
-        building_small_n: set[str] = set()
+        building_states: dict[str, dict[str, Any]] = {}
         for record in records:
-            if record.building_id and record.cluster_role == "core" and record.cluster_id:
-                building_cluster_counts[record.building_id].add(record.cluster_id)
-            if record.building_id and record.small_n_fallback:
-                building_small_n.add(record.building_id)
+            if record.building_id and record.building_rollup:
+                building_states[record.building_id] = record.building_rollup
 
         metrics = {
             "total_points": len(records),
@@ -1081,9 +1434,15 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             "suspect_points": sum(1 for record in records if record.label == "suspect"),
             "outlier_points": sum(1 for record in records if record.label == "outlier"),
             "noise_points": sum(1 for record in records if record.cluster_role == "noise"),
-            "buildings_with_clusters": sum(1 for clusters in building_cluster_counts.values() if clusters),
-            "multi_cluster_buildings": sum(1 for clusters in building_cluster_counts.values() if len(clusters) > 1),
-            "small_n_buildings": len(building_small_n),
+            "buildings_with_clusters": sum(
+                1 for state in building_states.values() if int(state.get("cluster_count", 0)) > 0
+            ),
+            "multi_cluster_buildings": sum(
+                1 for state in building_states.values() if int(state.get("reliable_cluster_count", 0)) > 1
+            ),
+            "small_n_buildings": sum(
+                1 for state in building_states.values() if state.get("building_status") == "small_n"
+            ),
             "full_cross_track_points": int(cross_track_metrics["full_cross_track_points"]),
             "buildings_with_both_tracks_kept": int(cross_track_metrics["buildings_with_both_tracks_kept"]),
             "median_cross_track_diff_before": cross_track_metrics["median_cross_track_diff_before"],
@@ -1123,6 +1482,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 "feature_flags": record.flags,
                 "building_context": record.building_context,
                 "cross_track_summary": record.cross_track_summary,
+                "cluster_rollup": record.cluster_rollup,
+                "building_rollup": record.building_rollup,
                 "detector_scores": record.detector_scores,
                 "explain_top_features": record.explain_top_features,
                 "cluster": {
@@ -1130,6 +1491,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     "cluster_probability": record.cluster_probability,
                     "cluster_outlier_score": record.cluster_outlier_score,
                     "small_n_fallback": record.small_n_fallback,
+                    "is_main_cluster": record.cluster_rollup.get("is_main_cluster", False),
+                    "cluster_rank": record.cluster_rollup.get("cluster_rank"),
                 },
                 "visual_context": {
                     "gate_excluded": record.gate_excluded,
@@ -1344,6 +1707,23 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         if quality_score < outlier_threshold:
             return "outlier"
         return "suspect"
+
+    def _reliability_band(self, score: float | None) -> str | None:
+        if score is None:
+            return None
+        if score >= 0.75:
+            return "high"
+        if score >= 0.45:
+            return "medium"
+        return "low"
+
+    def _cap_reliability_band(self, band: str | None, cap: str | None) -> str | None:
+        if band is None or cap is None:
+            return band
+        order = {"low": 0, "medium": 1, "high": 2}
+        if order.get(band, -1) <= order.get(cap, -1):
+            return band
+        return cap
 
     def _reason(self, key: str, severity: float, summary: str) -> dict[str, Any]:
         return {

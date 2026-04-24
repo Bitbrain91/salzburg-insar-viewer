@@ -170,11 +170,29 @@ class MLBuildingPointSummary(BaseModel):
 
 class MLBuildingClusterSummary(BaseModel):
     cluster_id: str
+    building_source: str
+    building_id: str
     track: int
+    cluster_role: str
+    is_main_cluster: bool = False
+    cluster_rank: Optional[int] = None
     point_count: int
-    median_velocity: Optional[float] = None
+    median_velocity_mm_a: Optional[float] = None
+    median_vertical_proxy_mm_a: Optional[float] = None
     median_coherence: Optional[float] = None
     median_height_rank: Optional[float] = None
+    cluster_reliability_score: Optional[float] = None
+    motion_delta_to_main_mm_a: Optional[float] = None
+
+
+class MLReliabilityPenalty(BaseModel):
+    key: str
+    score_delta: Optional[float] = None
+    cap_band: Optional[str] = None
+    tracks: List[str] = Field(default_factory=list)
+    threshold_min_points: Optional[int] = None
+    threshold_max_score: Optional[float] = None
+    observed_score: Optional[float] = None
 
 
 class MLBuildingAnalysis(BaseModel):
@@ -188,8 +206,19 @@ class MLBuildingAnalysis(BaseModel):
     noise_point_count: int = 0
     excluded_point_count: int = 0
     cluster_count: int = 0
+    reliable_cluster_count: int = 0
+    building_motion_mm_a: Optional[float] = None
+    building_reliability_score: Optional[float] = None
+    building_reliability_band: Optional[str] = None
     track_agreement_score: Optional[float] = None
+    weak_secondary_track_flag: bool = False
+    agreement_tension_flag: bool = False
+    reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
+    differential_motion_flag: bool = False
     building_status: Optional[str] = None
+    main_cluster_track_44_id: Optional[str] = None
+    main_cluster_track_95_id: Optional[str] = None
+    track_motion_mm_a: dict[str, Optional[float]] = Field(default_factory=dict)
     track_counts: dict[str, int] = Field(default_factory=dict)
     label_counts: dict[str, int] = Field(default_factory=dict)
     assignment_methods: dict[str, int] = Field(default_factory=dict)
@@ -228,6 +257,24 @@ class MLBuildingVisualizationPointsResponse(BaseModel):
     feature_collection: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
 
 
+class MLBuildingVisualizationSummary(BaseModel):
+    point_count: int = 0
+    kept_point_count: int = 0
+    noise_point_count: int = 0
+    excluded_point_count: int = 0
+    cluster_count: int = 0
+    reliable_cluster_count: int = 0
+    building_motion_mm_a: Optional[float] = None
+    building_reliability_score: Optional[float] = None
+    building_reliability_band: Optional[str] = None
+    track_agreement_score: Optional[float] = None
+    weak_secondary_track_flag: bool = False
+    agreement_tension_flag: bool = False
+    reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
+    building_status: Optional[str] = None
+    differential_motion_flag: bool = False
+
+
 class MLBuildingVisualizationContextResponse(BaseModel):
     run_id: str
     pipeline: str
@@ -238,4 +285,4 @@ class MLBuildingVisualizationContextResponse(BaseModel):
     building: Optional[GeoJsonFeature] = None
     candidate_areas: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
     cluster_hulls: GeoJsonFeatureCollection = Field(default_factory=GeoJsonFeatureCollection)
-    summary: dict[str, Any] = Field(default_factory=dict)
+    summary: MLBuildingVisualizationSummary = Field(default_factory=MLBuildingVisualizationSummary)

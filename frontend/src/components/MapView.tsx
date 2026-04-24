@@ -202,7 +202,7 @@ const crossTrackExpression: any[] = [
   ],
 ];
 
-const labelExpression: any[] = [
+const pointReliabilityExpression: any[] = [
   "match",
   ["get", "label"],
   "normal",
@@ -214,10 +214,10 @@ const labelExpression: any[] = [
   "#9aa0a6",
 ];
 
-const buildingQualityExpression: any[] = [
+const buildingReliabilityScoreExpression: any[] = [
   "interpolate",
   ["linear"],
-  ["coalesce", ["get", "avg_quality_score"], 0],
+  ["coalesce", ["get", "building_reliability_score"], 0],
   0,
   "#8e0f2f",
   0.4,
@@ -228,26 +228,52 @@ const buildingQualityExpression: any[] = [
   "#1b9e77",
 ];
 
-const buildingAnomalyExpression: any[] = [
-  "interpolate",
-  ["linear"],
-  ["coalesce", ["get", "avg_anomaly_score"], 0],
-  0,
-  "#1b9e77",
-  0.4,
-  "#f2c14e",
-  0.7,
-  "#d97b29",
-  1,
+const buildingMotionExpression: any[] = [
+  "step",
+  ["coalesce", ["get", "building_motion_mm_a"], 0],
   "#8e0f2f",
-];
-
-const buildingLabelExpression: any[] = [
-  "case",
-  [">", ["coalesce", ["get", "outlier_count"], 0], 0],
+  -5,
   "#c6372a",
-  [">", ["coalesce", ["get", "point_count"], 0], 0],
+  -2,
+  "#e67f1c",
+  -1,
+  "#f2c14e",
+  1,
+  "#2c9f7a",
+  2,
+  "#4aa5d5",
+  5,
+  "#345995",
+  10,
+  "#1c2f4a",
+];
+
+const buildingCrossTrackExpression: any[] = [
+  "case",
+  ["==", ["get", "track_agreement_score"], null],
+  "#9aa0a6",
+  [
+    "interpolate",
+    ["linear"],
+    ["coalesce", ["get", "track_agreement_score"], 0],
+    0,
+    "#8e0f2f",
+    0.5,
+    "#f2c14e",
+    1,
+    "#1b9e77",
+  ],
+];
+
+const buildingReliabilityBandExpression: any[] = [
+  "match",
+  ["get", "building_reliability_band"],
+  "high",
   "#1b9e77",
+  "medium",
+  "#f2c14e",
+  "low",
+  "#c6372a",
   "#9aa0a6",
 ];
 
@@ -270,6 +296,24 @@ const focusCandidateLineExpression: any[] = [
   "#d87034",
   "#7f8c8d",
 ];
+
+function hasFeatureProperty(properties: Record<string, unknown>, key: string) {
+  return Object.prototype.hasOwnProperty.call(properties, key);
+}
+
+function formatRetuningTooltipLine(properties: Record<string, unknown>) {
+  const flags = [
+    properties.weak_secondary_track_flag === true ? "weak secondary track" : null,
+    properties.agreement_tension_flag === true ? "agreement tension" : null,
+  ].filter(Boolean);
+  const hasFlagFields =
+    hasFeatureProperty(properties, "weak_secondary_track_flag") ||
+    hasFeatureProperty(properties, "agreement_tension_flag");
+  if (!hasFlagFields) {
+    return "";
+  }
+  return `<br/>Retuning: ${flags.length ? flags.join(", ") : "none"}`;
+}
 
 function applyBasePointColors(
   map: MapLibreMap,
@@ -775,15 +819,16 @@ export default function MapView() {
     if (view === "quality") return qualityExpression;
     if (view === "anomaly") return anomalyExpression;
     if (view === "cross-track") return crossTrackExpression;
-    if (view === "label") return labelExpression;
+    if (view === "reliability") return pointReliabilityExpression;
     if (view === "cluster") return mlClusterColorExpression;
     return mlClusterColorExpression;
   }
 
   function getMlBuildingColorExpression(view: typeof mlView) {
-    if (view === "quality") return buildingQualityExpression;
-    if (view === "anomaly") return buildingAnomalyExpression;
-    if (view === "label") return buildingLabelExpression;
+    if (view === "quality") return buildingReliabilityScoreExpression;
+    if (view === "anomaly") return buildingMotionExpression;
+    if (view === "cross-track") return buildingCrossTrackExpression;
+    if (view === "reliability") return buildingReliabilityBandExpression;
     return mlBuildingColorExpression;
   }
 
@@ -1446,14 +1491,17 @@ export default function MapView() {
       html = `
         <strong>Assigned Building</strong><br/>
         Source: ${props.building_source || "—"}<br/>
-        ID: ${props.building_id || "—"}
+        ID: ${props.building_id || "—"}${formatRetuningTooltipLine(props)}
       `;
     } else if (feature.layer.id.startsWith("ml_focus_points")) {
       html = `
         <strong>Building Focus Point</strong><br/>
         Code: ${props.code || "—"}<br/>
         Track: ${props.track || "—"}<br/>
-        Cluster: ${props.cluster_id || props.cluster_role || "—"}<br/>
+        Cluster: ${props.cluster_id || props.cluster_role || "—"}${
+          props.is_main_cluster ? " (main)" : ""
+        }<br/>
+        Rank: ${props.cluster_rank ?? "—"}<br/>
         Quality: ${
           props.quality_score !== undefined && props.quality_score !== null
             ? Number(props.quality_score).toFixed(2)
@@ -1483,19 +1531,34 @@ export default function MapView() {
         Source: ${props.building_source || "—"}<br/>
         ID: ${props.building_id || "—"}<br/>
         Height: ${props.height_m ? Number(props.height_m).toFixed(1) + " m" : "—"}<br/>
-        Avg quality: ${
-          props.avg_quality_score !== undefined && props.avg_quality_score !== null
-            ? Number(props.avg_quality_score).toFixed(2)
+        Motion: ${
+          props.building_motion_mm_a !== undefined && props.building_motion_mm_a !== null
+            ? Number(props.building_motion_mm_a).toFixed(2) + " mm/yr"
             : "—"
         }<br/>
-        Outliers: ${props.outlier_count ?? "—"} / ${props.point_count ?? "—"}<br/>
-        Clusters: ${props.cluster_count ?? "—"} / Noise: ${props.noise_point_count ?? "—"}
+        Reliability: ${
+          props.building_reliability_score !== undefined &&
+          props.building_reliability_score !== null
+            ? Number(props.building_reliability_score).toFixed(2)
+            : "—"
+        } (${props.building_reliability_band || "—"})<br/>
+        Status: ${props.building_status || "—"}<br/>
+        Track agreement: ${
+          props.track_agreement_score !== undefined && props.track_agreement_score !== null
+            ? Number(props.track_agreement_score).toFixed(2)
+            : "—"
+        }${formatRetuningTooltipLine(props)}<br/>
+        Differential motion: ${props.differential_motion_flag ? "yes" : "no"}<br/>
+        Clusters: ${props.cluster_count ?? "—"} / Reliable: ${
+          props.reliable_cluster_count ?? "—"
+        }
       `;
     } else if (feature.layer.id === "ml_points") {
       html = `
         <strong>ML Result</strong><br/>
         Label: ${props.label || props.cluster_id || "—"}<br/>
         Building: ${props.building_id || "—"}<br/>
+        Main cluster: ${props.is_main_cluster ? "yes" : "no"}<br/>
         Quality: ${
           props.quality_score !== undefined && props.quality_score !== null
             ? Number(props.quality_score).toFixed(2)

@@ -1,6 +1,6 @@
 # anomaly_local_v1 Phase-2 Execution Plan
 
-Stand: 2026-04-22
+Stand: 2026-04-24
 Status: active plan
 Basis: `docs/pipelines/anomaly_local_v1/next_steps.md`, `docs/pipelines/anomaly_local_v1/methodik.md`, `docs/pipelines/anomaly_local_v1/deep_research_report.md`, aktueller Code in `backend/app/ml/pipelines/anomaly_local_v1.py`
 
@@ -64,6 +64,7 @@ Noch in Phase 0 zu entscheiden:
 - Phase 0: Foundation und Design-Freeze
 - Phase 1: Building Reliability
 - Phase 2: Calibration
+- Phase 2R: Reliability Retuning
 - Phase 3: Neighbourhood Context
 - Phase 4: Terrain and Aspect
 - Parallelspur E0: MatchSAR / AUGMENTERRA
@@ -72,14 +73,17 @@ Noch in Phase 0 zu entscheiden:
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Welle: `P1-W1` nach User-Review-Gate
-- Review-Gate: `docs/pipelines/anomaly_local_v1/phase2_research_matrix.md` und `docs/pipelines/anomaly_local_v1/phase2_decision_log.md` muessen vor `P1` explizit freigegeben werden
+- naechste zulaessige Welle: `P2R-W2-T1` nach Wiederherstellung der lokalen PostGIS-Erreichbarkeit
+- `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
+- `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
+- `P2R` laeuft; `P2R-W2-T1` ist aktuell durch fehlende DB-Erreichbarkeit aus dieser WSL-Session blockiert, siehe `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
 
 Phasenstatus:
 
 - `P0`: green
-- `P1`: review_gate
-- `P2`: planned
+- `P1`: green
+- `P2`: green
+- `P2R`: in_progress
 - `P3`: planned
 - `P4`: planned
 - `E0`: open
@@ -96,6 +100,9 @@ Phasenstatus:
   - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase1_supervisor_prompt.md`
 - `S2`: `P2`
   - Zweck: Harness, Expertenpaket, KI-Vergleich, Kalibrationsnotiz.
+- `S2R`: `P2R`
+  - Zweck: kleines Reliability-Retuning auf Basis der `P2`-Kalibration.
+  - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase2_retuning_supervisor_prompt.md`
 - `S3`: `P3`
   - Zweck: Nachbarschafts-Kontext.
 - `S4`: `P4`
@@ -195,10 +202,10 @@ Phase 1 ist gruen, wenn:
   - Pipeline-Code enthaelt V1-Logik fuer `main_cluster_id`
   - Pipeline-Code enthaelt V1-Logik fuer `differential_motion_flag`
   - Building-Level-Semantik ist aus Code heraus ableitbar oder persistiert
-  - neue Felder stimmen mit dem Phase-0-Datenvertrag ueberein
-  - Backend-Code ist mindestens syntaktisch validiert
+- neue Felder stimmen mit dem Phase-0-Datenvertrag ueberein
+- Backend-Code ist mindestens syntaktisch validiert
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P1-W2
 
@@ -217,10 +224,10 @@ Phase 1 ist gruen, wenn:
   - API liefert die neuen Building-/Cluster-Felder
   - Tile-/Context-Endpunkte transportieren die benoetigten Felder
   - Felder fuer `anomaly_local_v1` sind nicht mehr implizit von `anomaly_v1`-Altsemantik abhaengig
-  - lokal nicht mehr gebrauchte Legacy-Felder sind entfernt oder an der API-Grenze bewusst ersetzt
-  - Backend-Code ist mindestens syntaktisch validiert
+- lokal nicht mehr gebrauchte Legacy-Felder sind entfernt oder an der API-Grenze bewusst ersetzt
+- Backend-Code ist mindestens syntaktisch validiert
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 #### Ticket P1-W2-T2: Frontend-Integration fuer lokale Gebaeude-Semantik
 
@@ -236,11 +243,11 @@ Phase 1 ist gruen, wenn:
   - hard: `P0-W2-T1`
   - soft: `P1-W2-T1`
 - DoD:
-  - lokale Gebaeude-Semantik ist in der UI sichtbar
-  - `anomaly_v1`-Restannahmen fuer lokale Felder sind entfernt oder direkt ersetzt
-  - Frontend baut erfolgreich oder die Zielkomponenten sind anderweitig mechanisch validiert
+- lokale Gebaeude-Semantik ist in der UI sichtbar
+- `anomaly_v1`-Restannahmen fuer lokale Felder sind entfernt oder direkt ersetzt
+- Frontend baut erfolgreich oder die Zielkomponenten sind anderweitig mechanisch validiert
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P1-W3
 
@@ -259,10 +266,10 @@ Phase 1 ist gruen, wenn:
   - Mirabell, Moosstrasse und der Osthang-Stressbereich sind explizit geprueft
   - mindestens ein Multi-Cluster-Fall und ein Small-n-Fall sind dokumentiert
   - sichtbare Vorher/Nachher- oder Erwartungs-/Ist-Beobachtungen sind notiert
-  - offene Risiken fuer Phase 2 sind benannt
-  - die AOI-Pruefung folgt der Reihenfolge `Mirabell -> Moosstrasse -> Osthang-Stressbereich -> Spot-Checks`
+- offene Risiken fuer Phase 2 sind benannt
+- die AOI-Pruefung folgt der Reihenfolge `Mirabell -> Moosstrasse -> Osthang-Stressbereich -> Spot-Checks`
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ## Phase 2: Calibration
 
@@ -291,7 +298,7 @@ Phase 2 ist gruen, wenn:
   - Bootstrap- oder Stability-Signal fuer kleine `n` ist implementiert oder reproduzierbar beschrieben
   - Mirabell, Moosstrasse und der Osthang-Stressbereich bleiben Pflichtbasis und werden nicht durch spaetere Zusatz-AOIs ersetzt
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 #### Ticket P2-W1-T2: Experten-Referenzpaket vorbereiten
 
@@ -307,7 +314,7 @@ Phase 2 ist gruen, wenn:
   - benoetigte Felder und Bewertungsrubrik sind dokumentiert
   - Exportweg oder Datenpaket ist beschrieben
 - Kritischer Pfad: nein
-- Status: planned
+- Status: green
 
 #### Ticket P2-W1-T3: KI-Agent-Vergleichsprotokoll
 
@@ -323,7 +330,7 @@ Phase 2 ist gruen, wenn:
   - Vergleichsmetriken sind dokumentiert
   - die auszuwaehlenden Gebaeude/Faelle sind benannt
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P2-W2
 
@@ -342,9 +349,45 @@ Phase 2 ist gruen, wenn:
   - konkrete Nachsteuerungen fuer spaetere Tickets sind benannt
   - Small-n-, Multi-Cluster- und Grenzfaelle sind explizit behandelt
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
+
+## Phase 2R: Reliability Retuning
+
+### Phasen-DoD
+
+Phase 2R ist gruen, wenn:
+
+- die aus `P2` belegten Reliability-Luecken gezielt retuned sind
+- `weak_secondary_track_flag` und `agreement_tension_flag` oder gleichwertige Diagnosefelder im Building-Rollup verfuegbar sind
+- API/UI/Harness die Retuning-Ursachen nicht verlieren
+- Mirabell, Moosstrasse und Osthang-Stressbereich erneut gegen den Harness geprueft sind
+- `P3` weiterhin ungestartet bleibt
+
+### Steuerdokument
+
+Die Ticketdetails fuer `P2R` stehen in:
+
+- `docs/pipelines/anomaly_local_v1/phase2_retuning_plan.md`
+
+Single-File-Entry fuer die naechste Supervisor-Session:
+
+- `docs/pipelines/anomaly_local_v1/phase2_retuning_supervisor_prompt.md`
+
+### Wellenueberblick
+
+- `P2R-W1-T1`: Reliability-Retuning in der Pipeline
+- `P2R-W1-T2`: API/UI-Anschluss fuer Retuning-Diagnosen
+- `P2R-W2-T1`: Harness-Rerun und Kalibrationsabschluss
+
+Status:
+
+- `P2R-W1-T1`: green
+- `P2R-W1-T2`: green
+- `P2R-W2-T1`: inconclusive
 
 ## Phase 3: Neighbourhood Context
+
+`P3` startet erst nach `P2R` oder nach expliziter User-Entscheidung, das Retuning zu ueberspringen.
 
 ### Phasen-DoD
 
@@ -363,7 +406,7 @@ Phase 3 ist gruen, wenn:
 - Write-Set:
   - neues `docs/pipelines/anomaly_local_v1/neighbourhood_design.md`
 - Abhaengigkeiten:
-  - hard: `P2-W2-T1`
+  - hard: `P2R-W2-T1`
 - DoD:
   - Radius-/Nachbarschaftsdefinition ist festgelegt
   - Fehlzuordnung vs. Neighbourhood-Event ist klar abgegrenzt
@@ -512,11 +555,15 @@ Spezifisch fuer diesen Plan:
 - `P2-W1-T2` und `E0-*` sind keine Blocker fuer interne Kernlogik.
   Sie duerfen offen bleiben, muessen aber sauber im Status stehen.
 
+- `P2R-W1-T1` und `P2R-W2-T1` liegen vor `P3` auf dem kritischen Pfad.
+  Bei `red` oder nicht aufloesbarem `inconclusive` startet `P3` nicht automatisch.
+
 ## Warum diese Reihenfolge
 
 - Building-Level-Scoring ist der groesste fachliche Hebel.
 - Multi-Cluster gehoert logisch in dieselbe Kerniteration.
 - Evaluation braucht stabile Outputs.
+- Reliability-Retuning sollte vor Nachbarschafts-Kontext passieren, weil `P3` auf Building-Reliability aufbaut.
 - Nachbargebaeude-Kontext braucht stabile Cluster-/Gebaeudesemantik.
 - Terrain/Aspect sollte nicht vor der Terrainentscheidung in die Logik eingehakt werden.
 
@@ -524,12 +571,12 @@ Spezifisch fuer diesen Plan:
 
 Die naechste echte Startwelle ist:
 
-- `P0-W1`
+- `P2R-W1`
 
-Die naechste Hauptiteration im Produktkern ist:
+Die naechste Produktarbeit ist:
 
-- `P1-W1` -> `P1-W2` -> `P1-W3`
+- `P2R-W1` -> `P2R-W2`
 
 Das entspricht fachlich:
 
-`Deep-Research-Abgleich -> Gebaeude-Level -> Multi-Cluster/Differential Motion -> API/UI -> AOI-Verifikation`
+`Reliability-Cap -> Agreement-Penalty -> Diagnoseflags -> Harness-Rerun -> Retuning-Verifikation`

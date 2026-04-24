@@ -29,6 +29,19 @@ from ..schemas import (
     MLRunSummary,
 )
 from ..ml.colors import assign_building_colors
+from ..ml.rollups import (
+    building_rollup_from_meta,
+    cluster_rollup_from_meta,
+    nested_bool as _nested_bool,
+    nested_dict as _nested_dict,
+    nested_float as _nested_float,
+    nested_int as _nested_int,
+    nested_list as _nested_list,
+    nested_object_list as _nested_object_list,
+    nested_str as _nested_str,
+    parse_meta as _parse_meta,
+    track_motion_map,
+)
 from ..ml.registry import get_pipeline, list_pipelines
 from ..ml.runner import run_pipeline_async
 from ..ml.store import create_run_record, fetch_run_detail, fetch_runs
@@ -43,15 +56,6 @@ def _log_task_result(task: asyncio.Task) -> None:
         task.result()
     except Exception as exc:  # pylint: disable=broad-except
         logger.exception("ML pipeline task failed: %s", exc)
-
-
-def _parse_meta(value):
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            return {}
-    return value if isinstance(value, dict) else {}
 
 
 def _count_map(rows, key_field: str = "key") -> dict[str, int]:
@@ -70,51 +74,9 @@ def _json_object(value) -> dict[str, Any]:
     return {}
 
 
-def _nested_dict(meta: dict, *keys: str) -> dict:
-    current: Any = meta
-    for key in keys:
-        if not isinstance(current, dict):
-            return {}
-        current = current.get(key)
-    return current if isinstance(current, dict) else {}
-
-
-def _nested_list(meta: dict, *keys: str) -> list:
-    current: Any = meta
-    for key in keys:
-        if not isinstance(current, dict):
-            return []
-        current = current.get(key)
-    return current if isinstance(current, list) else []
-
-
-def _nested_bool(meta: dict, *keys: str) -> bool | None:
-    current: Any = meta
-    for key in keys:
-        if not isinstance(current, dict):
-            return None
-        current = current.get(key)
-    if isinstance(current, bool):
-        return current
-    if isinstance(current, str):
-        lowered = current.strip().lower()
-        if lowered in {"true", "false"}:
-            return lowered == "true"
-    return None
-
-
-def _nested_float(meta: dict, *keys: str) -> float | None:
-    current: Any = meta
-    for key in keys:
-        if not isinstance(current, dict):
-            return None
-        current = current.get(key)
-    if current is None:
-        return None
-    try:
-        return float(current)
-    except (TypeError, ValueError):
-        return None
+def _rollup_bool(rollup: dict[str, Any], key: str) -> bool:
+    value = _nested_bool({"value": rollup.get(key)}, "value")
+    return value if value is not None else False
 
 
 @router.get("/pipelines")
@@ -365,12 +327,8 @@ async def ml_building_analysis(
                 r.anomaly_score,
                 r.cross_track_consistency,
                 r.distance_m,
-                r.meta,
-                p.velocity,
-                p.coherence
+                r.meta
             FROM ml_point_results r
-            LEFT JOIN insar_points p
-              ON p.code = r.code AND p.track = r.track
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
               AND r.building_id = $3
@@ -385,7 +343,8 @@ async def ml_building_analysis(
     track_counts: dict[str, int] = defaultdict(int)
     label_counts: dict[str, int] = defaultdict(int)
     assignment_methods: dict[str, int] = defaultdict(int)
-    cluster_rollup: dict[str, dict[str, Any]] = {}
+    building_rollup: dict[str, Any] = {}
+    cluster_rollups: dict[tuple[int, str], dict[str, Any]] = {}
     kept_point_count = 0
     noise_point_count = 0
     excluded_point_count = 0
@@ -397,6 +356,8 @@ async def ml_building_analysis(
     for row in rows:
         meta = _parse_meta(row.get("meta"))
         cluster_meta = _nested_dict(meta, "cluster")
+        cluster_rollup = cluster_rollup_from_meta(meta)
+        current_building_rollup = building_rollup_from_meta(meta)
         visual_meta = _nested_dict(meta, "visual_context")
         building_meta = _nested_dict(meta, "building_context")
         cluster_role = str(cluster_meta.get("cluster_role") or "unknown")
@@ -427,37 +388,32 @@ async def ml_building_analysis(
         if cluster_role == "noise":
             noise_point_count += 1
 
-        if cluster_role == "core" and cluster_id:
-            stats = cluster_rollup.setdefault(
-                str(cluster_id),
-                {
-                    "track": int(row["track"]),
-                    "count": 0,
-                    "velocities": [],
-                    "coherences": [],
-                    "height_ranks": [],
-                },
-            )
-            stats["count"] += 1
-            if row.get("velocity") is not None:
-                stats["velocities"].append(float(row["velocity"]))
-            if row.get("coherence") is not None:
-                stats["coherences"].append(float(row["coherence"]))
-            height_rank = _nested_float(meta, "building_context", "height_rank_in_building")
-            if height_rank is not None:
-                stats["height_ranks"].append(float(height_rank))
+        if not building_rollup and current_building_rollup:
+            building_rollup = current_building_rollup
+        if cluster_rollup and cluster_id is not None:
+            cluster_rollups[(int(row["track"]), str(cluster_id))] = cluster_rollup
 
-    cluster_count = len(cluster_rollup)
-    if kept_point_count < 3:
-        building_status = "insufficient_support"
-    elif noise_point_count > kept_point_count * 0.5:
-        building_status = "noise_dominated"
-    elif cluster_count > 1:
-        building_status = "multi_cluster"
-    elif cluster_count == 1:
-        building_status = "single_cluster"
-    else:
-        building_status = "insufficient_support"
+    if not building_rollup:
+        building_rollup = {
+            "building_status": "insufficient_support" if kept_point_count < 3 else None,
+            "building_motion_mm_a": None,
+            "building_reliability_score": None,
+            "building_reliability_band": None,
+            "track_agreement_score": float(np.mean(cross_track_values)) if cross_track_values else None,
+            "weak_secondary_track_flag": False,
+            "agreement_tension_flag": False,
+            "reliability_penalties": [],
+            "differential_motion_flag": False,
+            "main_cluster_track_44_id": None,
+            "main_cluster_track_95_id": None,
+            "track_motion_mm_a": {},
+            "cluster_count": len(cluster_rollups),
+            "reliable_cluster_count": 0,
+            "point_count": point_count,
+            "kept_point_count": kept_point_count,
+            "noise_point_count": noise_point_count,
+            "excluded_point_count": excluded_point_count,
+        }
 
     return MLBuildingAnalysis(
         run_id=str(run["run_id"]),
@@ -466,12 +422,38 @@ async def ml_building_analysis(
         building_source=source,
         building_id=building_id,
         point_count=point_count,
-        kept_point_count=kept_point_count,
-        noise_point_count=noise_point_count,
-        excluded_point_count=excluded_point_count,
-        cluster_count=cluster_count,
-        track_agreement_score=float(np.mean(cross_track_values)) if cross_track_values else None,
-        building_status=building_status,
+        kept_point_count=int(building_rollup.get("kept_point_count", kept_point_count) or 0),
+        noise_point_count=int(building_rollup.get("noise_point_count", noise_point_count) or 0),
+        excluded_point_count=int(building_rollup.get("excluded_point_count", excluded_point_count) or 0),
+        cluster_count=int(building_rollup.get("cluster_count", len(cluster_rollups)) or 0),
+        reliable_cluster_count=int(building_rollup.get("reliable_cluster_count", 0) or 0),
+        building_motion_mm_a=_nested_float({"value": building_rollup.get("building_motion_mm_a")}, "value"),
+        building_reliability_score=_nested_float(
+            {"value": building_rollup.get("building_reliability_score")},
+            "value",
+        ),
+        building_reliability_band=_nested_str(
+            {"value": building_rollup.get("building_reliability_band")},
+            "value",
+        ),
+        track_agreement_score=_nested_float({"value": building_rollup.get("track_agreement_score")}, "value"),
+        weak_secondary_track_flag=_rollup_bool(building_rollup, "weak_secondary_track_flag"),
+        agreement_tension_flag=_rollup_bool(building_rollup, "agreement_tension_flag"),
+        reliability_penalties=_nested_object_list(
+            {"value": building_rollup.get("reliability_penalties")},
+            "value",
+        ),
+        differential_motion_flag=_rollup_bool(building_rollup, "differential_motion_flag"),
+        building_status=_nested_str({"value": building_rollup.get("building_status")}, "value"),
+        main_cluster_track_44_id=_nested_str(
+            {"value": building_rollup.get("main_cluster_track_44_id")},
+            "value",
+        ),
+        main_cluster_track_95_id=_nested_str(
+            {"value": building_rollup.get("main_cluster_track_95_id")},
+            "value",
+        ),
+        track_motion_mm_a=track_motion_map(building_rollup.get("track_motion_mm_a")),
         track_counts=dict(track_counts),
         label_counts=dict(label_counts),
         assignment_methods=dict(assignment_methods),
@@ -481,16 +463,43 @@ async def ml_building_analysis(
         median_distance_m=float(np.median(distance_values)) if distance_values else None,
         clusters=[
             MLBuildingClusterSummary(
-                cluster_id=cluster_id,
-                track=values["track"],
-                point_count=values["count"],
-                median_velocity=float(np.median(values["velocities"])) if values["velocities"] else None,
-                median_coherence=float(np.median(values["coherences"])) if values["coherences"] else None,
-                median_height_rank=float(np.median(values["height_ranks"])) if values["height_ranks"] else None,
+                cluster_id=str(values["cluster_id"]),
+                building_source=str(values.get("building_source") or source),
+                building_id=str(values.get("building_id") or building_id),
+                track=int(values["track"]),
+                cluster_role=str(values.get("cluster_role") or "unknown"),
+                is_main_cluster=bool(values.get("is_main_cluster", False)),
+                cluster_rank=_nested_int({"value": values.get("cluster_rank")}, "value"),
+                point_count=int(values["point_count"]),
+                median_velocity_mm_a=_nested_float(
+                    {"value": values.get("median_velocity_mm_a")},
+                    "value",
+                ),
+                median_vertical_proxy_mm_a=_nested_float(
+                    {"value": values.get("median_vertical_proxy_mm_a")},
+                    "value",
+                ),
+                median_coherence=_nested_float({"value": values.get("median_coherence")}, "value"),
+                median_height_rank=_nested_float(
+                    {"value": values.get("median_height_rank")},
+                    "value",
+                ),
+                cluster_reliability_score=_nested_float(
+                    {"value": values.get("cluster_reliability_score")},
+                    "value",
+                ),
+                motion_delta_to_main_mm_a=_nested_float(
+                    {"value": values.get("motion_delta_to_main_mm_a")},
+                    "value",
+                ),
             )
-            for cluster_id, values in sorted(
-                cluster_rollup.items(),
-                key=lambda item: (-item[1]["count"], item[0]),
+            for _, values in sorted(
+                cluster_rollups.items(),
+                key=lambda item: (
+                    int(item[1].get("cluster_rank") or 999),
+                    int(item[1].get("track") or 0),
+                    str(item[1].get("cluster_id") or ""),
+                ),
             )
         ],
         top_points=[
@@ -567,6 +576,8 @@ async def ml_building_points_visualization(
     for row in rows:
         meta = _parse_meta(row.get("meta"))
         cluster_meta = _nested_dict(meta, "cluster")
+        cluster_rollup = cluster_rollup_from_meta(meta)
+        building_rollup = building_rollup_from_meta(meta)
         visual_meta = _nested_dict(meta, "visual_context")
         building_meta = _nested_dict(meta, "building_context")
         cross_meta = _nested_dict(meta, "cross_track_summary")
@@ -580,6 +591,8 @@ async def ml_building_points_visualization(
                     "cluster_role": cluster_meta.get("cluster_role"),
                     "cluster_probability": _nested_float(meta, "cluster", "cluster_probability"),
                     "cluster_outlier_score": _nested_float(meta, "cluster", "cluster_outlier_score"),
+                    "is_main_cluster": bool(cluster_rollup.get("is_main_cluster", False)),
+                    "cluster_rank": cluster_rollup.get("cluster_rank"),
                     "cluster_color_index": int(row["cluster_color_index"]),
                     "label": row.get("label"),
                     "anomaly_score": row.get("anomaly_score"),
@@ -598,6 +611,24 @@ async def ml_building_points_visualization(
                     "along_look_offset_m": building_meta.get("along_look_offset_m"),
                     "cross_look_offset_m": building_meta.get("cross_look_offset_m"),
                     "height_rank_in_building": building_meta.get("height_rank_in_building"),
+                    "building_motion_mm_a": building_rollup.get("building_motion_mm_a"),
+                    "building_reliability_score": building_rollup.get("building_reliability_score"),
+                    "building_reliability_band": building_rollup.get("building_reliability_band"),
+                    "weak_secondary_track_flag": _rollup_bool(
+                        building_rollup,
+                        "weak_secondary_track_flag",
+                    ),
+                    "agreement_tension_flag": _rollup_bool(
+                        building_rollup,
+                        "agreement_tension_flag",
+                    ),
+                    "reliability_penalties": _nested_object_list(
+                        {"value": building_rollup.get("reliability_penalties")},
+                        "value",
+                    ),
+                    "differential_motion_flag": bool(
+                        building_rollup.get("differential_motion_flag", False)
+                    ),
                     "allowed_diff_mm_a": cross_meta.get("allowed_diff_mm_a"),
                 },
             )
@@ -798,19 +829,16 @@ async def ml_building_context_visualization(
 
         summary_row = await conn.fetchrow(
             """
-            SELECT
-                COUNT(*)::integer AS point_count,
-                COUNT(*) FILTER (
-                    WHERE COALESCE(meta->'visual_context'->>'gate_excluded', 'false') = 'false'
-                )::integer AS kept_point_count,
-                COUNT(*) FILTER (
-                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'noise'
-                )::integer AS noise_point_count,
-                AVG(cross_track_consistency) AS track_agreement_score
+            SELECT meta
             FROM ml_point_results
             WHERE run_id = $1::uuid
               AND building_source = $2
               AND building_id = $3
+            ORDER BY
+              COALESCE((meta->'cluster_rollup'->>'cluster_rank')::integer, 999),
+              track,
+              code
+            LIMIT 1
             """,
             run_id,
             source,
@@ -841,6 +869,7 @@ async def ml_building_context_visualization(
         for row in hull_rows
     ]
 
+    summary_rollup = building_rollup_from_meta(_parse_meta(summary_row.get("meta"))) if summary_row else {}
     return MLBuildingVisualizationContextResponse(
         run_id=str(run["run_id"]),
         pipeline=run["pipeline"],
@@ -859,10 +888,24 @@ async def ml_building_context_visualization(
         candidate_areas={"type": "FeatureCollection", "features": candidate_features},
         cluster_hulls={"type": "FeatureCollection", "features": hull_features},
         summary={
-            "point_count": int(summary_row["point_count"] or 0) if summary_row else 0,
-            "kept_point_count": int(summary_row["kept_point_count"] or 0) if summary_row else 0,
-            "noise_point_count": int(summary_row["noise_point_count"] or 0) if summary_row else 0,
-            "track_agreement_score": summary_row["track_agreement_score"] if summary_row else None,
+            "point_count": int(summary_rollup.get("point_count") or 0),
+            "kept_point_count": int(summary_rollup.get("kept_point_count") or 0),
+            "noise_point_count": int(summary_rollup.get("noise_point_count") or 0),
+            "excluded_point_count": int(summary_rollup.get("excluded_point_count") or 0),
+            "cluster_count": int(summary_rollup.get("cluster_count") or 0),
+            "reliable_cluster_count": int(summary_rollup.get("reliable_cluster_count") or 0),
+            "building_motion_mm_a": summary_rollup.get("building_motion_mm_a"),
+            "building_reliability_score": summary_rollup.get("building_reliability_score"),
+            "building_reliability_band": summary_rollup.get("building_reliability_band"),
+            "track_agreement_score": summary_rollup.get("track_agreement_score"),
+            "weak_secondary_track_flag": _rollup_bool(summary_rollup, "weak_secondary_track_flag"),
+            "agreement_tension_flag": _rollup_bool(summary_rollup, "agreement_tension_flag"),
+            "reliability_penalties": _nested_object_list(
+                {"value": summary_rollup.get("reliability_penalties")},
+                "value",
+            ),
+            "building_status": summary_rollup.get("building_status"),
+            "differential_motion_flag": _rollup_bool(summary_rollup, "differential_motion_flag"),
         },
     )
 
@@ -896,6 +939,8 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 (r.meta->'cluster'->>'cluster_role') AS cluster_role,
                 (r.meta->'cluster'->>'cluster_probability')::double precision AS cluster_probability,
                 (r.meta->'cluster'->>'cluster_outlier_score')::double precision AS cluster_outlier_score,
+                COALESCE((r.meta->'cluster_rollup'->>'is_main_cluster')::boolean, false) AS is_main_cluster,
+                (r.meta->'cluster_rollup'->>'cluster_rank')::integer AS cluster_rank,
                 COALESCE((r.meta->'visual_context'->>'gate_excluded')::boolean, false) AS gate_excluded,
                 COALESCE((r.meta->'visual_context'->>'kept_for_scoring')::boolean, false) AS kept_for_scoring,
                 (r.meta->'building_context'->>'track_point_count')::integer AS building_track_point_count,
@@ -903,6 +948,20 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 (r.meta->'building_context'->>'other_track_point_count')::integer AS other_track_point_count,
                 (r.meta->'building_context'->>'step_support')::double precision AS step_support,
                 (r.meta->'building_context'->>'building_velocity_robust_z')::double precision AS building_velocity_robust_z,
+                (r.meta->'building_rollup'->>'building_motion_mm_a')::double precision AS building_motion_mm_a,
+                (r.meta->'building_rollup'->>'building_reliability_score')::double precision AS building_reliability_score,
+                (r.meta->'building_rollup'->>'building_reliability_band') AS building_reliability_band,
+                COALESCE((r.meta->'building_rollup'->>'weak_secondary_track_flag')::boolean, false)
+                    AS weak_secondary_track_flag,
+                COALESCE((r.meta->'building_rollup'->>'agreement_tension_flag')::boolean, false)
+                    AS agreement_tension_flag,
+                COALESCE((r.meta->'building_rollup'->'reliability_penalties')::text, '[]')
+                    AS reliability_penalties_json,
+                COALESCE((r.meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
+                (r.meta->'building_rollup'->>'building_status') AS building_status,
+                (r.meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
+                (r.meta->'building_rollup'->>'cluster_count')::integer AS building_cluster_count,
+                (r.meta->'building_rollup'->>'reliable_cluster_count')::integer AS reliable_cluster_count,
                 (r.meta->'explain_top_features'->0->>'summary') AS top_reason,
                 (r.building_id IS NOT NULL) AS assigned,
                 abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
@@ -939,28 +998,39 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
         WITH bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
-        building_scores AS (
-            SELECT
+        building_rollups AS (
+            SELECT DISTINCT ON (building_source, building_id)
                 building_source,
                 building_id,
-                AVG(quality_score) AS avg_quality_score,
-                AVG(anomaly_score) AS avg_anomaly_score,
-                COUNT(*) FILTER (WHERE label = 'outlier') AS outlier_count,
-                COUNT(*) FILTER (
-                    WHERE COALESCE(meta->'visual_context'->>'gate_excluded', 'false') = 'false'
-                ) AS kept_point_count,
-                COUNT(*) FILTER (
-                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'noise'
-                ) AS noise_point_count,
-                COUNT(DISTINCT cluster_id) FILTER (
-                    WHERE COALESCE(meta->'cluster'->>'cluster_role', '') = 'core'
-                ) AS cluster_count,
-                AVG(cross_track_consistency) AS track_agreement_score,
-                COUNT(*) AS point_count
+                (meta->'building_rollup'->>'building_motion_mm_a')::double precision AS building_motion_mm_a,
+                (meta->'building_rollup'->>'building_reliability_score')::double precision AS building_reliability_score,
+                (meta->'building_rollup'->>'building_reliability_band') AS building_reliability_band,
+                COALESCE((meta->'building_rollup'->>'weak_secondary_track_flag')::boolean, false)
+                    AS weak_secondary_track_flag,
+                COALESCE((meta->'building_rollup'->>'agreement_tension_flag')::boolean, false)
+                    AS agreement_tension_flag,
+                COALESCE((meta->'building_rollup'->'reliability_penalties')::text, '[]')
+                    AS reliability_penalties_json,
+                COALESCE((meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
+                (meta->'building_rollup'->>'building_status') AS building_status,
+                (meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
+                (meta->'building_rollup'->>'cluster_count')::integer AS cluster_count,
+                (meta->'building_rollup'->>'reliable_cluster_count')::integer AS reliable_cluster_count,
+                (meta->'building_rollup'->>'point_count')::integer AS point_count,
+                (meta->'building_rollup'->>'kept_point_count')::integer AS kept_point_count,
+                (meta->'building_rollup'->>'noise_point_count')::integer AS noise_point_count,
+                (meta->'building_rollup'->>'excluded_point_count')::integer AS excluded_point_count,
+                (meta->'building_rollup'->>'main_cluster_track_44_id') AS main_cluster_track_44_id,
+                (meta->'building_rollup'->>'main_cluster_track_95_id') AS main_cluster_track_95_id
             FROM ml_point_results
             WHERE run_id = $4::uuid
               AND building_id IS NOT NULL
-            GROUP BY building_source, building_id
+            ORDER BY
+                building_source,
+                building_id,
+                COALESCE((meta->'cluster_rollup'->>'cluster_rank')::integer, 999),
+                track,
+                code
         ),
         assigned_buildings AS (
             SELECT DISTINCT building_source, building_id
@@ -995,14 +1065,23 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 all_buildings.building_id,
                 all_buildings.building_source,
                 height_m,
-                scores.avg_quality_score,
-                scores.avg_anomaly_score,
-                scores.outlier_count,
-                scores.kept_point_count,
-                scores.noise_point_count,
-                scores.cluster_count,
-                scores.track_agreement_score,
-                scores.point_count,
+                rollups.building_motion_mm_a,
+                rollups.building_reliability_score,
+                rollups.building_reliability_band,
+                rollups.weak_secondary_track_flag,
+                rollups.agreement_tension_flag,
+                rollups.reliability_penalties_json,
+                rollups.differential_motion_flag,
+                rollups.building_status,
+                rollups.track_agreement_score,
+                rollups.cluster_count,
+                rollups.reliable_cluster_count,
+                rollups.point_count,
+                rollups.kept_point_count,
+                rollups.noise_point_count,
+                rollups.excluded_point_count,
+                rollups.main_cluster_track_44_id,
+                rollups.main_cluster_track_95_id,
                 COALESCE(
                     c.color_index,
                     abs(hashtext(all_buildings.building_id)) % 60
@@ -1019,9 +1098,9 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
               ON c.run_id = $4::uuid
              AND c.building_source = all_buildings.building_source
              AND c.building_id = all_buildings.building_id
-            LEFT JOIN building_scores scores
-              ON scores.building_source = all_buildings.building_source
-             AND scores.building_id = all_buildings.building_id
+            LEFT JOIN building_rollups rollups
+              ON rollups.building_source = all_buildings.building_source
+             AND rollups.building_id = all_buildings.building_id
             JOIN bounds ON ST_Intersects(ST_Transform(all_buildings.geom, 3857), bounds.geom)
         )
         SELECT ST_AsMVT(mvtgeom, 'ml_buildings', 4096, 'geom') AS mvt

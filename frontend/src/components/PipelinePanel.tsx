@@ -9,7 +9,13 @@ import {
 } from "../hooks/useApi";
 import { useAppStore } from "../lib/store";
 
-const localAnomalyViews = ["cluster", "quality", "anomaly", "cross-track", "label"] as const;
+const localAnomalyViews = [
+  "cluster",
+  "quality",
+  "anomaly",
+  "cross-track",
+  "reliability",
+] as const;
 const PIPELINE_NAME = "anomaly_local_v1";
 
 export default function PipelinePanel() {
@@ -283,7 +289,7 @@ export default function PipelinePanel() {
           <option value="quality">Quality score</option>
           <option value="anomaly">Anomaly score</option>
           <option value="cross-track">Cross-track consistency</option>
-          <option value="label">Reliability label</option>
+          <option value="reliability">Reliability</option>
         </select>
       </div>
 

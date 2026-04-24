@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "anomaly_local_v1 phase2 AI output",
+  "type": "object",
+  "required": [
+    "case_id",
+    "predicted_status",
+    "predicted_reliability_band",
+    "differential_motion_judgement",
+    "confidence",
+    "rationale",
+    "calibration_flags"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "predicted_status": {
+      "type": "string"
+    },
+    "predicted_reliability_band": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "main_cluster_track_44_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "main_cluster_track_95_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "differential_motion_judgement": {
+      "type": "string",
+      "enum": [
+        "correct",
+        "missed",
+        "spurious",
+        "not_applicable"
+      ]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "calibration_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

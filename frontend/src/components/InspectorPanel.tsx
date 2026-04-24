@@ -8,6 +8,7 @@ import {
   getMlPointAnalysis,
   getMlRunDetail,
   getPointDetail,
+  type MlReliabilityPenalty,
 } from "../hooks/useApi";
 
 export default function InspectorPanel() {
@@ -119,6 +120,36 @@ export default function InspectorPanel() {
     if (key === "95") return "Track 95";
     return key.replaceAll("_", " ");
   };
+  const formatRetuningFlags = (
+    weakSecondaryTrackFlag: boolean,
+    agreementTensionFlag: boolean
+  ) => {
+    const flags = [
+      weakSecondaryTrackFlag ? "weak secondary track" : null,
+      agreementTensionFlag ? "agreement tension" : null,
+    ].filter(Boolean);
+    return flags.length ? flags.join(" / ") : "—";
+  };
+  const formatPenalty = (penalty: MlReliabilityPenalty) => {
+    const trackSuffix = penalty.tracks.length ? ` T${penalty.tracks.join("/T")}` : "";
+    const deltaSuffix =
+      penalty.score_delta === null ? "" : ` (${penalty.score_delta.toFixed(2)})`;
+    if (penalty.key === "weak_main_cluster_support") {
+      return `weak main support${trackSuffix}${deltaSuffix}`;
+    }
+    if (penalty.key === "weak_secondary_track_band_cap") {
+      return `band cap ${penalty.cap_band || "—"}${trackSuffix}`;
+    }
+    if (penalty.key === "low_track_agreement") {
+      return `low agreement${deltaSuffix}`;
+    }
+    if (penalty.key === "very_low_track_agreement_band_cap") {
+      return `band cap ${penalty.cap_band || "—"}`;
+    }
+    return penalty.key.replaceAll("_", " ");
+  };
+  const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
+    penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";
 
   return (
     <div className="panel panel-right">
@@ -527,34 +558,65 @@ export default function InspectorPanel() {
                 </span>
               </div>
               <div className="metric">
-                <span className="label">Clusters / status</span>
+                <span className="label">Motion / status</span>
                 <span className="value">
-                  {mlBuildingAnalysisQuery.data.cluster_count} /{" "}
+                  {fmtNum(mlBuildingAnalysisQuery.data.building_motion_mm_a)} mm/yr /{" "}
                   {fmtStr(mlBuildingAnalysisQuery.data.building_status)}
                 </span>
               </div>
               <div className="metric">
-                <span className="label">Average quality</span>
+                <span className="label">Reliability</span>
                 <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.avg_quality_score)}
+                  {fmtNum(mlBuildingAnalysisQuery.data.building_reliability_score)} /{" "}
+                  {fmtStr(mlBuildingAnalysisQuery.data.building_reliability_band)}
                 </span>
               </div>
               <div className="metric">
-                <span className="label">Average anomaly</span>
+                <span className="label">Retuning flags</span>
                 <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.avg_anomaly_score)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Average cross-track</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.avg_cross_track_consistency)}
+                  {formatRetuningFlags(
+                    mlBuildingAnalysisQuery.data.weak_secondary_track_flag,
+                    mlBuildingAnalysisQuery.data.agreement_tension_flag
+                  )}
                 </span>
               </div>
               <div className="metric">
                 <span className="label">Track agreement</span>
                 <span className="value">
                   {fmtNum(mlBuildingAnalysisQuery.data.track_agreement_score)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Retuning adjustments</span>
+                <span className="value">
+                  {formatPenaltySummary(mlBuildingAnalysisQuery.data.reliability_penalties)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Clusters / reliable</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.cluster_count} /{" "}
+                  {mlBuildingAnalysisQuery.data.reliable_cluster_count}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Differential motion</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.differential_motion_flag ? "yes" : "no"}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Main clusters</span>
+                <span className="value">
+                  T44 {fmtStr(mlBuildingAnalysisQuery.data.main_cluster_track_44_id)} / T95{" "}
+                  {fmtStr(mlBuildingAnalysisQuery.data.main_cluster_track_95_id)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Track motion</span>
+                <span className="value">
+                  T44 {fmtNum(mlBuildingAnalysisQuery.data.track_motion_mm_a["44"])} / T95{" "}
+                  {fmtNum(mlBuildingAnalysisQuery.data.track_motion_mm_a["95"])}
                 </span>
               </div>
               <div className="metric">
@@ -612,6 +674,25 @@ export default function InspectorPanel() {
                 <div className="pill">No points from the active run are assigned to this building.</div>
               ) : (
                 <>
+                  <div className="section-title">Diagnostics</div>
+                  <div className="metric">
+                    <span className="label">Average quality</span>
+                    <span className="value">
+                      {fmtNum(mlBuildingAnalysisQuery.data.avg_quality_score)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Average anomaly</span>
+                    <span className="value">
+                      {fmtNum(mlBuildingAnalysisQuery.data.avg_anomaly_score)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Average cross-track</span>
+                    <span className="value">
+                      {fmtNum(mlBuildingAnalysisQuery.data.avg_cross_track_consistency)}
+                    </span>
+                  </div>
                   <div className="section-title">Track Counts</div>
                   {Object.entries(mlBuildingAnalysisQuery.data.track_counts).map(([key, value]) => (
                     <div className="metric" key={`track-${key}`}>
@@ -642,10 +723,13 @@ export default function InspectorPanel() {
                         <div className="metric" key={cluster.cluster_id}>
                           <span className="label">
                             {cluster.cluster_id} / T{cluster.track}
+                            {cluster.is_main_cluster ? " / main" : ""}
                           </span>
                           <span className="value">
-                            {cluster.point_count} pts, V {fmtNum(cluster.median_velocity)}, C{" "}
-                            {fmtNum(cluster.median_coherence)}
+                            #{fmtStr(cluster.cluster_rank)} / {cluster.cluster_role} /{" "}
+                            {cluster.point_count} pts / V{" "}
+                            {fmtNum(cluster.median_vertical_proxy_mm_a)} / Rel{" "}
+                            {fmtNum(cluster.cluster_reliability_score)}
                           </span>
                         </div>
                       ))}
