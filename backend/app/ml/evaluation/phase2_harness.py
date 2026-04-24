@@ -53,17 +53,17 @@ class ReferenceCase:
 FIXED_AOI_RUNS: tuple[AOIRun, ...] = (
     AOIRun(
         name="Mirabell",
-        run_id="b816c7d9-97bd-4e4f-9f76-1bef4b02e077",
+        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
         bbox=(13.04027, 47.80375, 13.04387, 47.80735),
     ),
     AOIRun(
         name="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         bbox=(13.02714, 47.79189, 13.03074, 47.79549),
     ),
     AOIRun(
         name="Osthang-Stressbereich",
-        run_id="93a50f3c-21d9-40fd-931a-12c12c2bd8a9",
+        run_id="9c4bc346-529e-4ede-81bf-26ed651905b1",
         bbox=(13.0492, 47.8036, 13.0528, 47.8054),
     ),
 )
@@ -72,7 +72,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="mirabell_standard_high_conf",
         aoi="Mirabell",
-        run_id="b816c7d9-97bd-4e4f-9f76-1bef4b02e077",
+        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
         building_source="gba",
         building_id="548205",
         case_type="standard_ok",
@@ -82,7 +82,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="mirabell_adjacent_standard",
         aoi="Mirabell",
-        run_id="b816c7d9-97bd-4e4f-9f76-1bef4b02e077",
+        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
         building_source="gba",
         building_id="548204",
         case_type="adjacent_ok",
@@ -92,7 +92,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_differential_anchor",
         aoi="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         building_source="gba",
         building_id="96637447",
         case_type="differential_motion",
@@ -102,7 +102,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_differential_low_agreement",
         aoi="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         building_source="gba",
         building_id="96637522",
         case_type="differential_motion_low_reliability",
@@ -112,7 +112,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_single_track_only",
         aoi="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         building_source="gba",
         building_id="96637488",
         case_type="single_track_only",
@@ -122,7 +122,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_small_n",
         aoi="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         building_source="gba",
         building_id="96959854",
         case_type="small_n",
@@ -132,7 +132,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_noise_dominated",
         aoi="Moosstrasse",
-        run_id="578684cf-67f3-4899-bf68-a48009451dd0",
+        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
         building_source="gba",
         building_id="96637551",
         case_type="noise_dominated",
@@ -142,7 +142,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="osthang_insufficient_support",
         aoi="Osthang-Stressbereich",
-        run_id="93a50f3c-21d9-40fd-931a-12c12c2bd8a9",
+        run_id="9c4bc346-529e-4ede-81bf-26ed651905b1",
         building_source="gba",
         building_id="395674088",
         case_type="insufficient_support",
@@ -328,6 +328,7 @@ async def _fetch_building_rollups(conn: asyncpg.Connection, run_id: str) -> list
         rollup = building_rollup_from_meta(meta)
         if not rollup:
             continue
+        penalties = rollup.get("reliability_penalties")
         building_rollups.append(
             {
                 "building_source": str(row["building_source"]),
@@ -341,6 +342,9 @@ async def _fetch_building_rollups(conn: asyncpg.Connection, run_id: str) -> list
                     else None
                 ),
                 "track_agreement_score": _float(rollup.get("track_agreement_score")),
+                "weak_secondary_track_flag": bool(rollup.get("weak_secondary_track_flag", False)),
+                "agreement_tension_flag": bool(rollup.get("agreement_tension_flag", False)),
+                "reliability_penalties": penalties if isinstance(penalties, list) else [],
                 "differential_motion_flag": bool(rollup.get("differential_motion_flag", False)),
                 "cluster_count": int(rollup.get("cluster_count", 0) or 0),
                 "reliable_cluster_count": int(rollup.get("reliable_cluster_count", 0) or 0),
@@ -533,6 +537,13 @@ async def _fetch_reference_case(
             else None
         ),
         "track_agreement_score": _float(building_rollup.get("track_agreement_score")),
+        "weak_secondary_track_flag": bool(building_rollup.get("weak_secondary_track_flag", False)),
+        "agreement_tension_flag": bool(building_rollup.get("agreement_tension_flag", False)),
+        "reliability_penalties": (
+            building_rollup.get("reliability_penalties")
+            if isinstance(building_rollup.get("reliability_penalties"), list)
+            else []
+        ),
         "differential_motion_flag": bool(building_rollup.get("differential_motion_flag", False)),
         "main_cluster_track_44_id": (
             str(building_rollup.get("main_cluster_track_44_id"))

@@ -1,7 +1,7 @@
 # `anomaly_local_v1` Phase-2R Retuning Plan
 
 Stand: 2026-04-24
-Status: in_progress (blocked on local PostGIS reachability)
+Status: green
 
 ## Zweck
 
@@ -118,7 +118,7 @@ Nicht in Scope:
   - `P2R` wird im Plan auf `green` gesetzt
   - `P3` bleibt `planned`
 - Kritischer Pfad: ja
-- Status: inconclusive
+- Status: green
 
 ## Verifikation
 
@@ -144,14 +144,21 @@ Pflicht-AOIs:
 - Moosstrasse
 - Osthang-Stressbereich
 
-Aktueller Blockerstand fuer `P2R-W2-T1` (2026-04-24):
+Abschlussstand fuer `P2R-W2-T1` (2026-04-24):
 
 - `backend/.venv/bin/python -m compileall backend/app`: green
-- `backend/.venv/bin/python -m backend.app.ml.evaluation.phase2_harness`: red, `ConnectionRefusedError` gegen `127.0.0.1:5432`
-- erster Pflicht-Live-Run fuer Mirabell: red, derselbe DB-Blocker vor Run-Erzeugung
+- Pflicht-Live-Run Mirabell: green, neuer Run `33fb1821-3264-4fdd-8d5e-881222eb2ae7`
+- Pflicht-Live-Run Moosstrasse: green, neuer Run `44b88a21-427d-4921-bcd0-ef9c6327fcab`
+- Pflicht-Live-Run Osthang-Stressbereich: green, neuer Run `9c4bc346-529e-4ede-81bf-26ed651905b1`
+- `backend/.venv/bin/python -m backend.app.ml.evaluation.phase2_harness`: green; Default-AOI-Runs und Referenzfaelle zeigen jetzt auf die neuen P2R-Runs
 - `cd frontend && npm run build`: green
 
-Solange PostGIS aus dieser WSL-Session nicht erreichbar ist, bleiben neue P2R-Run-IDs, aktualisierte Harness-Artefakte und die Abschlussbewertung `inconclusive`.
+Fachlicher Abschluss:
+
+- duenn gestuetzte `ok`-Faelle mit `building_reliability_score >= 0.75` sinken von `19/78` auf `5/62`
+- `0` `ok`-Faelle mit duennem Track-Support verbleiben im `high`-Band
+- `20` `ok`-Faelle mit `track_agreement_score < 0.25` bleiben sichtbar und tragen jetzt durchgaengig `agreement_tension_flag=true`
+- Moosstrasse behaelt `5` `ok`-Faelle mit `track_agreement_score < 0.10`; alle fuenf sind jetzt `low`
 
 ## Abschlusskriterium
 

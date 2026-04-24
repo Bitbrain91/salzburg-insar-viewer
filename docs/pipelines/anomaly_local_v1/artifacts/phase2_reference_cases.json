@@ -9,9 +9,10 @@
         47.8069324
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": 0.6402810779849976,
-        "building_reliability_band": "high",
-        "building_reliability_score": 0.983917680145729,
+        "building_reliability_band": "medium",
+        "building_reliability_score": 0.883917680145729,
         "building_status": "ok",
         "cluster_count": 4,
         "differential_motion_flag": false,
@@ -21,12 +22,30 @@
         "main_cluster_track_95_id": "548205:t95:cluster_0",
         "noise_point_count": 5,
         "point_count": 14,
+        "reliability_penalties": [
+          {
+            "key": "weak_main_cluster_support",
+            "score_delta": -0.1,
+            "threshold_min_points": 3,
+            "tracks": [
+              "95"
+            ]
+          },
+          {
+            "cap_band": "medium",
+            "key": "weak_secondary_track_band_cap",
+            "tracks": [
+              "95"
+            ]
+          }
+        ],
         "reliable_cluster_count": 2,
         "track_agreement_score": 0.9977134007286448,
         "track_motion_mm_a": {
           "44": 0.6415762501438065,
           "95": 0.6389859058261886
-        }
+        },
+        "weak_secondary_track_flag": true
       },
       "building_height_m": 16.588184356689453,
       "building_id": "548205",
@@ -410,7 +429,7 @@
           "velocity_mm_a": 0.7
         }
       ],
-      "run_id": "b816c7d9-97bd-4e4f-9f76-1bef4b02e077",
+      "run_id": "33fb1821-3264-4fdd-8d5e-881222eb2ae7",
       "stability": {
         "allowed_diff_mm_a": 1.131541359424591,
         "bootstrap_samples": 500,
@@ -490,6 +509,7 @@
         47.8067948
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": 0.5116996334355,
         "building_reliability_band": "high",
         "building_reliability_score": 0.9091384537766025,
@@ -502,12 +522,14 @@
         "main_cluster_track_95_id": "548204:t95:cluster_0",
         "noise_point_count": 9,
         "point_count": 33,
+        "reliability_penalties": [],
         "reliable_cluster_count": 2,
         "track_agreement_score": 0.6456922688830127,
         "track_motion_mm_a": {
           "44": 0.2566285913761292,
           "95": 0.7667706754948707
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 18.531814575195312,
       "building_id": "548204",
@@ -1309,7 +1331,7 @@
           "velocity_mm_a": 0.2
         }
       ],
-      "run_id": "b816c7d9-97bd-4e4f-9f76-1bef4b02e077",
+      "run_id": "33fb1821-3264-4fdd-8d5e-881222eb2ae7",
       "stability": {
         "allowed_diff_mm_a": 1.1662196397781373,
         "bootstrap_samples": 500,
@@ -1387,6 +1409,7 @@
         47.7944668
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": 0.4481745280107513,
         "building_reliability_band": "high",
         "building_reliability_score": 0.7610084971612244,
@@ -1399,12 +1422,14 @@
         "main_cluster_track_95_id": "96637447:t95:cluster_0",
         "noise_point_count": 7,
         "point_count": 30,
+        "reliability_penalties": [],
         "reliable_cluster_count": 5,
         "track_agreement_score": 0.9008758191394555,
         "track_motion_mm_a": {
           "44": 0.5127424749385036,
           "95": 0.383606581082999
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 5.473910331726074,
       "building_id": "96637447",
@@ -2174,7 +2199,7 @@
           "velocity_mm_a": 0.2
         }
       ],
-      "run_id": "578684cf-67f3-4899-bf68-a48009451dd0",
+      "run_id": "44b88a21-427d-4921-bcd0-ef9c6327fcab",
       "stability": {
         "allowed_diff_mm_a": 1.2370777428150177,
         "bootstrap_samples": 500,
@@ -2254,6 +2279,7 @@
         47.7955905
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": 1.087738987761226,
         "building_reliability_band": "medium",
         "building_reliability_score": 0.523980439751745,
@@ -2266,12 +2292,14 @@
         "main_cluster_track_95_id": "96637522:t95:cluster_0",
         "noise_point_count": 0,
         "point_count": 16,
+        "reliability_penalties": [],
         "reliable_cluster_count": 3,
         "track_agreement_score": 0.4539299765365035,
         "track_motion_mm_a": {
           "44": 0.640886329232099,
           "95": 1.5345916462903533
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 4.451471328735352,
       "building_id": "96637522",
@@ -2685,7 +2713,7 @@
           "velocity_mm_a": 2.0
         }
       ],
-      "run_id": "578684cf-67f3-4899-bf68-a48009451dd0",
+      "run_id": "44b88a21-427d-4921-bcd0-ef9c6327fcab",
       "stability": {
         "allowed_diff_mm_a": 1.131541359424591,
         "bootstrap_samples": 500,
@@ -2763,6 +2791,7 @@
         47.7956487
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": 0.4486137791923663,
         "building_reliability_band": "low",
         "building_reliability_score": 0.32833333333333325,
@@ -2775,12 +2804,14 @@
         "main_cluster_track_95_id": null,
         "noise_point_count": 0,
         "point_count": 6,
+        "reliability_penalties": [],
         "reliable_cluster_count": 1,
         "track_agreement_score": null,
         "track_motion_mm_a": {
           "44": 0.4486137791923663,
           "95": null
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 5.427383899688721,
       "building_id": "96637488",
@@ -2958,7 +2989,7 @@
           "velocity_mm_a": 0.2
         }
       ],
-      "run_id": "578684cf-67f3-4899-bf68-a48009451dd0",
+      "run_id": "44b88a21-427d-4921-bcd0-ef9c6327fcab",
       "stability": {
         "allowed_diff_mm_a": 1.107374119758606,
         "bootstrap_samples": 500,
@@ -3020,9 +3051,10 @@
         47.7927823
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": -0.25576605187247614,
         "building_reliability_band": "low",
-        "building_reliability_score": 0.1416666666666666,
+        "building_reliability_score": 0.0416666666666666,
         "building_status": "small_n",
         "cluster_count": 3,
         "differential_motion_flag": false,
@@ -3032,12 +3064,23 @@
         "main_cluster_track_95_id": "96959854:t95:cluster_0",
         "noise_point_count": 1,
         "point_count": 4,
+        "reliability_penalties": [
+          {
+            "key": "weak_main_cluster_support",
+            "score_delta": -0.1,
+            "threshold_min_points": 3,
+            "tracks": [
+              "95"
+            ]
+          }
+        ],
         "reliable_cluster_count": 1,
         "track_agreement_score": null,
         "track_motion_mm_a": {
           "44": null,
           "95": -0.25576605187247614
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 3.4481406211853027,
       "building_id": "96959854",
@@ -3185,7 +3228,7 @@
           "velocity_mm_a": 0.1
         }
       ],
-      "run_id": "578684cf-67f3-4899-bf68-a48009451dd0",
+      "run_id": "44b88a21-427d-4921-bcd0-ef9c6327fcab",
       "stability": {
         "allowed_diff_mm_a": 1.1176055133342744,
         "bootstrap_samples": 500,
@@ -3249,9 +3292,10 @@
         47.7942384
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": -0.319667660401732,
         "building_reliability_band": "low",
-        "building_reliability_score": 0.09916666666666663,
+        "building_reliability_score": 0.0,
         "building_status": "noise_dominated",
         "cluster_count": 4,
         "differential_motion_flag": false,
@@ -3261,12 +3305,23 @@
         "main_cluster_track_95_id": "96637551:t95:cluster_0",
         "noise_point_count": 4,
         "point_count": 7,
+        "reliability_penalties": [
+          {
+            "key": "weak_main_cluster_support",
+            "score_delta": -0.1,
+            "threshold_min_points": 3,
+            "tracks": [
+              "95"
+            ]
+          }
+        ],
         "reliable_cluster_count": 1,
         "track_agreement_score": null,
         "track_motion_mm_a": {
           "44": null,
           "95": -0.319667660401732
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 5.8338236808776855,
       "building_id": "96637551",
@@ -3496,7 +3551,7 @@
           "velocity_mm_a": -0.7
         }
       ],
-      "run_id": "578684cf-67f3-4899-bf68-a48009451dd0",
+      "run_id": "44b88a21-427d-4921-bcd0-ef9c6327fcab",
       "stability": {
         "allowed_diff_mm_a": 1.1859930992126464,
         "bootstrap_samples": 500,
@@ -3558,6 +3613,7 @@
         47.8042576
       ],
       "building_analysis": {
+        "agreement_tension_flag": false,
         "building_motion_mm_a": null,
         "building_reliability_band": null,
         "building_reliability_score": null,
@@ -3570,11 +3626,13 @@
         "main_cluster_track_95_id": null,
         "noise_point_count": 0,
         "point_count": 2,
+        "reliability_penalties": [],
         "reliable_cluster_count": 0,
         "track_agreement_score": null,
         "track_motion_mm_a": {
           "95": null
-        }
+        },
+        "weak_secondary_track_flag": false
       },
       "building_height_m": 3.5998618602752686,
       "building_id": "395674088",
@@ -3648,7 +3706,7 @@
           "velocity_mm_a": 2.0
         }
       ],
-      "run_id": "93a50f3c-21d9-40fd-931a-12c12c2bd8a9",
+      "run_id": "9c4bc346-529e-4ede-81bf-26ed651905b1",
       "stability": {
         "allowed_diff_mm_a": 8.574676132202148,
         "bootstrap_samples": 500,
@@ -3688,5 +3746,5 @@
       }
     }
   ],
-  "generated_at": "2026-04-23T21:59:27.478482+00:00"
+  "generated_at": "2026-04-24T10:12:48.415482+00:00"
 }

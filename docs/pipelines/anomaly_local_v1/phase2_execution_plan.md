@@ -73,17 +73,17 @@ Noch in Phase 0 zu entscheiden:
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Welle: `P2R-W2-T1` nach Wiederherstellung der lokalen PostGIS-Erreichbarkeit
+- naechste zulaessige Welle: keine automatische Fortsetzung; `P3-W1-T1` bleibt `planned` und braucht ein neues User-Gate
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
-- `P2R` laeuft; `P2R-W2-T1` ist aktuell durch fehlende DB-Erreichbarkeit aus dieser WSL-Session blockiert, siehe `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
+- `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
 
 Phasenstatus:
 
 - `P0`: green
 - `P1`: green
 - `P2`: green
-- `P2R`: in_progress
+- `P2R`: green
 - `P3`: planned
 - `P4`: planned
 - `E0`: open
@@ -383,11 +383,11 @@ Status:
 
 - `P2R-W1-T1`: green
 - `P2R-W1-T2`: green
-- `P2R-W2-T1`: inconclusive
+- `P2R-W2-T1`: green
 
 ## Phase 3: Neighbourhood Context
 
-`P3` startet erst nach `P2R` oder nach expliziter User-Entscheidung, das Retuning zu ueberspringen.
+`P3` bleibt auch nach abgeschlossenem `P2R` `planned` und startet erst nach einem neuen expliziten User-Gate.
 
 ### Phasen-DoD
 
