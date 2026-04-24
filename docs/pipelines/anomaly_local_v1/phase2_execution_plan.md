@@ -1,6 +1,6 @@
 # anomaly_local_v1 Phase-2 Execution Plan
 
-Stand: 2026-04-24
+Stand: 2026-04-25
 Status: active plan
 Basis: `docs/pipelines/anomaly_local_v1/next_steps.md`, `docs/pipelines/anomaly_local_v1/methodik.md`, `docs/pipelines/anomaly_local_v1/deep_research_report.md`, aktueller Code in `backend/app/ml/pipelines/anomaly_local_v1.py`
 
@@ -77,6 +77,7 @@ Aktueller Startpunkt:
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
 - `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
+- `P3` ist vorbereitet; Plan und Single-File-Supervisor-Entry stehen bereit, starten aber erst nach neuem User-Gate
 
 Phasenstatus:
 
@@ -105,6 +106,7 @@ Phasenstatus:
   - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase2_retuning_supervisor_prompt.md`
 - `S3`: `P3`
   - Zweck: Nachbarschafts-Kontext.
+  - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase3_supervisor_prompt.md`
 - `S4`: `P4`
   - Zweck: Terrain-/Aspect-Entscheidungen auf bestehender Terrainbasis.
 - Parallelspur:
@@ -393,13 +395,38 @@ Status:
 
 Phase 3 ist gruen, wenn:
 
-- ein sauberer Nachbarschafts-Pass existiert
+- ein sauberer zweiter Nachbarschafts-Pass existiert
 - Fehlzuordnungen und Nachbarschafts-Events explizit unterschieden werden
 - die neue Semantik in API/UI anschlussfaehig ist
+- Mirabell, Moosstrasse und Osthang-Stressbereich nach der Umsetzung verifiziert sind
+
+### Steuerdokument
+
+Die Ticketdetails fuer `P3` stehen in:
+
+- `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_plan.md`
+
+Single-File-Entry fuer die naechste Supervisor-Session:
+
+- `docs/pipelines/anomaly_local_v1/phase3_supervisor_prompt.md`
+
+### Wellenueberblick
+
+- `P3-W1-T1`: Nachbarschafts-Design und Datenvertrag
+- `P3-W2-T1`: Backend-Nachbarschafts-Pass
+- `P3-W3-T1`: API/UI-Anschluss
+- `P3-W3-T2`: Harness-Rerun und Abschlussverifikation
+
+Status:
+
+- `P3-W1-T1`: planned
+- `P3-W2-T1`: planned
+- `P3-W3-T1`: planned
+- `P3-W3-T2`: planned
 
 ### Welle P3-W1
 
-#### Ticket P3-W1-T1: Nachbarschafts-Design und Abhaengigkeiten
+#### Ticket P3-W1-T1: Nachbarschafts-Design und Datenvertrag
 
 - Ziel: den zweiten Pass fachlich und technisch sauber definieren.
 - Artefakt: Design-Notiz
@@ -410,43 +437,75 @@ Phase 3 ist gruen, wenn:
 - DoD:
   - Radius-/Nachbarschaftsdefinition ist festgelegt
   - Fehlzuordnung vs. Neighbourhood-Event ist klar abgegrenzt
-  - notwendige Inputs aus Phase 1/2 sind explizit genannt
+  - Feldvertrag fuer Punkt-, Cluster- und Building-Level steht
+  - Zirkularitaetsgrenzen sind explizit dokumentiert
+  - Verifikationsstrategie fuer Mirabell, Moosstrasse und Osthang ist konkret
 - Kritischer Pfad: ja
 - Status: planned
 
 ### Welle P3-W2
 
-#### Ticket P3-W2-T1: Nachbarschafts-Pass implementieren
+#### Ticket P3-W2-T1: Backend-Nachbarschafts-Pass
 
 - Ziel: den zweiten Pass im Backend produktiv einbauen.
 - Artefakt: Backend-Delta
 - Write-Set:
   - `backend/app/ml/pipelines/anomaly_local_v1.py`
-  - weitere Backend-Dateien nach Bedarf
+  - optional `backend/app/ml/rollups.py`
+  - optional `backend/app/ml/evaluation/phase2_harness.py`
 - Abhaengigkeiten:
   - hard: `P3-W1-T1`
 - DoD:
-  - Nachbarschafts-Score oder Event-Flag ist implementiert
-  - Fehlzuordnungsflag gegen Nachbarcluster ist implementiert oder sauber begrenzt
+  - Nachbarschafts-Kandidaten werden nach dem ersten Rollup berechnet
+  - Fehlzuordnungsdiagnose ist implementiert
+  - Event-Konsistenzdiagnose ist implementiert
+  - neue Felder bleiben additive Diagnosen und veraendern keine `P2R`-Reliability-Semantik
   - Backend-Code ist mindestens syntaktisch validiert
 - Kritischer Pfad: ja
 - Status: planned
 
 ### Welle P3-W3
 
-#### Ticket P3-W3-T1: Nachbarschaft sichtbar machen und verifizieren
+#### Ticket P3-W3-T1: API/UI-Anschluss
 
-- Ziel: Nachbarschafts-Semantik in API/UI und Doku anschlussfaehig machen.
-- Artefakt: API/UI/Doku-Delta
+- Ziel: Nachbarschaftsdiagnosen in API und UI sichtbar machen.
+- Artefakt: API-/Schema-/Frontend-Delta
 - Write-Set:
-  - Backend-API-Dateien nach Bedarf
-  - Frontend-Dateien nach Bedarf
-  - `docs/*`
+  - `backend/app/routers/ml.py`
+  - `backend/app/schemas.py`
+  - `frontend/src/components/InspectorPanel.tsx`
+  - `frontend/src/components/MapView.tsx`
+  - `frontend/src/hooks/useApi.ts`
+  - weitere Frontend-Dateien nach Bedarf
 - Abhaengigkeiten:
   - hard: `P3-W2-T1`
 - DoD:
-  - neue Felder sind sichtbar
-  - mindestens ein Beispiel fuer Fehlzuordnung und ein Beispiel fuer Event-Konsistenz ist dokumentiert
+  - neue Felder gehen in Detail-API, Visualisierungskontext oder Tiles nicht verloren
+  - Inspector zeigt Nachbarschaftsdiagnosen knapp und interpretierbar
+  - UI unterscheidet Fehlzuordnung von Event-Konsistenz
+  - Frontend-Build ist geprueft, falls Frontend-Dateien geaendert wurden
+- Kritischer Pfad: ja
+- Status: planned
+
+#### Ticket P3-W3-T2: Harness-Rerun und Abschlussverifikation
+
+- Ziel: `P3` gegen die festen AOIs und Referenzfaelle verifizieren.
+- Artefakt: Abschlussverifikation
+- Write-Set:
+  - `backend/app/ml/evaluation/phase2_harness.py`
+  - `docs/pipelines/anomaly_local_v1/artifacts/*`
+  - neues `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_verification.md`
+  - `docs/pipelines/anomaly_local_v1/iterations.md`
+  - `docs/pipelines/anomaly_local_v1/phase2_execution_plan.md`
+- Abhaengigkeiten:
+  - hard: `P3-W2-T1`
+  - soft: `P3-W3-T1`
+- DoD:
+  - neue Live-Runs fuer Mirabell, Moosstrasse und Osthang sind dokumentiert, falls Pipeline-Logik geaendert wurde
+  - mindestens ein Fehlzuordnungsbeispiel ist dokumentiert oder die Abwesenheit solcher Faelle ist begruendet
+  - mindestens ein Event-Konsistenzbeispiel ist dokumentiert oder die Abwesenheit solcher Faelle ist begruendet
+  - P2R-Referenzfaelle behalten ihren erwarteten Status, ausser eine begruendete P3-Diagnose erklaert eine neue Zusatzmarkierung
+  - `P3`-Status ist fortgeschrieben
 - Kritischer Pfad: ja
 - Status: planned
 
@@ -558,6 +617,9 @@ Spezifisch fuer diesen Plan:
 - `P2R-W1-T1` und `P2R-W2-T1` liegen vor `P3` auf dem kritischen Pfad.
   Bei `red` oder nicht aufloesbarem `inconclusive` startet `P3` nicht automatisch.
 
+- `P3-W1-T1` liegt vor jeder Nachbarschaftsimplementierung auf dem kritischen Pfad.
+  Bei `red` oder nicht aufloesbarem `inconclusive` startet `P3-W2` nicht.
+
 ## Warum diese Reihenfolge
 
 - Building-Level-Scoring ist der groesste fachliche Hebel.
@@ -571,12 +633,12 @@ Spezifisch fuer diesen Plan:
 
 Die naechste echte Startwelle ist:
 
-- `P2R-W1`
+- `P3-W1`
 
 Die naechste Produktarbeit ist:
 
-- `P2R-W1` -> `P2R-W2`
+- `P3-W1` -> `P3-W2` -> `P3-W3`
 
 Das entspricht fachlich:
 
-`Reliability-Cap -> Agreement-Penalty -> Diagnoseflags -> Harness-Rerun -> Retuning-Verifikation`
+`Neighbourhood-Design -> zweiter Backend-Pass -> API/UI-Anschluss -> AOI-Verifikation`
