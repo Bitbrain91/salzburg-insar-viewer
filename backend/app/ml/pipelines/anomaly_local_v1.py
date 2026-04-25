@@ -23,6 +23,19 @@ from .base import BasePipeline
 FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
 MODEL_SET_VERSION = "local_hdbscan_rulegate_v1"
 EPSILON = 1e-9
+NEIGHBOUR_BUILDING_RADIUS_M = 25.0
+MAX_NEIGHBOUR_BUILDINGS = 8
+OWN_FIT_WEAK_THRESHOLD = 0.45
+NEIGHBOUR_FIT_SCORE_THRESHOLD = 0.60
+NEIGHBOUR_FIT_DELTA_THRESHOLD = 0.15
+PAIR_SUPPORT_THRESHOLD = 0.60
+CLUSTER_FIT_SCALE_FLOORS = {
+    "motion": 0.75,
+    "along": 0.50,
+    "cross": 0.50,
+    "height": 0.10,
+    "step": 0.75,
+}
 
 
 @dataclass
@@ -67,6 +80,7 @@ class LocalPointRecord:
     explain_top_features: list[dict[str, Any]] = field(default_factory=list)
     cluster_rollup: dict[str, Any] = field(default_factory=dict)
     building_rollup: dict[str, Any] = field(default_factory=dict)
+    neighbour_context: dict[str, Any] = field(default_factory=dict)
     gate_excluded: bool = False
     gate_reasons: list[str] = field(default_factory=list)
     kept_for_scoring: bool = False
@@ -385,6 +399,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         self._apply_gate_rules(records, track_stats, params)
         self._cluster_building_groups(records, params)
         cross_track_metrics = self._compute_phase1_rollups(records)
+        self._compute_neighbourhood_rollups(records)
         self._score_records(records, track_stats, params)
         metrics = self._evaluate_run(records, cross_track_metrics)
         return records, metrics
@@ -965,6 +980,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 median_vertical_proxy = float(
                     np.median([self._vertical_proxy(record) for record in cluster_records])
                 )
+                cluster_centroid_x = float(
+                    np.median([record.x_m for record in cluster_records])
+                ) if cluster_role == "core" else None
+                cluster_centroid_y = float(
+                    np.median([record.y_m for record in cluster_records])
+                ) if cluster_role == "core" else None
                 coherence_values = [
                     float(record.coherence)
                     for record in cluster_records
@@ -1006,6 +1027,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         "point_count": point_count,
                         "median_velocity_mm_a": median_velocity,
                         "median_vertical_proxy_mm_a": median_vertical_proxy,
+                        "cluster_centroid_x_m": cluster_centroid_x,
+                        "cluster_centroid_y_m": cluster_centroid_y,
                         "median_coherence": median_coherence,
                         "median_height_rank": median_height_rank,
                         "cluster_reliability_score": cluster_reliability_score,
@@ -1298,6 +1321,318 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         }
         return building_rollup, cluster_rollups, cross_track_summary
 
+    def _compute_neighbourhood_rollups(self, records: list[LocalPointRecord]) -> None:
+        by_building: dict[str, list[LocalPointRecord]] = defaultdict(list)
+        core_cluster_records: dict[tuple[str, int, str], list[LocalPointRecord]] = defaultdict(list)
+
+        for record in records:
+            record.neighbour_context = self._empty_neighbour_context()
+            if not record.building_id:
+                continue
+            by_building[record.building_id].append(record)
+            if (
+                record.cluster_role == "core"
+                and record.cluster_id is not None
+                and not record.gate_excluded
+            ):
+                core_cluster_records[(record.building_id, record.track, str(record.cluster_id))].append(record)
+
+        if not by_building:
+            return
+
+        candidate_buildings = self._build_neighbour_candidate_sets(by_building)
+        building_main_clusters = {
+            building_id: self._main_cluster_ids(building_records)
+            for building_id, building_records in by_building.items()
+        }
+        building_tracks = {
+            building_id: sorted({record.track for record in building_records})
+            for building_id, building_records in by_building.items()
+        }
+
+        cluster_profiles: dict[tuple[str, int, str], dict[str, Any]] = {}
+        eligible_clusters_by_building_track: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
+        for (building_id, track, cluster_id), cluster_records in core_cluster_records.items():
+            base_rollup = cluster_records[0].cluster_rollup or {}
+            point_count = int(base_rollup.get("point_count", len(cluster_records)) or len(cluster_records))
+            cluster_reliability_score = self._float_or_none(base_rollup.get("cluster_reliability_score"))
+            feature_profile = self._build_cluster_fit_profile(cluster_records)
+            cluster_profile = {
+                "building_id": building_id,
+                "track": track,
+                "cluster_id": cluster_id,
+                "point_count": point_count,
+                "cluster_reliability_score": cluster_reliability_score,
+                "median_vertical_proxy_mm_a": self._float_or_none(base_rollup.get("median_vertical_proxy_mm_a"))
+                if base_rollup.get("median_vertical_proxy_mm_a") is not None
+                else self._median_vertical_proxy(cluster_records),
+                "cluster_centroid_x_m": self._float_or_none(base_rollup.get("cluster_centroid_x_m"))
+                if base_rollup.get("cluster_centroid_x_m") is not None
+                else float(np.median([record.x_m for record in cluster_records])),
+                "cluster_centroid_y_m": self._float_or_none(base_rollup.get("cluster_centroid_y_m"))
+                if base_rollup.get("cluster_centroid_y_m") is not None
+                else float(np.median([record.y_m for record in cluster_records])),
+                **feature_profile,
+            }
+            cluster_profiles[(building_id, track, cluster_id)] = cluster_profile
+            if point_count >= 2 and cluster_reliability_score is not None:
+                eligible_clusters_by_building_track[(building_id, track)].append(cluster_profile)
+
+        cluster_updates: dict[tuple[str, int, str], dict[str, Any]] = {}
+        for cluster_key, cluster_profile in cluster_profiles.items():
+            building_id, track, cluster_id = cluster_key
+            candidate_ids = candidate_buildings.get(building_id, [])
+            best_support: dict[str, Any] | None = None
+            support_by_neighbour: dict[str, dict[str, Any]] = {}
+
+            for neighbour_building_id in candidate_ids:
+                best_for_building: dict[str, Any] | None = None
+                for neighbour_profile in eligible_clusters_by_building_track.get((neighbour_building_id, track), []):
+                    score = self._pair_consistency_score(cluster_profile, neighbour_profile)
+                    if score is None:
+                        continue
+                    candidate = {
+                        "building_id": neighbour_building_id,
+                        "cluster_id": str(neighbour_profile["cluster_id"]),
+                        "score": float(score),
+                    }
+                    if self._prefer_scored_candidate(candidate, best_for_building):
+                        best_for_building = candidate
+
+                if best_for_building is None:
+                    continue
+                if self._prefer_scored_candidate(best_for_building, best_support):
+                    best_support = best_for_building
+                if best_for_building["score"] >= PAIR_SUPPORT_THRESHOLD:
+                    support_by_neighbour[neighbour_building_id] = best_for_building
+
+            cluster_updates[cluster_key] = {
+                "cluster_centroid_x_m": cluster_profile["cluster_centroid_x_m"],
+                "cluster_centroid_y_m": cluster_profile["cluster_centroid_y_m"],
+                "neighbour_candidate_building_count": len(candidate_ids),
+                "best_neighbour_building_id": (
+                    str(best_support["building_id"]) if best_support is not None else None
+                ),
+                "best_neighbour_cluster_id": (
+                    str(best_support["cluster_id"]) if best_support is not None else None
+                ),
+                "best_neighbour_consistency_score": (
+                    float(best_support["score"]) if best_support is not None else None
+                ),
+                "supporting_neighbour_building_count": len(support_by_neighbour),
+                "neighbour_event_candidate_flag": len(support_by_neighbour) >= 2,
+            }
+
+        building_updates: dict[str, dict[str, Any]] = {}
+        building_misassignment_counts: dict[str, int] = defaultdict(int)
+        building_kept_counts = {
+            building_id: sum(1 for record in building_records if not record.gate_excluded)
+            for building_id, building_records in by_building.items()
+        }
+
+        for building_id, building_records in by_building.items():
+            candidate_ids = candidate_buildings.get(building_id, [])
+            main_clusters = building_main_clusters.get(building_id, {})
+
+            for record in building_records:
+                eligible_neighbours = [
+                    cluster
+                    for neighbour_building_id in candidate_ids
+                    for cluster in eligible_clusters_by_building_track.get((neighbour_building_id, record.track), [])
+                ]
+                context_available = bool(eligible_neighbours)
+                point_context = self._empty_neighbour_context()
+                point_context["context_available"] = context_available
+                point_context["candidate_neighbour_count"] = len(candidate_ids)
+                point_context["eligible_neighbour_cluster_count"] = len(eligible_neighbours)
+
+                if context_available and not record.gate_excluded:
+                    own_cluster_profile = None
+                    if record.cluster_role == "core" and record.cluster_id is not None:
+                        own_cluster_profile = cluster_profiles.get(
+                            (building_id, record.track, str(record.cluster_id))
+                        )
+                    if own_cluster_profile is None:
+                        main_cluster_id = main_clusters.get(record.track)
+                        if main_cluster_id is not None:
+                            own_cluster_profile = cluster_profiles.get(
+                                (building_id, record.track, str(main_cluster_id))
+                            )
+
+                    own_cluster_fit_score = self._cluster_fit_score(record, own_cluster_profile)
+                    best_neighbour_fit: dict[str, Any] | None = None
+                    for neighbour_cluster in eligible_neighbours:
+                        fit_score = self._cluster_fit_score(record, neighbour_cluster)
+                        if fit_score is None:
+                            continue
+                        candidate = {
+                            "building_id": str(neighbour_cluster["building_id"]),
+                            "cluster_id": str(neighbour_cluster["cluster_id"]),
+                            "score": float(fit_score),
+                        }
+                        if self._prefer_scored_candidate(candidate, best_neighbour_fit):
+                            best_neighbour_fit = candidate
+
+                    own_fit_weak_flag = (
+                        own_cluster_fit_score is None
+                        or own_cluster_fit_score < OWN_FIT_WEAK_THRESHOLD
+                    )
+                    neighbour_fit_score = (
+                        float(best_neighbour_fit["score"]) if best_neighbour_fit is not None else None
+                    )
+                    neighbour_fit_delta = None
+                    if neighbour_fit_score is not None:
+                        neighbour_fit_delta = float(
+                            neighbour_fit_score
+                            - (own_cluster_fit_score if own_cluster_fit_score is not None else 0.0)
+                        )
+                    misassignment_flag = bool(
+                        best_neighbour_fit is not None
+                        and neighbour_fit_score is not None
+                        and neighbour_fit_score >= NEIGHBOUR_FIT_SCORE_THRESHOLD
+                        and own_fit_weak_flag
+                        and neighbour_fit_delta is not None
+                        and neighbour_fit_delta >= NEIGHBOUR_FIT_DELTA_THRESHOLD
+                    )
+                    if misassignment_flag:
+                        building_misassignment_counts[building_id] += 1
+
+                    point_context.update(
+                        {
+                            "best_neighbour_building_id": (
+                                str(best_neighbour_fit["building_id"])
+                                if best_neighbour_fit is not None
+                                else None
+                            ),
+                            "best_neighbour_cluster_id": (
+                                str(best_neighbour_fit["cluster_id"])
+                                if best_neighbour_fit is not None
+                                else None
+                            ),
+                            "own_cluster_fit_score": own_cluster_fit_score,
+                            "neighbour_fit_score": neighbour_fit_score,
+                            "neighbour_fit_delta": neighbour_fit_delta,
+                            "own_fit_weak_flag": own_fit_weak_flag,
+                            "neighbour_misassignment_flag": misassignment_flag,
+                        }
+                    )
+                elif context_available:
+                    point_context["own_fit_weak_flag"] = True
+
+                record.neighbour_context = point_context
+
+            supporting_neighbours: dict[str, dict[str, Any]] = {}
+            for track in building_tracks.get(building_id, []):
+                main_cluster_id = main_clusters.get(track)
+                if main_cluster_id is None:
+                    continue
+                own_cluster_profile = cluster_profiles.get((building_id, track, str(main_cluster_id)))
+                if own_cluster_profile is None:
+                    continue
+
+                for neighbour_building_id in candidate_ids:
+                    best_for_track: dict[str, Any] | None = None
+                    for neighbour_cluster in eligible_clusters_by_building_track.get((neighbour_building_id, track), []):
+                        score = self._pair_consistency_score(own_cluster_profile, neighbour_cluster)
+                        if score is None:
+                            continue
+                        candidate = {
+                            "building_id": neighbour_building_id,
+                            "cluster_id": str(neighbour_cluster["cluster_id"]),
+                            "track": track,
+                            "score": float(score),
+                        }
+                        if self._prefer_scored_candidate(candidate, best_for_track):
+                            best_for_track = candidate
+
+                    if best_for_track is None or best_for_track["score"] < PAIR_SUPPORT_THRESHOLD:
+                        continue
+
+                    existing = supporting_neighbours.get(neighbour_building_id)
+                    if self._prefer_scored_candidate(best_for_track, existing):
+                        supporting_neighbours[neighbour_building_id] = best_for_track
+
+            neighbour_context_available = bool(
+                candidate_ids
+                and any(
+                    eligible_clusters_by_building_track.get((neighbour_building_id, track))
+                    for neighbour_building_id in candidate_ids
+                    for track in building_tracks.get(building_id, [])
+                )
+            )
+            supporting_scores = [float(values["score"]) for values in supporting_neighbours.values()]
+            supporting_neighbour_count = len(supporting_neighbours)
+            supporting_track_count = len(
+                {int(values["track"]) for values in supporting_neighbours.values()}
+            )
+            neighbour_consistency_score = None
+            neighbour_event_score = None
+            if neighbour_context_available:
+                neighbour_consistency_score = (
+                    float(np.mean(np.asarray(supporting_scores, dtype=float)))
+                    if supporting_scores
+                    else 0.0
+                )
+                neighbour_event_score = float(
+                    neighbour_consistency_score * min(supporting_neighbour_count / 2.0, 1.0)
+                )
+
+            kept_point_count = building_kept_counts.get(building_id, 0)
+            neighbour_misassignment_share = (
+                float(building_misassignment_counts.get(building_id, 0) / kept_point_count)
+                if kept_point_count
+                else None
+            )
+            neighbour_event_flag = bool(
+                supporting_neighbour_count >= 2
+                and neighbour_event_score is not None
+                and neighbour_event_score >= PAIR_SUPPORT_THRESHOLD
+                and neighbour_misassignment_share is not None
+                and neighbour_misassignment_share < 0.50
+            )
+
+            building_updates[building_id] = {
+                "neighbour_context_available": neighbour_context_available,
+                "neighbour_candidate_building_count": len(candidate_ids),
+                "neighbour_misassignment_point_count": int(
+                    building_misassignment_counts.get(building_id, 0)
+                ),
+                "neighbour_misassignment_share": neighbour_misassignment_share,
+                "neighbour_event_flag": neighbour_event_flag,
+                "neighbour_event_score": neighbour_event_score,
+                "neighbour_consistency_score": neighbour_consistency_score,
+                "supporting_neighbour_count": supporting_neighbour_count,
+                "supporting_track_count": supporting_track_count,
+            }
+
+        for record in records:
+            if record.building_id:
+                record.building_rollup.update(building_updates.get(record.building_id, {}))
+
+            cluster_extension = self._empty_cluster_neighbour_rollup()
+            if (
+                record.building_id
+                and record.cluster_role == "core"
+                and record.cluster_id is not None
+            ):
+                cluster_extension.update(
+                    cluster_updates.get((record.building_id, record.track, str(record.cluster_id)), {})
+                )
+            if record.building_id:
+                record.cluster_rollup.update(cluster_extension)
+
+            if record.building_id and record.neighbour_context.get("context_available"):
+                building_neighbour_rollup = building_updates.get(record.building_id, {})
+                record.neighbour_context["neighbour_event_score"] = building_neighbour_rollup.get(
+                    "neighbour_event_score"
+                )
+                record.neighbour_context["neighbour_event_flag"] = bool(
+                    building_neighbour_rollup.get("neighbour_event_flag", False)
+                )
+                record.neighbour_context["supporting_neighbour_count"] = int(
+                    building_neighbour_rollup.get("supporting_neighbour_count", 0) or 0
+                )
+
     def _score_records(
         self,
         records: list[LocalPointRecord],
@@ -1484,6 +1819,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 "cross_track_summary": record.cross_track_summary,
                 "cluster_rollup": record.cluster_rollup,
                 "building_rollup": record.building_rollup,
+                "neighbour_context": record.neighbour_context,
                 "detector_scores": record.detector_scores,
                 "explain_top_features": record.explain_top_features,
                 "cluster": {
@@ -1566,6 +1902,245 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             dtype=float,
         )
         return np.clip(normalised, 0.0, 1.0)
+
+    def _build_neighbour_candidate_sets(
+        self,
+        by_building: dict[str, list[LocalPointRecord]],
+    ) -> dict[str, list[str]]:
+        building_positions = {
+            building_id: self._building_neighbour_position(building_records)
+            for building_id, building_records in by_building.items()
+        }
+        candidate_sets: dict[str, list[str]] = {}
+
+        for building_id, position in building_positions.items():
+            if position is None:
+                candidate_sets[building_id] = []
+                continue
+
+            ranked: list[tuple[float, str]] = []
+            origin_x, origin_y = position
+            for other_building_id, other_position in building_positions.items():
+                if other_building_id == building_id or other_position is None:
+                    continue
+                delta_x = float(origin_x - other_position[0])
+                delta_y = float(origin_y - other_position[1])
+                distance = float(math.hypot(delta_x, delta_y))
+                if distance <= NEIGHBOUR_BUILDING_RADIUS_M:
+                    ranked.append((distance, other_building_id))
+
+            ranked.sort(key=lambda item: (item[0], item[1]))
+            candidate_sets[building_id] = [
+                neighbour_building_id
+                for _, neighbour_building_id in ranked[:MAX_NEIGHBOUR_BUILDINGS]
+            ]
+
+        return candidate_sets
+
+    def _building_neighbour_position(
+        self,
+        building_records: list[LocalPointRecord],
+    ) -> tuple[float, float] | None:
+        centroid_pairs = [
+            (float(record.building_centroid_x_m), float(record.building_centroid_y_m))
+            for record in building_records
+            if record.building_centroid_x_m is not None and record.building_centroid_y_m is not None
+        ]
+        if centroid_pairs:
+            return (
+                float(np.median([value[0] for value in centroid_pairs])),
+                float(np.median([value[1] for value in centroid_pairs])),
+            )
+
+        # The in-process P3 pass has no building polygons available, so it falls back to
+        # the kept-point median as a conservative proxy for the building footprint centre.
+        source_records = [record for record in building_records if not record.gate_excluded] or building_records
+        if not source_records:
+            return None
+        return (
+            float(np.median([record.x_m for record in source_records])),
+            float(np.median([record.y_m for record in source_records])),
+        )
+
+    def _main_cluster_ids(self, building_records: list[LocalPointRecord]) -> dict[int, str]:
+        if not building_records:
+            return {}
+        rollup = building_records[0].building_rollup or {}
+        main_clusters: dict[int, str] = {}
+        if rollup.get("main_cluster_track_44_id") is not None:
+            main_clusters[44] = str(rollup["main_cluster_track_44_id"])
+        if rollup.get("main_cluster_track_95_id") is not None:
+            main_clusters[95] = str(rollup["main_cluster_track_95_id"])
+        return main_clusters
+
+    def _build_cluster_fit_profile(
+        self,
+        cluster_records: list[LocalPointRecord],
+    ) -> dict[str, dict[str, float]]:
+        feature_values = {
+            "motion": np.asarray([self._vertical_proxy(record) for record in cluster_records], dtype=float),
+            "along": np.asarray(
+                [record.features.get("along_look_offset_m", 0.0) for record in cluster_records],
+                dtype=float,
+            ),
+            "cross": np.asarray(
+                [record.features.get("cross_look_offset_m", 0.0) for record in cluster_records],
+                dtype=float,
+            ),
+            "height": np.asarray(
+                [record.features.get("height_rank_in_building", 0.0) for record in cluster_records],
+                dtype=float,
+            ),
+            "step": np.asarray(
+                [record.features.get("ts_primary_step_abs", 0.0) for record in cluster_records],
+                dtype=float,
+            ),
+        }
+        medians: dict[str, float] = {}
+        scales: dict[str, float] = {}
+        for feature_name, values in feature_values.items():
+            median = float(np.median(values)) if values.size else 0.0
+            mad = float(np.median(np.abs(values - median))) if values.size else 0.0
+            medians[feature_name] = median
+            scales[feature_name] = max(1.4826 * mad, CLUSTER_FIT_SCALE_FLOORS[feature_name])
+        return {
+            "fit_medians": medians,
+            "fit_scales": scales,
+        }
+
+    def _cluster_fit_score(
+        self,
+        record: LocalPointRecord,
+        cluster_profile: dict[str, Any] | None,
+    ) -> float | None:
+        if cluster_profile is None:
+            return None
+
+        medians = cluster_profile.get("fit_medians")
+        scales = cluster_profile.get("fit_scales")
+        if not isinstance(medians, dict) or not isinstance(scales, dict):
+            return None
+
+        motion_z = abs(self._vertical_proxy(record) - float(medians["motion"])) / max(float(scales["motion"]), EPSILON)
+        along_z = abs(record.features.get("along_look_offset_m", 0.0) - float(medians["along"])) / max(
+            float(scales["along"]),
+            EPSILON,
+        )
+        cross_z = abs(record.features.get("cross_look_offset_m", 0.0) - float(medians["cross"])) / max(
+            float(scales["cross"]),
+            EPSILON,
+        )
+        height_z = abs(record.features.get("height_rank_in_building", 0.0) - float(medians["height"])) / max(
+            float(scales["height"]),
+            EPSILON,
+        )
+        step_z = abs(record.features.get("ts_primary_step_abs", 0.0) - float(medians["step"])) / max(
+            float(scales["step"]),
+            EPSILON,
+        )
+        fit_cost = (
+            (0.40 * motion_z)
+            + (0.20 * along_z)
+            + (0.15 * cross_z)
+            + (0.10 * height_z)
+            + (0.15 * step_z)
+        )
+        cluster_reliability_score = self._safe_value(
+            self._float_or_none(cluster_profile.get("cluster_reliability_score")),
+            0.0,
+        )
+        fit_score = math.exp(-fit_cost) * (0.70 + (0.30 * cluster_reliability_score))
+        return float(np.clip(fit_score, 0.0, 1.0))
+
+    def _pair_consistency_score(
+        self,
+        own_cluster_profile: dict[str, Any],
+        neighbour_cluster_profile: dict[str, Any],
+    ) -> float | None:
+        own_motion = self._float_or_none(own_cluster_profile.get("median_vertical_proxy_mm_a"))
+        neighbour_motion = self._float_or_none(neighbour_cluster_profile.get("median_vertical_proxy_mm_a"))
+        own_reliability = self._float_or_none(own_cluster_profile.get("cluster_reliability_score"))
+        neighbour_reliability = self._float_or_none(
+            neighbour_cluster_profile.get("cluster_reliability_score")
+        )
+        if (
+            own_motion is None
+            or neighbour_motion is None
+            or own_reliability is None
+            or neighbour_reliability is None
+        ):
+            return None
+
+        own_sign = int(np.sign(own_motion))
+        neighbour_sign = int(np.sign(neighbour_motion))
+        if own_sign != neighbour_sign:
+            return 0.0
+
+        motion_threshold = max(
+            1.5,
+            0.20 * max(abs(own_motion), abs(neighbour_motion), 1.0),
+        )
+        score = math.exp(-abs(own_motion - neighbour_motion) / max(motion_threshold, EPSILON))
+        score *= math.sqrt(max(own_reliability, 0.0) * max(neighbour_reliability, 0.0))
+        return float(np.clip(score, 0.0, 1.0))
+
+    def _prefer_scored_candidate(
+        self,
+        candidate: dict[str, Any] | None,
+        current: dict[str, Any] | None,
+    ) -> bool:
+        if candidate is None:
+            return False
+        if current is None:
+            return True
+
+        candidate_score = float(candidate.get("score", 0.0) or 0.0)
+        current_score = float(current.get("score", 0.0) or 0.0)
+        if candidate_score > current_score + EPSILON:
+            return True
+        if candidate_score < current_score - EPSILON:
+            return False
+
+        candidate_key = (
+            str(candidate.get("building_id") or ""),
+            str(candidate.get("cluster_id") or ""),
+            int(candidate.get("track", 0) or 0),
+        )
+        current_key = (
+            str(current.get("building_id") or ""),
+            str(current.get("cluster_id") or ""),
+            int(current.get("track", 0) or 0),
+        )
+        return candidate_key < current_key
+
+    def _empty_neighbour_context(self) -> dict[str, Any]:
+        return {
+            "context_available": False,
+            "candidate_neighbour_count": 0,
+            "eligible_neighbour_cluster_count": 0,
+            "best_neighbour_building_id": None,
+            "best_neighbour_cluster_id": None,
+            "own_cluster_fit_score": None,
+            "neighbour_fit_score": None,
+            "neighbour_fit_delta": None,
+            "own_fit_weak_flag": False,
+            "neighbour_misassignment_flag": False,
+            "neighbour_event_score": None,
+            "neighbour_event_flag": False,
+            "supporting_neighbour_count": 0,
+        }
+
+    def _empty_cluster_neighbour_rollup(self) -> dict[str, Any]:
+        return {
+            "cluster_centroid_x_m": None,
+            "cluster_centroid_y_m": None,
+            "neighbour_candidate_building_count": 0,
+            "best_neighbour_building_id": None,
+            "best_neighbour_cluster_id": None,
+            "best_neighbour_consistency_score": None,
+            "supporting_neighbour_building_count": 0,
+            "neighbour_event_candidate_flag": False,
+        }
 
     def _local_density_scores(self, coords: np.ndarray) -> list[float]:
         if coords.shape[0] <= 1:

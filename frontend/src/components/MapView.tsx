@@ -315,6 +315,196 @@ function formatRetuningTooltipLine(properties: Record<string, unknown>) {
   return `<br/>Retuning: ${flags.length ? flags.join(", ") : "none"}`;
 }
 
+function readFeatureProperty(properties: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    if (hasFeatureProperty(properties, key)) {
+      return properties[key];
+    }
+  }
+  return undefined;
+}
+
+function readBooleanFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): boolean | null {
+  const value = readFeatureProperty(properties, ...keys);
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return null;
+}
+
+function readNumberFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): number | null {
+  const value = readFeatureProperty(properties, ...keys);
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
+function formatTooltipNumber(value: number | null, digits = 2) {
+  return value === null ? "—" : value.toFixed(digits);
+}
+
+function formatTooltipPercent(value: number | null, digits = 0) {
+  return value === null ? "—" : `${(value * 100).toFixed(digits)}%`;
+}
+
+function formatTooltipYesNo(value: boolean | null) {
+  return value === null ? "—" : value ? "yes" : "no";
+}
+
+function formatNeighbourPointTooltipLines(properties: Record<string, unknown>) {
+  const hasNeighbourFields =
+    hasFeatureProperty(properties, "neighbour_context_available") ||
+    hasFeatureProperty(properties, "context_available") ||
+    hasFeatureProperty(properties, "neighbour_misassignment_flag") ||
+    hasFeatureProperty(properties, "neighbour_event_flag") ||
+    hasFeatureProperty(properties, "supporting_neighbour_count");
+  if (!hasNeighbourFields) {
+    return "";
+  }
+
+  const contextAvailable = readBooleanFeatureProperty(
+    properties,
+    "neighbour_context_available",
+    "context_available"
+  );
+  const misassignmentFlag = readBooleanFeatureProperty(
+    properties,
+    "neighbour_misassignment_flag"
+  );
+  const eventFlag = readBooleanFeatureProperty(properties, "neighbour_event_flag");
+  const eventScore = readNumberFeatureProperty(properties, "neighbour_event_score");
+  const supportingCount = readNumberFeatureProperty(properties, "supporting_neighbour_count");
+  const eventParts = [formatTooltipYesNo(eventFlag)];
+  if (eventScore !== null) {
+    eventParts.push(formatTooltipNumber(eventScore));
+  }
+  if (supportingCount !== null) {
+    eventParts.push(`${supportingCount.toFixed(0)} support`);
+  }
+
+  return `
+        <br/>Neighbour context: ${formatTooltipYesNo(contextAvailable)}
+        <br/>Neighbour misassignment: ${formatTooltipYesNo(misassignmentFlag)}
+        <br/>Neighbour event: ${eventParts.join(" / ")}
+      `;
+}
+
+function formatNeighbourBuildingTooltipLines(properties: Record<string, unknown>) {
+  const hasNeighbourFields =
+    hasFeatureProperty(properties, "neighbour_context_available") ||
+    hasFeatureProperty(properties, "neighbour_misassignment_point_count") ||
+    hasFeatureProperty(properties, "neighbour_event_flag") ||
+    hasFeatureProperty(properties, "supporting_neighbour_count");
+  if (!hasNeighbourFields) {
+    return "";
+  }
+
+  const contextAvailable = readBooleanFeatureProperty(properties, "neighbour_context_available");
+  const candidateCount = readNumberFeatureProperty(
+    properties,
+    "neighbour_candidate_building_count"
+  );
+  const misassignmentCount = readNumberFeatureProperty(
+    properties,
+    "neighbour_misassignment_point_count"
+  );
+  const misassignmentShare = readNumberFeatureProperty(
+    properties,
+    "neighbour_misassignment_share"
+  );
+  const eventFlag = readBooleanFeatureProperty(properties, "neighbour_event_flag");
+  const eventScore = readNumberFeatureProperty(properties, "neighbour_event_score");
+  const consistencyScore = readNumberFeatureProperty(
+    properties,
+    "neighbour_consistency_score"
+  );
+  const supportingCount = readNumberFeatureProperty(properties, "supporting_neighbour_count");
+  const supportingTrackCount = readNumberFeatureProperty(properties, "supporting_track_count");
+  const contextParts = [formatTooltipYesNo(contextAvailable)];
+  if (candidateCount !== null) {
+    contextParts.push(`${candidateCount.toFixed(0)} cand`);
+  }
+  const misassignmentText =
+    misassignmentCount === null
+      ? "—"
+      : `${misassignmentCount.toFixed(0)}${
+          misassignmentShare === null ? "" : ` (${formatTooltipPercent(misassignmentShare, 0)})`
+        }`;
+  const eventParts = [formatTooltipYesNo(eventFlag)];
+  if (eventScore !== null) {
+    eventParts.push(formatTooltipNumber(eventScore));
+  }
+  if (consistencyScore !== null) {
+    eventParts.push(`cons ${formatTooltipNumber(consistencyScore)}`);
+  }
+  const supportText =
+    supportingCount === null
+      ? "—"
+      : `${supportingCount.toFixed(0)}${
+          supportingTrackCount === null ? "" : ` / T${supportingTrackCount.toFixed(0)}`
+        }`;
+
+  return `
+        <br/>Neighbour context: ${contextParts.join(" / ")}
+        <br/>Neighbour misassignment: ${misassignmentText}
+        <br/>Neighbour event: ${eventParts.join(" / ")}
+        <br/>Neighbour support: ${supportText}
+      `;
+}
+
+function formatMlBuildingTooltip(properties: Record<string, unknown>, title: string) {
+  const buildingSource = readFeatureProperty(properties, "building_source");
+  const buildingId = readFeatureProperty(properties, "building_id");
+  const heightM = readNumberFeatureProperty(properties, "height_m");
+  const motion = readNumberFeatureProperty(properties, "building_motion_mm_a");
+  const reliabilityScore = readNumberFeatureProperty(
+    properties,
+    "building_reliability_score"
+  );
+  const reliabilityBand = readFeatureProperty(properties, "building_reliability_band");
+  const buildingStatus = readFeatureProperty(properties, "building_status");
+  const trackAgreement = readNumberFeatureProperty(properties, "track_agreement_score");
+  const differentialMotion = readBooleanFeatureProperty(
+    properties,
+    "differential_motion_flag"
+  );
+  const clusterCount = readNumberFeatureProperty(properties, "cluster_count");
+  const reliableClusterCount = readNumberFeatureProperty(properties, "reliable_cluster_count");
+
+  return `
+        <strong>${title}</strong><br/>
+        Source: ${buildingSource === undefined || buildingSource === null ? "—" : String(buildingSource)}<br/>
+        ID: ${buildingId === undefined || buildingId === null ? "—" : String(buildingId)}<br/>
+        Height: ${heightM === null ? "—" : `${heightM.toFixed(1)} m`}<br/>
+        Motion: ${motion === null ? "—" : `${motion.toFixed(2)} mm/yr`}<br/>
+        Reliability: ${reliabilityScore === null ? "—" : reliabilityScore.toFixed(2)} (${
+          reliabilityBand === undefined || reliabilityBand === null ? "—" : String(reliabilityBand)
+        })<br/>
+        Status: ${buildingStatus === undefined || buildingStatus === null ? "—" : String(buildingStatus)}<br/>
+        Track agreement: ${trackAgreement === null ? "—" : trackAgreement.toFixed(2)}${formatRetuningTooltipLine(properties)}<br/>
+        Differential motion: ${formatTooltipYesNo(differentialMotion)}<br/>
+        Clusters: ${clusterCount === null ? "—" : clusterCount.toFixed(0)} / Reliable: ${
+          reliableClusterCount === null ? "—" : reliableClusterCount.toFixed(0)
+        }${formatNeighbourBuildingTooltipLines(properties)}
+      `;
+}
+
 function applyBasePointColors(
   map: MapLibreMap,
   pointColorMode: "velocity" | "height",
@@ -1488,11 +1678,7 @@ export default function MapView() {
     let html = "";
 
     if (feature.layer.id === "ml_buildings_outline") {
-      html = `
-        <strong>Assigned Building</strong><br/>
-        Source: ${props.building_source || "—"}<br/>
-        ID: ${props.building_id || "—"}${formatRetuningTooltipLine(props)}
-      `;
+      html = formatMlBuildingTooltip(props, "Assigned Building");
     } else if (feature.layer.id.startsWith("ml_focus_points")) {
       html = `
         <strong>Building Focus Point</strong><br/>
@@ -1518,7 +1704,7 @@ export default function MapView() {
             : props.gate_excluded
               ? "excluded"
               : "kept"
-        }
+        }${formatNeighbourPointTooltipLines(props)}
       `;
     } else if (feature.layer.id === "ml_focus_building_outline") {
       html = `
@@ -1526,33 +1712,7 @@ export default function MapView() {
         Cluster hulls and candidate buffers are active for this building.
       `;
     } else if (feature.layer.id.startsWith("ml_buildings")) {
-      html = `
-        <strong>ML Building</strong><br/>
-        Source: ${props.building_source || "—"}<br/>
-        ID: ${props.building_id || "—"}<br/>
-        Height: ${props.height_m ? Number(props.height_m).toFixed(1) + " m" : "—"}<br/>
-        Motion: ${
-          props.building_motion_mm_a !== undefined && props.building_motion_mm_a !== null
-            ? Number(props.building_motion_mm_a).toFixed(2) + " mm/yr"
-            : "—"
-        }<br/>
-        Reliability: ${
-          props.building_reliability_score !== undefined &&
-          props.building_reliability_score !== null
-            ? Number(props.building_reliability_score).toFixed(2)
-            : "—"
-        } (${props.building_reliability_band || "—"})<br/>
-        Status: ${props.building_status || "—"}<br/>
-        Track agreement: ${
-          props.track_agreement_score !== undefined && props.track_agreement_score !== null
-            ? Number(props.track_agreement_score).toFixed(2)
-            : "—"
-        }${formatRetuningTooltipLine(props)}<br/>
-        Differential motion: ${props.differential_motion_flag ? "yes" : "no"}<br/>
-        Clusters: ${props.cluster_count ?? "—"} / Reliable: ${
-          props.reliable_cluster_count ?? "—"
-        }
-      `;
+      html = formatMlBuildingTooltip(props, "ML Building");
     } else if (feature.layer.id === "ml_points") {
       html = `
         <strong>ML Result</strong><br/>
@@ -1573,7 +1733,7 @@ export default function MapView() {
           props.cross_track_consistency !== undefined && props.cross_track_consistency !== null
             ? Number(props.cross_track_consistency).toFixed(2)
             : "—"
-        }<br/>
+        }${formatNeighbourPointTooltipLines(props)}<br/>
         Reason: ${props.top_reason || props.degraded_reason || props.method || "—"}
       `;
     } else if (feature.layer.id.startsWith("insar")) {

@@ -79,6 +79,19 @@ def _rollup_bool(rollup: dict[str, Any], key: str) -> bool:
     return value if value is not None else False
 
 
+def _rollup_float(rollup: dict[str, Any], key: str) -> float | None:
+    return _nested_float({"value": rollup.get(key)}, "value")
+
+
+def _rollup_int(rollup: dict[str, Any], key: str, default: int = 0) -> int:
+    value = _nested_int({"value": rollup.get(key)}, "value")
+    return value if value is not None else default
+
+
+def _rollup_str(rollup: dict[str, Any], key: str) -> str | None:
+    return _nested_str({"value": rollup.get(key)}, "value")
+
+
 @router.get("/pipelines")
 async def pipelines() -> dict:
     return {"pipelines": list_pipelines()}
@@ -280,6 +293,7 @@ async def ml_point_analysis(
             feature_flags=meta.get("feature_flags") or {},
             building_context=meta.get("building_context") or {},
             cross_track_summary=meta.get("cross_track_summary") or {},
+            neighbour_context=_nested_dict(meta, "neighbour_context"),
             cluster_role=cluster_meta.get("cluster_role"),
             cluster_probability=_nested_float(meta, "cluster", "cluster_probability"),
             cluster_outlier_score=_nested_float(meta, "cluster", "cluster_outlier_score"),
@@ -390,7 +404,7 @@ async def ml_building_analysis(
 
         if not building_rollup and current_building_rollup:
             building_rollup = current_building_rollup
-        if cluster_rollup and cluster_id is not None:
+        if cluster_rollup and cluster_id is not None and cluster_rollup.get("cluster_id") is not None:
             cluster_rollups[(int(row["track"]), str(cluster_id))] = cluster_rollup
 
     if not building_rollup:
@@ -406,6 +420,15 @@ async def ml_building_analysis(
             "differential_motion_flag": False,
             "main_cluster_track_44_id": None,
             "main_cluster_track_95_id": None,
+            "neighbour_context_available": False,
+            "neighbour_candidate_building_count": 0,
+            "neighbour_misassignment_point_count": 0,
+            "neighbour_misassignment_share": None,
+            "neighbour_event_flag": False,
+            "neighbour_event_score": None,
+            "neighbour_consistency_score": None,
+            "supporting_neighbour_count": 0,
+            "supporting_track_count": 0,
             "track_motion_mm_a": {},
             "cluster_count": len(cluster_rollups),
             "reliable_cluster_count": 0,
@@ -427,16 +450,10 @@ async def ml_building_analysis(
         excluded_point_count=int(building_rollup.get("excluded_point_count", excluded_point_count) or 0),
         cluster_count=int(building_rollup.get("cluster_count", len(cluster_rollups)) or 0),
         reliable_cluster_count=int(building_rollup.get("reliable_cluster_count", 0) or 0),
-        building_motion_mm_a=_nested_float({"value": building_rollup.get("building_motion_mm_a")}, "value"),
-        building_reliability_score=_nested_float(
-            {"value": building_rollup.get("building_reliability_score")},
-            "value",
-        ),
-        building_reliability_band=_nested_str(
-            {"value": building_rollup.get("building_reliability_band")},
-            "value",
-        ),
-        track_agreement_score=_nested_float({"value": building_rollup.get("track_agreement_score")}, "value"),
+        building_motion_mm_a=_rollup_float(building_rollup, "building_motion_mm_a"),
+        building_reliability_score=_rollup_float(building_rollup, "building_reliability_score"),
+        building_reliability_band=_rollup_str(building_rollup, "building_reliability_band"),
+        track_agreement_score=_rollup_float(building_rollup, "track_agreement_score"),
         weak_secondary_track_flag=_rollup_bool(building_rollup, "weak_secondary_track_flag"),
         agreement_tension_flag=_rollup_bool(building_rollup, "agreement_tension_flag"),
         reliability_penalties=_nested_object_list(
@@ -444,15 +461,30 @@ async def ml_building_analysis(
             "value",
         ),
         differential_motion_flag=_rollup_bool(building_rollup, "differential_motion_flag"),
-        building_status=_nested_str({"value": building_rollup.get("building_status")}, "value"),
-        main_cluster_track_44_id=_nested_str(
-            {"value": building_rollup.get("main_cluster_track_44_id")},
-            "value",
+        building_status=_rollup_str(building_rollup, "building_status"),
+        main_cluster_track_44_id=_rollup_str(building_rollup, "main_cluster_track_44_id"),
+        main_cluster_track_95_id=_rollup_str(building_rollup, "main_cluster_track_95_id"),
+        neighbour_context_available=_rollup_bool(building_rollup, "neighbour_context_available"),
+        neighbour_candidate_building_count=_rollup_int(
+            building_rollup,
+            "neighbour_candidate_building_count",
         ),
-        main_cluster_track_95_id=_nested_str(
-            {"value": building_rollup.get("main_cluster_track_95_id")},
-            "value",
+        neighbour_misassignment_point_count=_rollup_int(
+            building_rollup,
+            "neighbour_misassignment_point_count",
         ),
+        neighbour_misassignment_share=_rollup_float(
+            building_rollup,
+            "neighbour_misassignment_share",
+        ),
+        neighbour_event_flag=_rollup_bool(building_rollup, "neighbour_event_flag"),
+        neighbour_event_score=_rollup_float(building_rollup, "neighbour_event_score"),
+        neighbour_consistency_score=_rollup_float(
+            building_rollup,
+            "neighbour_consistency_score",
+        ),
+        supporting_neighbour_count=_rollup_int(building_rollup, "supporting_neighbour_count"),
+        supporting_track_count=_rollup_int(building_rollup, "supporting_track_count"),
         track_motion_mm_a=track_motion_map(building_rollup.get("track_motion_mm_a")),
         track_counts=dict(track_counts),
         label_counts=dict(label_counts),
@@ -491,6 +523,26 @@ async def ml_building_analysis(
                 motion_delta_to_main_mm_a=_nested_float(
                     {"value": values.get("motion_delta_to_main_mm_a")},
                     "value",
+                ),
+                cluster_centroid_x_m=_rollup_float(values, "cluster_centroid_x_m"),
+                cluster_centroid_y_m=_rollup_float(values, "cluster_centroid_y_m"),
+                neighbour_candidate_building_count=_rollup_int(
+                    values,
+                    "neighbour_candidate_building_count",
+                ),
+                best_neighbour_building_id=_rollup_str(values, "best_neighbour_building_id"),
+                best_neighbour_cluster_id=_rollup_str(values, "best_neighbour_cluster_id"),
+                best_neighbour_consistency_score=_rollup_float(
+                    values,
+                    "best_neighbour_consistency_score",
+                ),
+                supporting_neighbour_building_count=_rollup_int(
+                    values,
+                    "supporting_neighbour_building_count",
+                ),
+                neighbour_event_candidate_flag=_rollup_bool(
+                    values,
+                    "neighbour_event_candidate_flag",
                 ),
             )
             for _, values in sorted(
@@ -581,6 +633,7 @@ async def ml_building_points_visualization(
         visual_meta = _nested_dict(meta, "visual_context")
         building_meta = _nested_dict(meta, "building_context")
         cross_meta = _nested_dict(meta, "cross_track_summary")
+        neighbour_context = _nested_dict(meta, "neighbour_context")
         features.append(
             GeoJsonFeature(
                 geometry=_json_object(row["geometry"]),
@@ -630,6 +683,52 @@ async def ml_building_points_visualization(
                         building_rollup.get("differential_motion_flag", False)
                     ),
                     "allowed_diff_mm_a": cross_meta.get("allowed_diff_mm_a"),
+                    "context_available": _rollup_bool(neighbour_context, "context_available"),
+                    "candidate_neighbour_count": _rollup_int(
+                        neighbour_context,
+                        "candidate_neighbour_count",
+                    ),
+                    "eligible_neighbour_cluster_count": _rollup_int(
+                        neighbour_context,
+                        "eligible_neighbour_cluster_count",
+                    ),
+                    "best_neighbour_building_id": _rollup_str(
+                        neighbour_context,
+                        "best_neighbour_building_id",
+                    ),
+                    "best_neighbour_cluster_id": _rollup_str(
+                        neighbour_context,
+                        "best_neighbour_cluster_id",
+                    ),
+                    "own_cluster_fit_score": _rollup_float(
+                        neighbour_context,
+                        "own_cluster_fit_score",
+                    ),
+                    "neighbour_fit_score": _rollup_float(
+                        neighbour_context,
+                        "neighbour_fit_score",
+                    ),
+                    "neighbour_fit_delta": _rollup_float(
+                        neighbour_context,
+                        "neighbour_fit_delta",
+                    ),
+                    "own_fit_weak_flag": _rollup_bool(neighbour_context, "own_fit_weak_flag"),
+                    "neighbour_misassignment_flag": _rollup_bool(
+                        neighbour_context,
+                        "neighbour_misassignment_flag",
+                    ),
+                    "neighbour_event_score": _rollup_float(
+                        neighbour_context,
+                        "neighbour_event_score",
+                    ),
+                    "neighbour_event_flag": _rollup_bool(
+                        neighbour_context,
+                        "neighbour_event_flag",
+                    ),
+                    "supporting_neighbour_count": _rollup_int(
+                        neighbour_context,
+                        "supporting_neighbour_count",
+                    ),
                 },
             )
         )
@@ -906,6 +1005,33 @@ async def ml_building_context_visualization(
             ),
             "building_status": summary_rollup.get("building_status"),
             "differential_motion_flag": _rollup_bool(summary_rollup, "differential_motion_flag"),
+            "neighbour_context_available": _rollup_bool(
+                summary_rollup,
+                "neighbour_context_available",
+            ),
+            "neighbour_candidate_building_count": _rollup_int(
+                summary_rollup,
+                "neighbour_candidate_building_count",
+            ),
+            "neighbour_misassignment_point_count": _rollup_int(
+                summary_rollup,
+                "neighbour_misassignment_point_count",
+            ),
+            "neighbour_misassignment_share": _rollup_float(
+                summary_rollup,
+                "neighbour_misassignment_share",
+            ),
+            "neighbour_event_flag": _rollup_bool(summary_rollup, "neighbour_event_flag"),
+            "neighbour_event_score": _rollup_float(summary_rollup, "neighbour_event_score"),
+            "neighbour_consistency_score": _rollup_float(
+                summary_rollup,
+                "neighbour_consistency_score",
+            ),
+            "supporting_neighbour_count": _rollup_int(
+                summary_rollup,
+                "supporting_neighbour_count",
+            ),
+            "supporting_track_count": _rollup_int(summary_rollup, "supporting_track_count"),
         },
     )
 
@@ -962,6 +1088,16 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 (r.meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
                 (r.meta->'building_rollup'->>'cluster_count')::integer AS building_cluster_count,
                 (r.meta->'building_rollup'->>'reliable_cluster_count')::integer AS reliable_cluster_count,
+                COALESCE((r.meta->'neighbour_context'->>'context_available')::boolean, false)
+                    AS neighbour_context_available,
+                COALESCE((r.meta->'neighbour_context'->>'neighbour_misassignment_flag')::boolean, false)
+                    AS neighbour_misassignment_flag,
+                COALESCE((r.meta->'neighbour_context'->>'neighbour_event_flag')::boolean, false)
+                    AS neighbour_event_flag,
+                (r.meta->'neighbour_context'->>'neighbour_event_score')::double precision
+                    AS neighbour_event_score,
+                (r.meta->'neighbour_context'->>'supporting_neighbour_count')::integer
+                    AS supporting_neighbour_count,
                 (r.meta->'explain_top_features'->0->>'summary') AS top_reason,
                 (r.building_id IS NOT NULL) AS assigned,
                 abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
@@ -1021,7 +1157,25 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 (meta->'building_rollup'->>'noise_point_count')::integer AS noise_point_count,
                 (meta->'building_rollup'->>'excluded_point_count')::integer AS excluded_point_count,
                 (meta->'building_rollup'->>'main_cluster_track_44_id') AS main_cluster_track_44_id,
-                (meta->'building_rollup'->>'main_cluster_track_95_id') AS main_cluster_track_95_id
+                (meta->'building_rollup'->>'main_cluster_track_95_id') AS main_cluster_track_95_id,
+                COALESCE((meta->'building_rollup'->>'neighbour_context_available')::boolean, false)
+                    AS neighbour_context_available,
+                (meta->'building_rollup'->>'neighbour_candidate_building_count')::integer
+                    AS neighbour_candidate_building_count,
+                (meta->'building_rollup'->>'neighbour_misassignment_point_count')::integer
+                    AS neighbour_misassignment_point_count,
+                (meta->'building_rollup'->>'neighbour_misassignment_share')::double precision
+                    AS neighbour_misassignment_share,
+                COALESCE((meta->'building_rollup'->>'neighbour_event_flag')::boolean, false)
+                    AS neighbour_event_flag,
+                (meta->'building_rollup'->>'neighbour_event_score')::double precision
+                    AS neighbour_event_score,
+                (meta->'building_rollup'->>'neighbour_consistency_score')::double precision
+                    AS neighbour_consistency_score,
+                (meta->'building_rollup'->>'supporting_neighbour_count')::integer
+                    AS supporting_neighbour_count,
+                (meta->'building_rollup'->>'supporting_track_count')::integer
+                    AS supporting_track_count
             FROM ml_point_results
             WHERE run_id = $4::uuid
               AND building_id IS NOT NULL
@@ -1082,6 +1236,15 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.excluded_point_count,
                 rollups.main_cluster_track_44_id,
                 rollups.main_cluster_track_95_id,
+                rollups.neighbour_context_available,
+                rollups.neighbour_candidate_building_count,
+                rollups.neighbour_misassignment_point_count,
+                rollups.neighbour_misassignment_share,
+                rollups.neighbour_event_flag,
+                rollups.neighbour_event_score,
+                rollups.neighbour_consistency_score,
+                rollups.supporting_neighbour_count,
+                rollups.supporting_track_count,
                 COALESCE(
                     c.color_index,
                     abs(hashtext(all_buildings.building_id)) % 60

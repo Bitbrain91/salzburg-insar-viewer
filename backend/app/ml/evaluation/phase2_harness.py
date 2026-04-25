@@ -53,17 +53,17 @@ class ReferenceCase:
 FIXED_AOI_RUNS: tuple[AOIRun, ...] = (
     AOIRun(
         name="Mirabell",
-        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
+        run_id="b5c20834-6b5d-4a8f-b2a7-90ce623c78f7",
         bbox=(13.04027, 47.80375, 13.04387, 47.80735),
     ),
     AOIRun(
         name="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         bbox=(13.02714, 47.79189, 13.03074, 47.79549),
     ),
     AOIRun(
         name="Osthang-Stressbereich",
-        run_id="9c4bc346-529e-4ede-81bf-26ed651905b1",
+        run_id="71770d85-ec8c-4354-840a-545fa0b7c757",
         bbox=(13.0492, 47.8036, 13.0528, 47.8054),
     ),
 )
@@ -72,7 +72,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="mirabell_standard_high_conf",
         aoi="Mirabell",
-        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
+        run_id="b5c20834-6b5d-4a8f-b2a7-90ce623c78f7",
         building_source="gba",
         building_id="548205",
         case_type="standard_ok",
@@ -82,7 +82,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="mirabell_adjacent_standard",
         aoi="Mirabell",
-        run_id="33fb1821-3264-4fdd-8d5e-881222eb2ae7",
+        run_id="b5c20834-6b5d-4a8f-b2a7-90ce623c78f7",
         building_source="gba",
         building_id="548204",
         case_type="adjacent_ok",
@@ -92,7 +92,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_differential_anchor",
         aoi="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         building_source="gba",
         building_id="96637447",
         case_type="differential_motion",
@@ -102,7 +102,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_differential_low_agreement",
         aoi="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         building_source="gba",
         building_id="96637522",
         case_type="differential_motion_low_reliability",
@@ -112,7 +112,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_single_track_only",
         aoi="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         building_source="gba",
         building_id="96637488",
         case_type="single_track_only",
@@ -122,7 +122,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_small_n",
         aoi="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         building_source="gba",
         building_id="96959854",
         case_type="small_n",
@@ -132,7 +132,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="moosstrasse_noise_dominated",
         aoi="Moosstrasse",
-        run_id="44b88a21-427d-4921-bcd0-ef9c6327fcab",
+        run_id="fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5",
         building_source="gba",
         building_id="96637551",
         case_type="noise_dominated",
@@ -142,7 +142,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
     ReferenceCase(
         case_id="osthang_insufficient_support",
         aoi="Osthang-Stressbereich",
-        run_id="9c4bc346-529e-4ede-81bf-26ed651905b1",
+        run_id="71770d85-ec8c-4354-840a-545fa0b7c757",
         building_source="gba",
         building_id="395674088",
         case_type="insufficient_support",
@@ -361,6 +361,27 @@ async def _fetch_building_rollups(conn: asyncpg.Connection, run_id: str) -> list
                     if rollup.get("main_cluster_track_95_id") is not None
                     else None
                 ),
+                "neighbour_context_available": bool(
+                    rollup.get("neighbour_context_available", False)
+                ),
+                "neighbour_candidate_building_count": int(
+                    rollup.get("neighbour_candidate_building_count", 0) or 0
+                ),
+                "neighbour_misassignment_point_count": int(
+                    rollup.get("neighbour_misassignment_point_count", 0) or 0
+                ),
+                "neighbour_misassignment_share": _float(
+                    rollup.get("neighbour_misassignment_share")
+                ),
+                "neighbour_event_flag": bool(rollup.get("neighbour_event_flag", False)),
+                "neighbour_event_score": _float(rollup.get("neighbour_event_score")),
+                "neighbour_consistency_score": _float(
+                    rollup.get("neighbour_consistency_score")
+                ),
+                "supporting_neighbour_count": int(
+                    rollup.get("supporting_neighbour_count", 0) or 0
+                ),
+                "supporting_track_count": int(rollup.get("supporting_track_count", 0) or 0),
                 "track_motion_mm_a": track_motion_map(rollup.get("track_motion_mm_a")),
             }
         )
@@ -400,6 +421,18 @@ def _summarise_run(aoi: AOIRun, metrics: dict[str, float], building_rollups: lis
         ),
         "differential_motion_buildings": sum(
             1 for value in building_rollups if value["differential_motion_flag"]
+        ),
+        "neighbour_context_buildings": sum(
+            1 for value in building_rollups if value["neighbour_context_available"]
+        ),
+        "neighbour_misassignment_points": sum(
+            value["neighbour_misassignment_point_count"] for value in building_rollups
+        ),
+        "buildings_with_neighbour_misassignment": sum(
+            1 for value in building_rollups if value["neighbour_misassignment_point_count"] > 0
+        ),
+        "neighbour_event_buildings": sum(
+            1 for value in building_rollups if value["neighbour_event_flag"]
         ),
         "median_building_reliability": _median(reliability_values),
         "median_track_agreement": _median(agreement_values),
@@ -494,6 +527,7 @@ async def _fetch_reference_case(
         visual_meta = nested_dict(meta, "visual_context")
         building_meta = nested_dict(meta, "building_context")
         cluster_meta = nested_dict(meta, "cluster")
+        neighbour_context = nested_dict(meta, "neighbour_context")
         current_building_rollup = building_rollup_from_meta(meta)
         cluster_rollup = cluster_rollup_from_meta(meta)
         if not building_rollup and current_building_rollup:
@@ -522,6 +556,43 @@ async def _fetch_reference_case(
                 "gate_reasons": [str(item) for item in nested_list(meta, "visual_context", "gate_reasons")],
                 "is_main_cluster": bool(cluster_rollup.get("is_main_cluster", False)),
                 "cluster_rank": _int(cluster_rollup.get("cluster_rank")),
+                "neighbour_context": {
+                    "context_available": bool(neighbour_context.get("context_available", False)),
+                    "candidate_neighbour_count": int(
+                        neighbour_context.get("candidate_neighbour_count", 0) or 0
+                    ),
+                    "eligible_neighbour_cluster_count": int(
+                        neighbour_context.get("eligible_neighbour_cluster_count", 0) or 0
+                    ),
+                    "best_neighbour_building_id": (
+                        str(neighbour_context.get("best_neighbour_building_id"))
+                        if neighbour_context.get("best_neighbour_building_id") is not None
+                        else None
+                    ),
+                    "best_neighbour_cluster_id": (
+                        str(neighbour_context.get("best_neighbour_cluster_id"))
+                        if neighbour_context.get("best_neighbour_cluster_id") is not None
+                        else None
+                    ),
+                    "own_cluster_fit_score": _float(
+                        neighbour_context.get("own_cluster_fit_score")
+                    ),
+                    "neighbour_fit_score": _float(neighbour_context.get("neighbour_fit_score")),
+                    "neighbour_fit_delta": _float(neighbour_context.get("neighbour_fit_delta")),
+                    "own_fit_weak_flag": bool(neighbour_context.get("own_fit_weak_flag", False)),
+                    "neighbour_misassignment_flag": bool(
+                        neighbour_context.get("neighbour_misassignment_flag", False)
+                    ),
+                    "neighbour_event_score": _float(
+                        neighbour_context.get("neighbour_event_score")
+                    ),
+                    "neighbour_event_flag": bool(
+                        neighbour_context.get("neighbour_event_flag", False)
+                    ),
+                    "supporting_neighbour_count": int(
+                        neighbour_context.get("supporting_neighbour_count", 0) or 0
+                    ),
+                },
                 "lon": _float(row["lon"]),
                 "lat": _float(row["lat"]),
             }
@@ -562,6 +633,25 @@ async def _fetch_reference_case(
         "kept_point_count": int(building_rollup.get("kept_point_count", 0) or 0),
         "noise_point_count": int(building_rollup.get("noise_point_count", 0) or 0),
         "excluded_point_count": int(building_rollup.get("excluded_point_count", 0) or 0),
+        "neighbour_context_available": bool(building_rollup.get("neighbour_context_available", False)),
+        "neighbour_candidate_building_count": int(
+            building_rollup.get("neighbour_candidate_building_count", 0) or 0
+        ),
+        "neighbour_misassignment_point_count": int(
+            building_rollup.get("neighbour_misassignment_point_count", 0) or 0
+        ),
+        "neighbour_misassignment_share": _float(
+            building_rollup.get("neighbour_misassignment_share")
+        ),
+        "neighbour_event_flag": bool(building_rollup.get("neighbour_event_flag", False)),
+        "neighbour_event_score": _float(building_rollup.get("neighbour_event_score")),
+        "neighbour_consistency_score": _float(
+            building_rollup.get("neighbour_consistency_score")
+        ),
+        "supporting_neighbour_count": int(
+            building_rollup.get("supporting_neighbour_count", 0) or 0
+        ),
+        "supporting_track_count": int(building_rollup.get("supporting_track_count", 0) or 0),
     }
 
     cluster_summaries = [
@@ -582,6 +672,28 @@ async def _fetch_reference_case(
             "median_height_rank": _float(values.get("median_height_rank")),
             "cluster_reliability_score": _float(values.get("cluster_reliability_score")),
             "motion_delta_to_main_mm_a": _float(values.get("motion_delta_to_main_mm_a")),
+            "neighbour_candidate_building_count": int(
+                values.get("neighbour_candidate_building_count", 0) or 0
+            ),
+            "best_neighbour_building_id": (
+                str(values.get("best_neighbour_building_id"))
+                if values.get("best_neighbour_building_id") is not None
+                else None
+            ),
+            "best_neighbour_cluster_id": (
+                str(values.get("best_neighbour_cluster_id"))
+                if values.get("best_neighbour_cluster_id") is not None
+                else None
+            ),
+            "best_neighbour_consistency_score": _float(
+                values.get("best_neighbour_consistency_score")
+            ),
+            "supporting_neighbour_building_count": int(
+                values.get("supporting_neighbour_building_count", 0) or 0
+            ),
+            "neighbour_event_candidate_flag": bool(
+                values.get("neighbour_event_candidate_flag", False)
+            ),
         }
         for cluster_id, values in sorted(
             cluster_rollups.items(),
@@ -804,10 +916,32 @@ def _build_markdown_summary(
     lines.extend(
         [
             "",
+            "## Neighbourhood Diagnostics",
+            "",
+            "| AOI | Run ID | Buildings with context | Misassignment points | Buildings with misassignment | Event buildings |",
+            "| --- | --- | ---: | ---: | ---: | ---: |",
+        ]
+    )
+
+    for item in run_summaries:
+        lines.append(
+            "| {aoi} | `{run_id}` | {context_buildings} | {misassignment_points} | {misassignment_buildings} | {event_buildings} |".format(
+                aoi=item["aoi"],
+                run_id=item["run_id"],
+                context_buildings=item["neighbour_context_buildings"],
+                misassignment_points=item["neighbour_misassignment_points"],
+                misassignment_buildings=item["buildings_with_neighbour_misassignment"],
+                event_buildings=item["neighbour_event_buildings"],
+            )
+        )
+
+    lines.extend(
+        [
+            "",
             "## Reference Cases",
             "",
-            "| Case | AOI | Building | Type | Status | Reliability | Agreement | Stability | Notes |",
-            "| --- | --- | --- | --- | --- | ---: | ---: | --- | --- |",
+            "| Case | AOI | Building | Type | Status | Reliability | Agreement | Nbr ctx | Misassign | Event | Stability | Notes |",
+            "| --- | --- | --- | --- | --- | ---: | ---: | --- | ---: | --- | --- | --- |",
         ]
     )
 
@@ -816,7 +950,7 @@ def _build_markdown_summary(
         stability = item["stability"]
         note_text = "; ".join(stability["notes"]) if stability["notes"] else "none"
         lines.append(
-            "| {case_id} | {aoi} | `{building}` | `{case_type}` | `{status}` | {reliability} | {agreement} | `{stability_band}` | {notes} |".format(
+            "| {case_id} | {aoi} | `{building}` | `{case_type}` | `{status}` | {reliability} | {agreement} | `{context_available}` | {misassignment_count} | `{event_flag}` | `{stability_band}` | {notes} |".format(
                 case_id=item["case_id"],
                 aoi=item["aoi"],
                 building=item["building_id"],
@@ -832,6 +966,9 @@ def _build_markdown_summary(
                     if analysis["track_agreement_score"] is not None
                     else "n/a"
                 ),
+                context_available="yes" if analysis["neighbour_context_available"] else "no",
+                misassignment_count=analysis["neighbour_misassignment_point_count"],
+                event_flag="yes" if analysis["neighbour_event_flag"] else "no",
                 stability_band=stability["stability_band"],
                 notes=note_text.replace("|", "/"),
             )

@@ -75,6 +75,22 @@ export type MlPointExplainReason = {
   summary: string;
 };
 
+export type MlPointNeighbourContext = {
+  context_available?: boolean;
+  candidate_neighbour_count?: number;
+  eligible_neighbour_cluster_count?: number;
+  best_neighbour_building_id?: string | null;
+  best_neighbour_cluster_id?: string | null;
+  own_cluster_fit_score?: number | null;
+  neighbour_fit_score?: number | null;
+  neighbour_fit_delta?: number | null;
+  own_fit_weak_flag?: boolean;
+  neighbour_misassignment_flag?: boolean;
+  neighbour_event_score?: number | null;
+  neighbour_event_flag?: boolean;
+  supporting_neighbour_count?: number;
+};
+
 export type MlPointAnalysis = {
   run_id: string;
   pipeline: string;
@@ -94,6 +110,7 @@ export type MlPointAnalysis = {
   feature_flags: Record<string, unknown>;
   building_context: Record<string, unknown>;
   cross_track_summary: Record<string, unknown>;
+  neighbour_context: MlPointNeighbourContext;
   cluster_role: string | null;
   cluster_probability: number | null;
   cluster_outlier_score: number | null;
@@ -137,6 +154,14 @@ export type MlBuildingClusterSummary = {
   median_height_rank: number | null;
   cluster_reliability_score: number | null;
   motion_delta_to_main_mm_a: number | null;
+  cluster_centroid_x_m: number | null;
+  cluster_centroid_y_m: number | null;
+  neighbour_candidate_building_count: number;
+  best_neighbour_building_id: string | null;
+  best_neighbour_cluster_id: string | null;
+  best_neighbour_consistency_score: number | null;
+  supporting_neighbour_building_count: number;
+  neighbour_event_candidate_flag: boolean;
 };
 
 export type MlReliabilityPenalty = {
@@ -149,7 +174,19 @@ export type MlReliabilityPenalty = {
   observed_score: number | null;
 };
 
-export type MlBuildingAnalysis = {
+export type MlBuildingNeighbourhoodSummary = {
+  neighbour_context_available: boolean;
+  neighbour_candidate_building_count: number;
+  neighbour_misassignment_point_count: number;
+  neighbour_misassignment_share: number | null;
+  neighbour_event_flag: boolean;
+  neighbour_event_score: number | null;
+  neighbour_consistency_score: number | null;
+  supporting_neighbour_count: number;
+  supporting_track_count: number;
+};
+
+export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
   run_id: string;
   pipeline: string;
   run_type: string;
@@ -205,6 +242,24 @@ export type MlBuildingVisualizationPointsResponse = {
   feature_collection: GeoJsonFeatureCollection;
 };
 
+export type MlBuildingVisualizationSummary = MlBuildingNeighbourhoodSummary & {
+  point_count: number;
+  kept_point_count: number;
+  noise_point_count: number;
+  excluded_point_count: number;
+  cluster_count: number;
+  reliable_cluster_count: number;
+  building_motion_mm_a: number | null;
+  building_reliability_score: number | null;
+  building_reliability_band: string | null;
+  track_agreement_score: number | null;
+  weak_secondary_track_flag: boolean;
+  agreement_tension_flag: boolean;
+  reliability_penalties: MlReliabilityPenalty[];
+  building_status: string | null;
+  differential_motion_flag: boolean;
+};
+
 export type MlBuildingVisualizationContextResponse = {
   run_id: string;
   pipeline: string;
@@ -215,23 +270,7 @@ export type MlBuildingVisualizationContextResponse = {
   building: GeoJsonFeature | null;
   candidate_areas: GeoJsonFeatureCollection;
   cluster_hulls: GeoJsonFeatureCollection;
-  summary: {
-    point_count: number;
-    kept_point_count: number;
-    noise_point_count: number;
-    excluded_point_count: number;
-    cluster_count: number;
-    reliable_cluster_count: number;
-    building_motion_mm_a: number | null;
-    building_reliability_score: number | null;
-    building_reliability_band: string | null;
-    track_agreement_score: number | null;
-    weak_secondary_track_flag: boolean;
-    agreement_tension_flag: boolean;
-    reliability_penalties: MlReliabilityPenalty[];
-    building_status: string | null;
-    differential_motion_flag: boolean;
-  };
+  summary: MlBuildingVisualizationSummary;
 };
 
 export function getPointDetail(code: string, track?: number) {

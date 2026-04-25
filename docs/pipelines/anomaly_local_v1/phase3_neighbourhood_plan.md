@@ -1,7 +1,7 @@
 # `anomaly_local_v1` Phase-3 Neighbourhood Context Plan
 
 Stand: 2026-04-25
-Status: planned
+Status: green
 
 ## Ziel
 
@@ -11,8 +11,8 @@ Der Pass soll zwei fachlich unterschiedliche Faelle maschinenlesbar trennen:
 - moegliche Punkt-Fehlzuordnung zu einem Nachbargebaeude
 - echte Nachbarschafts- oder Block-Events, bei denen ein Signal in mehreren nahen Gebaeuden konsistent auftritt
 
-`P3` startet erst nach einem neuen expliziten User-Gate. Diese Datei bereitet die
-spaetere Supervisor-Session vor, fuehrt sie aber nicht aus.
+Das User-Gate fuer `P3-W1` ist erfuellt und `P3` ist abgeschlossen.
+Diese Datei beschreibt den eingefrorenen Scope und den finalen Ticketstatus.
 
 ## Ausgangsbasis
 
@@ -24,11 +24,11 @@ Verbindliche Basis:
 - `main_cluster`-Auswahl, `differential_motion_flag` und Reliability-Retuning werden in `P3`
   nicht stillschweigend neu kalibriert.
 
-Aktuelle Pflicht-Runs aus `P2R`:
+Aktuelle Pflicht-Runs fuer die Abschlussverifikation:
 
-- Mirabell: `33fb1821-3264-4fdd-8d5e-881222eb2ae7`
-- Moosstrasse: `44b88a21-427d-4921-bcd0-ef9c6327fcab`
-- Osthang-Stressbereich: `9c4bc346-529e-4ede-81bf-26ed651905b1`
+- Mirabell: `b5c20834-6b5d-4a8f-b2a7-90ce623c78f7`
+- Moosstrasse: `fa27294d-a4f9-4ba8-97ef-5dafb4eb99e5`
+- Osthang-Stressbereich: `71770d85-ec8c-4354-840a-545fa0b7c757`
 
 ## Nicht-Ziele
 
@@ -143,7 +143,7 @@ Zirkularitaetsregel:
   - Zirkularitaetsgrenzen sind explizit dokumentiert.
   - Verifikationsstrategie fuer Mirabell, Moosstrasse und Osthang ist konkret.
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P3-W2
 
@@ -165,7 +165,7 @@ Zirkularitaetsregel:
   - neue Felder bleiben additive Diagnosen und veraendern keine `P2R`-Reliability-Semantik.
   - Backend ist syntaktisch validiert.
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P3-W3
 
@@ -189,7 +189,7 @@ Zirkularitaetsregel:
   - UI unterscheidet Fehlzuordnung von Event-Konsistenz.
   - Frontend-Build ist geprueft, falls Frontend-Dateien geaendert wurden.
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 #### Ticket P3-W3-T2: Harness-Rerun und Abschlussverifikation
 
@@ -213,7 +213,7 @@ Zirkularitaetsregel:
   - P2R-Referenzfaelle behalten ihren erwarteten Status, ausser eine begruendete P3-Diagnose erklaert eine neue Zusatzmarkierung.
   - `P3`-Status ist fortgeschrieben.
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ## Supervisor-Schnitt
 
@@ -221,5 +221,5 @@ Single-File-Entry fuer die spaetere Supervisor-Session:
 
 - `docs/pipelines/anomaly_local_v1/phase3_supervisor_prompt.md`
 
-Die Supervisor-Session darf erst starten, wenn der User `P3` explizit freigibt.
-Bei erfolgreichem Abschluss steht `P3` auf `green`, `P4` bleibt `planned`.
+Die Supervisor-Session wurde abgearbeitet.
+`P3` steht auf `green`, `P4` bleibt `planned`.

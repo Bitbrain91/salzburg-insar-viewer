@@ -146,6 +146,7 @@ class MLPointAnalysis(BaseModel):
     feature_flags: dict[str, Any] = Field(default_factory=dict)
     building_context: dict[str, Any] = Field(default_factory=dict)
     cross_track_summary: dict[str, Any] = Field(default_factory=dict)
+    neighbour_context: dict[str, Any] = Field(default_factory=dict)
     cluster_role: Optional[str] = None
     cluster_probability: Optional[float] = None
     cluster_outlier_score: Optional[float] = None
@@ -183,6 +184,14 @@ class MLBuildingClusterSummary(BaseModel):
     median_height_rank: Optional[float] = None
     cluster_reliability_score: Optional[float] = None
     motion_delta_to_main_mm_a: Optional[float] = None
+    cluster_centroid_x_m: Optional[float] = None
+    cluster_centroid_y_m: Optional[float] = None
+    neighbour_candidate_building_count: int = 0
+    best_neighbour_building_id: Optional[str] = None
+    best_neighbour_cluster_id: Optional[str] = None
+    best_neighbour_consistency_score: Optional[float] = None
+    supporting_neighbour_building_count: int = 0
+    neighbour_event_candidate_flag: bool = False
 
 
 class MLReliabilityPenalty(BaseModel):
@@ -218,6 +227,15 @@ class MLBuildingAnalysis(BaseModel):
     building_status: Optional[str] = None
     main_cluster_track_44_id: Optional[str] = None
     main_cluster_track_95_id: Optional[str] = None
+    neighbour_context_available: bool = False
+    neighbour_candidate_building_count: int = 0
+    neighbour_misassignment_point_count: int = 0
+    neighbour_misassignment_share: Optional[float] = None
+    neighbour_event_flag: bool = False
+    neighbour_event_score: Optional[float] = None
+    neighbour_consistency_score: Optional[float] = None
+    supporting_neighbour_count: int = 0
+    supporting_track_count: int = 0
     track_motion_mm_a: dict[str, Optional[float]] = Field(default_factory=dict)
     track_counts: dict[str, int] = Field(default_factory=dict)
     label_counts: dict[str, int] = Field(default_factory=dict)
@@ -273,6 +291,15 @@ class MLBuildingVisualizationSummary(BaseModel):
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
     building_status: Optional[str] = None
     differential_motion_flag: bool = False
+    neighbour_context_available: bool = False
+    neighbour_candidate_building_count: int = 0
+    neighbour_misassignment_point_count: int = 0
+    neighbour_misassignment_share: Optional[float] = None
+    neighbour_event_flag: bool = False
+    neighbour_event_score: Optional[float] = None
+    neighbour_consistency_score: Optional[float] = None
+    supporting_neighbour_count: int = 0
+    supporting_track_count: int = 0
 
 
 class MLBuildingVisualizationContextResponse(BaseModel):

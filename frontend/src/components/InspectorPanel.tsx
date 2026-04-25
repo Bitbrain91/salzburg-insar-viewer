@@ -105,11 +105,21 @@ export default function InspectorPanel() {
   const mlPointAnalysis = mlPointAnalysisQuery.data?.analysis ?? null;
   const mlPointAnalysisStatus = mlPointAnalysisQuery.data?.status;
   const mlPointAnalysisMessage = mlPointAnalysisQuery.data?.message;
+  const mlPointNeighbourhood = mlPointAnalysis?.neighbour_context;
+  const showPointNeighbourhood = Boolean(
+    mlPointNeighbourhood?.context_available ||
+    mlPointNeighbourhood?.neighbour_misassignment_flag ||
+    mlPointNeighbourhood?.neighbour_event_flag
+  );
 
   const fmtNum = (value?: number | null, digits = 2) =>
     value === null || value === undefined ? "—" : value.toFixed(digits);
+  const fmtPct = (value?: number | null, digits = 0) =>
+    value === null || value === undefined ? "—" : `${(value * 100).toFixed(digits)}%`;
   const fmtStr = (value?: string | number | null) =>
     value === null || value === undefined || value === "" ? "—" : String(value);
+  const fmtBool = (value?: boolean | null) =>
+    value === null || value === undefined ? "—" : value ? "yes" : "no";
   const getNumber = (value: unknown) => {
     const parsed =
       typeof value === "number" ? value : typeof value === "string" ? Number(value) : null;
@@ -425,6 +435,49 @@ export default function InspectorPanel() {
                     : "—"}
                 </span>
               </div>
+              {showPointNeighbourhood && (
+                <>
+                  <div className="section-title">Neighbourhood</div>
+                  <div className="metric">
+                    <span className="label">Context</span>
+                    <span className="value">
+                      {mlPointNeighbourhood?.context_available
+                        ? `${fmtNum(mlPointNeighbourhood.candidate_neighbour_count, 0)} cand / ${fmtNum(mlPointNeighbourhood.eligible_neighbour_cluster_count, 0)} elig`
+                        : "not available"}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Best neighbour</span>
+                    <span className="value">
+                      {fmtStr(mlPointNeighbourhood?.best_neighbour_building_id)} /{" "}
+                      {fmtStr(mlPointNeighbourhood?.best_neighbour_cluster_id)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Fit own / neigh / delta</span>
+                    <span className="value">
+                      {fmtNum(mlPointNeighbourhood?.own_cluster_fit_score)} /{" "}
+                      {fmtNum(mlPointNeighbourhood?.neighbour_fit_score)} /{" "}
+                      {fmtNum(mlPointNeighbourhood?.neighbour_fit_delta)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Misassignment / weak own fit</span>
+                    <span className="value">
+                      {fmtBool(mlPointNeighbourhood?.neighbour_misassignment_flag)} /{" "}
+                      {fmtBool(mlPointNeighbourhood?.own_fit_weak_flag)}
+                    </span>
+                  </div>
+                  <div className="metric">
+                    <span className="label">Neighbour event</span>
+                    <span className="value">
+                      {fmtBool(mlPointNeighbourhood?.neighbour_event_flag)} /{" "}
+                      {fmtNum(mlPointNeighbourhood?.neighbour_event_score)} /{" "}
+                      {fmtNum(mlPointNeighbourhood?.supporting_neighbour_count, 0)} support
+                    </span>
+                  </div>
+                </>
+              )}
               <div className="section-title">Top Reasons</div>
               {mlPointAnalysis.explain_top_features.length > 0 ? (
                 mlPointAnalysis.explain_top_features.map((reason) => (
@@ -623,6 +676,36 @@ export default function InspectorPanel() {
                 <span className="label">Median distance</span>
                 <span className="value">
                   {fmtNum(mlBuildingAnalysisQuery.data.median_distance_m, 1)} m
+                </span>
+              </div>
+              <div className="section-title">Neighbourhood</div>
+              <div className="metric">
+                <span className="label">Context</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.neighbour_context_available ? "yes" : "no"} /{" "}
+                  {mlBuildingAnalysisQuery.data.neighbour_candidate_building_count} cand
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Misassignment points</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.neighbour_misassignment_point_count} /{" "}
+                  {fmtPct(mlBuildingAnalysisQuery.data.neighbour_misassignment_share, 1)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Neighbour event</span>
+                <span className="value">
+                  {mlBuildingAnalysisQuery.data.neighbour_event_flag ? "yes" : "no"} /{" "}
+                  {fmtNum(mlBuildingAnalysisQuery.data.neighbour_event_score)}
+                </span>
+              </div>
+              <div className="metric">
+                <span className="label">Consistency / support</span>
+                <span className="value">
+                  {fmtNum(mlBuildingAnalysisQuery.data.neighbour_consistency_score)} /{" "}
+                  {mlBuildingAnalysisQuery.data.supporting_neighbour_count} nbr / T
+                  {mlBuildingAnalysisQuery.data.supporting_track_count}
                 </span>
               </div>
               {isActiveLocalAnomalyRun && (

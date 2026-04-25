@@ -73,11 +73,11 @@ Noch in Phase 0 zu entscheiden:
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Welle: keine automatische Fortsetzung; `P3-W1-T1` bleibt `planned` und braucht ein neues User-Gate
+- naechste zulaessige Welle: keine automatische Fortsetzung; `P4-W1-T1` bleibt `planned` und braucht ein neues User-Gate
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
 - `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
-- `P3` ist vorbereitet; Plan und Single-File-Supervisor-Entry stehen bereit, starten aber erst nach neuem User-Gate
+- `P3` ist abgeschlossen; Design, Backend, API/UI und Abschlussverifikation stehen in `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_verification.md`
 
 Phasenstatus:
 
@@ -85,7 +85,7 @@ Phasenstatus:
 - `P1`: green
 - `P2`: green
 - `P2R`: green
-- `P3`: planned
+- `P3`: green
 - `P4`: planned
 - `E0`: open
 
@@ -389,7 +389,8 @@ Status:
 
 ## Phase 3: Neighbourhood Context
 
-`P3` bleibt auch nach abgeschlossenem `P2R` `planned` und startet erst nach einem neuen expliziten User-Gate.
+`P3` ist abgeschlossen. Die Abschlussverifikation und die aktualisierten
+Harness-Artefakte stehen in `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_verification.md`.
 
 ### Phasen-DoD
 
@@ -419,10 +420,10 @@ Single-File-Entry fuer die naechste Supervisor-Session:
 
 Status:
 
-- `P3-W1-T1`: planned
-- `P3-W2-T1`: planned
-- `P3-W3-T1`: planned
-- `P3-W3-T2`: planned
+- `P3-W1-T1`: green
+- `P3-W2-T1`: green
+- `P3-W3-T1`: green
+- `P3-W3-T2`: green
 
 ### Welle P3-W1
 
@@ -441,7 +442,7 @@ Status:
   - Zirkularitaetsgrenzen sind explizit dokumentiert
   - Verifikationsstrategie fuer Mirabell, Moosstrasse und Osthang ist konkret
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P3-W2
 
@@ -462,7 +463,7 @@ Status:
   - neue Felder bleiben additive Diagnosen und veraendern keine `P2R`-Reliability-Semantik
   - Backend-Code ist mindestens syntaktisch validiert
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P3-W3
 
@@ -485,7 +486,7 @@ Status:
   - UI unterscheidet Fehlzuordnung von Event-Konsistenz
   - Frontend-Build ist geprueft, falls Frontend-Dateien geaendert wurden
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 #### Ticket P3-W3-T2: Harness-Rerun und Abschlussverifikation
 
@@ -507,7 +508,7 @@ Status:
   - P2R-Referenzfaelle behalten ihren erwarteten Status, ausser eine begruendete P3-Diagnose erklaert eine neue Zusatzmarkierung
   - `P3`-Status ist fortgeschrieben
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ## Phase 4: Terrain and Aspect
 
