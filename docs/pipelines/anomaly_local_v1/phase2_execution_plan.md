@@ -73,7 +73,8 @@ Noch in Phase 0 zu entscheiden:
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Welle: keine automatische Fortsetzung; `P4-W1-T1` bleibt `planned` und braucht ein neues User-Gate
+- naechste zulaessige Welle: keine automatische Fortsetzung; `P4` ist mit `Aspect = defer`
+  abgeschlossen, `E0` bleibt offen
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
 - `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
@@ -86,7 +87,7 @@ Phasenstatus:
 - `P2`: green
 - `P2R`: green
 - `P3`: green
-- `P4`: planned
+- `P4`: green
 - `E0`: open
 
 ## Empfohlener Session-Schnitt
@@ -109,6 +110,7 @@ Phasenstatus:
   - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase3_supervisor_prompt.md`
 - `S4`: `P4`
   - Zweck: Terrain-/Aspect-Entscheidungen auf bestehender Terrainbasis.
+  - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase4_supervisor_prompt.md`
 - Parallelspur:
   - `E0-W1` darf schon in `S0` oder `S1` vorbereitet werden, weil es die interne Umsetzung nicht blockiert.
   - `E0-W2` erst, wenn externe Rueckmeldung vorliegt.
@@ -512,6 +514,14 @@ Status:
 
 ## Phase 4: Terrain and Aspect
 
+Die detaillierte P4-Scheduler-Datei steht in:
+
+- `docs/pipelines/anomaly_local_v1/phase4_terrain_aspect_plan.md`
+
+Single-File-Entry fuer die naechste Supervisor-Session:
+
+- `docs/pipelines/anomaly_local_v1/phase4_supervisor_prompt.md`
+
 ### Phasen-DoD
 
 Phase 4 ist gruen, wenn:
@@ -519,43 +529,86 @@ Phase 4 ist gruen, wenn:
 - die Terrainbasis fachlich entschieden ist
 - klar ist, ob und wie Aspect in `anomaly_local_v1` eingeht
 - die bestehende Gelaendekarte unveraendert bleibt
+- die Entscheidung in `terrain_decision.md` und `aspect_decision.md` dokumentiert ist
 
 ### Welle P4-W1
 
 #### Ticket P4-W1-T1: DEM-/Terrain-Entscheidung vorbereiten
 
 - Ziel: DTM/DSM/nDSM und Vertikaldatum fuer Salzburg/AT fachlich klaeren.
-- Artefakt: Terrain-Entscheidungsnotiz
+- Artefakt:
+  - `docs/pipelines/anomaly_local_v1/terrain_decision.md`
 - Write-Set:
-  - neues `docs/pipelines/anomaly_local_v1/terrain_decision.md`
+  - `docs/pipelines/anomaly_local_v1/terrain_decision.md`
+  - optional `docs/pipelines/anomaly_local_v1/phase4_terrain_aspect_plan.md`
 - Abhaengigkeiten:
-  - hard: `P2-W2-T1`
+  - hard: `P3-W3-T2`
 - DoD:
   - verfuegbare Modelle sind verglichen
   - Vertikaldatum-Thema ist benannt
+  - entschieden ist, ob der Status quo fuer P4 reicht oder ein Datenupgrade noetig ist
   - Konsequenz fuer `anomaly_local_v1` ist beschrieben
   - keine Forderung nach Umbau der bestehenden Gelaendekarte
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
 
 ### Welle P4-W2
 
-#### Ticket P4-W2-T1: Aspect-Entscheidung und ggf. Integration
+#### Ticket P4-W2-T1: Aspect-Entscheidung und Regelentwurf
 
 - Ziel: erst nach Terrain-Entscheidung festlegen, ob Aspect in Regeln/Scoring eingeht.
-- Artefakt: Decision-Log plus optional Code-Delta
+- Artefakt:
+  - `docs/pipelines/anomaly_local_v1/aspect_decision.md`
 - Write-Set:
-  - Backend-Dateien nach Bedarf
-  - `docs/*`
+  - `docs/pipelines/anomaly_local_v1/aspect_decision.md`
+  - optional `docs/pipelines/anomaly_local_v1/phase4_terrain_aspect_plan.md`
 - Abhaengigkeiten:
   - hard: `P4-W1-T1`
 - DoD:
-  - es ist explizit entschieden, ob Aspect integriert wird
-  - falls ja, ist die Regel oder Toleranzlogik dokumentiert und implementiert
-  - falls nein, ist die Begruendung dokumentiert
+  - es ist explizit entschieden, ob Aspect `context_only`, `diagnostic_only`, `tolerance_logic` oder `defer` ist
+  - falls ja, ist die Regel oder Toleranzlogik dokumentiert
+  - falls nein oder spaeter, ist die Begruendung dokumentiert
+  - keine Code-Aenderung ist ohne dokumentierte Integrationsentscheidung erfolgt
   - keine Terrain-Map-Refactors
 - Kritischer Pfad: ja
-- Status: planned
+- Status: green
+
+### Welle P4-W3
+
+#### Ticket P4-W3-T1: Optionale Aspect-/Terrain-Integration und Verifikation
+
+- Ziel: nur falls `P4-W2-T1` `diagnostic_only` oder `tolerance_logic` freigibt,
+  die dokumentierte Regel minimal implementieren und gegen die Pflicht-AOIs pruefen.
+- Artefakt:
+  - optionales Code-Delta
+  - `docs/pipelines/anomaly_local_v1/phase4_terrain_aspect_verification.md`
+- Write-Set:
+  - Backend-Dateien nach Bedarf
+  - API/UI-Dateien nur bei sichtbarem neuem Datenvertrag
+  - `docs/pipelines/anomaly_local_v1/phase4_terrain_aspect_verification.md`
+  - aktualisierte Harness-Artefakte, falls noetig
+- Abhaengigkeiten:
+  - hard: `P4-W2-T1`
+- DoD:
+  - Implementierung bleibt additiv oder die begruendete Toleranzaenderung ist klar isoliert
+  - `compileall` ist gruen
+  - Harness-Rerun ist gruen, wenn Pipeline- oder Harness-Logik geaendert wurde
+  - Frontend-Build ist gruen, wenn Frontend-Dateien geaendert wurden
+  - neue Live-Runs sind dokumentiert, wenn Pipeline-Scoring oder Labels beeinflusst werden
+  - keine Terrain-Map-Refactors
+- Kritischer Pfad: bedingt
+- Status: skipped (`P4-W2-T1` entschied `defer`)
+
+### P4-Abschluss
+
+`P4` ist gruen abgeschlossen, ohne Codeintegration:
+
+- `terrain_decision.md` dokumentiert die Terrainbasis und die bevorzugte spaetere
+  Upgrade-Richtung `BEV ALS-DTM 1 m`.
+- `aspect_decision.md` dokumentiert `Aspect = defer`.
+- `P4-W3-T1` wurde nicht gestartet, weil keine Integration freigegeben wurde.
+- Naechste Folgearbeit vor Aspect-Re-Entry: DTM-Upgrade, Hoehenbezugskonzept und
+  zirkulare Building-Aspect-Semantik.
 
 ## Parallelspur E0: MatchSAR / AUGMENTERRA
 
@@ -621,6 +674,12 @@ Spezifisch fuer diesen Plan:
 - `P3-W1-T1` liegt vor jeder Nachbarschaftsimplementierung auf dem kritischen Pfad.
   Bei `red` oder nicht aufloesbarem `inconclusive` startet `P3-W2` nicht.
 
+- `P4-W1-T1` liegt vor jeder Aspect-Integration auf dem kritischen Pfad.
+  Bei `red` oder nicht aufloesbarem `inconclusive` startet `P4-W2` nicht.
+
+- `P4-W3-T1` darf nur starten, wenn `P4-W2-T1` explizit `diagnostic_only` oder
+  `tolerance_logic` als jetzt zu implementierende Entscheidung freigibt.
+
 ## Warum diese Reihenfolge
 
 - Building-Level-Scoring ist der groesste fachliche Hebel.
@@ -634,12 +693,13 @@ Spezifisch fuer diesen Plan:
 
 Die naechste echte Startwelle ist:
 
-- `P3-W1`
+- keine automatische Fortsetzung; `P4` ist abgeschlossen, `E0` bleibt offen
 
 Die naechste Produktarbeit ist:
 
-- `P3-W1` -> `P3-W2` -> `P3-W3`
+- vor neuer Aspect-Arbeit: `DTM 1 m`-Upgrade, Hoehenbezugskonzept und
+  zirkulare Building-Aspect-Semantik
 
 Das entspricht fachlich:
 
-`Neighbourhood-Design -> zweiter Backend-Pass -> API/UI-Anschluss -> AOI-Verifikation`
+`P4 abgeschlossen mit Aspect = defer; keine P4-Codeintegration`
