@@ -50,8 +50,6 @@ class InSARPointDetail(BaseModel):
     amp_mean: Optional[float] = None
     amp_std: Optional[float] = None
     geometry: GeometryPoint
-    gba_id: Optional[str] = None
-    osm_id: Optional[int] = None
     terrain: Optional[PointTerrainContext] = None
 
 

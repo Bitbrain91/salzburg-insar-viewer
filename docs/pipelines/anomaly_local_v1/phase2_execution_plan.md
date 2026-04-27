@@ -67,18 +67,21 @@ Noch in Phase 0 zu entscheiden:
 - Phase 2R: Reliability Retuning
 - Phase 3: Neighbourhood Context
 - Phase 4: Terrain and Aspect
+- Phase 5: Data Correctness and UI Alignment Audit
 - Parallelspur E0: MatchSAR / AUGMENTERRA
 
 ## Status
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Welle: keine automatische Fortsetzung; `P4` ist mit `Aspect = defer`
-  abgeschlossen, `E0` bleibt offen
+- naechste zulaessige Hauptwelle nach neuem User-Gate: separate Fix-/Folgephase
+  fuer die `P5`-Befunde; `P4` ist mit `Aspect = defer` abgeschlossen, `E0`
+  bleibt offen
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
 - `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
 - `P3` ist abgeschlossen; Design, Backend, API/UI und Abschlussverifikation stehen in `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_verification.md`
+- `P5` ist als Audit abgeschlossen; Bericht und Ticketbefunde stehen in `docs/pipelines/anomaly_local_v1/phase5_data_correctness_report.md`
 
 Phasenstatus:
 
@@ -88,6 +91,7 @@ Phasenstatus:
 - `P2R`: green
 - `P3`: green
 - `P4`: green
+- `P5`: audit-completed with red/inconclusive findings
 - `E0`: open
 
 ## Empfohlener Session-Schnitt
@@ -111,6 +115,9 @@ Phasenstatus:
 - `S4`: `P4`
   - Zweck: Terrain-/Aspect-Entscheidungen auf bestehender Terrainbasis.
   - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase4_supervisor_prompt.md`
+- `S5`: `P5`
+  - Zweck: Daten-, Koordinaten-, Track-, Buffer- und UI-Korrektheit auditieren.
+  - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase5_supervisor_prompt.md`
 - Parallelspur:
   - `E0-W1` darf schon in `S0` oder `S1` vorbereitet werden, weil es die interne Umsetzung nicht blockiert.
   - `E0-W2` erst, wenn externe Rueckmeldung vorliegt.
@@ -609,6 +616,54 @@ Phase 4 ist gruen, wenn:
 - `P4-W3-T1` wurde nicht gestartet, weil keine Integration freigegeben wurde.
 - Naechste Folgearbeit vor Aspect-Re-Entry: DTM-Upgrade, Hoehenbezugskonzept und
   zirkulare Building-Aspect-Semantik.
+
+## Phase 5: Data Correctness and UI Alignment Audit
+
+Phase 5 ist eine reine Audit-Session fuer Daten-, Koordinaten-, Track-, Buffer-
+und UI-Korrektheit. Sie prueft die bestehende Pipeline und Live-Installation, ohne
+Code, DB-Inhalte oder Datenartefakte still zu veraendern.
+
+Detailplan:
+
+- `docs/pipelines/anomaly_local_v1/phase5_data_correctness_plan.md`
+
+Single-File-Entry fuer die neue Supervisor-Session:
+
+- `docs/pipelines/anomaly_local_v1/phase5_supervisor_prompt.md`
+
+### Phasen-DoD
+
+Phase 5 ist gruen, wenn:
+
+- Datenlinie, CRS-Vertrag, Live-DB und Parquet-Artefakte abgeglichen sind
+- InSAR-Punkte, GBA, OSM, Terrain- und ML-Kontextlayer in den Pflicht-AOIs
+  raeumlich bewertet sind
+- Track-/LOS-Semantik und Satelliten-Blickrichtungen fuer Track 44 und Track 95
+  gegen Pipeline, Backend und UI gespiegelt sind
+- adaptive Gebaeude-Buffer und Candidate-Areas fachlich und geometrisch bewertet sind
+- die UI-Anzeige mit API/DB/Artefakten plausibilisiert ist
+- `docs/pipelines/anomaly_local_v1/phase5_data_correctness_report.md` existiert
+  und alle Befunde als `green`, `red` oder `inconclusive` eingeordnet sind
+- keine Code- oder Datenmutation ohne neues User-Gate erfolgt ist
+
+### Wellen
+
+- `P5-W1`: Datenlinie, CRS-Vertrag, Artefakt-Baseline, Live-DB-Abgleich
+- `P5-W2`: raeumliche Layer-Ausrichtung und Track-/LOS-/Satellitenblick-Audit
+- `P5-W3`: adaptive Gebaeude-Buffer, Candidate-Areas und UI-End-to-End-Anzeige
+- `P5-W4`: Abschlussbericht, Befund-Gates und Folgeplan
+
+Status: audit-completed with red/inconclusive findings
+
+Audit-Ergebnis:
+
+- `docs/pipelines/anomaly_local_v1/phase5_data_correctness_report.md`
+- `P5` ist abgeschlossen als Audit, aber nicht `data-correct green`.
+- Nachgelagerte Bereinigung: Der fachlich falsche statische Linktabellenpfad wurde
+  aus API, UI, Schema, Loader und Artefakten entfernt. Punkt-Gebaeude-Zuordnung
+  bleibt Aufgabe der dynamischen ML-Pipeline.
+- `Inconclusive`: echte physikalische Satelliten-Blickrichtung ist im Repo nicht
+  mit einer primaeren auditierbaren Quelle belegt.
 
 ## Parallelspur E0: MatchSAR / AUGMENTERRA
 

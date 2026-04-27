@@ -1,7 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 
-DROP TABLE IF EXISTS insar_to_osm;
-DROP TABLE IF EXISTS insar_to_gba;
 DROP TABLE IF EXISTS building_terrain_context;
 DROP TABLE IF EXISTS insar_point_terrain;
 DROP TABLE IF EXISTS insar_amplitude_timeseries;
@@ -108,28 +106,6 @@ CREATE TABLE building_terrain_context (
 
 CREATE INDEX building_terrain_context_source_idx
     ON building_terrain_context (terrain_source, building_source);
-
-CREATE TABLE insar_to_gba (
-    code TEXT NOT NULL,
-    track INTEGER NOT NULL,
-    gba_id TEXT NOT NULL,
-    distance_m DOUBLE PRECISION,
-    match_method TEXT NOT NULL,
-    PRIMARY KEY (code, track, gba_id)
-);
-
-CREATE INDEX insar_to_gba_gba_idx ON insar_to_gba (gba_id);
-
-CREATE TABLE insar_to_osm (
-    code TEXT NOT NULL,
-    track INTEGER NOT NULL,
-    osm_id BIGINT NOT NULL,
-    distance_m DOUBLE PRECISION,
-    match_method TEXT NOT NULL,
-    PRIMARY KEY (code, track, osm_id)
-);
-
-CREATE INDEX insar_to_osm_osm_idx ON insar_to_osm (osm_id);
 
 CREATE TABLE ml_runs (
     run_id UUID PRIMARY KEY,

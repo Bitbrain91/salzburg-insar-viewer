@@ -145,29 +145,18 @@ Die Datei `pipeline/prepare_insar.py` verarbeitet die drei GPKGs wie folgt:
 
 Die Long-Format-Zeitreihen sind damit fuer den aktuellen Datenstand **vollstaendig befuellt**; es gibt keine erkennbaren Luecken nach dem `melt`/`dropna`-Export.
 
-### 4.2 Gebaeude-, Link- und Terrain-Datensaetze
+### 4.2 Gebaeude- und Terrain-Datensaetze
 
 | Datei | Zeilen | Inhalt |
 |------|-------:|--------|
 | `data/parquet/gba_buildings.parquet` | 57.489 | GBA-Gebaeude |
 | `data/parquet/osm_buildings.parquet` | 49.240 | OSM-Gebaeude |
-| `data/parquet/insar_to_gba.parquet` | 483.015 | InSAR-Punkt zu GBA-Gebaeude |
-| `data/parquet/insar_to_osm.parquet` | 481.423 | InSAR-Punkt zu OSM-Gebaeude |
 | `data/parquet/insar_point_terrain.parquet` | 550.764 | Terrain-Kontext je InSAR-Punkt |
 | `data/parquet/building_terrain_context.parquet` | 106.729 | Terrain-Kontext je Gebaeude |
 
-**Verknuepfungsabdeckung**
-
-- `insar_to_gba.parquet`
-  - 482.900 eindeutige InSAR-Punkte verknuepft
-  - entspricht **87,68 %** aller 550.764 Bewegungs-Punkte
-  - 31.081 eindeutige GBA-Gebaeude
-  - Match-Methoden: `nearest` 300.168, `within` 182.847
-- `insar_to_osm.parquet`
-  - 479.491 eindeutige InSAR-Punkte verknuepft
-  - entspricht **87,06 %** aller 550.764 Bewegungs-Punkte
-  - 30.268 eindeutige OSM-Gebaeude
-  - Match-Methoden: `nearest` 299.450, `within` 181.973
+Statische Punkt-Gebaeude-Linktabellen wurden aus dem produktiven Datenvertrag entfernt.
+Die fachliche Zuordnung erfolgt dynamisch in den ML-Pipelines mit Track-, Hoehen- und
+Einfallswinkelkontext.
 
 **Terrain-Kontext**
 
@@ -307,8 +296,6 @@ Die folgenden Tabellen bilden den aktuellen operativen Datenkern des Backends:
 - `insar_points`
 - `insar_timeseries`
 - `insar_amplitude_timeseries`
-- `insar_to_gba`
-- `insar_to_osm`
 - `insar_point_terrain`
 - `building_terrain_context`
 - `gba_buildings`
@@ -340,7 +327,6 @@ Wichtige Konsequenz:
   - Amplitudenzeitreihen aus den AMP-GPKGs
 - die operativ genutzten GeoParquet-Dateien
 - Gebaeude-Datensaetze aus GBA und OSM
-- die Link-Tabellen zwischen InSAR und Gebaeuden
 - der Terrain-Kontext fuer Punkte und Gebaeude
 - GeoJSONL- und MBTiles-Ausgaben
 - die Backend-relevanten Tabellen
@@ -356,7 +342,7 @@ Wichtige Konsequenz:
 | Punktanalyse in der App / API | `data/parquet/insar_points_t44.parquet`, `data/parquet/insar_points_t95.parquet` bzw. PostGIS `insar_points` |
 | Verschiebungszeitreihen | `data/parquet/insar_timeseries_t44.parquet`, `data/parquet/insar_timeseries_t95.parquet` bzw. PostGIS `insar_timeseries` |
 | Amplitudenzeitreihen | `data/parquet/insar_amplitude_timeseries_t44.parquet`, `data/parquet/insar_amplitude_timeseries_t95.parquet` bzw. PostGIS `insar_amplitude_timeseries` |
-| Punkt-Gebaeude-Verknuepfung | `data/parquet/insar_to_gba.parquet`, `data/parquet/insar_to_osm.parquet` |
+| Punkt-Gebaeude-Zuordnung | dynamisch in `anomaly_local_v1` gegen `gba_buildings` |
 | Terrain-Kontext | `data/parquet/insar_point_terrain.parquet`, `data/parquet/building_terrain_context.parquet` |
 | Kartenanzeige | `data/tiles_v2/*.mbtiles` |
 

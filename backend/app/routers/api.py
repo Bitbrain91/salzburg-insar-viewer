@@ -104,26 +104,10 @@ async def point_detail(
                terrain.terrain_resolution_m,
                terrain.terrain_elevation_m,
                terrain.slope_deg AS terrain_slope_deg,
-               terrain.aspect_deg AS terrain_aspect_deg,
-               gba.gba_id,
-               osm.osm_id
+               terrain.aspect_deg AS terrain_aspect_deg
         FROM insar_points p
         LEFT JOIN insar_point_terrain terrain
                ON terrain.code = p.code AND terrain.track = p.track
-        LEFT JOIN LATERAL (
-            SELECT gba_id
-            FROM insar_to_gba
-            WHERE code = p.code AND track = p.track
-            ORDER BY distance_m NULLS LAST
-            LIMIT 1
-        ) gba ON true
-        LEFT JOIN LATERAL (
-            SELECT osm_id
-            FROM insar_to_osm
-            WHERE code = p.code AND track = p.track
-            ORDER BY distance_m NULLS LAST
-            LIMIT 1
-        ) osm ON true
         WHERE p.code = $1
     """
     params = [code]
@@ -155,8 +139,6 @@ async def point_detail(
         amp_mean=row.get("amp_mean"),
         amp_std=row.get("amp_std"),
         geometry={"lon": row["lon"], "lat": row["lat"]},
-        gba_id=row.get("gba_id"),
-        osm_id=row.get("osm_id"),
         terrain=_build_point_terrain(row),
     )
 
@@ -288,46 +270,6 @@ async def osm_building_detail(request: Request, osm_id: int):
         attributes=attributes,
         terrain=_build_building_terrain(row),
     )
-
-
-@router.get("/buildings/{source}/{building_id}/points")
-async def building_points(request: Request, source: str, building_id: str):
-    app = request.app
-    if source not in {"gba", "osm"}:
-        raise HTTPException(status_code=400, detail="Invalid source")
-
-    if source == "gba":
-        query = """
-            SELECT p.code, p.track, p.velocity, p.coherence
-            FROM insar_to_gba l
-            JOIN insar_points p ON p.code = l.code AND p.track = l.track
-            WHERE l.gba_id = $1
-            ORDER BY p.velocity ASC
-        """
-    else:
-        query = """
-            SELECT p.code, p.track, p.velocity, p.coherence
-            FROM insar_to_osm l
-            JOIN insar_points p ON p.code = l.code AND p.track = l.track
-            WHERE l.osm_id = $1
-            ORDER BY p.velocity ASC
-        """
-
-    rows = await fetch_all(app, query, building_id)
-    return {
-        "source": source,
-        "building_id": building_id,
-        "count": len(rows),
-        "points": [
-            {
-                "code": r["code"],
-                "track": r["track"],
-                "velocity": r["velocity"],
-                "coherence": r["coherence"],
-            }
-            for r in rows
-        ],
-    }
 
 
 @router.get("/points")

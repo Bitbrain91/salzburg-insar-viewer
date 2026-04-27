@@ -44,13 +44,11 @@ Aufbereitung:
 - Ergebnis: `data/parquet/osm_buildings.parquet`
 - OSM-Tags werden als JSON gespeichert (`tags`)
 
-### Verknuepfung (InSAR <-> Gebaeude)
-Ziel: Zu jedem InSAR-Punkt das naechstgelegene GBA/OSM-Gebaeude bestimmen.
-Prozess: `pipeline/link_points_buildings.py`
-- raeumliche Verknuepfung (within + nearest, UTM-basiert)
-- Ergebnis:
-  - `data/parquet/insar_to_gba.parquet`
-  - `data/parquet/insar_to_osm.parquet`
+### InSAR-Gebaeude-Zuordnung
+Die produktive Zuordnung von InSAR-Punkten zu Gebaeuden erfolgt dynamisch in den
+ML-Pipelines und API-Abfragen. Statische Linktabellen wurden entfernt, weil sie den
+aktuellen fachlichen Vertrag mit Track-, Hoehen- und Einfallswinkelkontext nicht
+abbilden.
 
 ## 3) Architektur und Zusammenspiel der Komponenten
 
@@ -59,14 +57,14 @@ Datenfluss (vereinfacht):
 GeoPackage + GBA + OSM
         |
         v
-Pipeline (GeoParquet + Links)
+Pipeline (GeoParquet + ML-Kontext)
         |
         v
 PostGIS (relationale + raeumliche Abfragen)
         |
         v
 FastAPI Backend
-  |- /api/* (Details, Timeseries, Gebaeude, Links)
+  |- /api/* (Details, Timeseries, Gebaeude, ML-Kontext)
   `- /mbtiles/* (Kachelserver)
         |
         v
@@ -81,18 +79,16 @@ React + MapLibre Frontend
 
 - Backend (`backend/`)
   - FastAPI
-  - PostGIS-Abfragen fuer Details/Timeseries/Links
+  - PostGIS-Abfragen fuer Details, Timeseries, Gebaeude und ML-Kontext
   - liefert MBTiles ueber `/mbtiles/{name}/{z}/{x}/{y}.pbf`
 
 - Datenbank (PostGIS in Docker)
   - Schema: `backend/sql/schema.sql`
   - Tabellen: `insar_points`, `insar_timeseries`, `insar_amplitude_timeseries`,
-    `gba_buildings`, `osm_buildings`,
-    `insar_to_gba`, `insar_to_osm`
+    `gba_buildings`, `osm_buildings`, Terrain- und ML-Tabellen
 
 - Pipeline (`pipeline/`)
   - konvertiert Rohdaten -> GeoParquet
-  - erstellt Linktabellen
   - exportiert GeoJSONL -> MBTiles via Tippecanoe (Docker)
 
 ### Tile-Stack
@@ -170,7 +166,6 @@ pip install -r pipeline\requirements.txt
 ```bash
 python pipeline/prepare_insar.py --track all
 python pipeline/prepare_buildings.py --osm-source overpass
-python pipeline/link_points_buildings.py --max-distance 15
 ```
 
 ### 4) Daten in PostGIS laden

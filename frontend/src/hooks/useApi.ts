@@ -53,8 +53,6 @@ export type PointDetail = {
   amp_mean: number | null;
   amp_std: number | null;
   geometry: { lon: number; lat: number };
-  gba_id: string | null;
-  osm_id: number | null;
   terrain: PointTerrainContext | null;
 };
 
@@ -286,10 +284,6 @@ export function getPointTimeseries(code: string, track?: number) {
 export function getBuildingDetail(source: "gba" | "osm", id: string) {
   const suffix = source === "gba" ? "gba" : "osm";
   return fetchJson<BuildingDetail>(`/api/buildings/${suffix}/${encodeURIComponent(id)}`);
-}
-
-export function getBuildingPoints(source: "gba" | "osm", id: string) {
-  return fetchJson(`/api/buildings/${source}/${encodeURIComponent(id)}/points`);
 }
 
 export function getMlBuildingAnalysis(

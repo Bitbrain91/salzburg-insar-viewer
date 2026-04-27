@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAppStore } from "../lib/store";
 import {
   getBuildingDetail,
-  getBuildingPoints,
   getMlBuildingAnalysis,
   getMlPointAnalysis,
   getMlRunDetail,
@@ -63,15 +62,6 @@ export default function InspectorPanel() {
         ? getBuildingDetail(selection.source, selection.id)
         : Promise.resolve(null),
     enabled: selection?.type === "building",
-  });
-
-  const buildingPointsQuery = useQuery({
-    queryKey: ["building-points", selection, isActiveLocalAnomalyRun],
-    queryFn: () =>
-      selection && selection.type === "building"
-        ? getBuildingPoints(selection.source, selection.id)
-        : Promise.resolve(null),
-    enabled: selection?.type === "building" && !isActiveLocalAnomalyRun,
   });
 
   const mlBuildingAnalysisQuery = useQuery({
@@ -299,14 +289,6 @@ export default function InspectorPanel() {
                       <span className="value">
                         {lat === undefined || lat === null ? "—" : lat.toFixed(6)}
                       </span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Linked GBA</span>
-                      <span className="value">{fmt.str(pointQuery.data.gba_id)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Linked OSM</span>
-                      <span className="value">{fmt.str(pointQuery.data.osm_id)}</span>
                     </div>
                   </>
                 );
@@ -834,16 +816,6 @@ export default function InspectorPanel() {
             </div>
           )}
 
-          {buildingPointsQuery.data && (
-            <div>
-              <div className="section-title">Linked InSAR Points</div>
-              <div className="metric">
-                <span className="label">Count</span>
-                <span className="value">{buildingPointsQuery.data.count}</span>
-              </div>
-              <div className="pill">{buildingPointsQuery.data.count} points linked</div>
-            </div>
-          )}
         </>
       )}
     </div>

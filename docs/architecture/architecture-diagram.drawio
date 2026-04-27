@@ -121,9 +121,6 @@
         <mxCell id="prep2" value="prepare_buildings.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
           <mxGeometry x="95" y="412" width="95" height="22" as="geometry" />
         </mxCell>
-        <mxCell id="prep3" value="link_points_buildings.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
-          <mxGeometry x="95" y="439" width="95" height="22" as="geometry" />
-        </mxCell>
         <mxCell id="prep4" value="load_postgis.py" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#607D8B;fontSize=9;" parent="1" vertex="1">
           <mxGeometry x="195" y="385" width="95" height="22" as="geometry" />
         </mxCell>

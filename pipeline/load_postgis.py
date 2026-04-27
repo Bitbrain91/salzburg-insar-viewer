@@ -79,22 +79,6 @@ def _load_buildings(engine, path: Path, table: str, id_col: str) -> None:
     print()
 
 
-def _load_links(engine, path: Path, table: str) -> None:
-    print(f"  Loading {path.name} -> {table}...")
-    if not path.exists():
-        print(f"    Skipping (file not found)")
-        return
-    df = pd.read_parquet(path)
-    print(f"    Read {len(df):,} rows")
-
-    chunk_size = 50000
-    total = len(df)
-    for i in range(0, total, chunk_size):
-        chunk = df.iloc[i:i+chunk_size]
-        chunk.to_sql(table, engine, if_exists="append", index=False)
-        print(f"    Progress: {min(i+chunk_size, total):,}/{total:,} rows", end="\r")
-    print()
-
 def _ensure_multipolygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     def to_multi(geom):
         if geom is None:
@@ -121,7 +105,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--only",
-        choices=["all", "points", "timeseries", "buildings", "links", "osm", "gba"],
+        choices=["all", "points", "timeseries", "buildings", "osm", "gba"],
         default="all",
         help="Load only a specific dataset group",
     )
@@ -161,11 +145,6 @@ def main() -> None:
     if args.only in {"all", "buildings", "osm"}:
         print("\nLoading OSM buildings...")
         _load_buildings(engine, PARQUET_DIR / "osm_buildings.parquet", "osm_buildings", "osm_id")
-
-    if args.only in {"all", "links"}:
-        print("\nLoading links...")
-        _load_links(engine, PARQUET_DIR / "insar_to_gba.parquet", "insar_to_gba")
-        _load_links(engine, PARQUET_DIR / "insar_to_osm.parquet", "insar_to_osm")
 
     print("\nPostGIS load complete.")
 
