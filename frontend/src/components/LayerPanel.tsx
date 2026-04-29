@@ -1,4 +1,4 @@
-import { basemaps } from "../lib/basemaps";
+import { basemaps, type BasemapId } from "../lib/basemaps";
 import { satelliteCameraPresets } from "../lib/cameraModes";
 import {
   HEIGHT_PALETTE,
@@ -12,20 +12,19 @@ import {
   sliderToHeightSensitivity,
 } from "../lib/pointStyling";
 import { useAppStore } from "../lib/store";
-import PipelinePanel from "./PipelinePanel";
 
 const velocityLegendItems = [
-  { color: "#8e0f2f", label: "Strong subsidence (< -5)" },
-  { color: "#e67f1c", label: "Moderate subsidence (-5 to -2)" },
-  { color: "#f2c14e", label: "Slight subsidence (-2 to -1)" },
-  { color: "#2c9f7a", label: "Stable (-1 to 1)" },
-  { color: "#4aa5d5", label: "Uplift (1 to 5)" },
-  { color: "#1c2f4a", label: "Strong uplift (> 5)" },
+  { color: "#8e0f2f", label: "Starke Senkung (< -5)" },
+  { color: "#e67f1c", label: "Moderate Senkung (-5 bis -2)" },
+  { color: "#f2c14e", label: "Leichte Senkung (-2 bis -1)" },
+  { color: "#2c9f7a", label: "Stabil (-1 bis 1)" },
+  { color: "#4aa5d5", label: "Hebung (1 bis 5)" },
+  { color: "#1c2f4a", label: "Starke Hebung (> 5)" },
 ];
 
 const trackLegendItems = [
-  { color: TRACK_44_OUTLINE_COLOR, label: "Track 44 Rand" },
-  { color: TRACK_95_OUTLINE_COLOR, label: "Track 95 Rand" },
+  { color: TRACK_44_OUTLINE_COLOR, label: "Track 44 Umriss" },
+  { color: TRACK_95_OUTLINE_COLOR, label: "Track 95 Umriss" },
 ];
 
 export default function LayerPanel() {
@@ -50,7 +49,7 @@ export default function LayerPanel() {
   const heightCycleLength = getHeightCycleLength(heightSensitivityM);
   const heightLegendItems = HEIGHT_PALETTE.map((color, index) => ({
     color,
-    label: `${formatHeightLegendValue(heightLegendAnchors[index])}-${formatHeightLegendValue(
+    label: `${formatHeightLegendValue(heightLegendAnchors[index])} bis ${formatHeightLegendValue(
       heightLegendAnchors[index] + heightSensitivityM
     )} m`,
   }));
@@ -60,36 +59,29 @@ export default function LayerPanel() {
   return (
     <div className="panel panel-left">
       <div>
-        <h2>Layers & Filters</h2>
-        <small>Toggle sources and constrain signal quality.</small>
+        <h2>Karte</h2>
+        <small>Kartengrundlage, Datenebenen, Filter und Legende.</small>
       </div>
 
       <div>
-        <div className="section-title">Basemap</div>
-        <div className="toggle-row">
-          <span>{basemaps.light.label}</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={basemapId === basemaps.light.id}
-            onChange={() => setBasemapId(basemaps.light.id)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>Satellite (Luftbild)</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={basemapId === basemaps.satellite.id}
-            onChange={() => setBasemapId(basemaps.satellite.id)}
-          />
+        <div className="section-title">Kartengrundlage</div>
+        <div className="form-row">
+          <label className="label">Basiskarte</label>
+          <select
+            className="select"
+            value={basemapId}
+            onChange={(e) => setBasemapId(e.target.value as BasemapId)}
+          >
+            <option value={basemaps.light.id}>Fachkarte hell</option>
+            <option value={basemaps.satellite.id}>Luftbild</option>
+          </select>
         </div>
       </div>
 
       <div>
-        <div className="section-title">InSAR Tracks</div>
+        <div className="section-title">InSAR-Tracks</div>
         <div className="toggle-row">
-          <span>T44/A Look 81.4 deg E</span>
+          <span>Track 44 aufsteigend, Blick 81,4 Grad Ost</span>
           <input
             type="checkbox"
             className="toggle"
@@ -98,7 +90,7 @@ export default function LayerPanel() {
           />
         </div>
         <div className="toggle-row">
-          <span>T95/D Look 281.5 deg W</span>
+          <span>Track 95 absteigend, Blick 281,5 Grad West</span>
           <input
             type="checkbox"
             className="toggle"
@@ -109,7 +101,47 @@ export default function LayerPanel() {
       </div>
 
       <div>
-        <div className="section-title">Kameraansicht</div>
+        <div className="section-title">Gebäude und Kontext</div>
+        <div className="toggle-row">
+          <span>Global Building Atlas (3D)</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.gba}
+            onChange={(e) => setLayer("gba", e.target.checked)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>OSM-Gebäudegrundrisse</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.osm}
+            onChange={(e) => setLayer("osm", e.target.checked)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>SRTM-Relief</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.reliefHillshade}
+            onChange={(e) => setLayer("reliefHillshade", e.target.checked)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>SRTM-Hangneigung</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={layers.reliefSlope}
+            onChange={(e) => setLayer("reliefSlope", e.target.checked)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <div className="section-title">Kamera</div>
         <div className="form-row">
           <label className="label">Perspektive</label>
           <select
@@ -121,76 +153,33 @@ export default function LayerPanel() {
               )
             }
           >
-            <option value="default">Standard</option>
+            <option value="default">Standardansicht</option>
             <option value="satellite_track44">{satelliteCameraPresets.satellite_track44.label}</option>
             <option value="satellite_track95">{satelliteCameraPresets.satellite_track95.label}</option>
           </select>
         </div>
         <small>
-          LOS-Looks exakt, Kamera grob Ost/West. Kandidatenflaechen liegen sensorseitig,
-          also entgegen der Look-Richtung.
+          LOS-Blickrichtungen werden exakt geführt; die Kamera ist grob nach Ost oder West
+          ausgerichtet. Kandidatenflächen liegen sensorseitig, also entgegen der
+          Blickrichtung.
         </small>
-      </div>
-
-      <div>
-        <div className="section-title">Buildings</div>
-        <div className="toggle-row">
-          <span>Global Building Atlas (3D)</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.gba}
-            onChange={(e) => setLayer("gba", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>OSM Footprints</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.osm}
-            onChange={(e) => setLayer("osm", e.target.checked)}
-          />
-        </div>
-      </div>
-
-      <div>
-        <div className="section-title">Terrain (SRTM)</div>
-        <div className="toggle-row">
-          <span>Relief</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.reliefHillshade}
-            onChange={(e) => setLayer("reliefHillshade", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>Hangneigung</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.reliefSlope}
-            onChange={(e) => setLayer("reliefSlope", e.target.checked)}
-          />
-        </div>
       </div>
 
       <div>
         <div className="section-title">Punktdarstellung</div>
         <div className="form-row">
-          <label className="label">Farblogik</label>
+          <label className="label">Einfärbung</label>
           <select
             className="select"
             value={pointColorMode}
             onChange={(e) => setPointColorMode(e.target.value as "velocity" | "height")}
           >
             <option value="velocity">Geschwindigkeit</option>
-            <option value="height">InSAR-Hoehe</option>
+            <option value="height">InSAR-Höhe</option>
           </select>
         </div>
         <div className="toggle-row">
-          <span>Track-Raender</span>
+          <span>Track-Ränder anzeigen</span>
           <input
             type="checkbox"
             className="toggle"
@@ -217,18 +206,17 @@ export default function LayerPanel() {
               }
             />
             <small>
-              Die Hoehenfaerbung arbeitet in festen Hoehenklassen. Kleinere Werte erzeugen
-              feinere Klassen und kuerzere Farbzyklen. Grundlage ist nur das vorhandene
-              InSAR-Attribut `height`.
+              Kleinere Werte erzeugen feinere Höhenklassen und kürzere Farbzyklen.
+              Grundlage ist das vorhandene InSAR-Attribut height.
             </small>
           </>
         )}
       </div>
 
       <div>
-        <div className="section-title">Filters</div>
+        <div className="section-title">Filter</div>
         <div className="toggle-row">
-          <span>Filters enabled</span>
+          <span>Grenzwerte verwenden</span>
           <input
             type="checkbox"
             className="toggle"
@@ -237,7 +225,7 @@ export default function LayerPanel() {
           />
         </div>
         <div className="metric">
-          <span className="label">Velocity min (mm/yr)</span>
+          <span className="label">Geschwindigkeit min. (mm/Jahr)</span>
           <span className="value">{filters.velocityMin.toFixed(1)}</span>
         </div>
         <input
@@ -252,7 +240,7 @@ export default function LayerPanel() {
         />
 
         <div className="metric">
-          <span className="label">Velocity max (mm/yr)</span>
+          <span className="label">Geschwindigkeit max. (mm/Jahr)</span>
           <span className="value">{filters.velocityMax.toFixed(1)}</span>
         </div>
         <input
@@ -267,7 +255,7 @@ export default function LayerPanel() {
         />
 
         <div className="metric">
-          <span className="label">Coherence min</span>
+          <span className="label">Kohärenz min.</span>
           <span className="value">{filters.coherenceMin.toFixed(2)}</span>
         </div>
         <input
@@ -283,7 +271,7 @@ export default function LayerPanel() {
       </div>
 
       <div>
-        <div className="section-title">Legend</div>
+        <div className="section-title">Legende</div>
         <div className="legend">
           {legendItems.map((item) => (
             <div className="legend-item" key={item.label}>
@@ -294,7 +282,7 @@ export default function LayerPanel() {
         </div>
         {pointColorMode === "height" && (
           <small>
-            Die Hoehenklassen starten bei 450 m und wiederholen sich alle{" "}
+            Die Höhenklassen starten bei 450 m und wiederholen sich alle{" "}
             {formatHeightLegendValue(heightCycleLength)} m.
           </small>
         )}
@@ -316,8 +304,6 @@ export default function LayerPanel() {
           </div>
         )}
       </div>
-
-      <PipelinePanel />
     </div>
   );
 }

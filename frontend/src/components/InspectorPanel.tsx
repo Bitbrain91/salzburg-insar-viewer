@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppStore } from "../lib/store";
 import {
@@ -9,6 +9,111 @@ import {
   getPointDetail,
   type MlReliabilityPenalty,
 } from "../hooks/useApi";
+import { HelpButton } from "./ui";
+import {
+  getAttributeMetadata,
+  type AttributeContext,
+  type AttributeMetadata,
+} from "../lib/attributeMetadata";
+
+type InspectorTabId = "overview" | "metrics" | "ml" | "raw";
+
+type InspectorTabConfig = {
+  id: InspectorTabId;
+  label: string;
+};
+
+const pointTabs: InspectorTabConfig[] = [
+  { id: "overview", label: "Ueberblick" },
+  { id: "metrics", label: "Messwerte/Terrain" },
+  { id: "ml", label: "ML/Diagnostik" },
+  { id: "raw", label: "Rohdaten" },
+];
+
+const buildingTabs: InspectorTabConfig[] = [
+  { id: "overview", label: "Ueberblick" },
+  { id: "metrics", label: "Terrain/Attribute" },
+  { id: "ml", label: "ML/Diagnostik" },
+  { id: "raw", label: "Rohdaten" },
+];
+
+type AttributeHint = {
+  key: string;
+  context: AttributeContext;
+};
+
+const metricAttributeHints: Record<string, AttributeHint> = {
+  "Punktcode": { key: "code", context: "insar-point" },
+  "Track / LOS": { key: "los", context: "insar-point" },
+  "Geschwindigkeit": { key: "velocity", context: "insar-point" },
+  "Geschwindigkeit Std.": { key: "velocity_std", context: "insar-point" },
+  "Kohaerenz": { key: "coherence", context: "insar-point" },
+  "InSAR-Hoehe": { key: "height", context: "insar-point" },
+  "Hoehe Std.": { key: "height_std", context: "insar-point" },
+  "Beschleunigung": { key: "acceleration", context: "insar-point" },
+  "Beschleunigung Std.": { key: "acceleration_std", context: "insar-point" },
+  "Saisonale Amplitude": { key: "season_amp", context: "insar-point" },
+  "Saisonale Amplitude Std.": { key: "s_amp_std", context: "insar-point" },
+  "Saisonale Phase": { key: "season_phs", context: "insar-point" },
+  "Saisonale Phase Std.": { key: "s_phs_std", context: "insar-point" },
+  "Amplitude Mittel": { key: "amp_mean", context: "insar-point" },
+  "Amplitude Std.": { key: "amp_std", context: "insar-point" },
+  "Effektive Flaeche": { key: "eff_area", context: "insar-point" },
+  "Einfallswinkel": { key: "incidence_angle", context: "insar-point" },
+  "Laengengrad": { key: "lon", context: "insar-point" },
+  "Breitengrad": { key: "lat", context: "insar-point" },
+  "Terrain-Quelle": { key: "source", context: "terrain" },
+  "Terrain-Aufloesung": { key: "resolution_m", context: "terrain" },
+  "Gelaendehoehe": { key: "elevation_m", context: "terrain" },
+  "Mittlere Gelaendehoehe": { key: "elevation_mean_m", context: "terrain" },
+  "Gelaendehoehe min/max": { key: "elevation_min_m", context: "terrain" },
+  "Hangneigung": { key: "slope_deg", context: "terrain" },
+  "Hangneigung Mittel / Max": { key: "slope_mean_deg", context: "terrain" },
+  "Exposition": { key: "aspect_deg", context: "terrain" },
+  "Reliefspanne": { key: "relief_range_m", context: "terrain" },
+  "Aktiver Lauf": { key: "run_id", context: "ml-run" },
+  "Run-Status": { key: "status", context: "ml-run" },
+  "Pipeline": { key: "pipeline", context: "ml-run" },
+  "Label": { key: "label", context: "ml-point" },
+  "Qualitaetswert": { key: "quality_score", context: "ml-point" },
+  "Anomaliewert": { key: "anomaly_score", context: "ml-point" },
+  "Cross-Track-Konsistenz": { key: "cross_track_consistency", context: "ml-point" },
+  "Gebaeude": { key: "building_id", context: "ml-point" },
+  "Abstand zum Gebaeude": { key: "distance_m", context: "ml-point" },
+  "Clusterrolle / Wahrscheinlichkeit": { key: "cluster_role", context: "ml-point" },
+  "Cluster-Ausreisserwert": { key: "cluster_outlier_score", context: "ml-point" },
+  "Fuer Scoring genutzt": { key: "kept_for_scoring", context: "ml-point" },
+  "Gate-Gruende": { key: "gate_reasons", context: "ml-point" },
+  "Zuordnung": { key: "assignment_method", context: "ml-point" },
+  "Track-Stuetzung": { key: "track_point_count", context: "ml-point" },
+  "Detektorwerte": { key: "detector_scores", context: "ml-point" },
+  "Degradierungsgrund": { key: "degraded_reason", context: "ml-point" },
+  "Quelle": { key: "source", context: "building" },
+  "Gebaeude-ID": { key: "building_id", context: "building" },
+  "Gebaeudehoehe": { key: "height", context: "building" },
+  "Name": { key: "name", context: "building" },
+  "Typ": { key: "building_type", context: "building" },
+  "Bewegung": { key: "building_motion_mm_a", context: "ml-building" },
+  "Zuverlaessigkeit": { key: "building_reliability_score", context: "ml-building" },
+  "Status": { key: "building_status", context: "ml-building" },
+  "Run-zugeordnete Punkte": { key: "point_count", context: "ml-building" },
+  "Behalten / ausgeschlossen / Rauschen": { key: "kept_point_count", context: "ml-building" },
+  "Bewegung / Status": { key: "building_motion_mm_a", context: "ml-building" },
+  "Retuning-Flags": { key: "reliability_penalties", context: "ml-building" },
+  "Track-Uebereinstimmung": { key: "track_agreement_score", context: "ml-building" },
+  "Retuning-Anpassungen": { key: "reliability_penalties", context: "ml-building" },
+  "Cluster / belastbar": { key: "cluster_count", context: "ml-building" },
+  "Differenzielle Bewegung": { key: "differential_motion_flag", context: "ml-building" },
+  "Hauptcluster": { key: "main_cluster_track_44_id", context: "ml-building" },
+  "Track-Bewegung": { key: "track_motion_mm_a", context: "ml-building" },
+  "Median-Abstand": { key: "median_distance_m", context: "ml-building" },
+  "Mittlere Qualitaet": { key: "avg_quality_score", context: "ml-building" },
+  "Mittlere Anomalie": { key: "avg_anomaly_score", context: "ml-building" },
+  "Mittlere Cross-Track-Konsistenz": {
+    key: "avg_cross_track_consistency",
+    context: "ml-building",
+  },
+};
 
 export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
@@ -20,6 +125,14 @@ export default function InspectorPanel() {
   const mlBuildingShowHulls = useAppStore((state) => state.mlBuildingShowHulls);
   const setMlBuildingShowHulls = useAppStore((state) => state.setMlBuildingShowHulls);
   const [pointAnalysisRunId, setPointAnalysisRunId] = useState<string | null>(null);
+  const [activePointTab, setActivePointTab] = useState<InspectorTabId>("overview");
+  const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("overview");
+  const selectionKey =
+    selection?.type === "point"
+      ? `point:${selection.code}:${selection.track ?? "all"}`
+      : selection?.type === "building"
+        ? `building:${selection.source}:${selection.id}`
+        : "none";
 
   const activeRunQuery = useQuery({
     queryKey: ["ml-run-detail", activeRunId],
@@ -33,6 +146,11 @@ export default function InspectorPanel() {
   const isActiveRunPending = activeRunStatus === "queued" || activeRunStatus === "running";
   const isActiveLocalAnomalyRun =
     hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_local_v1";
+
+  useEffect(() => {
+    setActivePointTab("overview");
+    setActiveBuildingTab("overview");
+  }, [selectionKey]);
 
   useEffect(() => {
     if (
@@ -109,7 +227,7 @@ export default function InspectorPanel() {
   const fmtStr = (value?: string | number | null) =>
     value === null || value === undefined || value === "" ? "—" : String(value);
   const fmtBool = (value?: boolean | null) =>
-    value === null || value === undefined ? "—" : value ? "yes" : "no";
+    value === null || value === undefined ? "—" : value ? "ja" : "nein";
   const getNumber = (value: unknown) => {
     const parsed =
       typeof value === "number" ? value : typeof value === "string" ? Number(value) : null;
@@ -125,8 +243,8 @@ export default function InspectorPanel() {
     agreementTensionFlag: boolean
   ) => {
     const flags = [
-      weakSecondaryTrackFlag ? "weak secondary track" : null,
-      agreementTensionFlag ? "agreement tension" : null,
+      weakSecondaryTrackFlag ? "schwacher Sekundaertrack" : null,
+      agreementTensionFlag ? "Track-Spannung" : null,
     ].filter(Boolean);
     return flags.length ? flags.join(" / ") : "—";
   };
@@ -135,685 +253,698 @@ export default function InspectorPanel() {
     const deltaSuffix =
       penalty.score_delta === null ? "" : ` (${penalty.score_delta.toFixed(2)})`;
     if (penalty.key === "weak_main_cluster_support") {
-      return `weak main support${trackSuffix}${deltaSuffix}`;
+      return `schwache Hauptcluster-Stuetzung${trackSuffix}${deltaSuffix}`;
     }
     if (penalty.key === "weak_secondary_track_band_cap") {
-      return `band cap ${penalty.cap_band || "—"}${trackSuffix}`;
+      return `Bandgrenze ${penalty.cap_band || "—"}${trackSuffix}`;
     }
     if (penalty.key === "low_track_agreement") {
-      return `low agreement${deltaSuffix}`;
+      return `niedrige Track-Uebereinstimmung${deltaSuffix}`;
     }
     if (penalty.key === "very_low_track_agreement_band_cap") {
-      return `band cap ${penalty.cap_band || "—"}`;
+      return `Bandgrenze ${penalty.cap_band || "—"}`;
     }
     return penalty.key.replaceAll("_", " ");
   };
   const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
     penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";
 
+  const formatRawValue = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return "—";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  };
+
+  const renderMetric = (
+    label: string,
+    value: ReactNode,
+    help?: string,
+    metricKey?: string,
+    attributeHint?: AttributeHint
+  ) => {
+    const hint = attributeHint ?? metricAttributeHints[label];
+    const registryMetadata = hint ? getAttributeMetadata(hint.key, hint.context) : null;
+    const helpMetadata: Pick<AttributeMetadata, "label" | "description" | "unit" | "source"> | null =
+      help
+        ? {
+            label,
+            description: help,
+            unit: registryMetadata?.unit,
+            source: registryMetadata?.source,
+          }
+        : registryMetadata;
+
+    return (
+      <div className="metric" key={metricKey}>
+        <span className="label">
+          <span>{label}</span>
+          {helpMetadata && <HelpButton metadata={helpMetadata} />}
+        </span>
+        <span className="value">{value}</span>
+      </div>
+    );
+  };
+
+  const renderTabs = (
+    tabs: InspectorTabConfig[],
+    activeTab: InspectorTabId,
+    onSelect: (tab: InspectorTabId) => void,
+    ariaLabel: string
+  ) => (
+    <div
+      className="inspector-tabs"
+      role="tablist"
+      aria-label={ariaLabel}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: 6,
+        margin: "12px 0",
+      }}
+    >
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            className={`pill inspector-tab${isActive ? " active" : ""}`}
+            onClick={() => onSelect(tab.id)}
+            style={{
+              border: isActive ? "1px solid currentColor" : "1px solid transparent",
+              borderRadius: 6,
+              cursor: "pointer",
+              minHeight: 32,
+              textAlign: "center",
+            }}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const renderRawDetails = (title: string, value: unknown) => (
+    <details className="attribute-details">
+      <summary>{title}</summary>
+      <pre
+        style={{
+          maxHeight: 280,
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    </details>
+  );
+
+  const renderAttributeDetails = (
+    attributes: Record<string, unknown>,
+    context: AttributeContext
+  ) => {
+    const entries = Object.entries(attributes);
+    if (entries.length === 0) {
+      return <div className="pill">Keine dynamischen Attribute vorhanden.</div>;
+    }
+    return (
+      <details className="attribute-details">
+        <summary>Dynamische Attribute anzeigen ({entries.length})</summary>
+        {entries.map(([key, value]) => {
+          const metadata = getAttributeMetadata(key, context);
+          return renderMetric(
+            metadata.label,
+            formatRawValue(value),
+            undefined,
+            `attribute-${key}`,
+            { key, context }
+          );
+        })}
+      </details>
+    );
+  };
+
+  const renderActiveRunSummary = () => {
+    if (!activeRunId) {
+      return <div className="pill">Kein aktiver ML-Lauf ausgewaehlt.</div>;
+    }
+    if (!activeRunStatus && activeRunQuery.isLoading) {
+      return <div className="pill">Status des aktiven ML-Laufs wird geladen...</div>;
+    }
+    return (
+      <>
+        {renderMetric("Aktiver Lauf", activeRunId)}
+        {renderMetric("Run-Status", fmtStr(activeRunStatus))}
+        {renderMetric("Pipeline", fmtStr(activeRunQuery.data?.pipeline))}
+        {isActiveRunPending && (
+          <div className="pill">Die Auswertung wird waehrend der Verarbeitung aktualisiert.</div>
+        )}
+      </>
+    );
+  };
+
+  const renderPointOverview = () => {
+    const point = pointQuery.data;
+    if (!point) return null;
+    return (
+      <div>
+        <div className="section-title">Kurzueberblick</div>
+        {renderMetric("Punktcode", fmtStr(point.code), "Eindeutiger InSAR-Messpunkt.")}
+        {renderMetric("Track / LOS", `${fmtStr(point.track)} / ${fmtStr(point.los)}`)}
+        {renderMetric("Geschwindigkeit", `${fmtNum(point.velocity)} mm/Jahr`, "Mittlere Bewegung entlang der Sichtlinie.")}
+        {renderMetric("Kohaerenz", fmtNum(point.coherence), "Qualitaetsmass fuer die Stabilitaet der Radarantwort.")}
+        {renderMetric("InSAR-Hoehe", `${fmtNum(point.height, 1)} m`)}
+        <div className="section-title">Aktiver ML-Lauf</div>
+        {renderActiveRunSummary()}
+        {renderPointMlStatus()}
+      </div>
+    );
+  };
+
+  const renderPointMetrics = () => {
+    const point = pointQuery.data;
+    if (!point) return null;
+    const lon = point.geometry?.lon;
+    const lat = point.geometry?.lat;
+    return (
+      <div>
+        <div className="section-title">Messwerte</div>
+        {renderMetric("Geschwindigkeit", `${fmtNum(point.velocity)} mm/Jahr`)}
+        {renderMetric("Geschwindigkeit Std.", `${fmtNum(point.velocity_std)} mm/Jahr`)}
+        {renderMetric("Beschleunigung", `${fmtNum(point.acceleration)} mm/Jahr²`)}
+        {renderMetric("Beschleunigung Std.", `${fmtNum(point.acceleration_std)} mm/Jahr²`)}
+        {renderMetric("Saisonale Amplitude", `${fmtNum(point.season_amp)} mm`)}
+        {renderMetric("Saisonale Amplitude Std.", `${fmtNum(point.s_amp_std)} mm`)}
+        {renderMetric("Saisonale Phase", fmtNum(point.season_phs))}
+        {renderMetric("Saisonale Phase Std.", fmtNum(point.s_phs_std))}
+        {renderMetric("Amplitude Mittel", fmtNum(point.amp_mean, 1))}
+        {renderMetric("Amplitude Std.", fmtNum(point.amp_std, 1))}
+        {renderMetric("Effektive Flaeche", fmtNum(point.eff_area, 1))}
+        {renderMetric("Einfallswinkel", `${fmtNum(point.incidence_angle)} °`)}
+        {renderMetric("Kohaerenz", fmtNum(point.coherence))}
+        {renderMetric("InSAR-Hoehe", `${fmtNum(point.height, 1)} m`)}
+        {renderMetric("Hoehe Std.", `${fmtNum(point.height_std, 1)} m`)}
+        {renderMetric("Laengengrad", lon === null || lon === undefined ? "—" : lon.toFixed(6))}
+        {renderMetric("Breitengrad", lat === null || lat === undefined ? "—" : lat.toFixed(6))}
+        <div className="section-title">Terrain-Kontext</div>
+        {point.terrain ? (
+          <>
+            {renderMetric("Terrain-Quelle", fmtStr(point.terrain.source))}
+            {renderMetric("Terrain-Aufloesung", `${fmtNum(point.terrain.resolution_m, 1)} m`)}
+            {renderMetric("Gelaendehoehe", `${fmtNum(point.terrain.elevation_m, 1)} m`)}
+            {renderMetric("Hangneigung", `${fmtNum(point.terrain.slope_deg, 1)} °`)}
+            {renderMetric("Exposition", `${fmtNum(point.terrain.aspect_deg, 1)} °`)}
+          </>
+        ) : (
+          <div className="pill">Kein Terrain-Kontext fuer diesen Punkt vorhanden.</div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPointMlStatus = () => (
+    <>
+      {pointAnalysisRunId && mlPointAnalysisQuery.isLoading && (
+        <div className="pill">Anomalieanalyse wird geladen...</div>
+      )}
+      {activeRunId && activeRunId !== pointAnalysisRunId && activeRunStatus !== "failed" && (
+        <div className="pill">Aktiver Lauf verarbeitet diesen Punkt noch.</div>
+      )}
+      {activeRunId && activeRunStatus === "failed" && (
+        <div className="pill warning">Aktiver Lauf ist fehlgeschlagen, bevor eine Punktanalyse verfuegbar war.</div>
+      )}
+      {pointAnalysisRunId === activeRunId && mlPointAnalysisStatus === "pending" && (
+        <div className="pill">Aktiver Lauf verarbeitet diesen Punkt noch.</div>
+      )}
+      {pointAnalysisRunId === activeRunId &&
+        mlPointAnalysisStatus === "missing" &&
+        activeRunStatus !== "failed" && (
+          <div className="pill warning">
+            {mlPointAnalysisMessage || "Keine ML-Analyse fuer diesen Punkt im aktiven Lauf."}
+          </div>
+        )}
+      {activeRunId &&
+        activeRunStatus &&
+        !isActiveRunPending &&
+        activeRunStatus !== "failed" &&
+        mlPointAnalysisQuery.isError && (
+          <div className="pill warning">ML-Analyse fuer diesen Punkt konnte nicht geladen werden.</div>
+        )}
+    </>
+  );
+
+  const renderPointMl = () => (
+    <div>
+      <div className="section-title">Aktiver ML-Lauf</div>
+      {renderActiveRunSummary()}
+      {renderPointMlStatus()}
+      {pointAnalysisRunId === activeRunId && mlPointAnalysis && (
+        <>
+          <div className="section-title">Punktanalyse</div>
+          {renderMetric("Label", fmtStr(mlPointAnalysis.label))}
+          {renderMetric("Qualitaetswert", fmtNum(mlPointAnalysis.quality_score))}
+          {renderMetric("Anomaliewert", fmtNum(mlPointAnalysis.anomaly_score))}
+          {renderMetric("Cross-Track-Konsistenz", fmtNum(mlPointAnalysis.cross_track_consistency))}
+          {renderMetric(
+            "Gebaeude",
+            `${fmtStr(mlPointAnalysis.building_source).toUpperCase()} / ${fmtStr(mlPointAnalysis.building_id)}`
+          )}
+          {renderMetric("Abstand zum Gebaeude", `${fmtNum(mlPointAnalysis.distance_m, 1)} m`)}
+          {renderMetric(
+            "Clusterrolle / Wahrscheinlichkeit",
+            `${fmtStr(mlPointAnalysis.cluster_role)} / ${fmtNum(mlPointAnalysis.cluster_probability)}`
+          )}
+          {renderMetric("Cluster-Ausreisserwert", fmtNum(mlPointAnalysis.cluster_outlier_score))}
+          {renderMetric(
+            "Fuer Scoring genutzt",
+            mlPointAnalysis.kept_for_scoring === null
+              ? "—"
+              : mlPointAnalysis.kept_for_scoring
+                ? "ja"
+                : "nein"
+          )}
+          {renderMetric(
+            "Gate-Gruende",
+            mlPointAnalysis.gate_reasons.length > 0 ? mlPointAnalysis.gate_reasons.join(", ") : "—"
+          )}
+          <div className="section-title">Gebaeudekontext</div>
+          {renderMetric(
+            "Zuordnung",
+            fmtStr(
+              typeof mlPointAnalysis.building_context.assignment_method === "string"
+                ? mlPointAnalysis.building_context.assignment_method
+                : null
+            )
+          )}
+          {renderMetric(
+            "Track-Stuetzung",
+            fmtNum(getNumber(mlPointAnalysis.building_context.track_point_count), 0)
+          )}
+          {renderMetric("Step-Stuetzung", fmtNum(getNumber(mlPointAnalysis.building_context.step_support)))}
+          {renderMetric(
+            "Detektorwerte",
+            Object.entries(mlPointAnalysis.detector_scores)
+              .map(([key, value]) => `${key} ${fmtNum(value)}`)
+              .join(" / ") || "—"
+          )}
+          {renderMetric(
+            "Degradierungsgrund",
+            fmtStr(
+              typeof mlPointAnalysis.feature_flags.degraded_reason === "string"
+                ? mlPointAnalysis.feature_flags.degraded_reason
+                : null
+            )
+          )}
+          {showPointNeighbourhood && (
+            <>
+              <div className="section-title">Nachbarschaft</div>
+              {renderMetric(
+                "Kontext",
+                mlPointNeighbourhood?.context_available
+                  ? `${fmtNum(mlPointNeighbourhood.candidate_neighbour_count, 0)} Kandidaten / ${fmtNum(
+                      mlPointNeighbourhood.eligible_neighbour_cluster_count,
+                      0
+                    )} geeignet`
+                  : "nicht verfuegbar"
+              )}
+              {renderMetric(
+                "Bester Nachbar",
+                `${fmtStr(mlPointNeighbourhood?.best_neighbour_building_id)} / ${fmtStr(
+                  mlPointNeighbourhood?.best_neighbour_cluster_id
+                )}`
+              )}
+              {renderMetric(
+                "Fit eigen / Nachbar / Delta",
+                `${fmtNum(mlPointNeighbourhood?.own_cluster_fit_score)} / ${fmtNum(
+                  mlPointNeighbourhood?.neighbour_fit_score
+                )} / ${fmtNum(mlPointNeighbourhood?.neighbour_fit_delta)}`
+              )}
+              {renderMetric(
+                "Fehlzuordnung / schwacher Eigenfit",
+                `${fmtBool(mlPointNeighbourhood?.neighbour_misassignment_flag)} / ${fmtBool(
+                  mlPointNeighbourhood?.own_fit_weak_flag
+                )}`
+              )}
+              {renderMetric(
+                "Nachbarereignis",
+                `${fmtBool(mlPointNeighbourhood?.neighbour_event_flag)} / ${fmtNum(
+                  mlPointNeighbourhood?.neighbour_event_score
+                )} / ${fmtNum(mlPointNeighbourhood?.supporting_neighbour_count, 0)} Stuetzung`
+              )}
+            </>
+          )}
+          <div className="section-title">Wichtigste Gruende</div>
+          {mlPointAnalysis.explain_top_features.length > 0 ? (
+            mlPointAnalysis.explain_top_features.map((reason) =>
+              renderMetric(
+                reason.summary,
+                fmtNum(reason.severity),
+                "Beitrag zur Punktbewertung.",
+                `reason-${reason.key}`
+              )
+            )
+          ) : (
+            <div className="pill">Keine Hauptgruende fuer diesen Punkt gespeichert.</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+
+  const renderPointRaw = () => {
+    const point = pointQuery.data;
+    if (!point) return null;
+    return (
+      <div>
+        <div className="section-title">Rohdaten</div>
+        {renderRawDetails("Messpunkt-Datensatz anzeigen", point)}
+      </div>
+    );
+  };
+
+  const renderPointContent = () => {
+    if (activePointTab === "metrics") return renderPointMetrics();
+    if (activePointTab === "ml") return renderPointMl();
+    if (activePointTab === "raw") return renderPointRaw();
+    return renderPointOverview();
+  };
+
+  const renderBuildingOverview = () => {
+    const building = buildingDetailQuery.data;
+    const analysis = mlBuildingAnalysisQuery.data;
+    if (!building) return null;
+    return (
+      <div>
+        <div className="section-title">Gebaeude-Kurzueberblick</div>
+        {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebaeudeobjekts.")}
+        {renderMetric("Gebaeude-ID", building.id)}
+        {renderMetric("Gebaeudehoehe", building.height === null ? "—" : `${building.height.toFixed(1)} m`)}
+        {renderMetric("Name", fmtStr(building.name))}
+        {renderMetric("Typ", fmtStr(building.building_type))}
+        <div className="section-title">Aktiver ML-Befund</div>
+        {analysis ? (
+          <>
+            {renderMetric("Bewegung", `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr`)}
+            {renderMetric(
+              "Zuverlaessigkeit",
+              `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
+            )}
+            {renderMetric("Status", fmtStr(analysis.building_status))}
+            {renderMetric(
+              "Punkte behalten / ausgeschlossen / Rauschen",
+              `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
+            )}
+            {activeRunId && mlBuildingAnalysisQuery.isLoading && (
+              <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
+            )}
+          </>
+        ) : (
+          <>
+            {renderActiveRunSummary()}
+            {activeRunId && mlBuildingAnalysisQuery.isLoading && (
+              <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
+            )}
+            {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
+              <div className="pill warning">Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.</div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderBuildingMetrics = () => {
+    const building = buildingDetailQuery.data;
+    if (!building) return null;
+    return (
+      <div>
+        <div className="section-title">Terrain-Kontext</div>
+        {building.terrain ? (
+          <>
+            {renderMetric("Terrain-Quelle", fmtStr(building.terrain.source))}
+            {renderMetric("Terrain-Aufloesung", `${fmtNum(building.terrain.resolution_m, 1)} m`)}
+            {renderMetric("Mittlere Gelaendehoehe", `${fmtNum(building.terrain.elevation_mean_m, 1)} m`)}
+            {renderMetric(
+              "Gelaendehoehe min/max",
+              `${fmtNum(building.terrain.elevation_min_m, 1)} / ${fmtNum(
+                building.terrain.elevation_max_m,
+                1
+              )} m`
+            )}
+            {renderMetric(
+              "Hangneigung Mittel / Max",
+              `${fmtNum(building.terrain.slope_mean_deg, 1)} / ${fmtNum(
+                building.terrain.slope_max_deg,
+                1
+              )} °`
+            )}
+            {renderMetric("Reliefspanne", `${fmtNum(building.terrain.relief_range_m, 1)} m`)}
+          </>
+        ) : (
+          <div className="pill">Kein Terrain-Kontext fuer dieses Gebaeude vorhanden.</div>
+        )}
+        <div className="section-title">Attribute</div>
+        {renderAttributeDetails(building.attributes || {}, building.source)}
+      </div>
+    );
+  };
+
+  const renderBuildingClusterControls = () => {
+    if (!isActiveLocalAnomalyRun || !mlBuildingAnalysisQuery.data || selection?.type !== "building") {
+      return null;
+    }
+    return (
+      <>
+        <div className="section-title">Gebaeude-Clusteransicht</div>
+        <div className="pill">
+          Sensorseitige Kandidatenflaechen, Cluster-Huellen und Punktrollen.
+        </div>
+        <div className="form-row">
+          <label className="label">Track-Filter</label>
+          <select
+            className="select"
+            value={mlBuildingTrackFilter}
+            onChange={(e) =>
+              setMlBuildingTrackFilter(e.target.value as "both" | "44" | "95")
+            }
+          >
+            <option value="both">ASC + DSC</option>
+            <option value="44">nur ASC</option>
+            <option value="95">nur DSC</option>
+          </select>
+        </div>
+        <div className="toggle-row">
+          <span>Gate-ausgeschlossene Punkte anzeigen</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={mlBuildingShowExcluded}
+            onChange={(e) => setMlBuildingShowExcluded(e.target.checked)}
+          />
+        </div>
+        <div className="toggle-row">
+          <span>Cluster-Huellen anzeigen</span>
+          <input
+            type="checkbox"
+            className="toggle"
+            checked={mlBuildingShowHulls}
+            onChange={(e) => setMlBuildingShowHulls(e.target.checked)}
+          />
+        </div>
+      </>
+    );
+  };
+
+  const renderBuildingMl = () => {
+    const analysis = mlBuildingAnalysisQuery.data;
+    return (
+      <div>
+        <div className="section-title">Aktiver ML-Lauf</div>
+        {renderActiveRunSummary()}
+        {activeRunId && mlBuildingAnalysisQuery.isLoading && (
+          <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
+        )}
+        {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
+          <div className="pill warning">Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.</div>
+        )}
+        {analysis && (
+          <>
+            <div className="section-title">Gebaeudeanalyse</div>
+            {renderMetric("Run-zugeordnete Punkte", analysis.point_count)}
+            {renderMetric(
+              "Behalten / ausgeschlossen / Rauschen",
+              `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
+            )}
+            {renderMetric(
+              "Bewegung / Status",
+              `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr / ${fmtStr(analysis.building_status)}`
+            )}
+            {renderMetric(
+              "Zuverlaessigkeit",
+              `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
+            )}
+            {renderMetric(
+              "Retuning-Flags",
+              formatRetuningFlags(analysis.weak_secondary_track_flag, analysis.agreement_tension_flag)
+            )}
+            {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
+            {renderMetric("Retuning-Anpassungen", formatPenaltySummary(analysis.reliability_penalties))}
+            {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
+            {renderMetric("Differenzielle Bewegung", analysis.differential_motion_flag ? "ja" : "nein")}
+            {renderMetric(
+              "Hauptcluster",
+              `T44 ${fmtStr(analysis.main_cluster_track_44_id)} / T95 ${fmtStr(
+                analysis.main_cluster_track_95_id
+              )}`
+            )}
+            {renderMetric(
+              "Track-Bewegung",
+              `T44 ${fmtNum(analysis.track_motion_mm_a["44"])} / T95 ${fmtNum(
+                analysis.track_motion_mm_a["95"]
+              )}`
+            )}
+            {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
+            <div className="section-title">Nachbarschaft</div>
+            {renderMetric(
+              "Kontext",
+              `${analysis.neighbour_context_available ? "ja" : "nein"} / ${
+                analysis.neighbour_candidate_building_count
+              } Kandidaten`
+            )}
+            {renderMetric(
+              "Fehlzuordnungspunkte",
+              `${analysis.neighbour_misassignment_point_count} / ${fmtPct(
+                analysis.neighbour_misassignment_share,
+                1
+              )}`
+            )}
+            {renderMetric(
+              "Nachbarereignis",
+              `${analysis.neighbour_event_flag ? "ja" : "nein"} / ${fmtNum(
+                analysis.neighbour_event_score
+              )}`
+            )}
+            {renderMetric(
+              "Konsistenz / Stuetzung",
+              `${fmtNum(analysis.neighbour_consistency_score)} / ${analysis.supporting_neighbour_count} Nachb. / T${analysis.supporting_track_count}`
+            )}
+            {renderBuildingClusterControls()}
+            {isActiveRunPending && (
+              <div className="pill">Diese Zusammenfassung aktualisiert sich waehrend der aktive Lauf verarbeitet wird.</div>
+            )}
+            {analysis.point_count === 0 ? (
+              <div className="pill">Keine Punkte aus dem aktiven Lauf sind diesem Gebaeude zugeordnet.</div>
+            ) : (
+              <>
+                <div className="section-title">Diagnostik</div>
+                {renderMetric("Mittlere Qualitaet", fmtNum(analysis.avg_quality_score))}
+                {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
+                {renderMetric("Mittlere Cross-Track-Konsistenz", fmtNum(analysis.avg_cross_track_consistency))}
+                <details className="attribute-details">
+                  <summary>Verteilungen anzeigen</summary>
+                  <div className="section-title">Track-Anzahlen</div>
+                  {Object.entries(analysis.track_counts).map(([key, value]) =>
+                    renderMetric(formatCountLabel(key), value, undefined, `track-${key}`)
+                  )}
+                  <div className="section-title">Label-Anzahlen</div>
+                  {Object.entries(analysis.label_counts).map(([key, value]) =>
+                    renderMetric(formatCountLabel(key), value, undefined, `label-${key}`)
+                  )}
+                  <div className="section-title">Zuordnungsmethoden</div>
+                  {Object.entries(analysis.assignment_methods).map(([key, value]) =>
+                    renderMetric(formatCountLabel(key), value, undefined, `assignment-${key}`)
+                  )}
+                </details>
+                {analysis.clusters.length > 0 && (
+                  <details className="attribute-details">
+                    <summary>Cluster anzeigen ({analysis.clusters.length})</summary>
+                    {analysis.clusters.map((cluster) =>
+                      renderMetric(
+                        `${cluster.cluster_id} / T${cluster.track}${cluster.is_main_cluster ? " / Hauptcluster" : ""}`,
+                        `#${fmtStr(cluster.cluster_rank)} / ${cluster.cluster_role} / ${
+                          cluster.point_count
+                        } Pkt. / V ${fmtNum(cluster.median_vertical_proxy_mm_a)} / Rel ${fmtNum(
+                          cluster.cluster_reliability_score
+                        )}`,
+                        undefined,
+                        `cluster-${cluster.cluster_id}`
+                      )
+                    )}
+                  </details>
+                )}
+                <details className="attribute-details">
+                  <summary>Punkte mit niedrigster Qualitaet anzeigen ({analysis.top_points.length})</summary>
+                  {analysis.top_points.map((point) =>
+                    renderMetric(
+                      `${point.code} / ${point.track} / ${fmtStr(point.cluster_role)}`,
+                      `Q ${fmtNum(point.quality_score)} / A ${fmtNum(point.anomaly_score)}`,
+                      undefined,
+                      `top-point-${point.code}-${point.track}`
+                    )
+                  )}
+                </details>
+              </>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderBuildingRaw = () => {
+    const building = buildingDetailQuery.data;
+    const analysis = mlBuildingAnalysisQuery.data;
+    if (!building) return null;
+    return (
+      <div>
+        <div className="section-title">Rohdaten</div>
+        {renderRawDetails("Gebaeudeattribute anzeigen", building.attributes || {})}
+        {renderRawDetails("Gebaeudegeometrie anzeigen", building.geometry)}
+        {analysis && renderRawDetails("ML-Gebaeudeanalyse anzeigen", analysis)}
+      </div>
+    );
+  };
+
+  const renderBuildingContent = () => {
+    if (activeBuildingTab === "metrics") return renderBuildingMetrics();
+    if (activeBuildingTab === "ml") return renderBuildingMl();
+    if (activeBuildingTab === "raw") return renderBuildingRaw();
+    return renderBuildingOverview();
+  };
+
   return (
     <div className="panel panel-right">
       <div>
-        <h2>Inspector</h2>
-        <small>Click a point or building to explore cross-source attributes.</small>
+        <h2>Inspektor</h2>
+        <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
       </div>
 
-      {!selection && <div className="pill">No selection yet</div>}
+      {!selection && <div className="pill">Noch keine Auswahl.</div>}
 
       {selection?.type === "point" && (
         <>
-          {pointQuery.isLoading && <div className="pill">Loading point…</div>}
+          {pointQuery.isLoading && <div className="pill">Punkt wird geladen...</div>}
           {pointQuery.data && (
-            <div>
-              <div className="section-title">Point Details</div>
-              {(() => {
-                const fmt = {
-                  num: (value?: number | null, digits = 2) =>
-                    value === null || value === undefined ? "—" : value.toFixed(digits),
-                  str: (value?: string | number | null) =>
-                    value === null || value === undefined || value === "" ? "—" : String(value),
-                };
-                const lon =
-                  pointQuery.data.geometry?.lon === undefined
-                    ? undefined
-                    : pointQuery.data.geometry?.lon;
-                const lat =
-                  pointQuery.data.geometry?.lat === undefined
-                    ? undefined
-                    : pointQuery.data.geometry?.lat;
-                return (
-                  <>
-                    <div className="metric">
-                      <span className="label">Code</span>
-                      <span className="value">{fmt.str(pointQuery.data.code)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Track / LOS</span>
-                      <span className="value">
-                        {fmt.str(pointQuery.data.track)} / {fmt.str(pointQuery.data.los)}
-                      </span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Velocity (mm/yr)</span>
-                      <span className="value">{fmt.num(pointQuery.data.velocity)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Velocity std (mm/yr)</span>
-                      <span className="value">{fmt.num(pointQuery.data.velocity_std)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Coherence</span>
-                      <span className="value">{fmt.num(pointQuery.data.coherence)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Incidence angle (°)</span>
-                      <span className="value">{fmt.num(pointQuery.data.incidence_angle)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">InSAR height (m)</span>
-                      <span className="value">{fmt.num(pointQuery.data.height, 1)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Height std (m)</span>
-                      <span className="value">{fmt.num(pointQuery.data.height_std, 1)}</span>
-                    </div>
-                    {pointQuery.data.terrain && (
-                      <>
-                        <div className="section-title">Terrain Context</div>
-                        <div className="metric">
-                          <span className="label">Terrain source</span>
-                          <span className="value">{fmt.str(pointQuery.data.terrain.source)}</span>
-                        </div>
-                        <div className="metric">
-                          <span className="label">Terrain resolution (m)</span>
-                          <span className="value">{fmt.num(pointQuery.data.terrain.resolution_m, 1)}</span>
-                        </div>
-                        <div className="metric">
-                          <span className="label">Terrain elevation (m)</span>
-                          <span className="value">{fmt.num(pointQuery.data.terrain.elevation_m, 1)}</span>
-                        </div>
-                        <div className="metric">
-                          <span className="label">Slope (°)</span>
-                          <span className="value">{fmt.num(pointQuery.data.terrain.slope_deg, 1)}</span>
-                        </div>
-                        <div className="metric">
-                          <span className="label">Aspect (°)</span>
-                          <span className="value">{fmt.num(pointQuery.data.terrain.aspect_deg, 1)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="metric">
-                      <span className="label">Acceleration (mm/yr²)</span>
-                      <span className="value">{fmt.num(pointQuery.data.acceleration)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Acceleration std (mm/yr²)</span>
-                      <span className="value">{fmt.num(pointQuery.data.acceleration_std)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Seasonal amplitude (mm)</span>
-                      <span className="value">{fmt.num(pointQuery.data.season_amp)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Seasonal amplitude std (mm)</span>
-                      <span className="value">{fmt.num(pointQuery.data.s_amp_std)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Seasonal phase</span>
-                      <span className="value">{fmt.num(pointQuery.data.season_phs)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Seasonal phase std</span>
-                      <span className="value">{fmt.num(pointQuery.data.s_phs_std)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Amplitude mean</span>
-                      <span className="value">{fmt.num(pointQuery.data.amp_mean, 1)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Amplitude std</span>
-                      <span className="value">{fmt.num(pointQuery.data.amp_std, 1)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Effective area</span>
-                      <span className="value">{fmt.num(pointQuery.data.eff_area, 1)}</span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Longitude</span>
-                      <span className="value">
-                        {lon === undefined || lon === null ? "—" : lon.toFixed(6)}
-                      </span>
-                    </div>
-                    <div className="metric">
-                      <span className="label">Latitude</span>
-                      <span className="value">
-                        {lat === undefined || lat === null ? "—" : lat.toFixed(6)}
-                      </span>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
+            <>
+              {renderTabs(pointTabs, activePointTab, setActivePointTab, "Punkt-Inspektor")}
+              {renderPointContent()}
+            </>
           )}
-          {pointAnalysisRunId && mlPointAnalysisQuery.isLoading && (
-            <div className="pill">Loading anomaly analysis…</div>
-          )}
-          {activeRunId && activeRunId !== pointAnalysisRunId && (
-            <div className="pill">Active run is still processing this point.</div>
-          )}
-          {activeRunId && activeRunStatus === "failed" && (
-            <div className="pill warning">Active run failed before point analysis was available.</div>
-          )}
-          {pointAnalysisRunId === activeRunId && mlPointAnalysisStatus === "pending" && (
-            <div className="pill">Active run is still processing this point.</div>
-          )}
-          {pointAnalysisRunId === activeRunId &&
-            mlPointAnalysisStatus === "missing" &&
-            activeRunStatus !== "failed" && (
-            <div className="pill warning">
-              {mlPointAnalysisMessage || "No ML analysis for this point in the active run."}
-            </div>
-          )}
-          {activeRunId &&
-            activeRunStatus &&
-            !isActiveRunPending &&
-            activeRunStatus !== "failed" &&
-            mlPointAnalysisQuery.isError && (
-              <div className="pill warning">Failed to load ML analysis for this point.</div>
-            )}
-          {pointAnalysisRunId === activeRunId && mlPointAnalysis && (
-            <div>
-              <div className="section-title">Run Analysis</div>
-              <div className="metric">
-                <span className="label">Label</span>
-                <span className="value">{fmtStr(mlPointAnalysis.label)}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Quality score</span>
-                <span className="value">{fmtNum(mlPointAnalysis.quality_score)}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Anomaly score</span>
-                <span className="value">{fmtNum(mlPointAnalysis.anomaly_score)}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Cross-track consistency</span>
-                <span className="value">{fmtNum(mlPointAnalysis.cross_track_consistency)}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Building</span>
-                <span className="value">
-                  {fmtStr(mlPointAnalysis.building_source)?.toUpperCase()} /{" "}
-                  {fmtStr(mlPointAnalysis.building_id)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Distance to building</span>
-                <span className="value">{fmtNum(mlPointAnalysis.distance_m, 1)} m</span>
-              </div>
-              <div className="metric">
-                <span className="label">Cluster role / probability</span>
-                <span className="value">
-                  {fmtStr(mlPointAnalysis.cluster_role)} / {fmtNum(mlPointAnalysis.cluster_probability)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Cluster outlier score</span>
-                <span className="value">{fmtNum(mlPointAnalysis.cluster_outlier_score)}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Kept for scoring</span>
-                <span className="value">
-                  {mlPointAnalysis.kept_for_scoring === null
-                    ? "—"
-                    : mlPointAnalysis.kept_for_scoring
-                      ? "yes"
-                      : "no"}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Assignment</span>
-                <span className="value">
-                  {fmtStr(
-                    typeof mlPointAnalysis.building_context.assignment_method === "string"
-                      ? mlPointAnalysis.building_context.assignment_method
-                      : null
-                  )}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Track support</span>
-                <span className="value">
-                  {fmtNum(getNumber(mlPointAnalysis.building_context.track_point_count), 0)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Step support</span>
-                <span className="value">{fmtNum(getNumber(mlPointAnalysis.building_context.step_support))}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Detector scores</span>
-                <span className="value">
-                  {Object.entries(mlPointAnalysis.detector_scores)
-                    .map(([key, value]) => `${key} ${fmtNum(value)}`)
-                    .join(" / ") || "—"}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Degraded reason</span>
-                <span className="value">
-                  {fmtStr(
-                    typeof mlPointAnalysis.feature_flags.degraded_reason === "string"
-                      ? mlPointAnalysis.feature_flags.degraded_reason
-                      : null
-                  )}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Gate reasons</span>
-                <span className="value">
-                  {mlPointAnalysis.gate_reasons.length > 0
-                    ? mlPointAnalysis.gate_reasons.join(", ")
-                    : "—"}
-                </span>
-              </div>
-              {showPointNeighbourhood && (
-                <>
-                  <div className="section-title">Neighbourhood</div>
-                  <div className="metric">
-                    <span className="label">Context</span>
-                    <span className="value">
-                      {mlPointNeighbourhood?.context_available
-                        ? `${fmtNum(mlPointNeighbourhood.candidate_neighbour_count, 0)} cand / ${fmtNum(mlPointNeighbourhood.eligible_neighbour_cluster_count, 0)} elig`
-                        : "not available"}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Best neighbour</span>
-                    <span className="value">
-                      {fmtStr(mlPointNeighbourhood?.best_neighbour_building_id)} /{" "}
-                      {fmtStr(mlPointNeighbourhood?.best_neighbour_cluster_id)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Fit own / neigh / delta</span>
-                    <span className="value">
-                      {fmtNum(mlPointNeighbourhood?.own_cluster_fit_score)} /{" "}
-                      {fmtNum(mlPointNeighbourhood?.neighbour_fit_score)} /{" "}
-                      {fmtNum(mlPointNeighbourhood?.neighbour_fit_delta)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Misassignment / weak own fit</span>
-                    <span className="value">
-                      {fmtBool(mlPointNeighbourhood?.neighbour_misassignment_flag)} /{" "}
-                      {fmtBool(mlPointNeighbourhood?.own_fit_weak_flag)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Neighbour event</span>
-                    <span className="value">
-                      {fmtBool(mlPointNeighbourhood?.neighbour_event_flag)} /{" "}
-                      {fmtNum(mlPointNeighbourhood?.neighbour_event_score)} /{" "}
-                      {fmtNum(mlPointNeighbourhood?.supporting_neighbour_count, 0)} support
-                    </span>
-                  </div>
-                </>
-              )}
-              <div className="section-title">Top Reasons</div>
-              {mlPointAnalysis.explain_top_features.length > 0 ? (
-                mlPointAnalysis.explain_top_features.map((reason) => (
-                  <div className="metric" key={reason.key}>
-                    <span className="label">{reason.summary}</span>
-                    <span className="value">{fmtNum(reason.severity)}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="pill">No top reasons stored for this point.</div>
-              )}
-            </div>
-          )}
-
-          {activeRunId &&
-            !activeRunStatus &&
-            activeRunQuery.isLoading && <div className="pill">Loading active run status…</div>}
         </>
       )}
 
       {selection?.type === "building" && (
         <>
-          {buildingDetailQuery.isLoading && <div className="pill">Loading building…</div>}
+          {buildingDetailQuery.isLoading && <div className="pill">Gebaeude wird geladen...</div>}
           {buildingDetailQuery.data && (
-            <div>
-              <div className="section-title">Building Details</div>
-              <div className="metric">
-                <span className="label">Source</span>
-                <span className="value">{buildingDetailQuery.data.source.toUpperCase()}</span>
-              </div>
-              <div className="metric">
-                <span className="label">ID</span>
-                <span className="value">{buildingDetailQuery.data.id}</span>
-              </div>
-              {buildingDetailQuery.data.height !== null && (
-                <div className="metric">
-                  <span className="label">Building height (m)</span>
-                  <span className="value">{buildingDetailQuery.data.height?.toFixed(1)}</span>
-                </div>
-              )}
-              {buildingDetailQuery.data.terrain && (
-                <>
-                  <div className="section-title">Terrain Context</div>
-                  <div className="metric">
-                    <span className="label">Terrain source</span>
-                    <span className="value">{buildingDetailQuery.data.terrain.source}</span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Terrain resolution (m)</span>
-                    <span className="value">
-                      {fmtNum(buildingDetailQuery.data.terrain.resolution_m, 1)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Mean terrain elevation (m)</span>
-                    <span className="value">
-                      {fmtNum(buildingDetailQuery.data.terrain.elevation_mean_m, 1)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Terrain elevation min/max (m)</span>
-                    <span className="value">
-                      {fmtNum(buildingDetailQuery.data.terrain.elevation_min_m, 1)}
-                      {" / "}
-                      {fmtNum(buildingDetailQuery.data.terrain.elevation_max_m, 1)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Mean / max slope (°)</span>
-                    <span className="value">
-                      {fmtNum(buildingDetailQuery.data.terrain.slope_mean_deg, 1)}
-                      {" / "}
-                      {fmtNum(buildingDetailQuery.data.terrain.slope_max_deg, 1)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Relief range (m)</span>
-                    <span className="value">
-                      {fmtNum(buildingDetailQuery.data.terrain.relief_range_m, 1)}
-                    </span>
-                  </div>
-                </>
-              )}
-              {buildingDetailQuery.data.name && (
-                <div className="metric">
-                  <span className="label">Name</span>
-                  <span className="value">{buildingDetailQuery.data.name}</span>
-                </div>
-              )}
-              {buildingDetailQuery.data.building_type && (
-                <div className="metric">
-                  <span className="label">Type</span>
-                  <span className="value">{buildingDetailQuery.data.building_type}</span>
-                </div>
-              )}
-              {buildingDetailQuery.data.attributes &&
-                Object.keys(buildingDetailQuery.data.attributes).length > 0 && (
-                  <div>
-                    <div className="section-title">All Attributes</div>
-                    {Object.entries(buildingDetailQuery.data.attributes).map(
-                      ([key, value]) => (
-                        <div className="metric" key={key}>
-                          <span className="label">{key}</span>
-                          <span className="value">
-                            {typeof value === "object" ? JSON.stringify(value) : String(value)}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-              )}
-            </div>
-          )}
-
-          {activeRunId && mlBuildingAnalysisQuery.isLoading && (
-            <div className="pill">Loading active-run building analysis…</div>
-          )}
-          {activeRunId && mlBuildingAnalysisQuery.data && (
-            <div>
-              <div className="section-title">Active Run Building Analysis</div>
-              <div className="metric">
-                <span className="label">Run-assigned points</span>
-                <span className="value">{mlBuildingAnalysisQuery.data.point_count}</span>
-              </div>
-              <div className="metric">
-                <span className="label">Kept / excluded / noise</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.kept_point_count}/
-                  {mlBuildingAnalysisQuery.data.excluded_point_count}/
-                  {mlBuildingAnalysisQuery.data.noise_point_count}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Motion / status</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.building_motion_mm_a)} mm/yr /{" "}
-                  {fmtStr(mlBuildingAnalysisQuery.data.building_status)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Reliability</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.building_reliability_score)} /{" "}
-                  {fmtStr(mlBuildingAnalysisQuery.data.building_reliability_band)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Retuning flags</span>
-                <span className="value">
-                  {formatRetuningFlags(
-                    mlBuildingAnalysisQuery.data.weak_secondary_track_flag,
-                    mlBuildingAnalysisQuery.data.agreement_tension_flag
-                  )}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Track agreement</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.track_agreement_score)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Retuning adjustments</span>
-                <span className="value">
-                  {formatPenaltySummary(mlBuildingAnalysisQuery.data.reliability_penalties)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Clusters / reliable</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.cluster_count} /{" "}
-                  {mlBuildingAnalysisQuery.data.reliable_cluster_count}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Differential motion</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.differential_motion_flag ? "yes" : "no"}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Main clusters</span>
-                <span className="value">
-                  T44 {fmtStr(mlBuildingAnalysisQuery.data.main_cluster_track_44_id)} / T95{" "}
-                  {fmtStr(mlBuildingAnalysisQuery.data.main_cluster_track_95_id)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Track motion</span>
-                <span className="value">
-                  T44 {fmtNum(mlBuildingAnalysisQuery.data.track_motion_mm_a["44"])} / T95{" "}
-                  {fmtNum(mlBuildingAnalysisQuery.data.track_motion_mm_a["95"])}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Median distance</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.median_distance_m, 1)} m
-                </span>
-              </div>
-              <div className="section-title">Neighbourhood</div>
-              <div className="metric">
-                <span className="label">Context</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.neighbour_context_available ? "yes" : "no"} /{" "}
-                  {mlBuildingAnalysisQuery.data.neighbour_candidate_building_count} cand
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Misassignment points</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.neighbour_misassignment_point_count} /{" "}
-                  {fmtPct(mlBuildingAnalysisQuery.data.neighbour_misassignment_share, 1)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Neighbour event</span>
-                <span className="value">
-                  {mlBuildingAnalysisQuery.data.neighbour_event_flag ? "yes" : "no"} /{" "}
-                  {fmtNum(mlBuildingAnalysisQuery.data.neighbour_event_score)}
-                </span>
-              </div>
-              <div className="metric">
-                <span className="label">Consistency / support</span>
-                <span className="value">
-                  {fmtNum(mlBuildingAnalysisQuery.data.neighbour_consistency_score)} /{" "}
-                  {mlBuildingAnalysisQuery.data.supporting_neighbour_count} nbr / T
-                  {mlBuildingAnalysisQuery.data.supporting_track_count}
-                </span>
-              </div>
-              {isActiveLocalAnomalyRun && (
-                <>
-                  <div className="section-title">Building Cluster View</div>
-                  <div className="pill">
-                    Sensorseitige Kandidatenflaechen, Cluster-Huellen und Punktrollen.
-                  </div>
-                  <div className="form-row">
-                    <label className="label">Track filter</label>
-                    <select
-                      className="select"
-                      value={mlBuildingTrackFilter}
-                      onChange={(e) =>
-                        setMlBuildingTrackFilter(
-                          e.target.value as "both" | "44" | "95"
-                        )
-                      }
-                    >
-                      <option value="both">ASC + DSC</option>
-                      <option value="44">ASC only</option>
-                      <option value="95">DSC only</option>
-                    </select>
-                  </div>
-                  <div className="toggle-row">
-                    <span>Show gate-excluded points</span>
-                    <input
-                      type="checkbox"
-                      className="toggle"
-                      checked={mlBuildingShowExcluded}
-                      onChange={(e) => setMlBuildingShowExcluded(e.target.checked)}
-                    />
-                  </div>
-                  <div className="toggle-row">
-                    <span>Show cluster hulls</span>
-                    <input
-                      type="checkbox"
-                      className="toggle"
-                      checked={mlBuildingShowHulls}
-                      onChange={(e) => setMlBuildingShowHulls(e.target.checked)}
-                    />
-                  </div>
-                </>
-              )}
-              {isActiveRunPending && (
-                <div className="pill">This summary refreshes while the active run is processing.</div>
-              )}
-              {mlBuildingAnalysisQuery.data.point_count === 0 ? (
-                <div className="pill">No points from the active run are assigned to this building.</div>
-              ) : (
-                <>
-                  <div className="section-title">Diagnostics</div>
-                  <div className="metric">
-                    <span className="label">Average quality</span>
-                    <span className="value">
-                      {fmtNum(mlBuildingAnalysisQuery.data.avg_quality_score)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Average anomaly</span>
-                    <span className="value">
-                      {fmtNum(mlBuildingAnalysisQuery.data.avg_anomaly_score)}
-                    </span>
-                  </div>
-                  <div className="metric">
-                    <span className="label">Average cross-track</span>
-                    <span className="value">
-                      {fmtNum(mlBuildingAnalysisQuery.data.avg_cross_track_consistency)}
-                    </span>
-                  </div>
-                  <div className="section-title">Track Counts</div>
-                  {Object.entries(mlBuildingAnalysisQuery.data.track_counts).map(([key, value]) => (
-                    <div className="metric" key={`track-${key}`}>
-                      <span className="label">{formatCountLabel(key)}</span>
-                      <span className="value">{value}</span>
-                    </div>
-                  ))}
-                  <div className="section-title">Label Counts</div>
-                  {Object.entries(mlBuildingAnalysisQuery.data.label_counts).map(([key, value]) => (
-                    <div className="metric" key={`label-${key}`}>
-                      <span className="label">{formatCountLabel(key)}</span>
-                      <span className="value">{value}</span>
-                    </div>
-                  ))}
-                  <div className="section-title">Assignment Methods</div>
-                  {Object.entries(mlBuildingAnalysisQuery.data.assignment_methods).map(
-                    ([key, value]) => (
-                      <div className="metric" key={`assignment-${key}`}>
-                        <span className="label">{formatCountLabel(key)}</span>
-                        <span className="value">{value}</span>
-                      </div>
-                    )
-                  )}
-                  {mlBuildingAnalysisQuery.data.clusters.length > 0 && (
-                    <>
-                      <div className="section-title">Clusters</div>
-                      {mlBuildingAnalysisQuery.data.clusters.map((cluster) => (
-                        <div className="metric" key={cluster.cluster_id}>
-                          <span className="label">
-                            {cluster.cluster_id} / T{cluster.track}
-                            {cluster.is_main_cluster ? " / main" : ""}
-                          </span>
-                          <span className="value">
-                            #{fmtStr(cluster.cluster_rank)} / {cluster.cluster_role} /{" "}
-                            {cluster.point_count} pts / V{" "}
-                            {fmtNum(cluster.median_vertical_proxy_mm_a)} / Rel{" "}
-                            {fmtNum(cluster.cluster_reliability_score)}
-                          </span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                  <div className="section-title">Lowest-Quality Points</div>
-                  {mlBuildingAnalysisQuery.data.top_points.map((point) => (
-                    <div className="metric" key={`${point.code}-${point.track}`}>
-                      <span className="label">
-                        {point.code} / {point.track} / {fmtStr(point.cluster_role)}
-                      </span>
-                      <span className="value">
-                        Q {fmtNum(point.quality_score)} / A {fmtNum(point.anomaly_score)}
-                      </span>
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
+            <>
+              {renderTabs(buildingTabs, activeBuildingTab, setActiveBuildingTab, "Gebaeude-Inspektor")}
+              {renderBuildingContent()}
+            </>
           )}
 
         </>
