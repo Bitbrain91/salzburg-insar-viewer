@@ -53,4 +53,5 @@ mlruns/
 
 # Local debug screenshots / scratch
 /ml-*.png
+.playwright-mcp/
 Temp/

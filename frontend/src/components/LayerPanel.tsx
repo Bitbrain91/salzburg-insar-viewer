@@ -89,7 +89,7 @@ export default function LayerPanel() {
       <div>
         <div className="section-title">InSAR Tracks</div>
         <div className="toggle-row">
-          <span>Track 44 (Ascending)</span>
+          <span>T44/A Look 81.4 deg E</span>
           <input
             type="checkbox"
             className="toggle"
@@ -98,7 +98,7 @@ export default function LayerPanel() {
           />
         </div>
         <div className="toggle-row">
-          <span>Track 95 (Descending)</span>
+          <span>T95/D Look 281.5 deg W</span>
           <input
             type="checkbox"
             className="toggle"
@@ -127,8 +127,8 @@ export default function LayerPanel() {
           </select>
         </div>
         <small>
-          LOS-basiert: Track 44 blickt nach Osten, Track 95 nach Westen. Der Modus fixiert
-          Blickrichtung und Winkel, Pan und Zoom bleiben aktiv.
+          LOS-Looks exakt, Kamera grob Ost/West. Kandidatenflaechen liegen sensorseitig,
+          also entgegen der Look-Richtung.
         </small>
       </div>
 

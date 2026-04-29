@@ -1,349 +1,229 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36" version="29.6.4">
-  <diagram name="anomaly_local_v1 Pipeline" id="pipeline">
-    <mxGraphModel dx="1501" dy="782" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1800" math="0" shadow="0">
+<mxfile host="app.diagrams.net" agent="Codex" version="29.6.4">
+  <diagram name="anomaly_local_v1 Pipeline (current detailed)" id="pipeline-current">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="2300" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontColor=#1a1a2e;" value="&lt;b&gt;anomaly_local_v1 — Pipeline-Übersicht&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Gebäudenahe Anomalieerkennung für InSAR-Punkte&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="1000" x="200" y="20" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=22;fontColor=#1a1a2e;" value="&lt;b&gt;anomaly_local_v1 - aktuelle Implementierung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:12px;color:#666666&quot;&gt;Detaillierter Ablauf aus Backend-Pipeline, Runner, API-Kontext und zentraler Track-Geometrie. Stand 2026-04-28.&lt;/font&gt;" vertex="1">
+          <mxGeometry x="250" y="18" width="1100" height="58" as="geometry" />
         </mxCell>
-        <mxCell id="question" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;size=10;position=0.5;position2=1;base=30;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=0;align=center;" value="&lt;b&gt;Kernfrage:&lt;/b&gt; Passt dieser Punkt geometrisch, signaltechnisch und zeitlich&lt;br&gt;zu genau diesem Gebäude und zu den anderen Punkten dieses Gebäudes?" vertex="1">
-          <mxGeometry height="70" width="700" x="350" y="85" as="geometry" />
+        <mxCell id="invariant" parent="1" style="shape=callout;whiteSpace=wrap;html=1;perimeter=calloutPerimeter;size=10;position=0.5;position2=1;base=25;rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" value="&lt;b&gt;Pipeline-Vertrag&lt;/b&gt;&lt;br&gt;bbox ist Pflicht, source muss gba sein. Verarbeitung ist lokal pro Gebaeude x Track; Cross-Track und Neighbourhood liefern Rollups/Diagnostik vor dem finalen Punkt-Scoring." vertex="1">
+          <mxGeometry x="380" y="92" width="840" height="72" as="geometry" />
         </mxCell>
-        <mxCell id="input" parent="1" style="text;html=1;align=center;fontSize=13;fontColor=#6c757d;" value="&lt;b&gt;Input&lt;/b&gt;" vertex="1">
-          <mxGeometry height="30" width="80" x="20" y="190" as="geometry" />
+
+        <mxCell id="lane_runner" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;arcSize=6;" value="" vertex="1">
+          <mxGeometry x="50" y="190" width="1500" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="db_insar" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;insar_points&lt;/b&gt;&lt;br&gt;insar_timeseries&lt;br&gt;insar_amplitude_timeseries" vertex="1">
-          <mxGeometry height="70" width="170" x="110" y="175" as="geometry" />
+        <mxCell id="lane_runner_label" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#333333;" value="Runner / Run Lifecycle" vertex="1">
+          <mxGeometry x="70" y="202" width="220" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="db_gba" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;gba_buildings&lt;/b&gt;&lt;br&gt;building_terrain_context&lt;br&gt;insar_point_terrain" vertex="1">
-          <mxGeometry height="70" width="190" x="310" y="175" as="geometry" />
+        <mxCell id="run_cfg" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;perimeter=parallelogramPerimeter;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;RunConfig&lt;/b&gt;&lt;br&gt;run_id, pipeline&lt;br&gt;source, track, bbox, params" vertex="1">
+          <mxGeometry x="100" y="245" width="190" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="input_track" parent="1" style="shape=parallelogram;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;perimeter=parallelogramPerimeter;" value="&lt;b&gt;Track-Info&lt;/b&gt;&lt;br&gt;Track 44 (ASC)&lt;br&gt;Track 95 (DSC)" vertex="1">
-          <mxGeometry height="60" width="160" x="530" y="180" as="geometry" />
+        <mxCell id="runner_start" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;align=center;" value="&lt;b&gt;run_pipeline_async&lt;/b&gt;&lt;br&gt;set ml_runs.status=running&lt;br&gt;open asyncpg pool" vertex="1">
+          <mxGeometry x="350" y="245" width="200" height="78" as="geometry" />
         </mxCell>
-        <mxCell id="arr_input_1" edge="1" parent="1" source="db_insar" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" target="step1_box">
+        <mxCell id="mlflow" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eaf2f8;strokeColor=#6c8ebf;fontSize=12;align=center;" value="&lt;b&gt;MLflow optional&lt;/b&gt;&lt;br&gt;set tracking URI / experiment&lt;br&gt;log params and numeric metrics&lt;br&gt;summary artifact" vertex="1">
+          <mxGeometry x="610" y="238" width="220" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="pipeline_run" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;pipeline.run(pool, config)&lt;/b&gt;&lt;br&gt;delegiert an AnomalyLocalV1Pipeline&lt;br&gt;version 0.1.0, run_type anomaly" vertex="1">
+          <mxGeometry x="900" y="245" width="250" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="runner_finish" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=12;align=center;" value="&lt;b&gt;Nachlauf&lt;/b&gt;&lt;br&gt;assign_building_colors&lt;br&gt;upsert ml_run_metrics&lt;br&gt;status succeeded / failed" vertex="1">
+          <mxGeometry x="1210" y="238" width="230" height="92" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_fetch" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef6ff;strokeColor=#16537e;strokeWidth=2;arcSize=6;" value="" vertex="1">
+          <mxGeometry x="50" y="410" width="1500" height="330" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_fetch_label" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#16537e;" value="_fetch_inputs: PostGIS-Daten und Punktzuordnung" vertex="1">
+          <mxGeometry x="70" y="422" width="420" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="db_points" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;insar_points&lt;/b&gt;&lt;br&gt;velocity, coherence,&lt;br&gt;incidence, height,&lt;br&gt;track, los, geom" vertex="1">
+          <mxGeometry x="95" y="470" width="170" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="db_timeseries" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;insar_timeseries&lt;/b&gt;&lt;br&gt;displacement per date&lt;br&gt;&lt;b&gt;insar_amplitude_timeseries&lt;/b&gt;&lt;br&gt;amplitude per date" vertex="1">
+          <mxGeometry x="95" y="590" width="170" height="96" as="geometry" />
+        </mxCell>
+        <mxCell id="db_buildings" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;gba_buildings&lt;/b&gt;&lt;br&gt;height, geom&lt;br&gt;&lt;b&gt;building_terrain_context&lt;/b&gt;&lt;br&gt;slope_mean, slope_max, relief" vertex="1">
+          <mxGeometry x="305" y="470" width="190" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="track_geom" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;strokeWidth=2;fontSize=11;align=center;" value="&lt;b&gt;track_geometry_values_cte&lt;/b&gt;&lt;br&gt;contract augmenterra_track_geometry_v1&lt;br&gt;T44/A: look 81.4, sensor 261.4&lt;br&gt;T95/D: look 281.5, sensor 101.5&lt;br&gt;range_dx/range_dy + incidence defaults" vertex="1">
+          <mxGeometry x="305" y="598" width="260" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="candidate_priority" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#16537e;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;Candidate-Auswahl je Punkt&lt;/b&gt;&lt;br&gt;1. ST_Covers(building, point): within&lt;br&gt;2. directional_buffer: union(original, translated) + lateral_slack&lt;br&gt;3. nearest fallback: ST_DWithin &lt;= max_distance_m (15 m)&lt;br&gt;ORDER BY priority, distance LIMIT 1" vertex="1">
+          <mxGeometry x="620" y="465" width="370" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="range_formula" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;size=14;fontSize=12;align=center;" value="&lt;b&gt;Directional 2D range shift&lt;/b&gt;&lt;br&gt;range_offset = clamp(height * tan(incidence) * buffer_multiplier, min_buffer_m, max_buffer_m)&lt;br&gt;range_shift_x_m = range_dx * range_offset&lt;br&gt;range_shift_y_m = range_dy * range_offset" vertex="1">
+          <mxGeometry x="1030" y="468" width="360" height="124" as="geometry" />
+        </mxCell>
+        <mxCell id="fetch_output" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;base_rows + ts_rows + amp_rows&lt;/b&gt;&lt;br&gt;Point rows include assignment_method, distance, range geometry, building terrain and centroid context." vertex="1">
+          <mxGeometry x="690" y="635" width="520" height="62" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_compute" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbfbfb;strokeColor=#444444;strokeWidth=2;arcSize=6;" value="" vertex="1">
+          <mxGeometry x="50" y="780" width="1500" height="890" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_compute_label" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#333333;" value="_compute_run: lokaler Analysepfad" vertex="1">
+          <mxGeometry x="70" y="792" width="340" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="records" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#444444;fontSize=12;align=center;" value="&lt;b&gt;_build_records&lt;/b&gt;&lt;br&gt;LocalPointRecord je code + track&lt;br&gt;displacement- und amplitude-Werte anhaengen" vertex="1">
+          <mxGeometry x="100" y="845" width="230" height="86" as="geometry" />
+        </mxCell>
+        <mxCell id="series_features" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;fontSize=12;align=center;" value="&lt;b&gt;_compute_series_features&lt;/b&gt;&lt;br&gt;valid_epoch_count / ratio&lt;br&gt;ts_slope, residual_std, roughness&lt;br&gt;primary_step_abs/sign/index&lt;br&gt;amp_ts_cv, amp_ts_spike_rate" vertex="1">
+          <mxGeometry x="385" y="835" width="265" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="track_stats" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;fontSize=12;align=center;" value="&lt;b&gt;_compute_track_stats&lt;/b&gt;&lt;br&gt;coherence_p05&lt;br&gt;velocity_std_p95&lt;br&gt;amp_cv_p95&lt;br&gt;step_p90 / step_p95&lt;br&gt;expected_epochs" vertex="1">
+          <mxGeometry x="705" y="835" width="235" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="building_features" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;fontSize=12;align=center;" value="&lt;b&gt;_compute_building_group_features&lt;/b&gt;&lt;br&gt;Gruppen: Gebaeude x Track&lt;br&gt;along_look_offset_m, cross_look_offset_m&lt;br&gt;height_rank_in_building, local_density&lt;br&gt;step_support, local_deviation_score" vertex="1">
+          <mxGeometry x="1000" y="835" width="315" height="108" as="geometry" />
+        </mxCell>
+        <mxCell id="gates" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ef;strokeColor=#ae4132;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;_apply_gate_rules&lt;/b&gt;&lt;br&gt;no_building_assignment&lt;br&gt;too_few_valid_epochs (&lt; 24)&lt;br&gt;too_sparse_timeseries (&lt; 0.50)&lt;br&gt;low_coherence (&lt; max(0.45, track_p05))&lt;br&gt;set gate_excluded / kept_for_scoring" vertex="1">
+          <mxGeometry x="100" y="1008" width="300" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster_decision" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2d6e4e;strokeWidth=2;fontSize=12;align=center;" value="kept points&lt;br&gt;per Gebaeude x Track" vertex="1">
+          <mxGeometry x="475" y="1012" width="145" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster_insuff" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;" value="&lt;b&gt;&lt; 3 kept&lt;/b&gt;&lt;br&gt;cluster_role=insufficient_support&lt;br&gt;label at least suspect" vertex="1">
+          <mxGeometry x="680" y="990" width="230" height="76" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster_smalln" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" value="&lt;b&gt;3-5 kept&lt;/b&gt;&lt;br&gt;Small-N fallback&lt;br&gt;local_deviation_score separates core/noise" vertex="1">
+          <mxGeometry x="680" y="1090" width="230" height="82" as="geometry" />
+        </mxCell>
+        <mxCell id="cluster_density" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0faf0;strokeColor=#2d6e4e;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;&gt;= 6 kept&lt;/b&gt;&lt;br&gt;HDBSCAN if available&lt;br&gt;min_cluster_size=max(2, min(8, ceil(0.2*n)))&lt;br&gt;OPTICS fallback; borderline noise reassignment" vertex="1">
+          <mxGeometry x="975" y="1015" width="330" height="112" as="geometry" />
+        </mxCell>
+        <mxCell id="rollups" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;_compute_phase1_rollups&lt;/b&gt;&lt;br&gt;Cluster rollups: point_count, median_velocity, vertical_proxy, centroid, reliability, main-cluster rank&lt;br&gt;Building rollup: status, reliability_score/band, track_motion map, differential_motion_flag&lt;br&gt;Cross-track summary: diff_before, diff_after, agreement, full_support" vertex="1">
+          <mxGeometry x="170" y="1245" width="540" height="118" as="geometry" />
+        </mxCell>
+        <mxCell id="neighbourhood" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e8;strokeColor=#c47a10;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;_compute_neighbourhood_rollups&lt;/b&gt;&lt;br&gt;Candidate sets: nearest buildings within 25 m, max 8&lt;br&gt;Cluster profiles: motion, along, cross, height, step medians/scales&lt;br&gt;Point context: own fit vs best neighbour fit, misassignment flag&lt;br&gt;Building context: neighbour_event_score, supporting_neighbour_count, supporting_track_count" vertex="1">
+          <mxGeometry x="800" y="1235" width="560" height="138" as="geometry" />
+        </mxCell>
+        <mxCell id="scoring" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef8ef;strokeColor=#c47a10;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;_score_records&lt;/b&gt;&lt;br&gt;rule_penalty: nearest/directional assignment, high velocity_std, unstable amplitude, unsupported step, weak local support, cross-track mismatch&lt;br&gt;anomaly_score = 0.60 cluster_outlier + 0.25 local_deviation + 0.15 rule_penalty&lt;br&gt;quality_score = 0.45 (1-anomaly) + 0.25 cross_track + 0.20 kept_support + 0.10 signal_quality&lt;br&gt;Labels: normal &gt;= 0.70, suspect 0.40-0.69, outlier &lt; 0.40 or gate-excluded" vertex="1">
+          <mxGeometry x="260" y="1450" width="680" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="metrics" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;_evaluate_run&lt;/b&gt;&lt;br&gt;total/assigned/kept/gate-excluded points&lt;br&gt;normal/suspect/outlier/noise counts&lt;br&gt;buildings_with_clusters, multi_cluster_buildings, small_n_buildings&lt;br&gt;full_cross_track_points, cross_track_improvement" vertex="1">
+          <mxGeometry x="1010" y="1460" width="360" height="126" as="geometry" />
+        </mxCell>
+
+        <mxCell id="lane_output" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5fff5;strokeColor=#82b366;strokeWidth=2;arcSize=6;" value="" vertex="1">
+          <mxGeometry x="50" y="1710" width="1500" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="lane_output_label" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontStyle=1;fontColor=#2d6e4e;" value="Persistenz, API und Visualisierung" vertex="1">
+          <mxGeometry x="70" y="1722" width="330" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="persist" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;ml_point_results&lt;/b&gt;&lt;br&gt;run_id, code, track&lt;br&gt;cluster_id, building_source/id&lt;br&gt;distance_m, score, anomaly_score&lt;br&gt;quality_score, cross_track_consistency&lt;br&gt;label, feature/model versions, meta JSONB" vertex="1">
+          <mxGeometry x="120" y="1782" width="280" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="meta_json" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366;fontSize=12;align=center;" value="&lt;b&gt;meta JSONB&lt;/b&gt;&lt;br&gt;feature_flags, building_context, cross_track_summary&lt;br&gt;cluster_rollup, building_rollup, neighbour_context&lt;br&gt;detector_scores, explain_top_features, visual_context" vertex="1">
+          <mxGeometry x="465" y="1792" width="390" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="run_tables" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=center;" value="&lt;b&gt;ml_runs&lt;/b&gt;&lt;br&gt;status, error, mlflow_run_id&lt;br&gt;&lt;b&gt;ml_run_metrics&lt;/b&gt;&lt;br&gt;numeric metrics&lt;br&gt;&lt;b&gt;ml_building_colors&lt;/b&gt;&lt;br&gt;stable building color index" vertex="1">
+          <mxGeometry x="920" y="1790" width="245" height="128" as="geometry" />
+        </mxCell>
+        <mxCell id="api" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;ML API / UI Context&lt;/b&gt;&lt;br&gt;building point features expose cluster, gate, assignment, 2D range and neighbour fields&lt;br&gt;building context recomputes candidate_areas with same track_geometry_values_cte&lt;br&gt;cluster_hulls from core non-gate points" vertex="1">
+          <mxGeometry x="1230" y="1778" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="ui_layers" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=center;" value="&lt;b&gt;Frontend layers&lt;/b&gt;&lt;br&gt;active run points/buildings&lt;br&gt;focus candidate buffers&lt;br&gt;cluster hulls&lt;br&gt;Inspector: building, cluster and neighbour diagnostics" vertex="1">
+          <mxGeometry x="1070" y="1972" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="version_note" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;size=14;fontSize=12;align=center;" value="&lt;b&gt;Persisted versions&lt;/b&gt;&lt;br&gt;feature_set_version = anomaly_local_v1_phase1&lt;br&gt;model_set_version = local_hdbscan_rulegate_v1" vertex="1">
+          <mxGeometry x="510" y="1978" width="335" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_run_1" parent="1" source="run_cfg" target="runner_start" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="arr_input_2" edge="1" parent="1" source="db_gba" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" target="step1_box">
+        <mxCell id="e_run_2" parent="1" source="runner_start" target="mlflow" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="arr_input_3" edge="1" parent="1" source="input_track" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#666666;strokeWidth=2;" target="step1_box">
+        <mxCell id="e_run_3" parent="1" source="mlflow" target="pipeline_run" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="step1_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#16537e;rounded=1;" value="&lt;b&gt;SCHRITT 1&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="290" as="geometry" />
-        </mxCell>
-        <mxCell id="step1_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#16537e;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="130" width="1180" x="100" y="270" as="geometry" />
-        </mxCell>
-        <mxCell id="step1_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#16537e;" value="&lt;b&gt;Punktzuordnung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;Jedes Gebäude × Track separat&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="250" x="120" y="285" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_poly" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16537e;fontSize=11;" value="&lt;b&gt;1. Original-&lt;br&gt;polygon&lt;/b&gt;" vertex="1">
-          <mxGeometry height="55" width="110" x="130" y="335" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_shift" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16537e;fontSize=11;" value="&lt;b&gt;2. Richtungs-&lt;br&gt;verschiebung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;ASC → West&lt;br&gt;DSC → Ost&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="130" x="270" y="330" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_formula" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;size=12;fontSize=10;" value="&lt;font style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;range_offset&lt;/b&gt; =&lt;br&gt;clamp(h × tan(θ) × mult,&lt;br&gt;min_buf, max_buf)&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="170" x="430" y="330" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_union" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16537e;fontSize=11;" value="&lt;b&gt;3. Vereinigte&lt;br&gt;Kandidaten-&lt;br&gt;fläche&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;+ lateraler Slack&lt;/font&gt;" vertex="1">
-          <mxGeometry height="70" width="130" x="630" y="328" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_match" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#16537e;fontSize=11;" value="&lt;b&gt;4. Zuordnung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;within → buffer → nearest&lt;/font&gt;" vertex="1">
-          <mxGeometry height="55" width="150" x="790" y="335" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_fallback" parent="1" style="shape=hexagon;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;size=0.15;fontSize=10;" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;Fallback:&lt;/b&gt;&lt;br&gt;nearest ≤ 15 m&lt;/font&gt;" vertex="1">
-          <mxGeometry height="45" width="120" x="970" y="340" as="geometry" />
-        </mxCell>
-        <mxCell id="s1_output" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" value="&lt;b&gt;Punkte pro&lt;br&gt;Gebäude × Track&lt;/b&gt;" vertex="1">
-          <mxGeometry height="55" width="140" x="1120" y="335" as="geometry" />
-        </mxCell>
-        <mxCell id="s1a1" edge="1" parent="1" source="s1_poly" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#16537e;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1_shift">
+        <mxCell id="e_run_4" parent="1" source="pipeline_run" target="runner_finish" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s1a2" edge="1" parent="1" source="s1_shift" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#16537e;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1_union">
+        <mxCell id="e_pipeline_fetch" parent="1" source="pipeline_run" target="candidate_priority" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#16537e;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s1a3" edge="1" parent="1" source="s1_union" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#16537e;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1_match">
+        <mxCell id="e_points_candidate" parent="1" source="db_points" target="candidate_priority" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=1.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s1a4" edge="1" parent="1" source="s1_match" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#16537e;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1_fallback">
+        <mxCell id="e_build_candidate" parent="1" source="db_buildings" target="candidate_priority" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=1.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s1a5" edge="1" parent="1" source="s1_fallback" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#82b366;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s1_output">
+        <mxCell id="e_geom_candidate" parent="1" source="track_geom" target="candidate_priority" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7b2d8e;strokeWidth=1.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="arr_1_2" edge="1" parent="1" source="s1_output" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;entryX=0.5;entryY=0;" target="step2_box">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1190" y="425" />
-              <mxPoint x="700" y="425" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="step2_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#7b2d8e;rounded=1;" value="&lt;b&gt;SCHRITT 2&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="450" as="geometry" />
-        </mxCell>
-        <mxCell id="step2_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="160" width="1180" x="110" y="440" as="geometry" />
-        </mxCell>
-        <mxCell id="step2_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#7b2d8e;" value="&lt;b&gt;Feature-Berechnung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;Zeitreihen- &amp; Qualitätsfeatures pro Punkt&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="350" x="120" y="445" as="geometry" />
-        </mxCell>
-        <mxCell id="s2_cluster" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7b2d8e;fontSize=11;align=left;spacingLeft=8;" value="&lt;b&gt;Clustering-Features&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;• along_look_offset_m&lt;br&gt;• cross_look_offset_m&lt;br&gt;• height_rank_in_building&lt;br&gt;• velocity&lt;br&gt;• acceleration&lt;br&gt;• coherence_penalty&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="220" x="130" y="490" as="geometry" />
-        </mxCell>
-        <mxCell id="s2_clust_desc" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;size=10;fontSize=10;" value="&lt;font style=&quot;font-size:10px&quot;&gt;Geometrische Lage + Bewegung + Signal&lt;br&gt;→ bestimmen die &lt;b&gt;Gruppierung&lt;/b&gt;&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="210" x="370" y="505" as="geometry" />
-        </mxCell>
-        <mxCell id="s2_scoring" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7b2d8e;fontSize=11;align=left;spacingLeft=8;" value="&lt;b&gt;Scoring-Features&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;• velocity_std, season_amp&lt;br&gt;• ts_slope, ts_residual_std&lt;br&gt;• ts_max_abs_delta, ts_roughness&lt;br&gt;• ts_missing_rate&lt;br&gt;• amp_ts_cv, amp_ts_spike_rate&lt;br&gt;• building_height, slope_mean_deg&lt;br&gt;• slope_max_deg, relief_range_m&lt;br&gt;• local_density&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="240" x="610" y="490" as="geometry" />
-        </mxCell>
-        <mxCell id="s2_score_desc" parent="1" style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;size=10;fontSize=10;" value="&lt;font style=&quot;font-size:10px&quot;&gt;Stabilität, Signalqualität, Topografie&lt;br&gt;→ &lt;b&gt;Soft-Penalties&lt;/b&gt; für Outlier-Bewertung&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="220" x="870" y="505" as="geometry" />
-        </mxCell>
-        <mxCell id="arr_2_3" edge="1" parent="1" source="step2_box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;" target="step3_box">
+        <mxCell id="e_formula_candidate" parent="1" source="range_formula" target="candidate_priority" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=1.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="step3_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#ae4132;rounded=1;" value="&lt;b&gt;SCHRITT 3&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="650" as="geometry" />
-        </mxCell>
-        <mxCell id="step3_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ef;strokeColor=#ae4132;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="140" width="1180" x="110" y="640" as="geometry" />
-        </mxCell>
-        <mxCell id="step3_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#ae4132;" value="&lt;b&gt;Gate-Rules — Harte Ausschlüsse&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;Pragmatische Phase-1-Schwellen, später lernbar&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="400" x="120" y="645" as="geometry" />
-        </mxCell>
-        <mxCell id="gate1" parent="1" style="shape=process;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;size=0.05;" value="&lt;b&gt;❌ Kein Gebäude&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;no_building_assignment&lt;br&gt;→ kein lokaler Kontext&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="195" x="130" y="695" as="geometry" />
-        </mxCell>
-        <mxCell id="gate2" parent="1" style="shape=process;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;size=0.05;" value="&lt;b&gt;❌ &amp;lt; 24 Epochen&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;too_few_valid_epochs&lt;br&gt;→ Trend instabil&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="195" x="355" y="695" as="geometry" />
-        </mxCell>
-        <mxCell id="gate3" parent="1" style="shape=process;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;size=0.05;" value="&lt;b&gt;❌ &amp;lt; 50% Epochen&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;too_sparse_timeseries&lt;br&gt;→ Vergleiche verfälscht&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="195" x="580" y="695" as="geometry" />
-        </mxCell>
-        <mxCell id="gate4" parent="1" style="shape=process;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;size=0.05;" value="&lt;b&gt;❌ Niedrige Kohärenz&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;coh &amp;lt; max(0.45, track_p05)&lt;br&gt;→ unzuverlässiges Signal&lt;/font&gt;" vertex="1">
-          <mxGeometry height="65" width="205" x="805" y="695" as="geometry" />
-        </mxCell>
-        <mxCell id="gate_result" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;size=0.1;fontSize=11;perimeter=stepPerimeter;" value="&lt;font style=&quot;font-size:10px&quot;&gt;Ausgeschlossene Punkte → &lt;b&gt;outlier&lt;/b&gt;&lt;br&gt;Behaltene Punkte → weiter&lt;/font&gt;" vertex="1">
-          <mxGeometry height="55" width="220" x="1040" y="700" as="geometry" />
-        </mxCell>
-        <mxCell id="arr_3_4" edge="1" parent="1" source="step3_box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;" target="step4_box">
+        <mxCell id="e_candidate_fetch" parent="1" source="candidate_priority" target="fetch_output" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="step4_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#2d6e4e;rounded=1;" value="&lt;b&gt;SCHRITT 4&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="835" as="geometry" />
-        </mxCell>
-        <mxCell id="step4_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0faf0;strokeColor=#2d6e4e;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="175" width="1180" x="110" y="825" as="geometry" />
-        </mxCell>
-        <mxCell id="step4_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#2d6e4e;" value="&lt;b&gt;Clustering &amp; Outlier-Erkennung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;Lokal pro Gebäude × Track&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="350" x="120" y="830" as="geometry" />
-        </mxCell>
-        <mxCell id="s4_decision" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2d6e4e;fontSize=12;strokeWidth=2;" value="&lt;b&gt;Wie viele&lt;br&gt;Punkte?&lt;/b&gt;" vertex="1">
-          <mxGeometry height="90" width="120" x="150" y="885" as="geometry" />
-        </mxCell>
-        <mxCell id="s4_hdbscan" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=8;" value="&lt;b&gt;HDBSCAN&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;≥ 6 Punkte&lt;br&gt;allow_single_cluster=True&lt;br&gt;method=eom&lt;br&gt;min_cluster_size=max(2,⌈0.2n⌉)&lt;br&gt;Fallback: OPTICS&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="260" x="350" y="865" as="geometry" />
-        </mxCell>
-        <mxCell id="s4_smalln" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;spacingLeft=8;" value="&lt;b&gt;Small-N Fallback&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;3–5 Punkte&lt;br&gt;Ein-Cluster-Hypothese&lt;br&gt;Robuster Lokalscore trennt&lt;br&gt;Kern von Noise&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="230" x="660" y="865" as="geometry" />
-        </mxCell>
-        <mxCell id="s4_insuff" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;spacingLeft=8;" value="&lt;b&gt;Insufficient Support&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;&amp;lt; 3 Punkte&lt;br&gt;→ kein Clustering&lt;br&gt;→ Status: insufficient_support&lt;br&gt;→ Label: mindestens suspect&lt;/font&gt;" vertex="1">
-          <mxGeometry height="100" width="230" x="940" y="865" as="geometry" />
-        </mxCell>
-        <mxCell id="s4a1" edge="1" parent="1" source="s4_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#2d6e4e;strokeWidth=1.5;fontSize=11;fontStyle=1;fontColor=#2d6e4e;" target="s4_hdbscan" value="≥ 6">
+        <mxCell id="e_ts_fetch" parent="1" source="db_timeseries" target="fetch_output" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=1.5;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s4a2" edge="1" parent="1" source="s4_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#d6b656;strokeWidth=1.5;fontSize=11;fontStyle=1;fontColor=#d6b656;" target="s4_smalln" value="3–5">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="310" y="930" />
-              <mxPoint x="310" y="850" />
-              <mxPoint x="660" y="850" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="s4a3" edge="1" parent="1" source="s4_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#b85450;strokeWidth=1.5;fontSize=11;fontStyle=1;fontColor=#b85450;" target="s4_insuff" value="&amp;lt; 3">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="310" y="975" />
-              <mxPoint x="310" y="975" />
-              <mxPoint x="940" y="975" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="arr_4_5" edge="1" parent="1" source="step4_box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;" target="step5_box">
+        <mxCell id="e_fetch_records" parent="1" source="fetch_output" target="records" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="step5_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#c47a10;rounded=1;" value="&lt;b&gt;SCHRITT 5&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="1060" as="geometry" />
-        </mxCell>
-        <mxCell id="step5_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef8ef;strokeColor=#c47a10;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="210" width="1180" x="110" y="1050" as="geometry" />
-        </mxCell>
-        <mxCell id="step5_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#c47a10;" value="&lt;b&gt;Scoring&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;Anomalie- &amp; Qualitätsbewertung&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="350" x="120" y="1055" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_anom_title" parent="1" style="text;html=1;align=center;fontSize=12;fontColor=#c47a10;" value="&lt;b&gt;anomaly_score&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="450" x="130" y="1095" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_comp1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#c47a10;fontSize=11;align=center;" value="&lt;b&gt;60%&lt;/b&gt;&lt;br&gt;cluster_outlier&lt;br&gt;_score" vertex="1">
-          <mxGeometry height="55" width="130" x="130" y="1120" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_plus1" parent="1" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#c47a10;" value="+" vertex="1">
-          <mxGeometry height="30" width="20" x="265" y="1130" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_comp2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#c47a10;fontSize=11;align=center;" value="&lt;b&gt;25%&lt;/b&gt;&lt;br&gt;local_deviation&lt;br&gt;_score" vertex="1">
-          <mxGeometry height="55" width="130" x="290" y="1120" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_plus2" parent="1" style="text;html=1;align=center;fontSize=16;fontStyle=1;fontColor=#c47a10;" value="+" vertex="1">
-          <mxGeometry height="30" width="20" x="425" y="1130" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_comp3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#c47a10;fontSize=11;align=center;" value="&lt;b&gt;15%&lt;/b&gt;&lt;br&gt;rule_penalty" vertex="1">
-          <mxGeometry height="55" width="130" x="450" y="1120" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_qual_title" parent="1" style="text;html=1;align=center;fontSize=12;fontColor=#2d6e4e;" value="&lt;b&gt;quality_score&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="450" x="130" y="1190" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_q1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2d6e4e;fontSize=11;align=center;" value="&lt;b&gt;45%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;1 - anomaly_score&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="115" x="130" y="1210" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_qp1" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#2d6e4e;" value="+" vertex="1">
-          <mxGeometry height="30" width="15" x="248" y="1215" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_q2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2d6e4e;fontSize=11;align=center;" value="&lt;b&gt;25%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;cross_track_cons.&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="115" x="268" y="1210" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_qp2" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#2d6e4e;" value="+" vertex="1">
-          <mxGeometry height="30" width="15" x="386" y="1215" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_q3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2d6e4e;fontSize=11;align=center;" value="&lt;b&gt;20%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;kept_support_ratio&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="115" x="405" y="1210" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_qp3" parent="1" style="text;html=1;align=center;fontSize=14;fontStyle=1;fontColor=#2d6e4e;" value="+" vertex="1">
-          <mxGeometry height="30" width="15" x="523" y="1215" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_q4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2d6e4e;fontSize=11;align=center;" value="&lt;b&gt;10%&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;signal_quality&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="115" x="542" y="1210" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_labels_title" parent="1" style="text;html=1;align=center;fontSize=13;fontColor=#333;" value="&lt;b&gt;Labels&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="100" x="740" y="1095" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_normal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=center;" value="&lt;b&gt;✅ normal&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;quality ≥ 0.70&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="170" x="700" y="1120" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_suspect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=center;" value="&lt;b&gt;⚠️ suspect&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;quality 0.40–0.69&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="170" x="700" y="1180" as="geometry" />
-        </mxCell>
-        <mxCell id="s5_outlier" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;" value="&lt;b&gt;🔴 outlier&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;quality &amp;lt; 0.40&lt;br&gt;oder Gate-Ausschluss&lt;/font&gt;" vertex="1">
-          <mxGeometry height="55" width="170" x="700" y="1240" as="geometry" />
-        </mxCell>
-        <mxCell id="arr_5_6" edge="1" parent="1" source="step5_box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;" target="step6_box">
+        <mxCell id="e_records_series" parent="1" source="records" target="series_features" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="step6_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#1a6b8a;rounded=1;" value="&lt;b&gt;SCHRITT 6&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="1320" as="geometry" />
-        </mxCell>
-        <mxCell id="step6_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="130" width="1180" x="110" y="1310" as="geometry" />
-        </mxCell>
-        <mxCell id="step6_title" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=14;fontColor=#1a6b8a;" value="&lt;b&gt;Cross-Track-Validierung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px;color:#555&quot;&gt;ASC (Track 44) ↔ DSC (Track 95)&lt;/font&gt;" vertex="1">
-          <mxGeometry height="40" width="380" x="120" y="1315" as="geometry" />
-        </mxCell>
-        <mxCell id="s6_proxy" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1a6b8a;fontSize=12;" value="&lt;b&gt;Vertikaler Proxy&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;v_proxy = velocity / cos(θ)&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="230" x="140" y="1365" as="geometry" />
-        </mxCell>
-        <mxCell id="s6_compare" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1a6b8a;fontSize=12;" value="&lt;b&gt;ASC vs DSC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;Vergleich der vertikalen Proxies&lt;/font&gt;" vertex="1">
-          <mxGeometry height="50" width="230" x="410" y="1365" as="geometry" />
-        </mxCell>
-        <mxCell id="s6_tol" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1a6b8a;fontSize=11;" value="&lt;b&gt;Adaptive Toleranz&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:11px&quot;&gt;allowed_diff = 1.0 + 0.15 × slope_mean&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;color:#777&quot;&gt;Hanglagen → größere Toleranz&lt;/font&gt;" vertex="1">
-          <mxGeometry height="63" width="270" x="680" y="1358" as="geometry" />
-        </mxCell>
-        <mxCell id="s6_result" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;" value="&lt;b&gt;→ Vertrauens-&lt;br&gt;indikator&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;fließt in quality_score&lt;/font&gt;" vertex="1">
-          <mxGeometry height="60" width="160" x="990" y="1360" as="geometry" />
-        </mxCell>
-        <mxCell id="s6a1" edge="1" parent="1" source="s6_proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1a6b8a;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s6_compare">
+        <mxCell id="e_series_stats" parent="1" source="series_features" target="track_stats" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s6a2" edge="1" parent="1" source="s6_compare" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#1a6b8a;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s6_tol">
+        <mxCell id="e_stats_build" parent="1" source="track_stats" target="building_features" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="s6a3" edge="1" parent="1" source="s6_tol" style="edgeStyle=orthogonalEdgeStyle;rounded=0;strokeColor=#82b366;strokeWidth=1.5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" target="s6_result">
+        <mxCell id="e_build_gates" parent="1" source="building_features" target="gates" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#ae4132;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="arr_6_out" edge="1" parent="1" source="step6_box" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#333333;strokeWidth=2.5;" target="output_box">
+        <mxCell id="e_gate_cluster" parent="1" source="gates" target="cluster_decision" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2d6e4e;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="output_label" parent="1" style="text;html=1;align=center;fontSize=11;fontColor=#FFFFFF;fillColor=#333333;rounded=1;" value="&lt;b&gt;OUTPUT&lt;/b&gt;" vertex="1">
-          <mxGeometry height="25" width="80" x="20" y="1500" as="geometry" />
+        <mxCell id="e_dec_insuff" parent="1" source="cluster_decision" target="cluster_insuff" edge="1" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt; 3&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#b85450;strokeWidth=1.5;fontColor=#b85450;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="output_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#333333;strokeWidth=2;arcSize=8;" value="" vertex="1">
-          <mxGeometry height="100" width="1180" x="110" y="1490" as="geometry" />
+        <mxCell id="e_dec_small" parent="1" source="cluster_decision" target="cluster_smalln" edge="1" value="&lt;font style=&quot;font-size:10px&quot;&gt;3-5&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#d6b656;strokeWidth=1.5;fontColor=#d6b656;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="out_db" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;size=10;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;" value="&lt;b&gt;ml_runs&lt;/b&gt;&lt;br&gt;&lt;b&gt;ml_point_results&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Ergebnisse in DB gespeichert&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="180" x="140" y="1502" as="geometry" />
+        <mxCell id="e_dec_density" parent="1" source="cluster_decision" target="cluster_density" edge="1" value="&lt;font style=&quot;font-size:10px&quot;&gt;&gt;= 6&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2d6e4e;strokeWidth=1.5;fontColor=#2d6e4e;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="out_viz" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;" value="&lt;b&gt;Gebäude-Visualisierung&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Polygon + Kandidatenflächen&lt;br&gt;Cluster-Hüllen + Punkte&lt;br&gt;Noise + Gate-Ausschlüsse&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="230" x="370" y="1502" as="geometry" />
+        <mxCell id="e_cluster_rollups" parent="1" source="cluster_density" target="rollups" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1a6b8a;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="out_labels" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;" value="&lt;b&gt;Pro Punkt:&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;anomaly_score + quality_score&lt;br&gt;Label: normal / suspect / outlier&lt;br&gt;Cluster-ID, Zuordnungsart, Flags&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="250" x="650" y="1502" as="geometry" />
+        <mxCell id="e_small_rollups" parent="1" source="cluster_smalln" target="rollups" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1a6b8a;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="out_cross" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;fontSize=11;align=center;" value="&lt;b&gt;Cross-Track&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;Konsistenz-Indikator&lt;br&gt;ASC ↔ DSC Vergleich&lt;br&gt;pro Gebäude&lt;/font&gt;" vertex="1">
-          <mxGeometry height="75" width="180" x="950" y="1502" as="geometry" />
+        <mxCell id="e_insuff_rollups" parent="1" source="cluster_insuff" target="rollups" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1a6b8a;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="legend_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;strokeWidth=1;dashed=1;" value="" vertex="1">
-          <mxGeometry height="200" width="350" x="930" y="1095" as="geometry" />
+        <mxCell id="e_rollups_neighbour" parent="1" source="rollups" target="neighbourhood" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#c47a10;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="legend_title" parent="1" style="text;html=1;align=left;fontSize=12;fontColor=#333;" value="&lt;b&gt;Legende&lt;/b&gt;" vertex="1">
-          <mxGeometry height="20" width="100" x="945" y="1100" as="geometry" />
+        <mxCell id="e_neighbour_score" parent="1" source="neighbourhood" target="scoring" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#c47a10;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg1" parent="1" style="rounded=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="" vertex="1">
-          <mxGeometry height="15" width="20" x="950" y="1130" as="geometry" />
+        <mxCell id="e_score_metrics" parent="1" source="scoring" target="metrics" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg1t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Ergebnis / Weiter&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="130" x="980" y="1126" as="geometry" />
+        <mxCell id="e_score_persist" parent="1" source="scoring" target="persist" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg2" parent="1" style="rounded=1;fillColor=#f8cecc;strokeColor=#b85450;" value="" vertex="1">
-          <mxGeometry height="15" width="20" x="950" y="1155" as="geometry" />
+        <mxCell id="e_metrics_tables" parent="1" source="metrics" target="run_tables" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6c8ebf;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg2t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Ausschluss / Warnung&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="150" x="980" y="1151" as="geometry" />
+        <mxCell id="e_persist_meta" parent="1" source="persist" target="meta_json" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#82b366;strokeWidth=1.5;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg3" parent="1" style="rounded=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="" vertex="1">
-          <mxGeometry height="15" width="20" x="950" y="1180" as="geometry" />
+        <mxCell id="e_meta_api" parent="1" source="meta_json" target="api" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673a6;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="leg3t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Hinweis / Formel / Konservativ&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="200" x="980" y="1176" as="geometry" />
-        </mxCell>
-        <mxCell id="leg4" parent="1" style="shape=cylinder3;fillColor=#dae8fc;strokeColor=#6c8ebf;size=5;" value="" vertex="1">
-          <mxGeometry height="18" width="20" x="950" y="1205" as="geometry" />
-        </mxCell>
-        <mxCell id="leg4t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Datenbank-Tabelle&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="150" x="980" y="1204" as="geometry" />
-        </mxCell>
-        <mxCell id="leg5" parent="1" style="rounded=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="" vertex="1">
-          <mxGeometry height="15" width="20" x="950" y="1233" as="geometry" />
-        </mxCell>
-        <mxCell id="leg5t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Visualisierung / UI&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="150" x="980" y="1229" as="geometry" />
-        </mxCell>
-        <mxCell id="leg6" parent="1" style="rhombus;fillColor=#FFFFFF;strokeColor=#2d6e4e;" value="" vertex="1">
-          <mxGeometry height="18" width="20" x="950" y="1258" as="geometry" />
-        </mxCell>
-        <mxCell id="leg6t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Entscheidung / Verzweigung&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="200" x="980" y="1255" as="geometry" />
-        </mxCell>
-        <mxCell id="leg7" parent="1" style="shape=note;fillColor=#fff2cc;strokeColor=#d6b656;size=5;" value="" vertex="1">
-          <mxGeometry height="15" width="20" x="1140" y="1130" as="geometry" />
-        </mxCell>
-        <mxCell id="leg7t" parent="1" style="text;html=1;align=left;fontSize=11;" value="&lt;font style=&quot;font-size:11px&quot;&gt;Formel / Erklärung&lt;/font&gt;" vertex="1">
-          <mxGeometry height="20" width="130" x="1170" y="1126" as="geometry" />
+        <mxCell id="e_api_ui" parent="1" source="api" target="ui_layers" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#9673a6;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>

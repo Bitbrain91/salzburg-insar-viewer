@@ -24,8 +24,9 @@ Arbeitsmodus:
 
 - Nutze Subagents aktiv, aber halte den Supervisor-Kontext klein.
 - Delegiere situationsabhaengig; du bist nicht an feste Rollennamen gebunden.
-- Starte alle delegierten Agents mit `gpt-5.4` und reasoning effort `xhigh`.
+- Starte alle delegierten Agents mit `gpt-5.5` und reasoning effort `xhigh`.
 - Keine Mini-, Nano- oder sonstigen kleineren Modelle.
+- Falls `gpt-5.5` nicht verfuegbar ist, stoppe und melde den Modell-Blocker; kein Fallback auf kleinere Modelle.
 - Die bereits implementierte Gelaendekarte bleibt unveraendert; keine Terrain-Map-Refactors oder UI-Neuaufbauten in diesem Run.
 - Verlange von jedem delegierten Agent, dass er seine Ticket-DoD selbst prueft, bei Bedarf selbst nachbessert und dann mit einem klaren Ticket-Status zurueckmeldet.
 - Diese Session ist ein Analyse-/Design-Gate; sie soll Vorschlaege fuer `P1` erzeugen, aber keine Phase-1-Implementierung starten.

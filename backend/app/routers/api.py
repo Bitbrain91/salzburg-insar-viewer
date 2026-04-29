@@ -5,6 +5,7 @@ import json
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from ..db import fetch_all, fetch_one
+from ..ml.track_geometry import track_geometries_contract
 from ..schemas import (
     BuildingDetail,
     BuildingTerrainContext,
@@ -27,8 +28,8 @@ VELOCITY_THRESHOLDS = {
 }
 
 TRACKS = [
-    {"id": 44, "name": "Track 44 (Ascending)", "los": "A"},
-    {"id": 95, "name": "Track 95 (Descending)", "los": "D"},
+    {"id": geometry["track"], **geometry}
+    for geometry in track_geometries_contract()
 ]
 
 

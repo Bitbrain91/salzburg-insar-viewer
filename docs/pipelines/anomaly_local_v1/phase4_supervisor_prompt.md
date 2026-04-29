@@ -28,8 +28,9 @@ Arbeitsmodus:
 - Nutze Subagents aktiv und strikt; halte den Supervisor-Kontext klein.
 - Delegiere alle Ticket-Arbeiten an Subagents.
 - Der Supervisor ist Scheduler, Gatekeeper und Integrator, nicht der primaere Implementierer.
-- Starte alle delegierten Agents mit `gpt-5.4` und reasoning effort `xhigh`.
+- Starte alle delegierten Agents mit `gpt-5.5` und reasoning effort `xhigh`.
 - Keine Mini-, Nano- oder sonstigen kleineren Modelle.
+- Falls `gpt-5.5` nicht verfuegbar ist, stoppe und melde den Modell-Blocker; kein Fallback auf kleinere Modelle.
 - Verlange von jedem delegierten Agent, dass er seine Ticket-DoD selbst prueft, bei Bedarf selbst nachbessert und dann mit einem klaren Ticket-Status zurueckmeldet.
 - Integriere nur Tickets mit Status `green`.
 - Loese `red`- oder `inconclusive`-Tickets nicht stillschweigend im Hauptthread selbst.

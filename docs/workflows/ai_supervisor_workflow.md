@@ -70,16 +70,19 @@ Delegierte Agents sollen ihre Arbeit moeglichst end-to-end innerhalb ihres Teilp
 
 Fuer diesen Workflow gilt als feste Repo-Vorgabe:
 
-- alle delegierten Agents werden mit `gpt-5.4` gestartet
+- alle delegierten Agents werden mit `gpt-5.5` gestartet
 - reasoning effort ist `xhigh`
 - keine Mini-, Nano- oder sonstigen kleineren/fasteren Varianten
-- keine modellseitigen Downgrades, solange der User das nicht explizit aendert
+- keine modellseitigen Downgrades
+- falls `gpt-5.5` nicht verfuegbar ist, wird die Arbeit gestoppt und als
+  Modell-Blocker gemeldet
 
 Begruendung:
 
 - der Workflow ist fuer groessere, research-lastige und mehrstufige Aufgaben gedacht
 - der Supervisor soll sich auf hochwertige Rueckmeldungen der delegierten Agents verlassen koennen
-- GPT-5.4 ist laut OpenAI die Default-Basis fuer wichtige allgemeine und code-lastige Agentenarbeit und bietet eine `1M`-Token-Langkontext-Basis
+- GPT-5.5 ist der feste Repo-Standard fuer wichtige allgemeine und code-lastige
+  Agentenarbeit
 
 ## Steuerungsmodell
 

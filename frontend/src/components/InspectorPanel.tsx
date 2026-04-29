@@ -694,7 +694,7 @@ export default function InspectorPanel() {
                 <>
                   <div className="section-title">Building Cluster View</div>
                   <div className="pill">
-                    Die Karte zeigt jetzt Kandidatenflaechen, Cluster-Huellen und Punktrollen fuer dieses Gebaeude.
+                    Sensorseitige Kandidatenflaechen, Cluster-Huellen und Punktrollen.
                   </div>
                   <div className="form-row">
                     <label className="label">Track filter</label>

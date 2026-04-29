@@ -14,18 +14,18 @@ export const satelliteCameraPresets: Record<
   }
 > = {
   satellite_track44: {
-    bearing: 90,
+    bearing: 81.4,
     pitch: 38.8,
     label: "Satellitensicht Track 44",
     overlayTitle: "Satellitensicht T44",
-    overlayText: "Blick nach Osten",
+    overlayText: "LOS-Look 81.4 deg E",
   },
   satellite_track95: {
-    bearing: -90,
+    bearing: -78.5,
     pitch: 38.5,
     label: "Satellitensicht Track 95",
     overlayTitle: "Satellitensicht T95",
-    overlayText: "Blick nach Westen",
+    overlayText: "LOS-Look 281.5 deg W",
   },
 };
 

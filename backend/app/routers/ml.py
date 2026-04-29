@@ -42,6 +42,7 @@ from ..ml.rollups import (
     parse_meta as _parse_meta,
     track_motion_map,
 )
+from ..ml.track_geometry import track_geometry_values_cte
 from ..ml.registry import get_pipeline, list_pipelines
 from ..ml.runner import run_pipeline_async
 from ..ml.store import create_run_record, fetch_run_detail, fetch_runs
@@ -660,6 +661,12 @@ async def ml_building_points_visualization(
                     ],
                     "small_n_fallback": bool(cluster_meta.get("small_n_fallback", False)),
                     "range_offset_m": building_meta.get("range_offset_m"),
+                    "look_bearing_deg": building_meta.get("look_bearing_deg"),
+                    "sensor_bearing_deg": building_meta.get("sensor_bearing_deg"),
+                    "range_dx": building_meta.get("range_dx"),
+                    "range_dy": building_meta.get("range_dy"),
+                    "range_shift_x_m": building_meta.get("range_shift_x_m"),
+                    "range_shift_y_m": building_meta.get("range_shift_y_m"),
                     "buffer_m": building_meta.get("buffer_m"),
                     "along_look_offset_m": building_meta.get("along_look_offset_m"),
                     "cross_look_offset_m": building_meta.get("cross_look_offset_m"),
@@ -809,7 +816,7 @@ async def ml_building_context_visualization(
         candidate_rows = []
         if source == "gba":
             candidate_rows = await conn.fetch(
-                """
+                f"""
                 WITH building AS (
                     SELECT
                         gba_id::text AS building_id,
@@ -818,9 +825,18 @@ async def ml_building_context_visualization(
                     FROM gba_buildings
                     WHERE gba_id::text = $1
                 ),
+                {track_geometry_values_cte()},
                 track_settings AS (
                     SELECT
-                        44 AS track,
+                        tg.track,
+                        tg.los,
+                        tg.name,
+                        tg.look_bearing_deg,
+                        tg.sensor_bearing_deg,
+                        tg.default_incidence_deg,
+                        tg.range_dx,
+                        tg.range_dy,
+                        tg.contract_version,
                         COALESCE(
                             (
                                 SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY p.incidence_angle)
@@ -829,31 +845,25 @@ async def ml_building_context_visualization(
                                 WHERE r.run_id = $2::uuid
                                   AND r.building_source = $3
                                   AND r.building_id = $1
-                                  AND r.track = 44
+                                  AND r.track = tg.track
                                   AND p.incidence_angle IS NOT NULL
                             ),
+                            tg.default_incidence_deg,
                             $4::double precision
                         ) AS incidence_angle
-                    UNION ALL
-                    SELECT
-                        95 AS track,
-                        COALESCE(
-                            (
-                                SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY p.incidence_angle)
-                                FROM ml_point_results r
-                                JOIN insar_points p ON p.code = r.code AND p.track = r.track
-                                WHERE r.run_id = $2::uuid
-                                  AND r.building_source = $3
-                                  AND r.building_id = $1
-                                  AND r.track = 95
-                                  AND p.incidence_angle IS NOT NULL
-                            ),
-                            $4::double precision
-                        ) AS incidence_angle
+                    FROM track_geometry tg
                 ),
                 candidate AS (
                     SELECT
                         track,
+                        los,
+                        name,
+                        look_bearing_deg,
+                        sensor_bearing_deg,
+                        default_incidence_deg,
+                        range_dx,
+                        range_dy,
+                        contract_version,
                         incidence_angle,
                         GREATEST(
                             $5::double precision,
@@ -867,20 +877,37 @@ async def ml_building_context_visualization(
                         geom_utm
                     FROM building
                     CROSS JOIN track_settings
+                ),
+                shifted_candidate AS (
+                    SELECT
+                        *,
+                        (range_dx * range_offset_m) AS range_shift_x_m,
+                        (range_dy * range_offset_m) AS range_shift_y_m
+                    FROM candidate
                 )
                 SELECT
                     track,
+                    los,
+                    name,
+                    look_bearing_deg,
+                    sensor_bearing_deg,
+                    default_incidence_deg,
+                    range_dx,
+                    range_dy,
+                    contract_version,
                     incidence_angle,
                     range_offset_m,
+                    range_shift_x_m,
+                    range_shift_y_m,
                     ST_AsGeoJSON(
                         ST_Transform(
                             ST_Buffer(
                                 ST_Union(
                                     geom_utm,
                                     ST_Translate(
-                                    geom_utm,
-                                        CASE WHEN track = 44 THEN -range_offset_m ELSE range_offset_m END,
-                                        0.0
+                                        geom_utm,
+                                        range_shift_x_m,
+                                        range_shift_y_m
                                     )
                                 ),
                                 $9::double precision
@@ -888,7 +915,7 @@ async def ml_building_context_visualization(
                             4326
                         )
                     )::jsonb AS geometry
-                FROM candidate
+                FROM shifted_candidate
                 ORDER BY track
                 """,
                 building_id,
@@ -949,8 +976,18 @@ async def ml_building_context_visualization(
             geometry=_json_object(row["geometry"]),
             properties={
                 "track": row["track"],
+                "los": row["los"],
+                "name": row["name"],
+                "look_bearing_deg": row["look_bearing_deg"],
+                "sensor_bearing_deg": row["sensor_bearing_deg"],
+                "default_incidence_deg": row["default_incidence_deg"],
+                "range_dx": row["range_dx"],
+                "range_dy": row["range_dy"],
+                "contract_version": row["contract_version"],
                 "incidence_angle_deg": row["incidence_angle"],
                 "range_offset_m": row["range_offset_m"],
+                "range_shift_x_m": row["range_shift_x_m"],
+                "range_shift_y_m": row["range_shift_y_m"],
             },
         )
         for row in candidate_rows

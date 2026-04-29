@@ -8,8 +8,9 @@ MLFLOW_TRACKING_URI = "http://localhost:5001"
 
 [mcp_servers.playwright]
 command = "npx"
-args = ["@playwright/mcp@latest"]
+args = ["-y", "@playwright/mcp", "--config", "/home/wsl_user/.codex/playwright/config.json"]
 
 [mcp_servers.playwright.env]
+DISPLAY = ":0"
 NPM_CONFIG_CACHE = "/tmp/npm-cache"
 NPM_CONFIG_PREFIX = "/tmp/npm-prefix"

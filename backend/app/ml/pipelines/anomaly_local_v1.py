@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover - exercised in runtime environments with
     hdbscan = None
 
 from .base import BasePipeline
+from ..track_geometry import get_track_geometry, track_geometry_values_cte
 
 
 FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
@@ -63,6 +64,12 @@ class LocalPointRecord:
     distance_m: float | None
     assignment_method: str | None
     range_offset_m: float | None
+    look_bearing_deg: float | None
+    sensor_bearing_deg: float | None
+    range_dx: float | None
+    range_dy: float | None
+    range_shift_x_m: float | None
+    range_shift_y_m: float | None
     buffer_m: float | None
     within_building: bool
     slope_mean_deg: float | None
@@ -162,10 +169,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         min_lon, min_lat, max_lon, max_lat = config.bbox
         track_param = int(config.track) if config.track is not None else None
 
-        points_query = """
+        points_query = f"""
             WITH envelope AS (
                 SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) AS geom
             ),
+            {track_geometry_values_cte()},
             pts AS (
                 SELECT
                     p.code,
@@ -185,8 +193,32 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     ST_X(p.geom) AS lon,
                     ST_Y(p.geom) AS lat,
                     ST_X(ST_Transform(p.geom, 32633)) AS x_m,
-                    ST_Y(ST_Transform(p.geom, 32633)) AS y_m
-                FROM insar_points p, envelope
+                    ST_Y(ST_Transform(p.geom, 32633)) AS y_m,
+                    COALESCE(
+                        tg.look_bearing_deg,
+                        CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 90.0 ELSE 270.0 END
+                    ) AS look_bearing_deg,
+                    COALESCE(
+                        tg.sensor_bearing_deg,
+                        CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
+                    ) AS sensor_bearing_deg,
+                    COALESCE(tg.default_incidence_deg, $10::double precision) AS default_incidence_deg,
+                    COALESCE(
+                        tg.range_dx,
+                        sin(radians(
+                            CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
+                        ))
+                    ) AS range_dx,
+                    COALESCE(
+                        tg.range_dy,
+                        cos(radians(
+                            CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
+                        ))
+                    ) AS range_dy,
+                    COALESCE(tg.contract_version, 'fallback_track_geometry_v1') AS track_geometry_contract_version
+                FROM insar_points p
+                CROSS JOIN envelope
+                LEFT JOIN track_geometry tg ON tg.track = p.track
                 WHERE ST_Intersects(p.geom, envelope.geom)
                   AND ($5::integer IS NULL OR p.track = $5)
             ),
@@ -236,6 +268,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 cand.distance_m,
                 cand.assignment_method,
                 cand.range_offset_m,
+                p.look_bearing_deg,
+                p.sensor_bearing_deg,
+                p.range_dx,
+                p.range_dy,
+                cand.range_shift_x_m,
+                cand.range_shift_y_m,
                 cand.buffer_m,
                 cand.within_building,
                 cand.slope_mean_deg,
@@ -253,6 +291,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         0::double precision AS distance_m,
                         'within'::text AS assignment_method,
                         NULL::double precision AS range_offset_m,
+                        NULL::double precision AS range_shift_x_m,
+                        NULL::double precision AS range_shift_y_m,
                         NULL::double precision AS buffer_m,
                         true AS within_building,
                         b.slope_mean_deg,
@@ -272,6 +312,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         ST_Distance(p.geom::geography, b.geom::geography) AS distance_m,
                         'directional_buffer'::text AS assignment_method,
                         b.range_offset_m,
+                        (p.range_dx * b.range_offset_m) AS range_shift_x_m,
+                        (p.range_dy * b.range_offset_m) AS range_shift_y_m,
                         (b.range_offset_m + $11::double precision) AS buffer_m,
                         false AS within_building,
                         b.slope_mean_deg,
@@ -286,21 +328,25 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                                 LEAST(
                                     $8::double precision,
                                     COALESCE(base.building_height, $9::double precision)
-                                    * tan(radians(COALESCE(p.incidence_angle, $10::double precision)))
+                                    * tan(radians(COALESCE(
+                                        p.incidence_angle,
+                                        p.default_incidence_deg,
+                                        $10::double precision
+                                    )))
                                     * $6::double precision
                                 )
-                            ) AS range_offset_m,
-                            CASE
-                                WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN -1.0
-                                ELSE 1.0
-                            END AS shift_sign
+                            ) AS range_offset_m
                         FROM buildings base
                     ) b
                     WHERE ST_Covers(
                         ST_Buffer(
                             ST_Union(
                                 b.geom_utm,
-                                ST_Translate(b.geom_utm, b.shift_sign * b.range_offset_m, 0.0)
+                                ST_Translate(
+                                    b.geom_utm,
+                                    p.range_dx * b.range_offset_m,
+                                    p.range_dy * b.range_offset_m
+                                )
                             ),
                             $11::double precision
                         ),
@@ -317,6 +363,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         ST_Distance(p.geom::geography, b.geom::geography) AS distance_m,
                         'nearest'::text AS assignment_method,
                         NULL::double precision AS range_offset_m,
+                        NULL::double precision AS range_shift_x_m,
+                        NULL::double precision AS range_shift_y_m,
                         $12::double precision AS buffer_m,
                         false AS within_building,
                         b.slope_mean_deg,
@@ -432,6 +480,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 distance_m=self._float_or_none(row["distance_m"]),
                 assignment_method=row["assignment_method"],
                 range_offset_m=self._float_or_none(row["range_offset_m"]),
+                look_bearing_deg=self._float_or_none(row["look_bearing_deg"]),
+                sensor_bearing_deg=self._float_or_none(row["sensor_bearing_deg"]),
+                range_dx=self._float_or_none(row["range_dx"]),
+                range_dy=self._float_or_none(row["range_dy"]),
+                range_shift_x_m=self._float_or_none(row["range_shift_x_m"]),
+                range_shift_y_m=self._float_or_none(row["range_shift_y_m"]),
                 buffer_m=self._float_or_none(row["buffer_m"]),
                 within_building=bool(row["within_building"]),
                 slope_mean_deg=self._float_or_none(row["slope_mean_deg"]),
@@ -474,7 +528,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             record.features["season_amp"] = self._safe_value(record.season_amp)
             record.features["coherence"] = self._safe_value(record.coherence)
             record.features["coherence_penalty"] = 1.0 - np.clip(self._safe_value(record.coherence), 0.0, 1.0)
-            record.features["incidence_angle"] = self._safe_value(record.incidence_angle, 38.5)
+            record.features["incidence_angle"] = self._safe_value(
+                record.incidence_angle,
+                self._default_incidence_deg(record),
+            )
             record.features["amp_mean"] = self._safe_value(record.amp_mean)
             record.features["amp_std"] = self._safe_value(record.amp_std)
             record.features["building_height"] = self._safe_value(record.building_height)
@@ -577,12 +634,14 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             kept_support_ratio = 1.0
 
             for index, record in enumerate(group):
-                direction_sign = 1.0 if (record.los or "").upper() == "A" or record.track == 44 else -1.0
+                look_dx, look_dy = self._look_vector(record)
                 along_offset = 0.0
                 cross_offset = 0.0
                 if record.building_centroid_x_m is not None and record.building_centroid_y_m is not None:
-                    along_offset = (record.x_m - record.building_centroid_x_m) * direction_sign
-                    cross_offset = record.y_m - record.building_centroid_y_m
+                    delta_x = record.x_m - record.building_centroid_x_m
+                    delta_y = record.y_m - record.building_centroid_y_m
+                    along_offset = (delta_x * look_dx) + (delta_y * look_dy)
+                    cross_offset = (delta_x * -look_dy) + (delta_y * look_dx)
                 height_rank = height_ranks.get(record.code, 0.5)
                 step_support = self._compute_step_support(record, group, step_threshold)
                 record.features["along_look_offset_m"] = float(along_offset)
@@ -601,6 +660,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     "distance_m": record.distance_m,
                     "buffer_m": record.buffer_m,
                     "range_offset_m": record.range_offset_m,
+                    "look_bearing_deg": record.look_bearing_deg,
+                    "sensor_bearing_deg": record.sensor_bearing_deg,
+                    "range_dx": record.range_dx,
+                    "range_dy": record.range_dy,
+                    "range_shift_x_m": record.range_shift_x_m,
+                    "range_shift_y_m": record.range_shift_y_m,
                     "building_height": record.building_height,
                     "slope_mean_deg": record.slope_mean_deg,
                     "slope_max_deg": record.slope_max_deg,
@@ -635,6 +700,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 "distance_m": None,
                 "buffer_m": None,
                 "range_offset_m": None,
+                "look_bearing_deg": record.look_bearing_deg,
+                "sensor_bearing_deg": record.sensor_bearing_deg,
+                "range_dx": record.range_dx,
+                "range_dy": record.range_dy,
+                "range_shift_x_m": None,
+                "range_shift_y_m": None,
                 "building_height": None,
             }
 
@@ -2239,8 +2310,16 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         return float(np.median(proxies)) if proxies.size else 0.0
 
     def _vertical_proxy(self, record: LocalPointRecord) -> float:
-        incidence = math.radians(self._safe_value(record.incidence_angle, 38.5))
+        incidence = math.radians(self._safe_value(record.incidence_angle, self._default_incidence_deg(record)))
         return record.velocity / max(math.cos(incidence), 0.30)
+
+    def _look_vector(self, record: LocalPointRecord) -> tuple[float, float]:
+        geometry = get_track_geometry(record.track, record.los)
+        bearing_deg = record.look_bearing_deg if record.look_bearing_deg is not None else geometry.look_bearing_deg
+        return math.sin(math.radians(bearing_deg)), math.cos(math.radians(bearing_deg))
+
+    def _default_incidence_deg(self, record: LocalPointRecord) -> float:
+        return get_track_geometry(record.track, record.los).default_incidence_deg
 
     def _mark_excluded(self, record: LocalPointRecord, track: int) -> None:
         suffix = record.building_id or record.code

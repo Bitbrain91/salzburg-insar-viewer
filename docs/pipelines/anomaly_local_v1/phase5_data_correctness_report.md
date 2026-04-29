@@ -22,6 +22,23 @@ Track-/LOS-/Kamera-Semantik ist konsistent, aber eine im Repo direkt auditierbar
 autoritative Quelle fuer die echte physikalische Satelliten-Blickrichtung wurde nicht
 belegt.
 
+## Nachtrag: Track-Geometrie von AUGMENTERRA bestaetigt
+
+Nach Abschluss des P5-Audits hat AUGMENTERRA am 2026-04-28 die Track-Geometrie und
+LOS-Vorzeichenkonvention beantwortet. Der historische P5-Befund bleibt als Auditstand
+korrekt, ist aber fuer Folgearbeit nicht mehr offen.
+
+Neue Quelle:
+
+- `docs/pipelines/anomaly_local_v1/ps_insar_semantics_decision.md`
+
+Folgephase:
+
+- `P6` wertet die AUGMENTERRA-/TRE-ALTAMIRA-Handbooks als fachliche Validierung der
+  PS-InSAR-Punktinterpretation aus und prueft danach, ob die bisherige X-only-Ost-/
+  West-Candidate-Area auf einen echten 2D-Range-Vektor aus Track `44`/`95`
+  umgestellt werden soll.
+
 ## Nachtrag: Legacy-Linkpfad entfernt
 
 Nach dem Audit wurde entschieden, die statischen Punkt-Gebaeude-Linktabellen nicht

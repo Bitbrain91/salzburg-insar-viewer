@@ -25,8 +25,9 @@ Arbeitsmodus:
 - Nutze Subagents aktiv und strikt; halte den Supervisor-Kontext klein.
 - Delegiere alle Ticket-Arbeiten an Subagents.
 - Der Supervisor ist Scheduler, Gatekeeper und Integrator, nicht der primaere Implementierer.
-- Starte alle delegierten Agents mit `gpt-5.4` und reasoning effort `xhigh`.
+- Starte alle delegierten Agents mit `gpt-5.5` und reasoning effort `xhigh`.
 - Keine Mini-, Nano- oder sonstigen kleineren Modelle.
+- Falls `gpt-5.5` nicht verfuegbar ist, stoppe und melde den Modell-Blocker; kein Fallback auf kleinere Modelle.
 - Die bereits implementierte Gelaendekarte bleibt unveraendert; keine Terrain-Map-Refactors oder UI-Neuaufbauten in diesem Run.
 - Verlange von jedem delegierten Agent, dass er seine Ticket-DoD selbst prueft, bei Bedarf selbst nachbessert und dann mit einem klaren Ticket-Status zurueckmeldet.
 - Die in `phase2_research_matrix.md` und `phase2_decision_log.md` eingefrorenen `P0`-Entscheidungen sind fuer `P1` verbindlich; fuehre keine neue Semantikdiskussion im Hauptthread.

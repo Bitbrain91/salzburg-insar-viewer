@@ -47,7 +47,7 @@ Bereits entschieden:
 - Die bestehende Gelaendekarte bleibt unveraendert.
 - Der erste Produkthebel ist Gebaeude-Level vor Nachbarschaft und Terrain-Upgrade.
 - Multi-Cluster wird als fachlich relevanter Befund behandelt, nicht als Randfall.
-- Der Supervisor-Workflow laeuft mit `gpt-5.4` und reasoning effort `xhigh`.
+- Der Supervisor-Workflow laeuft mit `gpt-5.5` und reasoning effort `xhigh`.
 - Die feste AOI-Basis fuer Entwicklung und Verifikation ist `Mirabell`, `Moosstrasse` und der `Osthang-Stressbereich` gemaess `docs/pipelines/anomaly_local_v1/runbook.md`.
 - `P0` ist eine eigene Supervisor-Session vor jeder Implementierung.
 - Zwischen `P0` und `P1` liegt ein bewusstes User-Review-Gate.
@@ -68,20 +68,25 @@ Noch in Phase 0 zu entscheiden:
 - Phase 3: Neighbourhood Context
 - Phase 4: Terrain and Aspect
 - Phase 5: Data Correctness and UI Alignment Audit
+- Phase 6: PS-InSAR Semantics and Track Geometry Evaluation
 - Parallelspur E0: MatchSAR / AUGMENTERRA
 
 ## Status
 
 Aktueller Startpunkt:
 
-- naechste zulaessige Hauptwelle nach neuem User-Gate: separate Fix-/Folgephase
-  fuer die `P5`-Befunde; `P4` ist mit `Aspect = defer` abgeschlossen, `E0`
-  bleibt offen
+- naechste zulaessige Hauptwelle nach abgeschlossenem `P6`: Folgegate fuer
+  Produktions-Dry-Run oder Retuning auf Basis der finalen 2D-Track-Geometrie;
+  `P4` ist mit `Aspect = defer` abgeschlossen, `E0` bleibt offen
 - `P1` ist abgeschlossen; Verifikation und Restrisiken stehen in `docs/pipelines/anomaly_local_v1/phase2_verification.md`
 - `P2` ist abgeschlossen; Harness, Referenzpaket, KI-Protokoll und Kalibrationsnotiz stehen in den Phase-2-Artefakten
 - `P2R` ist abgeschlossen; neue Live-Runs, aktualisierte Harness-Artefakte und die Abschlussbewertung stehen in `docs/pipelines/anomaly_local_v1/phase2_retuning_verification.md`
 - `P3` ist abgeschlossen; Design, Backend, API/UI und Abschlussverifikation stehen in `docs/pipelines/anomaly_local_v1/phase3_neighbourhood_verification.md`
 - `P5` ist als Audit abgeschlossen; Bericht und Ticketbefunde stehen in `docs/pipelines/anomaly_local_v1/phase5_data_correctness_report.md`
+- `P6` ist abgeschlossen; Abschlussbericht, Harness-Artefakte und finale
+  `keep_2d_vector`-Entscheidung stehen in
+  `docs/pipelines/anomaly_local_v1/phase6_ps_insar_semantics_report.md` und
+  `docs/pipelines/anomaly_local_v1/artifacts/phase6_harness_summary.md`
 
 Phasenstatus:
 
@@ -92,6 +97,7 @@ Phasenstatus:
 - `P3`: green
 - `P4`: green
 - `P5`: audit-completed with red/inconclusive findings
+- `P6`: green
 - `E0`: open
 
 ## Empfohlener Session-Schnitt
@@ -118,6 +124,12 @@ Phasenstatus:
 - `S5`: `P5`
   - Zweck: Daten-, Koordinaten-, Track-, Buffer- und UI-Korrektheit auditieren.
   - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase5_supervisor_prompt.md`
+- `S6`: `P6`
+  - Zweck: TRE-ALTAMIRA-/AUGMENTERRA-Handbooks als fachliche Validierung der
+    PS-InSAR-Punktinterpretation auswerten; danach Track-Geometrie, LOS-Konvention
+    und moeglichen 2D-Range-Vektor fuer Candidate-Areas implementieren und gegen
+    Pflicht-AOIs verifizieren.
+  - Single-File-Entry: `docs/pipelines/anomaly_local_v1/phase6_ps_insar_semantics_supervisor_prompt.md`
 - Parallelspur:
   - `E0-W1` darf schon in `S0` oder `S1` vorbereitet werden, weil es die interne Umsetzung nicht blockiert.
   - `E0-W2` erst, wenn externe Rueckmeldung vorliegt.
@@ -665,6 +677,79 @@ Audit-Ergebnis:
 - `Inconclusive`: echte physikalische Satelliten-Blickrichtung ist im Repo nicht
   mit einer primaeren auditierbaren Quelle belegt.
 
+## Phase 6: PS-InSAR Semantics and Track Geometry Evaluation
+
+Phase 6 verarbeitet die AUGMENTERRA-Rueckmeldung vom 2026-04-28 zur echten
+Track-Geometrie und LOS-Konvention. Zusaetzlich nutzt sie das TRE ALTAMIRA Handbook
+als zentrale Fachquelle, um die aktive Pipeline-Semantik fuer PS-InSAR-Punkte zu
+validieren.
+
+Detailplan:
+
+- `docs/pipelines/anomaly_local_v1/phase6_ps_insar_semantics_plan.md`
+
+Abschlussbericht:
+
+- `docs/pipelines/anomaly_local_v1/phase6_ps_insar_semantics_report.md`
+
+Single-File-Entry fuer die neue Supervisor-Session:
+
+- `docs/pipelines/anomaly_local_v1/phase6_ps_insar_semantics_supervisor_prompt.md`
+
+Neue verbindliche Quelle:
+
+- `docs/pipelines/anomaly_local_v1/ps_insar_semantics_decision.md`
+
+Phase-6-Artefakte:
+
+- `docs/pipelines/anomaly_local_v1/artifacts/phase6_harness_summary.md`
+- `docs/pipelines/anomaly_local_v1/artifacts/phase6_harness_results.json`
+- `docs/pipelines/anomaly_local_v1/artifacts/phase6_reference_cases.json`
+
+### Phasen-DoD
+
+Phase 6 ist gruen, wenn:
+
+- die AUGMENTERRA-Antwort und die neuen Handbooks ausgewertet sind
+- das TRE ALTAMIRA Handbook gegen Gate-Rules, `vertical_proxy`, `height`,
+  `incidence_angle`, `coherence`, Zeitreihenfeatures, Beschleunigung, Saisonalitaet
+  und Reliability gespiegelt ist
+- Track `44` und Track `95` als Geometrievertrag dokumentiert sind
+- die LOS-Vorzeichenkonvention in Methodik/API/UI konsistent bewertet ist
+- Candidate-Areas entweder bewusst bei X-only bleiben oder konsistent auf einen
+  2D-Range-Vektor aus Track-Geometrie umgestellt sind
+- Mirabell, Moosstrasse und Osthang als Pflicht-AOIs alt/neu oder Dry-Run
+  verifiziert wurden
+- Backend und Frontend nur nach erfolgreicher Verifikation aktualisiert bleiben
+
+Status DoD: green. Phase 6 hat den 2D-Range-Vektor umgesetzt und nach realen
+Pflicht-AOI-Reruns behalten.
+
+Pflicht-AOI-Runs:
+
+- Mirabell: `e340a003-942f-5a14-9a30-0e388c5a06cf`
+- Moosstrasse: `5be5fc3c-d2ea-571d-97c2-97ad03227bca`
+- Osthang-Stressbereich: `ac578960-681c-5e8c-93d4-82fd32d375f1`
+
+Finale Entscheidung:
+
+- `keep_2d_vector`
+- Begruendung: source-korrekte Track-Geometrie, stabile/explizierbare AOI-Level-
+  Metriken und keine breite Regression.
+- Caveat: Referenzfall `mirabell_standard_high_conf` / Gebaeude `548205` wechselte
+  von erwartetem `ok` zu `single_track_only`, weil Track `95` schon vorher nur
+  schwach gestuetzt war (`2` Core-Punkte) und nach 2D-Projektion nur noch `1`
+  Core-Punkt bleibt. Das ist als Follow-up zu beobachten, aber kein Rollback-Grund.
+
+### Wellen
+
+- `P6-W1`: Quellen-/Handbook-Auswertung, PS-InSAR-Semantik-Spiegelung und Implementierungsdesign
+- `P6-W2`: Backend/API/UI-Integration nach Design-Gate
+- `P6-W3`: AOI-Reruns, Harness- und UI-Verifikation
+- `P6-W4`: Abschlussentscheidung und Planfortschreibung
+
+Status: completed green
+
 ## Parallelspur E0: MatchSAR / AUGMENTERRA
 
 Diese Spur blockiert die internen Phasen nicht.
@@ -748,13 +833,15 @@ Spezifisch fuer diesen Plan:
 
 Die naechste echte Startwelle ist:
 
-- keine automatische Fortsetzung; `P4` ist abgeschlossen, `E0` bleibt offen
+- keine automatische Fortsetzung; `P6` ist abgeschlossen, `E0` bleibt offen
 
 Die naechste Produktarbeit ist:
 
-- vor neuer Aspect-Arbeit: `DTM 1 m`-Upgrade, Hoehenbezugskonzept und
+- Produktions-Dry-Run oder Retuning auf Basis der finalen 2D-Track-Geometrie
+- dabei Mirabell `548205` als weak-secondary-track Caveat beobachten
+- vor neuer Aspect-Arbeit weiterhin: `DTM 1 m`-Upgrade, Hoehenbezugskonzept und
   zirkulare Building-Aspect-Semantik
 
 Das entspricht fachlich:
 
-`P4 abgeschlossen mit Aspect = defer; keine P4-Codeintegration`
+`P6 abgeschlossen mit keep_2d_vector; 548205 bleibt als Follow-up markiert`

@@ -22,7 +22,9 @@ Die wichtigsten Annahmen aus dem Handbook, die direkt in die Pipeline einfliesse
 
 - InSAR misst primär Bewegung in Blickrichtung (`LOS`), nicht direkt vertikal.
 - Track 44 ist in Salzburg aufsteigend (`ASC`), Track 95 absteigend (`DSC`).
-- Aufsteigende und absteigende Tracks sehen die Szene aus unterschiedlichen Richtungen; dieselbe Gebaeudestruktur kann deshalb seitlich versetzt erscheinen.
+- Track 44/A blickt mit Look-Bearing `81.4 deg` ostwaerts, Track 95/D mit `281.5 deg` westwaerts.
+- Negative `velocity`- oder Displacement-Werte bedeuten Bewegung vom Satelliten weg; positive Werte bedeuten Bewegung zum Satelliten hin.
+- Aufsteigende und absteigende Tracks sehen die Szene aus unterschiedlichen 2D-Richtungen; dieselbe Gebaeudestruktur kann deshalb seitlich versetzt erscheinen.
 - Niedrige Kohärenz deutet oft auf unzuverlaessige Reflexionen hin.
 - Punkt-`height` liegt im ellipsoidischen Bezugssystem; SRTM-Gelaende ist nicht direkt ohne Datumsharmonisierung abziehbar.
 - Steile Hänge, Vegetation, Mehrwegeffekte und geometrische Verzerrungen erzeugen systematische Problemfaelle.
@@ -68,10 +70,13 @@ Die Pipeline besteht aus sechs Schritten:
 Fuer jedes GBA-Gebaeude wird eine richtungsabhaengige Kandidatenflaeche gebaut:
 
 - Ausgangspunkt ist das Originalpolygon.
-- Dann wird das Polygon in UTM 33N in Ground-Range-Richtung zum Sensor hin verschoben.
-- Fuer `ASC` wird nach Westen, fuer `DSC` nach Osten verschoben.
+- Dann wird das Polygon in UTM 33N entlang des aus dem track-spezifischen 2D-Look abgeleiteten Sensorseitenvektors verschoben.
+- Die Kandidatenflaeche wird sensorseitig erweitert, also in die Gegenrichtung des jeweiligen Looks.
+- Fuer Track 44/A ist das bei Look `81.4 deg` die Gegenrichtung um `261.4 deg`; fuer Track 95/D bei Look `281.5 deg` die Gegenrichtung um `101.5 deg`.
 - Aus Originalpolygon und verschobenem Polygon wird eine vereinigte Kandidatenflaeche erzeugt.
 - Darauf kommt ein kleiner lateraler Slack-Buffer.
+
+Die finale Keep-Entscheidung fuer diese 2D-Vektor-Geometrie bleibt bis zur W3-Verifikation offen.
 
 Formel:
 
@@ -214,6 +219,8 @@ Die Pipeline vergleicht `ASC` und `DSC` nach dem lokalen Filtern erneut.
 Verwendet wird ein robuster vertikaler Proxy:
 
 `vertical_proxy = velocity / cos(incidence_angle)`
+
+Das Vorzeichen bleibt dabei erhalten: negative Proxy-Werte bleiben Bewegung vom Satelliten weg, positive Proxy-Werte Bewegung zum Satelliten hin. `vertical_proxy` ist keine echte Vertikalkomponente, sondern nur eine Naeherung fuer Faelle, in denen vertikale Bewegung dominiert und horizontale Bewegungsanteile klein sind.
 
 Die Toleranz steigt mit der Hangneigung:
 
