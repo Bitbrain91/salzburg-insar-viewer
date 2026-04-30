@@ -1,25 +1,82 @@
-import { useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import { ChevronRight, HelpCircle } from "lucide-react";
 import {
   formatAttributeLabel,
   getAttributeMetadata,
   type AttributeContext,
   type AttributeMetadata,
 } from "../../lib/attributeMetadata";
+import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./collapsible";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
-const colors = {
-  panel: "var(--panel, #fbfaf7)",
-  ink: "var(--ink, #1a1f1c)",
-  muted: "var(--muted, #5b655f)",
-  accent: "var(--accent, #0c7c74)",
-  accent2: "var(--accent-2, #e27d3f)",
-  border: "var(--border, #d7d2c6)",
-  quiet: "#eef1ec",
-  warning: "#f8e6d7",
-};
+export { Button, buttonVariants } from "./button";
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "./card";
+export {
+  Tabs as ShadTabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "./tabs";
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+} from "./select";
+export { Switch } from "./switch";
+export { Slider } from "./slider";
+export {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverAnchor,
+} from "./popover";
+export {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "./collapsible";
+export {
+  Accordion as RadixAccordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "./accordion";
+export { ScrollArea, ScrollBar } from "./scroll-area";
+export { Separator } from "./separator";
+export { Badge, badgeVariants } from "./badge";
+export { Input } from "./input";
+export { Label } from "./label";
+export {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "./tooltip";
 
-function cx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
-}
+/* ---------------- SegmentedTabs (legacy API) ---------------- */
 
 export type SegmentedTabOption<T extends string = string> = {
   id: T;
@@ -37,6 +94,8 @@ export type SegmentedTabsProps<T extends string = string> = {
   className?: string;
   style?: CSSProperties;
   compact?: boolean;
+  /** "row" lays tabs in a single line; "grid" wraps to a 2-column grid (good for >2 tabs in a narrow column). */
+  layout?: "row" | "grid";
 };
 
 export function SegmentedTabs<T extends string = string>({
@@ -47,23 +106,20 @@ export function SegmentedTabs<T extends string = string>({
   className,
   style,
   compact = false,
+  layout = "row",
 }: SegmentedTabsProps<T>) {
+  const isGrid = layout === "grid";
   return (
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={className}
-      style={{
-        display: "inline-flex",
-        alignItems: "stretch",
-        gap: 2,
-        padding: 3,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 10,
-        background: colors.quiet,
-        maxWidth: "100%",
-        ...style,
-      }}
+      className={cn(
+        "w-full items-stretch gap-1 rounded-lg border border-border bg-muted p-1",
+        isGrid ? "grid grid-cols-2" : "inline-flex",
+        compact && !isGrid ? "min-h-8" : !isGrid ? "min-h-10" : null,
+        className
+      )}
+      style={style}
     >
       {options.map((option) => {
         const selected = option.id === value;
@@ -76,30 +132,22 @@ export function SegmentedTabs<T extends string = string>({
             disabled={option.disabled}
             title={option.title}
             onClick={() => onChange(option.id)}
-            style={{
-              minHeight: compact ? 28 : 34,
-              minWidth: compact ? 32 : 44,
-              padding: compact ? "5px 8px" : "7px 10px",
-              border: "none",
-              borderRadius: 8,
-              background: selected ? colors.accent : "transparent",
-              color: selected ? "#ffffff" : colors.ink,
-              font: "inherit",
-              fontSize: compact ? 12 : 13,
-              fontWeight: selected ? 600 : 500,
-              cursor: option.disabled ? "not-allowed" : "pointer",
-              opacity: option.disabled ? 0.5 : 1,
-              whiteSpace: "nowrap",
-            }}
+            className={cn(
+              "inline-flex items-center justify-center gap-1.5 truncate rounded-md px-2 font-semibold ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50",
+              isGrid ? "min-w-0" : "flex-1 px-3",
+              compact ? "h-7 text-xs" : "h-8 text-sm",
+              selected
+                ? "bg-popover text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
           >
-            <span>{option.label}</span>
+            <span className="truncate">{option.label}</span>
             {option.count !== undefined && (
               <span
-                style={{
-                  marginLeft: 6,
-                  fontFamily: '"IBM Plex Mono", monospace',
-                  opacity: selected ? 0.9 : 0.7,
-                }}
+                className={cn(
+                  "font-mono text-[11px] tabular-nums",
+                  selected ? "opacity-90" : "opacity-70"
+                )}
               >
                 {option.count}
               </span>
@@ -112,6 +160,8 @@ export function SegmentedTabs<T extends string = string>({
 }
 
 export const Tabs = SegmentedTabs;
+
+/* ---------------- CollapsibleSection ---------------- */
 
 export type CollapsibleSectionProps = {
   title: ReactNode;
@@ -138,73 +188,56 @@ export function CollapsibleSection({
 }: CollapsibleSectionProps) {
   const generatedId = useId();
   const bodyId = id ?? generatedId;
+  const isControlled = open !== undefined;
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isOpen = open ?? internalOpen;
 
-  const setOpen = (nextOpen: boolean) => {
-    if (open === undefined) {
-      setInternalOpen(nextOpen);
-    }
-    onOpenChange?.(nextOpen);
+  const handleOpenChange = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
   };
 
   return (
-    <section className={className} style={{ display: "grid", gap: 8 }}>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        aria-controls={bodyId}
-        onClick={() => setOpen(!isOpen)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          padding: "2px 0",
-          border: "none",
-          background: "transparent",
-          color: "inherit",
-          cursor: "pointer",
-          textAlign: "left",
-          font: "inherit",
-        }}
-      >
-        <span className="section-title" style={{ minWidth: 0 }}>
-          {title}
-        </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          {aside}
-          <span
-            aria-hidden="true"
-            style={{
-              display: "inline-grid",
-              placeItems: "center",
-              width: 22,
-              height: 22,
-              borderRadius: 999,
-              border: `1px solid ${colors.border}`,
-              color: colors.muted,
-              fontSize: 14,
-              lineHeight: 1,
-            }}
-          >
-            {isOpen ? "-" : "+"}
+    <Collapsible
+      open={isOpen}
+      onOpenChange={handleOpenChange}
+      className={cn("group/collapsible space-y-2", className)}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <CollapsibleTrigger
+          id={`${bodyId}-trigger`}
+          className="group/trigger flex flex-1 items-center gap-2 text-left text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+        >
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          <span className="min-w-0 truncate">{title}</span>
+        </CollapsibleTrigger>
+        {aside && (
+          <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+            {aside}
           </span>
-        </span>
-      </button>
-      {isOpen && (
-        <div id={bodyId} className={bodyClassName}>
-          {children}
-        </div>
-      )}
-    </section>
+        )}
+      </div>
+      <CollapsibleContent
+        id={bodyId}
+        className={cn(
+          "overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down",
+          bodyClassName
+        )}
+      >
+        <div className="space-y-2 pl-1">{children}</div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
 export const Accordion = CollapsibleSection;
 
-export type HelpContent = Pick<AttributeMetadata, "label" | "description" | "unit" | "source">;
+/* ---------------- Help popover ---------------- */
+
+export type HelpContent = Pick<
+  AttributeMetadata,
+  "label" | "description" | "unit" | "source"
+>;
 
 export type HelpPopoverProps = {
   metadata: HelpContent;
@@ -212,43 +245,25 @@ export type HelpPopoverProps = {
   style?: CSSProperties;
 };
 
-export function HelpPopover({ metadata, id, style }: HelpPopoverProps) {
+export function HelpPopover({ metadata }: HelpPopoverProps) {
   return (
-    <div
-      id={id}
-      role="tooltip"
-      style={{
-        position: "absolute",
-        zIndex: 10,
-        right: 0,
-        top: "calc(100% + 6px)",
-        width: 260,
-        maxWidth: "min(260px, 78vw)",
-        padding: "10px 12px",
-        borderRadius: 10,
-        border: `1px solid ${colors.border}`,
-        background: colors.panel,
-        boxShadow: "0 10px 28px rgba(12, 18, 15, 0.16)",
-        color: colors.ink,
-        fontSize: 12,
-        lineHeight: 1.45,
-        textTransform: "none",
-        letterSpacing: 0,
-        ...style,
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>{metadata.label}</div>
-      <div style={{ color: colors.muted }}>{metadata.description}</div>
+    <div className="space-y-2 text-xs leading-relaxed">
+      <div className="text-sm font-semibold text-foreground">{metadata.label}</div>
+      {metadata.description && (
+        <p className="text-muted-foreground">{metadata.description}</p>
+      )}
       {(metadata.unit || metadata.source) && (
-        <div style={{ display: "grid", gap: 3, marginTop: 8, color: colors.muted }}>
+        <div className="grid gap-1 border-t border-border pt-2 text-muted-foreground">
           {metadata.unit && (
             <div>
-              <strong>Einheit:</strong> {metadata.unit}
+              <strong className="font-semibold text-foreground">Einheit:</strong>{" "}
+              {metadata.unit}
             </div>
           )}
           {metadata.source && (
             <div>
-              <strong>Quelle:</strong> {metadata.source}
+              <strong className="font-semibold text-foreground">Quelle:</strong>{" "}
+              {metadata.source}
             </div>
           )}
         </div>
@@ -263,48 +278,38 @@ export type HelpButtonProps = {
   label?: string;
 };
 
-export function HelpButton({ metadata, className, label = "Attribut-Hilfe" }: HelpButtonProps) {
-  const [open, setOpen] = useState(false);
-  const id = useId();
-
+export function HelpButton({
+  metadata,
+  className,
+  label = "Attribut-Hilfe",
+}: HelpButtonProps) {
   return (
-    <span
-      className={className}
-      style={{ position: "relative", display: "inline-flex" }}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setOpen(false);
-        }
-      }}
-    >
-      <button
-        type="button"
-        aria-label={label}
-        aria-expanded={open}
-        aria-describedby={open ? id : undefined}
-        onClick={() => setOpen((value) => !value)}
-        style={{
-          display: "inline-grid",
-          placeItems: "center",
-          width: 18,
-          height: 18,
-          borderRadius: 999,
-          border: `1px solid ${colors.border}`,
-          background: open ? colors.accent : "transparent",
-          color: open ? "#ffffff" : colors.muted,
-          cursor: "pointer",
-          fontSize: 11,
-          fontWeight: 700,
-          lineHeight: 1,
-          padding: 0,
-        }}
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className={cn(
+            "inline-grid h-4 w-4 shrink-0 place-items-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 data-[state=open]:border-primary data-[state=open]:bg-primary data-[state=open]:text-primary-foreground",
+            className
+          )}
+        >
+          <HelpCircle className="h-3 w-3" strokeWidth={2.2} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={6}
+        className="w-72 max-w-[min(20rem,calc(100vw-2rem))]"
       >
-        ?
-      </button>
-      {open && <HelpPopover id={id} metadata={metadata} />}
-    </span>
+        <HelpPopover metadata={metadata} />
+      </PopoverContent>
+    </Popover>
   );
 }
+
+/* ---------------- MetricRow ---------------- */
 
 export type MetricRowProps = {
   label?: ReactNode;
@@ -332,43 +337,51 @@ export function MetricRow({
   valueClassName,
 }: MetricRowProps) {
   const resolvedMetadata = useMemo(
-    () => metadata ?? (attributeKey ? getAttributeMetadata(attributeKey, context) : undefined),
+    () =>
+      metadata ?? (attributeKey ? getAttributeMetadata(attributeKey, context) : undefined),
     [attributeKey, context, metadata]
   );
   const resolvedLabel =
-    label ?? (attributeKey ? formatAttributeLabel(attributeKey, context) : resolvedMetadata?.label);
+    label ??
+    (attributeKey ? formatAttributeLabel(attributeKey, context) : resolvedMetadata?.label);
   const resolvedUnit = unit ?? resolvedMetadata?.unit;
 
   return (
-    <div className={cx("metric", className)}>
-      <span
-        className="label"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 0,
-        }}
-      >
-        <span style={{ minWidth: 0 }}>
+    <div
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 border-b border-border/70 py-1.5 text-xs last:border-b-0",
+        className
+      )}
+    >
+      <span className="inline-flex min-w-0 items-center gap-1.5 text-muted-foreground leading-snug">
+        <span className="min-w-0 break-words">
           {resolvedLabel}
           {resolvedUnit ? ` (${resolvedUnit})` : ""}
         </span>
         {showHelp && resolvedMetadata && <HelpButton metadata={resolvedMetadata} />}
       </span>
-      <span className={cx("value", valueClassName)}>{children ?? value ?? "-"}</span>
+      <span
+        className={cn(
+          "min-w-0 justify-self-end text-right font-mono text-[12px] leading-snug text-foreground break-words max-w-full",
+          valueClassName
+        )}
+      >
+        {children ?? value ?? "—"}
+      </span>
     </div>
   );
 }
 
+/* ---------------- SummaryMetric ---------------- */
+
 export type SummaryMetricTone = "neutral" | "good" | "warning" | "bad" | "accent";
 
-const summaryToneStyle: Record<SummaryMetricTone, CSSProperties> = {
-  neutral: { borderColor: colors.border, background: colors.panel },
-  good: { borderColor: "rgba(27, 158, 119, 0.35)", background: "rgba(27, 158, 119, 0.08)" },
-  warning: { borderColor: "rgba(226, 125, 63, 0.35)", background: "rgba(226, 125, 63, 0.10)" },
-  bad: { borderColor: "rgba(198, 55, 42, 0.35)", background: "rgba(198, 55, 42, 0.09)" },
-  accent: { borderColor: "rgba(12, 124, 116, 0.35)", background: "rgba(12, 124, 116, 0.09)" },
+const summaryToneClasses: Record<SummaryMetricTone, string> = {
+  neutral: "border-border bg-card",
+  good: "border-emerald-500/30 bg-emerald-500/5",
+  warning: "border-accent/40 bg-accent/10",
+  bad: "border-destructive/40 bg-destructive/10",
+  accent: "border-primary/40 bg-primary/10",
 };
 
 export type SummaryMetricProps = {
@@ -399,60 +412,42 @@ export function SummaryMetric({
   showHelp = true,
 }: SummaryMetricProps) {
   const resolvedMetadata = useMemo(
-    () => metadata ?? (attributeKey ? getAttributeMetadata(attributeKey, context) : undefined),
+    () =>
+      metadata ?? (attributeKey ? getAttributeMetadata(attributeKey, context) : undefined),
     [attributeKey, context, metadata]
   );
   const resolvedLabel =
-    label ?? (attributeKey ? formatAttributeLabel(attributeKey, context) : resolvedMetadata?.label);
+    label ??
+    (attributeKey ? formatAttributeLabel(attributeKey, context) : resolvedMetadata?.label);
   const resolvedUnit = unit ?? resolvedMetadata?.unit;
 
   return (
     <div
-      className={className}
-      style={{
-        display: "grid",
-        gap: 4,
-        minWidth: 0,
-        padding: "10px 12px",
-        border: "1px solid",
-        borderRadius: 8,
-        ...summaryToneStyle[tone],
-        ...style,
-      }}
+      style={style}
+      className={cn(
+        "grid min-w-0 gap-1 rounded-lg border px-3 py-2.5 transition-colors",
+        summaryToneClasses[tone],
+        className
+      )}
     >
-      <div
-        className="label"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          minWidth: 0,
-          color: colors.muted,
-          fontSize: 12,
-        }}
-      >
-        <span style={{ minWidth: 0 }}>
+      <div className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        <span className="min-w-0 break-words">
           {resolvedLabel}
           {resolvedUnit ? ` (${resolvedUnit})` : ""}
         </span>
         {showHelp && resolvedMetadata && <HelpButton metadata={resolvedMetadata} />}
       </div>
-      <div
-        className="value"
-        style={{
-          fontFamily: '"IBM Plex Mono", monospace',
-          fontSize: 18,
-          fontWeight: 700,
-          color: colors.ink,
-          overflowWrap: "anywhere",
-        }}
-      >
+      <div className="font-mono text-base font-bold leading-tight text-foreground break-words">
         {value}
       </div>
-      {detail && <small style={{ color: colors.muted }}>{detail}</small>}
+      {detail && (
+        <small className="text-[11px] text-muted-foreground">{detail}</small>
+      )}
     </div>
   );
 }
+
+/* ---------------- SummaryCard ---------------- */
 
 export type SummaryCardProps = {
   title?: ReactNode;
@@ -464,22 +459,23 @@ export type SummaryCardProps = {
 export function SummaryCard({ title, children, className, style }: SummaryCardProps) {
   return (
     <div
-      className={className}
-      style={{
-        display: "grid",
-        gap: 10,
-        padding: 12,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 8,
-        background: colors.panel,
-        ...style,
-      }}
+      style={style}
+      className={cn(
+        "grid gap-2.5 rounded-lg border border-border bg-card p-3",
+        className
+      )}
     >
-      {title && <div className="section-title">{title}</div>}
+      {title && (
+        <div className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+          {title}
+        </div>
+      )}
       {children}
     </div>
   );
 }
+
+/* ---------------- EmptyState ---------------- */
 
 export type EmptyStateProps = {
   title: ReactNode;
@@ -500,21 +496,29 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div
-      className={cx("pill", tone === "warning" && "warning", className)}
-      style={{
-        width: "100%",
-        alignItems: "flex-start",
-        justifyContent: "space-between",
-        borderRadius: 10,
-        background: tone === "warning" ? colors.warning : colors.quiet,
-        ...style,
-      }}
+      style={style}
+      className={cn(
+        "flex w-full items-start justify-between gap-3 rounded-md border px-3 py-2.5 text-xs",
+        tone === "warning"
+          ? "border-accent/30 bg-accent/10 text-accent"
+          : "border-border bg-secondary text-secondary-foreground",
+        className
+      )}
     >
-      <span style={{ display: "grid", gap: 3 }}>
-        <span style={{ fontWeight: 600 }}>{title}</span>
-        {message && <small style={{ color: tone === "warning" ? "inherit" : colors.muted }}>{message}</small>}
+      <span className="grid min-w-0 gap-0.5">
+        <span className="font-semibold leading-tight">{title}</span>
+        {message && (
+          <small
+            className={cn(
+              "leading-snug",
+              tone === "warning" ? "text-current opacity-90" : "text-muted-foreground"
+            )}
+          >
+            {message}
+          </small>
+        )}
       </span>
-      {action}
+      {action && <span className="shrink-0">{action}</span>}
     </div>
   );
 }

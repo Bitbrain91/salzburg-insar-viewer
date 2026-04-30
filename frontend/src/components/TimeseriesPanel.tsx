@@ -3,6 +3,8 @@ import ReactECharts from "echarts-for-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppStore } from "../lib/store";
 import { getPointTimeseries } from "../hooks/useApi";
+import { Badge, EmptyState, Switch } from "./ui";
+import { cn } from "@/lib/utils";
 
 type TimeseriesMeasurement = {
   date: string;
@@ -16,6 +18,42 @@ type TimeseriesResponse = {
   measurements?: TimeseriesMeasurement[];
 };
 
+function SeriesToggle({
+  label,
+  swatch,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  swatch: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "inline-flex items-center gap-2 text-xs leading-none text-foreground select-none",
+        disabled ? "opacity-55 cursor-not-allowed" : "cursor-pointer"
+      )}
+    >
+      <span
+        aria-hidden
+        className="block h-2 w-2 rounded-full"
+        style={{ background: swatch }}
+      />
+      <span>{label}</span>
+      <Switch
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onChange}
+        className="ml-1"
+      />
+    </label>
+  );
+}
+
 export default function TimeseriesPanel() {
   const selection = useAppStore((state) => state.selection);
   const pointSelection = selection?.type === "point" ? selection : null;
@@ -26,20 +64,21 @@ export default function TimeseriesPanel() {
     queryKey: ["timeseries", pointSelection?.code, pointSelection?.track],
     queryFn: () =>
       pointSelection
-        ? (getPointTimeseries(pointSelection.code, pointSelection.track) as Promise<TimeseriesResponse>)
+        ? (getPointTimeseries(
+            pointSelection.code,
+            pointSelection.track
+          ) as Promise<TimeseriesResponse>)
         : Promise.resolve(null),
     enabled: Boolean(pointSelection),
   });
 
   const measurements = tsQuery.data?.measurements ?? [];
-  const displacementData: Array<[string, number | null]> = measurements.map((measurement) => [
-    measurement.date,
-    measurement.displacement ?? null,
-  ]);
-  const amplitudeData: Array<[string, number | null]> = measurements.map((measurement) => [
-    measurement.date,
-    measurement.amplitude ?? null,
-  ]);
+  const displacementData: Array<[string, number | null]> = measurements.map(
+    (measurement) => [measurement.date, measurement.displacement ?? null]
+  );
+  const amplitudeData: Array<[string, number | null]> = measurements.map(
+    (measurement) => [measurement.date, measurement.amplitude ?? null]
+  );
   const hasMeasurements = measurements.length > 0;
   const hasDisplacementData = displacementData.some(([, value]) => value !== null);
   const hasAmplitudeData = amplitudeData.some(([, value]) => value !== null);
@@ -52,23 +91,23 @@ export default function TimeseriesPanel() {
     grid: {
       left: showLeftAxis ? 52 : 20,
       right: showRightAxis ? 56 : 20,
-      top: 34,
-      bottom: 40,
+      top: 24,
+      bottom: 36,
       containLabel: true,
     },
     tooltip: { trigger: "axis" },
     xAxis: {
       type: "time",
-      axisLabel: { color: "#5b655f" },
-      axisLine: { lineStyle: { color: "#d7d2c6" } },
+      axisLabel: { color: "#5c6761" },
+      axisLine: { lineStyle: { color: "#d3d9d2" } },
     },
     yAxis: [
       {
         type: "value",
         name: "Verschiebung (mm)",
-        nameTextStyle: { color: "#5b655f" },
-        axisLabel: { color: "#5b655f" },
-        splitLine: { lineStyle: { color: "#ebe6de" } },
+        nameTextStyle: { color: "#5c6761" },
+        axisLabel: { color: "#5c6761" },
+        splitLine: { lineStyle: { color: "#e7eae5" } },
         show: showLeftAxis,
       },
       {
@@ -89,8 +128,8 @@ export default function TimeseriesPanel() {
               type: "line",
               data: displacementData,
               smooth: true,
-              lineStyle: { color: "#0c7c74", width: 2 },
-              areaStyle: { color: "rgba(12, 124, 116, 0.15)" },
+              lineStyle: { color: "#0c766e", width: 2 },
+              areaStyle: { color: "rgba(12, 118, 110, 0.15)" },
               symbol: "none",
             },
           ]
@@ -103,7 +142,7 @@ export default function TimeseriesPanel() {
               data: amplitudeData,
               smooth: true,
               yAxisIndex: 1,
-              lineStyle: { color: "#c26b2c", width: 2 },
+              lineStyle: { color: "#c4632d", width: 2 },
               symbol: "none",
             },
           ]
@@ -118,49 +157,46 @@ export default function TimeseriesPanel() {
   return (
     <div className="bottom-panel">
       <div className="timeseries-header">
-        <div>
-          <div className="section-title">Zeitreihe</div>
-          <small>
+        <div className="min-w-0">
+          <div className="section-title !mb-1">Zeitreihe</div>
+          <small className="block">
             Punkt {pointSelection.code}
             {pointSelection.track ? ` / Track ${pointSelection.track}` : ""}
           </small>
         </div>
+        {tsQuery.data && hasMeasurements && (
+          <div className="timeseries-toggles">
+            <SeriesToggle
+              label="Verschiebung"
+              swatch="#0c766e"
+              checked={showDisplacement && hasDisplacementData}
+              disabled={!hasDisplacementData}
+              onChange={setShowDisplacement}
+            />
+            <SeriesToggle
+              label="Amplitude"
+              swatch="#c4632d"
+              checked={showAmplitude && hasAmplitudeData}
+              disabled={!hasAmplitudeData}
+              onChange={setShowAmplitude}
+            />
+          </div>
+        )}
       </div>
 
       {tsQuery.isLoading && (
-        <div className="pill">Zeitreihe wird geladen...</div>
+        <Badge variant="secondary" className="font-normal">
+          Zeitreihe wird geladen...
+        </Badge>
       )}
       {tsQuery.isError && (
-        <div className="pill warning">Zeitreihe konnte nicht geladen werden.</div>
+        <EmptyState
+          tone="warning"
+          title="Zeitreihe konnte nicht geladen werden."
+        />
       )}
       {tsQuery.data && !hasMeasurements && (
-        <div className="pill">Keine Zeitreihendaten fuer diesen Punkt.</div>
-      )}
-      {tsQuery.data && hasMeasurements && (
-        <div className="timeseries-controls">
-          <div className="timeseries-toggles">
-            <label className={`toggle-inline ${hasDisplacementData ? "" : "is-disabled"}`}>
-              <span>Verschiebung</span>
-              <input
-                type="checkbox"
-                className="toggle"
-                checked={showDisplacement && hasDisplacementData}
-                disabled={!hasDisplacementData}
-                onChange={(event) => setShowDisplacement(event.target.checked)}
-              />
-            </label>
-            <label className={`toggle-inline ${hasAmplitudeData ? "" : "is-disabled"}`}>
-              <span>Amplitude</span>
-              <input
-                type="checkbox"
-                className="toggle"
-                checked={showAmplitude && hasAmplitudeData}
-                disabled={!hasAmplitudeData}
-                onChange={(event) => setShowAmplitude(event.target.checked)}
-              />
-            </label>
-          </div>
-        </div>
+        <EmptyState title="Keine Zeitreihendaten für diesen Punkt." />
       )}
       {tsQuery.data && hasMeasurements && showAnySeries && (
         <div className="timeseries-chart">
@@ -174,7 +210,7 @@ export default function TimeseriesPanel() {
         </div>
       )}
       {tsQuery.data && hasMeasurements && !showAnySeries && (
-        <div className="pill">Keine aktive Datenreihe fuer die Anzeige ausgewaehlt.</div>
+        <EmptyState title="Keine aktive Datenreihe für die Anzeige ausgewählt." />
       )}
     </div>
   );

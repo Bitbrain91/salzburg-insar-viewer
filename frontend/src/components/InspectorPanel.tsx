@@ -9,7 +9,17 @@ import {
   getPointDetail,
   type MlReliabilityPenalty,
 } from "../hooks/useApi";
-import { HelpButton } from "./ui";
+import {
+  HelpButton,
+  SegmentedTabs,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+  Label as UiLabel,
+} from "./ui";
 import {
   getAttributeMetadata,
   type AttributeContext,
@@ -24,16 +34,16 @@ type InspectorTabConfig = {
 };
 
 const pointTabs: InspectorTabConfig[] = [
-  { id: "overview", label: "Ueberblick" },
-  { id: "metrics", label: "Messwerte/Terrain" },
-  { id: "ml", label: "ML/Diagnostik" },
+  { id: "overview", label: "Überblick" },
+  { id: "metrics", label: "Messwerte" },
+  { id: "ml", label: "Diagnose" },
   { id: "raw", label: "Rohdaten" },
 ];
 
 const buildingTabs: InspectorTabConfig[] = [
-  { id: "overview", label: "Ueberblick" },
-  { id: "metrics", label: "Terrain/Attribute" },
-  { id: "ml", label: "ML/Diagnostik" },
+  { id: "overview", label: "Überblick" },
+  { id: "metrics", label: "Attribute" },
+  { id: "ml", label: "Diagnose" },
   { id: "raw", label: "Rohdaten" },
 ];
 
@@ -311,53 +321,20 @@ export default function InspectorPanel() {
     onSelect: (tab: InspectorTabId) => void,
     ariaLabel: string
   ) => (
-    <div
-      className="inspector-tabs"
-      role="tablist"
-      aria-label={ariaLabel}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-        gap: 6,
-        margin: "12px 0",
-      }}
-    >
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            className={`pill inspector-tab${isActive ? " active" : ""}`}
-            onClick={() => onSelect(tab.id)}
-            style={{
-              border: isActive ? "1px solid currentColor" : "1px solid transparent",
-              borderRadius: 6,
-              cursor: "pointer",
-              minHeight: 32,
-              textAlign: "center",
-            }}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedTabs
+      ariaLabel={ariaLabel}
+      compact
+      layout="grid"
+      value={activeTab}
+      onChange={(value) => onSelect(value as InspectorTabId)}
+      options={tabs.map((tab) => ({ id: tab.id, label: tab.label }))}
+    />
   );
 
   const renderRawDetails = (title: string, value: unknown) => (
     <details className="attribute-details">
       <summary>{title}</summary>
-      <pre
-        style={{
-          maxHeight: 280,
-          overflow: "auto",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}
-      >
+      <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md border border-border bg-muted p-2.5 font-mono text-[11px] leading-relaxed text-foreground">
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>
@@ -410,17 +387,82 @@ export default function InspectorPanel() {
   const renderPointOverview = () => {
     const point = pointQuery.data;
     if (!point) return null;
+    const velocity = typeof point.velocity === "number" ? point.velocity : null;
+    const velocityTone: SummaryMetricTone =
+      velocity === null
+        ? "neutral"
+        : Math.abs(velocity) < 1
+          ? "good"
+          : Math.abs(velocity) < 3
+            ? "warning"
+            : "bad";
+    const coherenceTone: SummaryMetricTone =
+      typeof point.coherence !== "number"
+        ? "neutral"
+        : point.coherence >= 0.7
+          ? "good"
+          : point.coherence >= 0.4
+            ? "warning"
+            : "bad";
     return (
-      <div>
-        <div className="section-title">Kurzueberblick</div>
-        {renderMetric("Punktcode", fmtStr(point.code), "Eindeutiger InSAR-Messpunkt.")}
-        {renderMetric("Track / LOS", `${fmtStr(point.track)} / ${fmtStr(point.los)}`)}
-        {renderMetric("Geschwindigkeit", `${fmtNum(point.velocity)} mm/Jahr`, "Mittlere Bewegung entlang der Sichtlinie.")}
-        {renderMetric("Kohaerenz", fmtNum(point.coherence), "Qualitaetsmass fuer die Stabilitaet der Radarantwort.")}
-        {renderMetric("InSAR-Hoehe", `${fmtNum(point.height, 1)} m`)}
-        <div className="section-title">Aktiver ML-Lauf</div>
-        {renderActiveRunSummary()}
-        {renderPointMlStatus()}
+      <div className="flex flex-col gap-4">
+        <div className="rounded-lg border border-border bg-gradient-to-br from-primary/5 via-card to-card p-3">
+          <div className="text-[10px] font-bold uppercase tracking-[1px] text-muted-foreground">
+            Punkt
+          </div>
+          <div className="mt-0.5 break-all font-mono text-base font-bold text-foreground">
+            {fmtStr(point.code)}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Track {fmtStr(point.track)} · LOS {fmtStr(point.los)}
+            {point.geometry?.lon !== undefined && point.geometry?.lat !== undefined && (
+              <>
+                {" · "}
+                <span className="font-mono">
+                  {Number(point.geometry.lat).toFixed(4)}, {Number(point.geometry.lon).toFixed(4)}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <SummaryMetric
+            label="Geschwindigkeit"
+            value={fmtNum(point.velocity)}
+            unit="mm/Jahr"
+            tone={velocityTone}
+            attributeKey="velocity"
+            context="insar-point"
+          />
+          <SummaryMetric
+            label="Kohärenz"
+            value={fmtNum(point.coherence)}
+            tone={coherenceTone}
+            attributeKey="coherence"
+            context="insar-point"
+          />
+          <SummaryMetric
+            label="InSAR-Höhe"
+            value={fmtNum(point.height, 1)}
+            unit="m"
+            attributeKey="height"
+            context="insar-point"
+          />
+          <SummaryMetric
+            label="Einfallswinkel"
+            value={fmtNum(point.incidence_angle, 1)}
+            unit="°"
+            attributeKey="incidence_angle"
+            context="insar-point"
+          />
+        </div>
+
+        <div>
+          <div className="section-title">Aktiver ML-Lauf</div>
+          {renderActiveRunSummary()}
+          {renderPointMlStatus()}
+        </div>
       </div>
     );
   };
@@ -723,38 +765,42 @@ export default function InspectorPanel() {
         <div className="pill">
           Sensorseitige Kandidatenflaechen, Cluster-Huellen und Punktrollen.
         </div>
-        <div className="form-row">
-          <label className="label">Track-Filter</label>
-          <select
-            className="select"
+        <div className="space-y-1.5 my-2">
+          <UiLabel htmlFor="track-filter-select">Track-Filter</UiLabel>
+          <Select
             value={mlBuildingTrackFilter}
-            onChange={(e) =>
-              setMlBuildingTrackFilter(e.target.value as "both" | "44" | "95")
+            onValueChange={(value) =>
+              setMlBuildingTrackFilter(value as "both" | "44" | "95")
             }
           >
-            <option value="both">ASC + DSC</option>
-            <option value="44">nur ASC</option>
-            <option value="95">nur DSC</option>
-          </select>
+            <SelectTrigger id="track-filter-select">
+              <SelectValue placeholder="Track-Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="both">ASC + DSC</SelectItem>
+              <SelectItem value="44">nur ASC</SelectItem>
+              <SelectItem value="95">nur DSC</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="toggle-row">
-          <span>Gate-ausgeschlossene Punkte anzeigen</span>
-          <input
-            type="checkbox"
-            className="toggle"
+        <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
+          <span className="min-w-0 text-sm leading-snug text-foreground">
+            Gate-ausgeschlossene Punkte anzeigen
+          </span>
+          <Switch
             checked={mlBuildingShowExcluded}
-            onChange={(e) => setMlBuildingShowExcluded(e.target.checked)}
+            onCheckedChange={setMlBuildingShowExcluded}
           />
-        </div>
-        <div className="toggle-row">
-          <span>Cluster-Huellen anzeigen</span>
-          <input
-            type="checkbox"
-            className="toggle"
+        </label>
+        <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
+          <span className="min-w-0 text-sm leading-snug text-foreground">
+            Cluster-Huellen anzeigen
+          </span>
+          <Switch
             checked={mlBuildingShowHulls}
-            onChange={(e) => setMlBuildingShowHulls(e.target.checked)}
+            onCheckedChange={setMlBuildingShowHulls}
           />
-        </div>
+        </label>
       </>
     );
   };
@@ -923,7 +969,78 @@ export default function InspectorPanel() {
         <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
       </div>
 
-      {!selection && <div className="pill">Noch keine Auswahl.</div>}
+      {!selection && (
+        <div className="flex flex-1 flex-col gap-4">
+          <div className="rounded-lg border border-border bg-gradient-to-br from-primary/8 via-card to-card p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-primary/30 bg-primary/10 text-lg font-bold text-primary">
+                ?
+              </div>
+              <div className="grid gap-1">
+                <div className="text-sm font-bold text-foreground">
+                  Noch keine Auswahl
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Klicken Sie einen InSAR-Punkt oder ein Gebäude auf der Karte, um
+                  Messwerte, Terrain-Kontext und ML-Diagnostik zu sehen.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <div className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+              So nutzen Sie den Viewer
+            </div>
+            {[
+              {
+                n: "1",
+                title: "Punkt anklicken",
+                desc: "Zeigt Geschwindigkeit, Kohärenz, Terrain und (falls aktiv) ML-Analyse.",
+              },
+              {
+                n: "2",
+                title: "Gebäude anklicken",
+                desc: "Zeigt Quelle, Höhe, Terrain und ML-Gebäudeanalyse des aktiven Laufs.",
+              },
+              {
+                n: "3",
+                title: "Auswertung starten",
+                desc: "Tab Auswertung links: berechnet ML-Cluster für den sichtbaren Kartenausschnitt.",
+              },
+              {
+                n: "4",
+                title: "Filter setzen",
+                desc: "Tab Karte links: Track-Auswahl, Geschwindigkeitsbereich, Kohärenzschwelle.",
+              },
+            ].map((item) => (
+              <div
+                key={item.n}
+                className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-xs"
+              >
+                <span className="mt-0.5 inline-grid h-5 w-5 place-items-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
+                  {item.n}
+                </span>
+                <span className="leading-snug">
+                  <span className="font-semibold text-foreground">{item.title}</span>
+                  <span className="block text-muted-foreground">{item.desc}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {activeRunId && (
+            <div className="mt-auto rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-left text-xs">
+              <div className="text-[10px] font-bold uppercase tracking-[1px] text-primary">
+                Aktiver ML-Lauf
+              </div>
+              <div className="break-all font-mono text-[11px] text-muted-foreground">
+                {activeRunId}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {selection?.type === "point" && (
         <>

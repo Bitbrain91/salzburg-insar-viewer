@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ChevronRight, Trash2 } from "lucide-react";
 import {
   createMlRun,
   deleteMlRun,
@@ -8,6 +9,23 @@ import {
   recolorMlRun,
 } from "../hooks/useApi";
 import { useAppStore, type AppState } from "../lib/store";
+import {
+  Badge,
+  Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+  EmptyState,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+} from "./ui";
+import { cn } from "@/lib/utils";
 
 const localAnomalyViews = [
   "cluster",
@@ -32,6 +50,73 @@ function isLocalAnomalyView(view: AppState["mlView"]): view is LocalAnomalyView 
   return localAnomalyViews.includes(view as LocalAnomalyView);
 }
 
+function MetricLine({ label, value }: { label: string; value: unknown }) {
+  const displayValue =
+    value === null || value === undefined
+      ? "—"
+      : typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value);
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-3 border-b border-border/70 py-1.5 text-xs last:border-b-0">
+      <span className="min-w-0 break-words leading-snug text-muted-foreground">
+        {label}
+      </span>
+      <span className="min-w-0 justify-self-end break-words text-right font-mono text-[12px] leading-snug text-foreground">
+        {displayValue}
+      </span>
+    </div>
+  );
+}
+
+function ToggleRow({
+  label,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex items-center justify-between gap-3 py-1.5 cursor-pointer",
+        disabled && "cursor-not-allowed opacity-60"
+      )}
+    >
+      <span className="min-w-0 text-sm leading-snug text-foreground">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
+    </label>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div>
+        <div className="section-title">{title}</div>
+        {description && (
+          <p className="-mt-1 text-xs leading-snug text-muted-foreground">
+            {description}
+          </p>
+        )}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
+
 export default function PipelinePanel() {
   const mapBBox = useAppStore((state) => state.mapBBox);
   const activeRunId = useAppStore((state) => state.activeRunId);
@@ -50,6 +135,7 @@ export default function PipelinePanel() {
   const [bufferMultiplier, setBufferMultiplier] = useState(1.0);
   const [minBuffer, setMinBuffer] = useState(3.0);
   const [defaultHeight, setDefaultHeight] = useState(12.0);
+  const [paramsOpen, setParamsOpen] = useState(false);
 
   const runsQuery = useQuery({
     queryKey: ["ml-runs"],
@@ -149,214 +235,238 @@ export default function PipelinePanel() {
         <small>Lokale Anomalieanalyse für den aktuellen Kartenausschnitt.</small>
       </div>
 
-      <div>
-        <div className="section-title">Kartenausschnitt</div>
-        <div className="metric">
-          <span className="label">Aktuelle Bounding Box</span>
-          <span className="value">{bboxLabel}</span>
-        </div>
+      <Section title="Kartenausschnitt">
+        <MetricLine label="Aktuelle Bounding Box" value={bboxLabel} />
         {activeRunQuery.data && (
           <>
-            <div className="metric">
-              <span className="label">Zugeordnete Gebäude</span>
-              <span className="value">
-                {activeRunQuery.data.metrics?.assigned_buildings ?? 0}
-              </span>
-            </div>
-            <div className="metric">
-              <span className="label">Zugeordnete Punkte</span>
-              <span className="value">
-                {activeRunQuery.data.metrics?.assigned_points ?? 0}
-              </span>
-            </div>
+            <MetricLine
+              label="Zugeordnete Gebäude"
+              value={activeRunQuery.data.metrics?.assigned_buildings ?? 0}
+            />
+            <MetricLine
+              label="Zugeordnete Punkte"
+              value={activeRunQuery.data.metrics?.assigned_points ?? 0}
+            />
           </>
         )}
-      </div>
+      </Section>
 
-      <div>
-        <div className="section-title">Neue Auswertung</div>
-        <div className="form-row">
-          <label className="label">Verfahren</label>
-          <input className="input" value="Lokale Anomalieanalyse v1" readOnly />
+      <Section title="Neue Auswertung">
+        <div className="space-y-1.5">
+          <Label htmlFor="pipeline-input">Verfahren</Label>
+          <Input id="pipeline-input" value="Lokale Anomalieanalyse v1" readOnly />
         </div>
 
-        <div className="pill">Gebäudequelle ist für {pipeline} fest auf GBA gesetzt.</div>
+        <Badge variant="secondary" className="font-normal">
+          Gebäudequelle ist für {pipeline} fest auf GBA gesetzt.
+        </Badge>
 
-        <div className="form-row">
-          <label className="label">InSAR-Track</label>
-          <select className="select" value={track} onChange={(e) => setTrack(e.target.value)}>
-            <option value="all">Alle Tracks</option>
-            <option value="44">Track 44 (aufsteigend)</option>
-            <option value="95">Track 95 (absteigend)</option>
-          </select>
+        <div className="space-y-1.5">
+          <Label htmlFor="track-select">InSAR-Track</Label>
+          <Select value={track} onValueChange={setTrack}>
+            <SelectTrigger id="track-select">
+              <SelectValue placeholder="Alle Tracks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle Tracks</SelectItem>
+              <SelectItem value="44">Track 44 (aufsteigend)</SelectItem>
+              <SelectItem value="95">Track 95 (absteigend)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <details>
-          <summary className="section-title">Erweiterte Parameter</summary>
-          <div className="form-row">
-            <label className="label">Maximaler Abstand (m)</label>
-            <input
-              className="input"
-              type="number"
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Buffer-Multiplikator</label>
-            <input
-              className="input"
-              type="number"
-              step="0.1"
-              value={bufferMultiplier}
-              onChange={(e) => setBufferMultiplier(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Minimaler Buffer (m)</label>
-            <input
-              className="input"
-              type="number"
-              step="0.5"
-              value={minBuffer}
-              onChange={(e) => setMinBuffer(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-row">
-            <label className="label">Standardhöhe (m)</label>
-            <input
-              className="input"
-              type="number"
-              step="0.5"
-              value={defaultHeight}
-              onChange={(e) => setDefaultHeight(Number(e.target.value))}
-            />
-          </div>
-        </details>
+        <Collapsible open={paramsOpen} onOpenChange={setParamsOpen} className="space-y-2">
+          <CollapsibleTrigger className="group flex w-full items-center gap-2 text-left text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm">
+            <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+            Erweiterte Parameter
+          </CollapsibleTrigger>
+          <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+            <div className="space-y-2 pl-1 pt-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="max-distance">Maximaler Abstand (m)</Label>
+                <Input
+                  id="max-distance"
+                  type="number"
+                  value={maxDistance}
+                  onChange={(e) => setMaxDistance(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="buffer-mult">Buffer-Multiplikator</Label>
+                <Input
+                  id="buffer-mult"
+                  type="number"
+                  step={0.1}
+                  value={bufferMultiplier}
+                  onChange={(e) => setBufferMultiplier(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="min-buffer">Minimaler Buffer (m)</Label>
+                <Input
+                  id="min-buffer"
+                  type="number"
+                  step={0.5}
+                  value={minBuffer}
+                  onChange={(e) => setMinBuffer(Number(e.target.value))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="default-height">Standardhöhe (m)</Label>
+                <Input
+                  id="default-height"
+                  type="number"
+                  step={0.5}
+                  value={defaultHeight}
+                  onChange={(e) => setDefaultHeight(Number(e.target.value))}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
-        <button className="button" onClick={handleRun} disabled={!mapBBox}>
+        <Button className="w-full" onClick={handleRun} disabled={!mapBBox}>
           Auswertung starten
-        </button>
-      </div>
+        </Button>
+      </Section>
 
-      <div>
-        <div className="section-title">Darstellung</div>
-        <div className="toggle-row">
-          <span>ML-Punkte anzeigen</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={showMlLayer}
-            onChange={(e) => setShowMlLayer(e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>Zugeordnete Gebäude anzeigen</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={showMlBuildings}
-            onChange={(e) => setShowMlBuildings(e.target.checked)}
-            disabled={!hasAssignedBuildings}
-          />
-        </div>
+      <Section title="Darstellung">
+        <ToggleRow
+          label="ML-Punkte anzeigen"
+          checked={showMlLayer}
+          onChange={setShowMlLayer}
+        />
+        <ToggleRow
+          label="Zugeordnete Gebäude anzeigen"
+          checked={showMlBuildings}
+          onChange={setShowMlBuildings}
+          disabled={!hasAssignedBuildings}
+        />
         {activeRunId && assignedBuildings === 0 && (
-          <div className="pill warning">
-            Für diese Auswertung wurden keine Gebäude zugeordnet. Prüfen Sie, ob GBA-Daten
-            in PostGIS geladen sind und der Kartenausschnitt unterstützte Gebäude schneidet.
-          </div>
+          <EmptyState
+            tone="warning"
+            title="Keine Gebäude zugeordnet"
+            message="Prüfen Sie, ob GBA-Daten in PostGIS geladen sind und der Kartenausschnitt unterstützte Gebäude schneidet."
+          />
         )}
 
-        <div className="form-row">
-          <label className="label">Karteneinfärbung</label>
-          <select
-            className="select"
+        <div className="space-y-1.5">
+          <Label htmlFor="map-color-select">Karteneinfärbung</Label>
+          <Select
             value={mlView}
-            onChange={(e) => setMlView(e.target.value as LocalAnomalyView)}
+            onValueChange={(value) => setMlView(value as LocalAnomalyView)}
           >
-            {visualizationOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="map-color-select">
+              <SelectValue placeholder="Einfärbung wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              {visualizationOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <button className="button secondary" onClick={handleRefresh} disabled={!activeRunId}>
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={handleRefresh}
+          disabled={!activeRunId}
+        >
           ML-Kacheln aktualisieren
-        </button>
-      </div>
+        </Button>
+      </Section>
 
       {isActiveRunLocalAnomaly && (
-        <div>
-          <div className="section-title">Ergebniskennzahlen</div>
-          <div className="metric">
-            <span className="label">Normal / Verdacht / Ausreißer</span>
-            <span className="value">
-              {activeRunQuery.data?.metrics?.normal_points ?? 0}/
-              {activeRunQuery.data?.metrics?.suspect_points ?? 0}/
-              {activeRunQuery.data?.metrics?.outlier_points ?? 0}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="label">Vollständige Cross-Track-Stützung</span>
-            <span className="value">
-              {activeRunQuery.data?.metrics?.full_cross_track_points ?? 0}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="label">Cross-Track-Verbesserung</span>
-            <span className="value">
-              {Number(activeRunQuery.data?.metrics?.cross_track_improvement ?? 0).toFixed(2)}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="label">Gebäude mit Clustern</span>
-            <span className="value">
-              {activeRunQuery.data?.metrics?.buildings_with_clusters ?? 0}
-            </span>
-          </div>
-          <div className="metric">
-            <span className="label">Rauschen / durch Gate ausgeschlossen</span>
-            <span className="value">
-              {activeRunQuery.data?.metrics?.noise_points ?? 0}/
-              {activeRunQuery.data?.metrics?.gate_excluded_points ?? 0}
-            </span>
-          </div>
-        </div>
+        <Section title="Ergebniskennzahlen">
+          <MetricLine
+            label="Normal / Verdacht / Ausreißer"
+            value={`${activeRunQuery.data?.metrics?.normal_points ?? 0} / ${
+              activeRunQuery.data?.metrics?.suspect_points ?? 0
+            } / ${activeRunQuery.data?.metrics?.outlier_points ?? 0}`}
+          />
+          <MetricLine
+            label="Vollständige Cross-Track-Stützung"
+            value={activeRunQuery.data?.metrics?.full_cross_track_points ?? 0}
+          />
+          <MetricLine
+            label="Cross-Track-Verbesserung"
+            value={Number(
+              activeRunQuery.data?.metrics?.cross_track_improvement ?? 0
+            ).toFixed(2)}
+          />
+          <MetricLine
+            label="Gebäude mit Clustern"
+            value={activeRunQuery.data?.metrics?.buildings_with_clusters ?? 0}
+          />
+          <MetricLine
+            label="Rauschen / durch Gate ausgeschlossen"
+            value={`${activeRunQuery.data?.metrics?.noise_points ?? 0} / ${
+              activeRunQuery.data?.metrics?.gate_excluded_points ?? 0
+            }`}
+          />
+        </Section>
       )}
 
-      <div>
-        <div className="section-title">Letzte Auswertungen</div>
-        {runsQuery.isLoading && <div className="pill">Auswertungen laden...</div>}
-        {runsQuery.data && (
-          <div className="run-list">
-            {visibleRuns.map((run: any) => (
-              <div
-                key={run.run_id}
-                className={`run-item ${run.run_id === activeRunId ? "active" : ""}`}
-              >
-                <button
-                  className="run-select"
-                  onClick={() => {
-                    setActiveRunId(run.run_id);
-                    setMlView("cluster");
-                  }}
+      <Section title="Letzte Auswertungen">
+        {runsQuery.isLoading && (
+          <Badge variant="secondary" className="font-normal">
+            Auswertungen laden...
+          </Badge>
+        )}
+        {runsQuery.data && visibleRuns.length > 0 && (
+          <ul className="grid gap-2">
+            {visibleRuns.map((run: any) => {
+              const isActive = run.run_id === activeRunId;
+              return (
+                <li
+                  key={run.run_id}
+                  className={cn(
+                    "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md border p-2 transition-colors",
+                    isActive
+                      ? "border-primary bg-primary/10"
+                      : "border-border bg-secondary"
+                  )}
                 >
-                  <span className="run-title">Lokale Anomalieanalyse</span>
-                  <span className="run-meta">{run.status}</span>
-                </button>
-                <button className="run-delete" onClick={() => handleDelete(run.run_id)}>
-                  Löschen
-                </button>
-              </div>
-            ))}
-          </div>
+                  <button
+                    type="button"
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
+                    onClick={() => {
+                      setActiveRunId(run.run_id);
+                      setMlView("cluster");
+                    }}
+                  >
+                    <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+                      Lokale Anomalieanalyse
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {run.status}
+                    </span>
+                  </button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    onClick={() => handleDelete(run.run_id)}
+                    aria-label="Auswertung löschen"
+                    className="h-8 w-8"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
         )}
         {runsQuery.data && visibleRuns.length === 0 && (
-          <div className="pill">Noch keine Auswertungen für anomaly_local_v1.</div>
+          <EmptyState
+            title="Noch keine Auswertungen"
+            message={`Für ${pipeline} wurden noch keine Läufe gestartet.`}
+          />
         )}
-      </div>
+      </Section>
     </div>
   );
 }

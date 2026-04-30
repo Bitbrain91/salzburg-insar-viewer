@@ -12,6 +12,16 @@ import {
   sliderToHeightSensitivity,
 } from "../lib/pointStyling";
 import { useAppStore } from "../lib/store";
+import {
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Slider,
+  Switch,
+} from "./ui";
 
 const velocityLegendItems = [
   { color: "#8e0f2f", label: "Starke Senkung (< -5)" },
@@ -26,6 +36,43 @@ const trackLegendItems = [
   { color: TRACK_44_OUTLINE_COLOR, label: "Track 44 Umriss" },
   { color: TRACK_95_OUTLINE_COLOR, label: "Track 95 Umriss" },
 ];
+
+type ToggleSpec = {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+};
+
+function ToggleRow({ label, checked, onChange }: ToggleSpec) {
+  return (
+    <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
+      <span className="min-w-0 text-sm leading-snug text-foreground">{label}</span>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </label>
+  );
+}
+
+function Section({
+  title,
+  children,
+  description,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-2">
+      <div>
+        <div className="section-title">{title}</div>
+        {description && (
+          <p className="-mt-1 text-xs leading-snug text-muted-foreground">{description}</p>
+        )}
+      </div>
+      <div className="space-y-1.5">{children}</div>
+    </section>
+  );
+}
 
 export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
@@ -63,215 +110,196 @@ export default function LayerPanel() {
         <small>Kartengrundlage, Datenebenen, Filter und Legende.</small>
       </div>
 
-      <div>
-        <div className="section-title">Kartengrundlage</div>
-        <div className="form-row">
-          <label className="label">Basiskarte</label>
-          <select
-            className="select"
+      <Section title="Kartengrundlage">
+        <div className="space-y-1.5">
+          <Label htmlFor="basemap-select">Basiskarte</Label>
+          <Select
             value={basemapId}
-            onChange={(e) => setBasemapId(e.target.value as BasemapId)}
+            onValueChange={(value) => setBasemapId(value as BasemapId)}
           >
-            <option value={basemaps.light.id}>Fachkarte hell</option>
-            <option value={basemaps.satellite.id}>Luftbild</option>
-          </select>
+            <SelectTrigger id="basemap-select">
+              <SelectValue placeholder="Basiskarte wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={basemaps.light.id}>Fachkarte hell</SelectItem>
+              <SelectItem value={basemaps.satellite.id}>Luftbild</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
+      </Section>
 
-      <div>
-        <div className="section-title">InSAR-Tracks</div>
-        <div className="toggle-row">
-          <span>Track 44 aufsteigend, Blick 81,4 Grad Ost</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.insar44}
-            onChange={(e) => setLayer("insar44", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>Track 95 absteigend, Blick 281,5 Grad West</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.insar95}
-            onChange={(e) => setLayer("insar95", e.target.checked)}
-          />
-        </div>
-      </div>
+      <Section title="InSAR-Tracks">
+        <ToggleRow
+          label="Track 44 aufsteigend, Blick 81,4 Grad Ost"
+          checked={layers.insar44}
+          onChange={(checked) => setLayer("insar44", checked)}
+        />
+        <ToggleRow
+          label="Track 95 absteigend, Blick 281,5 Grad West"
+          checked={layers.insar95}
+          onChange={(checked) => setLayer("insar95", checked)}
+        />
+      </Section>
 
-      <div>
-        <div className="section-title">Gebäude und Kontext</div>
-        <div className="toggle-row">
-          <span>Global Building Atlas (3D)</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.gba}
-            onChange={(e) => setLayer("gba", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>OSM-Gebäudegrundrisse</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.osm}
-            onChange={(e) => setLayer("osm", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>SRTM-Relief</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.reliefHillshade}
-            onChange={(e) => setLayer("reliefHillshade", e.target.checked)}
-          />
-        </div>
-        <div className="toggle-row">
-          <span>SRTM-Hangneigung</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={layers.reliefSlope}
-            onChange={(e) => setLayer("reliefSlope", e.target.checked)}
-          />
-        </div>
-      </div>
+      <Section title="Gebäude und Kontext">
+        <ToggleRow
+          label="Global Building Atlas (3D)"
+          checked={layers.gba}
+          onChange={(checked) => setLayer("gba", checked)}
+        />
+        <ToggleRow
+          label="OSM-Gebäudegrundrisse"
+          checked={layers.osm}
+          onChange={(checked) => setLayer("osm", checked)}
+        />
+        <ToggleRow
+          label="SRTM-Relief"
+          checked={layers.reliefHillshade}
+          onChange={(checked) => setLayer("reliefHillshade", checked)}
+        />
+        <ToggleRow
+          label="SRTM-Hangneigung"
+          checked={layers.reliefSlope}
+          onChange={(checked) => setLayer("reliefSlope", checked)}
+        />
+      </Section>
 
-      <div>
-        <div className="section-title">Kamera</div>
-        <div className="form-row">
-          <label className="label">Perspektive</label>
-          <select
-            className="select"
+      <Section
+        title="Kamera"
+        description="LOS-Blickrichtungen werden exakt geführt; die Kamera ist grob nach Ost oder West ausgerichtet. Kandidatenflächen liegen sensorseitig, also entgegen der Blickrichtung."
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="camera-select">Perspektive</Label>
+          <Select
             value={cameraMode}
-            onChange={(e) =>
+            onValueChange={(value) =>
               setCameraMode(
-                e.target.value as "default" | "satellite_track44" | "satellite_track95"
+                value as "default" | "satellite_track44" | "satellite_track95"
               )
             }
           >
-            <option value="default">Standardansicht</option>
-            <option value="satellite_track44">{satelliteCameraPresets.satellite_track44.label}</option>
-            <option value="satellite_track95">{satelliteCameraPresets.satellite_track95.label}</option>
-          </select>
+            <SelectTrigger id="camera-select">
+              <SelectValue placeholder="Perspektive wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Standardansicht</SelectItem>
+              <SelectItem value="satellite_track44">
+                {satelliteCameraPresets.satellite_track44.label}
+              </SelectItem>
+              <SelectItem value="satellite_track95">
+                {satelliteCameraPresets.satellite_track95.label}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <small>
-          LOS-Blickrichtungen werden exakt geführt; die Kamera ist grob nach Ost oder West
-          ausgerichtet. Kandidatenflächen liegen sensorseitig, also entgegen der
-          Blickrichtung.
-        </small>
-      </div>
+      </Section>
 
-      <div>
-        <div className="section-title">Punktdarstellung</div>
-        <div className="form-row">
-          <label className="label">Einfärbung</label>
-          <select
-            className="select"
+      <Section title="Punktdarstellung">
+        <div className="space-y-1.5">
+          <Label htmlFor="point-color-select">Einfärbung</Label>
+          <Select
             value={pointColorMode}
-            onChange={(e) => setPointColorMode(e.target.value as "velocity" | "height")}
+            onValueChange={(value) =>
+              setPointColorMode(value as "velocity" | "height")
+            }
           >
-            <option value="velocity">Geschwindigkeit</option>
-            <option value="height">InSAR-Höhe</option>
-          </select>
+            <SelectTrigger id="point-color-select">
+              <SelectValue placeholder="Einfärbung wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="velocity">Geschwindigkeit</SelectItem>
+              <SelectItem value="height">InSAR-Höhe</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="toggle-row">
-          <span>Track-Ränder anzeigen</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={showTrackOutlines}
-            onChange={(e) => setShowTrackOutlines(e.target.checked)}
-          />
-        </div>
+        <ToggleRow
+          label="Track-Ränder anzeigen"
+          checked={showTrackOutlines}
+          onChange={setShowTrackOutlines}
+        />
 
         {pointColorMode === "height" && (
-          <>
-            <div className="metric">
-              <span className="label">Empfindlichkeit (m)</span>
-              <span className="value">{formatHeightSensitivity(heightSensitivityM)}</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label>Empfindlichkeit (m)</Label>
+              <span className="font-mono text-xs text-foreground">
+                {formatHeightSensitivity(heightSensitivityM)}
+              </span>
             </div>
-            <input
-              type="range"
-              className="slider"
+            <Slider
               min={0}
               max={2}
               step={0.01}
-              value={heightSliderValue}
-              onChange={(e) =>
-                setHeightSensitivityM(sliderToHeightSensitivity(Number(e.target.value)))
+              value={[heightSliderValue]}
+              onValueChange={([v]) =>
+                setHeightSensitivityM(sliderToHeightSensitivity(v))
               }
             />
-            <small>
+            <p className="text-xs leading-snug text-muted-foreground">
               Kleinere Werte erzeugen feinere Höhenklassen und kürzere Farbzyklen.
               Grundlage ist das vorhandene InSAR-Attribut height.
-            </small>
-          </>
+            </p>
+          </div>
         )}
-      </div>
+      </Section>
 
-      <div>
-        <div className="section-title">Filter</div>
-        <div className="toggle-row">
-          <span>Grenzwerte verwenden</span>
-          <input
-            type="checkbox"
-            className="toggle"
-            checked={filtersEnabled}
-            onChange={(e) => setFiltersEnabled(e.target.checked)}
+      <Section title="Filter">
+        <ToggleRow
+          label="Grenzwerte verwenden"
+          checked={filtersEnabled}
+          onChange={setFiltersEnabled}
+        />
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between gap-3">
+            <Label>Geschwindigkeit min. (mm/Jahr)</Label>
+            <span className="font-mono text-xs text-foreground">
+              {filters.velocityMin.toFixed(1)}
+            </span>
+          </div>
+          <Slider
+            min={-20}
+            max={0}
+            step={0.5}
+            value={[filters.velocityMin]}
+            disabled={!filtersEnabled}
+            onValueChange={([v]) => setFilter("velocityMin", v)}
           />
         </div>
-        <div className="metric">
-          <span className="label">Geschwindigkeit min. (mm/Jahr)</span>
-          <span className="value">{filters.velocityMin.toFixed(1)}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label>Geschwindigkeit max. (mm/Jahr)</Label>
+            <span className="font-mono text-xs text-foreground">
+              {filters.velocityMax.toFixed(1)}
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={20}
+            step={0.5}
+            value={[filters.velocityMax]}
+            disabled={!filtersEnabled}
+            onValueChange={([v]) => setFilter("velocityMax", v)}
+          />
         </div>
-        <input
-          type="range"
-          className="slider"
-          min={-20}
-          max={0}
-          step={0.5}
-          value={filters.velocityMin}
-          disabled={!filtersEnabled}
-          onChange={(e) => setFilter("velocityMin", Number(e.target.value))}
-        />
-
-        <div className="metric">
-          <span className="label">Geschwindigkeit max. (mm/Jahr)</span>
-          <span className="value">{filters.velocityMax.toFixed(1)}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label>Kohärenz min.</Label>
+            <span className="font-mono text-xs text-foreground">
+              {filters.coherenceMin.toFixed(2)}
+            </span>
+          </div>
+          <Slider
+            min={0.1}
+            max={1}
+            step={0.05}
+            value={[filters.coherenceMin]}
+            disabled={!filtersEnabled}
+            onValueChange={([v]) => setFilter("coherenceMin", v)}
+          />
         </div>
-        <input
-          type="range"
-          className="slider"
-          min={0}
-          max={20}
-          step={0.5}
-          value={filters.velocityMax}
-          disabled={!filtersEnabled}
-          onChange={(e) => setFilter("velocityMax", Number(e.target.value))}
-        />
+      </Section>
 
-        <div className="metric">
-          <span className="label">Kohärenz min.</span>
-          <span className="value">{filters.coherenceMin.toFixed(2)}</span>
-        </div>
-        <input
-          type="range"
-          className="slider"
-          min={0.1}
-          max={1}
-          step={0.05}
-          value={filters.coherenceMin}
-          disabled={!filtersEnabled}
-          onChange={(e) => setFilter("coherenceMin", Number(e.target.value))}
-        />
-      </div>
-
-      <div>
-        <div className="section-title">Legende</div>
+      <Section title="Legende">
         <div className="legend">
           {legendItems.map((item) => (
             <div className="legend-item" key={item.label}>
@@ -281,13 +309,13 @@ export default function LayerPanel() {
           ))}
         </div>
         {pointColorMode === "height" && (
-          <small>
+          <p className="text-xs leading-snug text-muted-foreground">
             Die Höhenklassen starten bei 450 m und wiederholen sich alle{" "}
             {formatHeightLegendValue(heightCycleLength)} m.
-          </small>
+          </p>
         )}
         {showTrackOutlines && (
-          <div className="legend" style={{ marginTop: 12 }}>
+          <div className="legend mt-3">
             {trackLegendItems.map((item) => (
               <div className="legend-item" key={item.label}>
                 <span
@@ -303,7 +331,7 @@ export default function LayerPanel() {
             ))}
           </div>
         )}
-      </div>
+      </Section>
     </div>
   );
 }
