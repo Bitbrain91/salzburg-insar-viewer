@@ -56,7 +56,7 @@ Wichtige empirische Beobachtungen aus Salzburg:
 - Die Hoehenbeziehung Punkt vs. Terrain ist ohne Vertikal-Datumsharmonisierung nicht robust genug fuer harte Schlussfolgerungen.
 
 ## Pipeline-Ueberblick
-Die Pipeline besteht aus sechs Schritten:
+Die Pipeline besteht aus sechs fachlichen Kernschritten:
 
 1. Lokale Punktzuordnung an GBA-Gebaeude.
 2. Zeitreihen- und Qualitaetsfeatures pro Punkt.
@@ -64,6 +64,8 @@ Die Pipeline besteht aus sechs Schritten:
 4. Lokale Clusterung pro `Gebaeude x Track`.
 5. Outlier- und Qualitaetsscore.
 6. Cross-Track-Validierung zwischen `ASC` und `DSC`.
+
+Danach werden die Ergebnisse fuer Gebaeude, Cluster, Nachbarschaftskontext und UI/DB-Ausgabe aufbereitet. Diese nachgelagerte Schicht ist keine zusaetzliche Detektionslogik im engeren Sinn, sondern macht die lokalen Entscheidungen interpretierbar, vergleichbar und visualisierbar.
 
 ## 1. Punktzuordnung
 ### Richtungssensitiver Buffer
@@ -230,6 +232,106 @@ Warum:
 
 - In Hanglagen und komplexer Topografie ist ein enger Vergleich unplausibel.
 - Cross-Track-Uebereinstimmung ist ein starker Vertrauensindikator, aber kein perfekter Ground Truth.
+
+## Nachgelagerte Rollups und Kontextbewertung
+Nach den sechs Kernschritten werden Punkt-, Cluster- und Gebaeudeinformationen zusammengefuehrt. Ziel ist, aus einzelnen Punktlabels eine interpretierbare Gebaeudeperspektive zu erzeugen.
+
+### Cluster-Rollups
+Fuer jedes Cluster werden zusammengefasst:
+
+- `cluster_role` (`core`, `noise`, `insufficient_support`, `excluded`)
+- Punktanzahl
+- Median-`velocity`
+- Median-`vertical_proxy`
+- Cluster-Schwerpunkt in UTM
+- Median-`coherence`
+- Median-`height_rank_in_building`
+- `cluster_reliability_score`
+- Abstand der Bewegung zum Main-Cluster (`motion_delta_to_main_mm_a`)
+
+Der Main-Cluster je Track wird unter den verlaesslichen Core-Clustern gewaehlt. Prioritaet haben:
+
+1. mehr Punkte
+2. hoehere Median-Kohärenz
+3. hoeherer Median-Hoehenrang
+4. stabile deterministische Cluster-ID als Tie-Breaker
+
+### Gebaeude-Rollup
+Pro Gebaeude werden die Track-Rollups zusammengefuehrt. Daraus entstehen:
+
+- `building_motion_mm_a`
+- `track_agreement_score`
+- `building_reliability_score`
+- `building_reliability_band` (`high`, `medium`, `low`)
+- `differential_motion_flag`
+- Main-Cluster-IDs fuer Track 44 und Track 95
+- Zaehlwerte fuer Punkte, behaltene Punkte, Noise, Ausschluesse und Cluster
+
+Der Gebaeudestatus beschreibt die Belastbarkeit der Aussage:
+
+- `ok`: ausreichend lokaler und track-uebergreifender Support
+- `single_track_only`: nur ein Track liefert verwertbaren Main-Cluster-Support
+- `small_n`: nur wenige Punkte stuetzen die Aussage
+- `noise_dominated`: mehr als die Haelfte der behaltenen Punkte ist Noise
+- `insufficient_support`: zu wenig verwertbare Punkte oder kein Main-Cluster
+
+Die Gebaeude-Zuverlaessigkeit kombiniert Support, Signalqualitaet, Zuordnungsqualitaet und Cross-Track-Uebereinstimmung. Sie wird reduziert bei Single-Track-Lage, schwachem Main-Cluster-Support, Noise-Dominanz, schlechter Track-Uebereinstimmung oder differentieller Bewegung.
+
+### Nachbarschaftskontext
+Nachbargebaeude werden genutzt, um Grenzfaelle sichtbar zu machen, nicht um Punktzuordnungen automatisch umzuschreiben.
+
+Aktuelle Logik:
+
+- Kandidaten sind benachbarte Gebaeude innerhalb von `25 m`.
+- Maximal `8` Nachbargebaeude werden betrachtet.
+- Verglichen werden nur verwertbare Core-Cluster mit ausreichendem Support.
+- Clusterprofile bestehen aus Bewegungsproxy, Along-/Cross-Look-Lage, Hoehenrang und groesstem Zeitreihen-Step.
+- Ein Punkt kann als moegliche Fehlzuordnung markiert werden, wenn er schlecht zum eigenen Cluster, aber deutlich besser zu einem Nachbarcluster passt.
+- Ein Gebaeude kann als nachbarschaftlich gestuetztes Ereignis markiert werden, wenn mehrere Nachbargebaeude konsistente Bewegungsmuster zeigen.
+
+Wichtige Ergebnisfelder:
+
+- `best_neighbour_building_id`
+- `best_neighbour_cluster_id`
+- `own_cluster_fit_score`
+- `neighbour_fit_score`
+- `neighbour_fit_delta`
+- `neighbour_misassignment_flag`
+- `neighbour_event_score`
+- `neighbour_event_flag`
+- `supporting_neighbour_count`
+
+Diese Werte sind Diagnose- und Interpretationshilfen. Sie dienen vor allem dazu, Nachbargebaeude-Reflexionen, gemeinsam bewegte Bereiche und moegliche Randzuordnungen im Inspector nachvollziehbar zu machen.
+
+## Persistenz und Ergebnisstruktur
+Die Pipeline schreibt pro Punkt einen Datensatz in `ml_point_results`.
+
+Gespeichert werden die numerischen Kernwerte:
+
+- `score` / `quality_score`
+- `anomaly_score`
+- `cross_track_consistency`
+- `label`
+- `cluster_id`
+- `building_source`
+- `building_id`
+- `distance_m`
+- `feature_set_version`
+- `model_set_version`
+
+Zusaetzlich enthaelt `meta` die interpretierbaren Kontextdaten:
+
+- `feature_flags`
+- `building_context`
+- `cross_track_summary`
+- `cluster_rollup`
+- `building_rollup`
+- `neighbour_context`
+- `detector_scores`
+- `explain_top_features`
+- `visual_context`
+
+Die Persistenz ist bewusst breit, damit die UI nicht nur ein Label zeigt, sondern die Methodik pruefbar macht: Zuordnung, Gate-Entscheidungen, Clusterrolle, Cross-Track-Kontext, Nachbarschaftskontext und wichtigste Erklaergruende bleiben pro Punkt nachvollziehbar.
 
 ## Visualisierung
 Phase 1 sieht bewusst eine visuelle Gebaeudeansicht vor.

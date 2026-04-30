@@ -1,50 +1,77 @@
 <mxfile host="app.diagrams.net" agent="Codex" version="29.6.4">
   <diagram name="anomaly_local_v1 Pipeline (current simplified)" id="simple-current">
-    <mxGraphModel dx="1188" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1500" math="0" shadow="0">
+    <mxGraphModel dx="1188" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#1a1a2e;" value="&lt;b&gt;anomaly_local_v1 - aktuelle Pipeline&lt;/b&gt;" vertex="1">
-          <mxGeometry x="210" y="20" width="580" height="36" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#1a1a2e;" value="&lt;b&gt;anomaly_local_v1 - Was prueft diese Pipeline?&lt;/b&gt;" vertex="1">
+          <mxGeometry x="210" y="20" width="680" height="36" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontColor=#777777;" value="Code-abgeleitet aus backend/app/ml/pipelines/anomaly_local_v1.py und track_geometry.py, Stand 2026-04-28" vertex="1">
-          <mxGeometry x="180" y="56" width="640" height="30" as="geometry" />
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#777777;" value="Code-abgeleitet aus backend/app/ml/pipelines/anomaly_local_v1.py - Stand 2026-04-29" vertex="1">
+          <mxGeometry x="180" y="56" width="740" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="input" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;align=center;" value="&lt;b&gt;Run-Kontext + PostGIS&lt;/b&gt;&lt;br&gt;BBox, optional track, source=gba&lt;br&gt;insar_points / timeseries / amplitude&lt;br&gt;gba_buildings + building_terrain_context" vertex="1">
-          <mxGeometry x="300" y="110" width="400" height="92" as="geometry" />
+        <mxCell id="intro" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;strokeWidth=2;dashed=1;dashPattern=4 4;fontSize=12;align=center;verticalAlign=middle;spacing=10;arcSize=10;" value="&lt;b style=&quot;font-size:14px;color:#7f6000;&quot;&gt;Was beantwortet diese Pipeline?&lt;/b&gt;&lt;br&gt;&lt;i&gt;Passt dieser InSAR-Punkt geometrisch, signaltechnisch und zeitlich zu genau diesem Gebaeude und zu den anderen Punkten dieses Gebaeudes?&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b style=&quot;color:#7b2d8e;&quot;&gt;GEOMETRIE&lt;/b&gt;  -  &lt;b style=&quot;color:#1a6b8a;&quot;&gt;SIGNAL&lt;/b&gt;  -  &lt;b style=&quot;color:#2d6e4e;&quot;&gt;ZEIT&lt;/b&gt;" vertex="1">
+          <mxGeometry x="140" y="92" width="820" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="step1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#16537e;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;1. Punktzuordnung&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Prioritaet: within -&gt; directional_buffer -&gt; nearest &lt;= 15 m&lt;br&gt;Directional buffer nutzt zentrale 2D-Track-Geometrie:&lt;br&gt;Track 44/A sensor-bearing 261.4 deg, Track 95/D sensor-bearing 101.5 deg&lt;br&gt;range_shift = range_offset * (range_dx, range_dy)" vertex="1">
-          <mxGeometry x="240" y="250" width="520" height="128" as="geometry" />
+        <mxCell id="input" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;EINGANG - PostGIS&lt;/b&gt;&lt;br&gt;insar_points - insar_timeseries - insar_amplitude_timeseries&lt;br&gt;gba_buildings + building_terrain_context&lt;br&gt;Run-Kontext: bbox - optional track - source=gba" vertex="1">
+          <mxGeometry x="240" y="200" width="620" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="step2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;2. Feature-Berechnung&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Zeitreihe: valid epochs, slope, residuals, primary step&lt;br&gt;Amplitude: CV und Spike-Rate, optional je Track&lt;br&gt;Gebaeude/Track: along_look, cross_look, height_rank, local_density, step_support&lt;br&gt;Terrain: slope_mean, slope_max, relief_range" vertex="1">
-          <mxGeometry x="240" y="425" width="520" height="124" as="geometry" />
+        <mxCell id="runner_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontSize=9;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b&gt;Runner&lt;/b&gt;&lt;br&gt;Status, MLflow-&lt;br&gt;Params, Run-Metriken,&lt;br&gt;Summary-Artefakt;&lt;br&gt;assign_building_colors&lt;br&gt;fuer die UI" vertex="1">
+          <mxGeometry x="985" y="210" width="110" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="step3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ef;strokeColor=#ae4132;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;3. Gate-Rules&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Harte Ausschluesse vor Clustering:&lt;br&gt;kein Gebaeude, &lt; 24 gueltige Epochen, &lt; 50% Track-Abdeckung,&lt;br&gt;coherence &lt; max(0.45, track_p05)&lt;br&gt;Gate-Punkte bleiben als excluded/outlier visualisierbar." vertex="1">
-          <mxGeometry x="240" y="595" width="520" height="118" as="geometry" />
+        <mxCell id="step1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#16537e;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;1. Punktzuordnung&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Welcher Punkt gehoert zu welchem Gebaeude?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; 3-stufige Prioritaet pro Punkt:&lt;br&gt;within -&amp;gt; directional_buffer (kompensiert Radar-Layover) -&amp;gt; nearest &amp;lt;= 15 m&lt;br&gt;Sensor-Bearings: Track 44/A 261.4 deg - Track 95/D 101.5 deg&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; Gebaeude-ID + assignment_method (within / directional / nearest)" vertex="1">
+          <mxGeometry x="240" y="310" width="620" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="step4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0faf0;strokeColor=#2d6e4e;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;4. Lokales Clustering pro Gebaeude x Track&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;&lt; 3 kept: insufficient_support&lt;br&gt;3-5 kept: Small-N-Fallback auf local_deviation&lt;br&gt;&gt;= 6 kept: HDBSCAN; OPTICS-Fallback wenn hdbscan fehlt&lt;br&gt;Matrix: along, cross, height_rank, velocity, acceleration, coherence_penalty" vertex="1">
-          <mxGeometry x="240" y="760" width="520" height="128" as="geometry" />
+        <mxCell id="step2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;2. Feature-Berechnung&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Wie sieht der Punkt im Detail aus?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; vier Feature-Familien je Punkt&lt;br&gt;&lt;b&gt;Bewegung&lt;/b&gt; (slope mm/a, Spruenge, Restfehler) - &lt;b&gt;Helligkeit&lt;/b&gt; (Variations-Koeffizient, Spike-Rate)&lt;br&gt;&lt;b&gt;Lage am Gebaeude&lt;/b&gt; (along/cross-look, Hoehenrang, Dichte) - &lt;b&gt;Gelaende&lt;/b&gt; (slope_mean/max, relief)&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; ~20 numerische Merkmale je Punkt + Track-Statistiken (Coherence-p05, ...)" vertex="1">
+          <mxGeometry x="240" y="465" width="620" height="160" as="geometry" />
         </mxCell>
-        <mxCell id="step5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;5. Building- und Cross-Track-Rollups&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Main Cluster je Track, median vertical proxy = velocity / cos(incidence)&lt;br&gt;Track 44 vs Track 95 agreement mit allowed_diff = 1.0 + 0.15 * slope_mean&lt;br&gt;Building status, reliability band, weak secondary track, differential_motion_flag&lt;br&gt;Diese Rollups entstehen vor dem finalen Punkt-Scoring." vertex="1">
-          <mxGeometry x="240" y="935" width="520" height="132" as="geometry" />
+        <mxCell id="step3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ef;strokeColor=#ae4132;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;3. Gate-Rules&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Hat der Punkt ueberhaupt genug Substanz?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; harte Mindestanforderungen vor dem Clustering. Fehlt eine, fliegt der Punkt raus, bleibt aber sichtbar.&lt;br&gt;&amp;gt;= 24 Epochen - &amp;gt;= 50% Track-Abdeckung - Coherence &amp;gt;= max(0.45, track_p05) - Gebaeude muss zugewiesen sein&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; kept_for_scoring ODER gate_excluded mit Begruendung (-&amp;gt; spaeter automatisch outlier)" vertex="1">
+          <mxGeometry x="240" y="650" width="620" height="130" as="geometry" />
         </mxCell>
-        <mxCell id="step6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e8;strokeColor=#c47a10;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;6. Neighbourhood-Diagnostik&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;Naechste Gebaeude im 25-m-Radius, max. 8 Kandidaten&lt;br&gt;Cluster-Fit gegen eigene und Nachbar-Cluster&lt;br&gt;Misassignment-Flags und Neighbour-Event-Signale werden in meta abgelegt." vertex="1">
-          <mxGeometry x="240" y="1115" width="520" height="112" as="geometry" />
+        <mxCell id="step4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0faf0;strokeColor=#2d6e4e;strokeWidth=2;fontSize=11;align=center;verticalAlign=top;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;4. Lokales Clustering pro Gebaeude x Track&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Verhaelt sich der Punkt wie seine Nachbarn am selben Gebaeude?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; je Gebaeude+Track werden die behaltenen Punkte gruppiert.&lt;br&gt;Drei Strategien je nach Anzahl der kept points:" vertex="1">
+          <mxGeometry x="240" y="805" width="620" height="220" as="geometry" />
         </mxCell>
-        <mxCell id="step7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef8ef;strokeColor=#c47a10;strokeWidth=2;fontSize=12;align=center;spacing=8;arcSize=8;" value="&lt;font style=&quot;font-size:15px&quot;&gt;&lt;b&gt;7. Scoring, Labels, Persistenz&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;anomaly_score = 60% cluster_outlier + 25% local_deviation + 15% rule_penalty&lt;br&gt;quality_score = 45% (1-anomaly) + 25% cross_track + 20% kept_support + 10% signal_quality&lt;br&gt;Labels: normal / suspect / outlier; Ergebnisse nach ml_point_results.meta" vertex="1">
-          <mxGeometry x="240" y="1275" width="520" height="132" as="geometry" />
+        <mxCell id="step4_box_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=10;spacing=4;" value="&lt;b&gt;&amp;lt; 3 kept&lt;/b&gt;&lt;br&gt;insufficient_support&lt;br&gt;Label: mindestens suspect" vertex="1">
+          <mxGeometry x="265" y="900" width="180" height="72" as="geometry" />
         </mxCell>
-        <mxCell id="runner_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#666666;fontSize=11;align=center;arcSize=8;" value="Runner schreibt Status, MLflow-Parameter, Run-Metriken und Summary-Artifact; danach assign_building_colors fuer die UI." vertex="1">
-          <mxGeometry x="730" y="126" width="220" height="72" as="geometry" />
+        <mxCell id="step4_box_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=10;spacing=4;" value="&lt;b&gt;3 - 5 kept&lt;/b&gt;&lt;br&gt;Small-N-Fallback&lt;br&gt;local_deviation &amp;gt; 0.80 = noise" vertex="1">
+          <mxGeometry x="460" y="900" width="180" height="72" as="geometry" />
         </mxCell>
-        <mxCell id="ui_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=center;arcSize=8;" value="API/UI nutzen gespeicherte Meta-Daten fuer Punkte, Gebaeude-Rollups, Candidate Areas, Cluster-Hulls und Inspector-Diagnostik." vertex="1">
-          <mxGeometry x="730" y="1310" width="220" height="80" as="geometry" />
+        <mxCell id="step4_box_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=10;spacing=4;" value="&lt;b&gt;&amp;gt;= 6 kept&lt;/b&gt;&lt;br&gt;HDBSCAN (dichte-basiert)&lt;br&gt;OPTICS-Fallback wenn hdbscan fehlt" vertex="1">
+          <mxGeometry x="655" y="900" width="180" height="72" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_footer" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#2d6e4e;" value="&lt;b&gt;Was kommt raus:&lt;/b&gt; cluster_id + cluster_role pro Punkt; Borderline-Noise kann dem naechsten Kern-Cluster zugeordnet werden" vertex="1">
+          <mxGeometry x="260" y="985" width="580" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="step5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;5. Building- und Cross-Track-Rollups&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Stimmen Track 44 (Asc) und Track 95 (Desc) ueberein?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; pro Gebaeude den Hauptcluster je Track waehlen, vertikal projizieren, beide Tracks vergleichen.&lt;br&gt;Vertikaler Proxy: velocity / cos(incidence) - Toleranz: 1.0 + 0.15 * slope_mean_deg, Ergebnis in mm/a&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; Gebaeude-Bewegung + reliability_band + differential_motion_flag" vertex="1">
+          <mxGeometry x="240" y="1050" width="620" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="step6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e8;strokeColor=#c47a10;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;6. Neighbourhood-Diagnostik&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Passt der Punkt vielleicht besser zu einem Nachbargebaeude?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; Vergleich mit den Clustern der bis zu 8 naechsten Gebaeude im 25 m-Umkreis.&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; misassignment- und neighbour_event-Flags, abgelegt in meta JSONB" vertex="1">
+          <mxGeometry x="240" y="1215" width="620" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="step7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef8ef;strokeColor=#c47a10;strokeWidth=2;fontSize=11;align=center;verticalAlign=top;spacing=10;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;7. Scoring, Labels, Persistenz&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Wie auffaellig ist der Punkt - und wie sicher sind wir uns?&amp;quot;&lt;/i&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Was passiert:&lt;/b&gt; zwei Scores aus den Cluster-, Lage- und Regel-Signalen&lt;br&gt;&lt;b&gt;Auffaelligkeit&lt;/b&gt; = 60% Cluster-Abweichung + 25% lokale Abweichung + 15% Regelverstoesse&lt;br&gt;&lt;b&gt;Vertrauen&lt;/b&gt; = 45% (1 - Auffaelligkeit) + 25% Cross-Track + 20% Stuetzung + 10% Signalqualitaet&lt;br&gt;&lt;b&gt;Was kommt raus:&lt;/b&gt; Label normal / suspect / outlier -&amp;gt; ml_point_results-Spalten + meta JSONB" vertex="1">
+          <mxGeometry x="240" y="1360" width="620" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_normal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#2d6e4e;" value="&lt;b&gt;normal&lt;/b&gt; (&amp;gt;= 0.70)" vertex="1">
+          <mxGeometry x="305" y="1505" width="150" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_suspect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#7f6000;" value="&lt;b&gt;suspect&lt;/b&gt; (0.40 - 0.69)" vertex="1">
+          <mxGeometry x="475" y="1505" width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="badge_outlier" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#a0282a;" value="&lt;b&gt;outlier&lt;/b&gt; (&amp;lt; 0.40)" vertex="1">
+          <mxGeometry x="665" y="1505" width="140" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="output_panel" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=10;arcSize=10;" value="&lt;b style=&quot;font-size:14px;color:#1b5e20;&quot;&gt;Ergebnis - Was sieht der Anwender in der App?&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;Punkt-Label&lt;/b&gt; (normal / suspect / outlier)  -  &lt;b&gt;Gebaeude-Rollup&lt;/b&gt; (Status, Reliability-Band, differentielle Bewegung)&lt;br&gt;&lt;b&gt;Candidate-Areas&lt;/b&gt; (richtungsversetzte Buffer aus Schritt 1)  -  &lt;b&gt;Cluster-Hulls&lt;/b&gt; (Huellen der Kern-Punkte je Cluster)&lt;br&gt;&lt;b&gt;Inspector&lt;/b&gt; mit Score-Aufschluesselung und erklaerenden Top-Features" vertex="1">
+          <mxGeometry x="140" y="1560" width="820" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ui_note" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b&gt;API / UI&lt;/b&gt;&lt;br&gt;liest meta JSONB&lt;br&gt;-&amp;gt; Punkt-Layer,&lt;br&gt;Gebaeude-Rollups,&lt;br&gt;Candidate-Areas,&lt;br&gt;Cluster-Hulls,&lt;br&gt;Inspector-Diagnostik" vertex="1">
+          <mxGeometry x="985" y="1580" width="110" height="100" as="geometry" />
         </mxCell>
         <mxCell id="scope" parent="1" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;flipH=1;size=0.5;strokeColor=#999999;strokeWidth=1.5;" value="" vertex="1">
-          <mxGeometry x="785" y="248" width="30" height="642" as="geometry" />
+          <mxGeometry x="875" y="310" width="30" height="715" as="geometry" />
         </mxCell>
-        <mxCell id="scope_text" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#777777;" value="Lokaler Kern:&lt;br&gt;&lt;b&gt;pro Gebaeude x Track&lt;/b&gt;" vertex="1">
-          <mxGeometry x="820" y="520" width="130" height="60" as="geometry" />
+        <mxCell id="scope_text" parent="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#777777;" value="Lokaler Kern:&lt;br&gt;&lt;b&gt;pro Gebaeude&lt;/b&gt;&lt;br&gt;&lt;b&gt;x Track&lt;/b&gt;" vertex="1">
+          <mxGeometry x="910" y="635" width="70" height="60" as="geometry" />
         </mxCell>
         <mxCell id="a01" parent="1" source="input" target="step1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
@@ -65,6 +92,9 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="a67" parent="1" source="step6" target="step7" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a78" parent="1" source="step7" target="output_panel" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

@@ -1,0 +1,298 @@
+<mxfile host="app.diagrams.net" agent="Codex" version="29.6.4">
+  <diagram name="Methodischer Ueberblick" id="concept">
+    <mxGraphModel dx="1188" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="1880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#1a1a2e;" value="&lt;b&gt;anomaly_local_v1 - Methodischer Ueberblick&lt;/b&gt;" vertex="1">
+          <mxGeometry x="110" y="20" width="680" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#777777;" value="Methodik plus die wichtigsten Formeln, Schwellenwerte und Parameter pro Sub-Element" vertex="1">
+          <mxGeometry x="80" y="56" width="740" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="intro" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8dc;strokeColor=#d6b656;strokeWidth=2;dashed=1;dashPattern=4 4;fontSize=12;align=center;verticalAlign=middle;spacing=10;arcSize=10;" value="&lt;b style=&quot;font-size:14px;color:#7f6000;&quot;&gt;Die Kernfrage&lt;/b&gt;&lt;br&gt;&lt;i&gt;Passt dieser InSAR-Punkt geometrisch, signaltechnisch und zeitlich zu genau diesem Gebaeude und zu den anderen Punkten dieses Gebaeudes?&lt;/i&gt;&lt;br&gt;&lt;br&gt;Statt &lt;b&gt;stadtweiter&lt;/b&gt; Anomalien sucht die Pipeline &lt;b&gt;lokale&lt;/b&gt; Auffaelligkeiten - pro Gebaeude und pro Satelliten-Track." vertex="1">
+          <mxGeometry x="40" y="92" width="820" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="input" parent="1" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=12;align=center;verticalAlign=middle;" value="&lt;b&gt;Eingabe&lt;/b&gt;&lt;br&gt;InSAR-Punkte mit Zeitreihen und Amplitude&lt;br&gt;Gebaeude- und Gelaendedaten" vertex="1">
+          <mxGeometry x="90" y="210" width="720" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f7faff;strokeColor=#16537e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="305" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#16537e;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;1. Punktzuordnung&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Welcher Punkt gehoert zu welchem Gebaeude?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="305" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#16537e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#16537e;font-size:11px;&quot;&gt;Innerhalb&lt;/b&gt;&lt;br&gt;Punkt liegt direkt im Gebaeudepolygon&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;ST_Covers (PostGIS Polygon-Test)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="50" y="357" width="265" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#16537e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#16537e;font-size:11px;&quot;&gt;Richtungs-Buffer&lt;/b&gt;&lt;br&gt;kompensiert seitlichen Radar-Versatz&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;Sensor-Bearing 261.4 deg (T44/A) bzw. 101.5 deg (T95/D)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="320" y="357" width="265" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#16537e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#16537e;font-size:11px;&quot;&gt;Naechstes Gebaeude&lt;/b&gt;&lt;br&gt;Fallback wenn nichts anderes greift&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;Distanz &amp;lt;= 15 m&lt;/span&gt;" vertex="1">
+          <mxGeometry x="590" y="357" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step1_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#16537e;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Ohne Gebaeudekontext laesst sich ein Punkt fachlich nicht lokal beurteilen." vertex="1">
+          <mxGeometry x="50" y="445" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbf6ff;strokeColor=#7b2d8e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="495" width="820" height="170" as="geometry" />
+        </mxCell>
+        <UserObject id="step2_h" label="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;2. Feature-Berechnung&lt;/b&gt;&lt;/font&gt;  &lt;span style=&quot;font-size:10px;color:#7b2d8e;&quot;&gt;[Details &amp;rarr;]&lt;/span&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Wie laesst sich der Punkt charakterisieren?&amp;quot;&lt;/i&gt;" link="data:page/id,features">
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f0ff;strokeColor=#7b2d8e;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" vertex="1">
+            <mxGeometry x="40" y="495" width="820" height="44" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="step2_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;Bewegung&lt;/b&gt;&lt;br&gt;Trend und Spruenge im Zeitverlauf&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;ts_slope (mm/a) - ts_primary_step - ts_roughness&lt;/span&gt;" vertex="1">
+          <mxGeometry x="55" y="547" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;Signal-Stabilitaet&lt;/b&gt;&lt;br&gt;Helligkeit, Streuung, Spitzen&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;amp_ts_cv = std / max(|mean|, 0.5) - Spike-Rate&lt;/span&gt;" vertex="1">
+          <mxGeometry x="255" y="547" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;Lage am Gebaeude&lt;/b&gt;&lt;br&gt;Versatz und Hoehenrang&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;along_look - cross_look - height_rank&lt;/span&gt;" vertex="1">
+          <mxGeometry x="455" y="547" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_d" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;Gelaende-Kontext&lt;/b&gt;&lt;br&gt;Hangneigung, Relief&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;slope_mean - slope_max - relief_range&lt;/span&gt;" vertex="1">
+          <mxGeometry x="655" y="547" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#7b2d8e;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Diese vier Aspekte sind die gemeinsame Vergleichsbasis fuer alle folgenden Schritte." vertex="1">
+          <mxGeometry x="50" y="635" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef7f6;strokeColor=#ae4132;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="685" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef0ef;strokeColor=#ae4132;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;3. Gate-Rules&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Hat der Punkt eine belastbare Datenbasis?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="685" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ae4132;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#ae4132;font-size:11px;&quot;&gt;Kein Gebaeude&lt;/b&gt;&lt;br&gt;Punkt konnte nicht zugeordnet werden&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;no_building_assignment&lt;/span&gt;" vertex="1">
+          <mxGeometry x="50" y="737" width="265" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ae4132;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#ae4132;font-size:11px;&quot;&gt;Zu kurze Zeitreihe&lt;/b&gt;&lt;br&gt;wenig oder lueckige Beobachtungen&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;&amp;lt; 24 Epochen ODER &amp;lt; 50% Track-Abdeckung&lt;/span&gt;" vertex="1">
+          <mxGeometry x="320" y="737" width="265" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#ae4132;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#ae4132;font-size:11px;&quot;&gt;Zu schwaches Signal&lt;/b&gt;&lt;br&gt;niedrige Kohaerenz&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;coherence &amp;lt; max(0.45, track_p05)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="590" y="737" width="260" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#ae4132;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Bei zu duenner oder verrauschter Datenbasis waeren weitere Aussagen nicht belastbar. Aussortierte Punkte bleiben sichtbar." vertex="1">
+          <mxGeometry x="50" y="825" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5fbf5;strokeColor=#2d6e4e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="875" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0faf0;strokeColor=#2d6e4e;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;4. Lokales Clustering pro Gebaeude x Track&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Verhaelt sich der Punkt wie seine direkten Nachbarn am selben Gebaeude?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="875" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2d6e4e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#2d6e4e;font-size:11px;&quot;&gt;Pro Gebaeude x Track&lt;/b&gt;&lt;br&gt;jede Gruppe getrennt&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;Schluessel = (building_id, track)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="55" y="927" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2d6e4e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#2d6e4e;font-size:11px;&quot;&gt;Lage + Bewegung&lt;/b&gt;&lt;br&gt;bestimmen die Cluster&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;6D-Vektor mit RobustScaler&lt;/span&gt;" vertex="1">
+          <mxGeometry x="255" y="927" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2d6e4e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#2d6e4e;font-size:11px;&quot;&gt;Mehrere Cluster moeglich&lt;/b&gt;&lt;br&gt;z. B. Dach, Balkon, Anbau&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;HDBSCAN mit OPTICS-Fallback&lt;/span&gt;" vertex="1">
+          <mxGeometry x="455" y="927" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_d" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2d6e4e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#2d6e4e;font-size:11px;&quot;&gt;Wenig Punkte&lt;/b&gt;&lt;br&gt;konservativeres Verfahren&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;&amp;lt;3: keine - 3-5: Small-N - &amp;gt;=6: HDBSCAN&lt;/span&gt;" vertex="1">
+          <mxGeometry x="655" y="927" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step4_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#2d6e4e;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Die Frage ist &amp;quot;passt der Punkt zu seinem Gebaeude?&amp;quot; - nicht &amp;quot;ist er stadtweit ungewoehnlich?&amp;quot;." vertex="1">
+          <mxGeometry x="50" y="1015" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5fbfd;strokeColor=#1a6b8a;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="1065" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef8fb;strokeColor=#1a6b8a;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;5. Building- und Cross-Track-Rollups&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Stimmen die Sichten beider Satelliten-Tracks ueberein?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="1065" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1a6b8a;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#1a6b8a;font-size:11px;&quot;&gt;Hauptbefund pro Track&lt;/b&gt;&lt;br&gt;eine verdichtete Aussage&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;Rang nach (point_count, coherence, height_rank)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="55" y="1117" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1a6b8a;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#1a6b8a;font-size:11px;&quot;&gt;Asc gegen Desc&lt;/b&gt;&lt;br&gt;zwei unabhaengige Sichten&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;T44 look 81.4 deg vs. T95 look 281.5 deg&lt;/span&gt;" vertex="1">
+          <mxGeometry x="255" y="1117" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_c" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1a6b8a;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#1a6b8a;font-size:11px;&quot;&gt;Vertikale Projektion&lt;/b&gt;&lt;br&gt;grobe Naeherung&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;v_vert ~ velocity / cos(incidence)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="455" y="1117" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_d" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1a6b8a;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#1a6b8a;font-size:11px;&quot;&gt;Hang-Toleranz&lt;/b&gt;&lt;br&gt;mehr Spielraum am Hang&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;allowed_diff = 1.0 + 0.15 * slope_mean (mm/a)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="655" y="1117" width="190" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step5_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#1a6b8a;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Zwei unabhaengige Satellitenblicke auf dasselbe Gebaeude sind der staerkste Vertrauensindikator." vertex="1">
+          <mxGeometry x="50" y="1205" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step6_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fffbf2;strokeColor=#c47a10;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="1255" width="820" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="step6_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e8;strokeColor=#c47a10;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;6. Neighbourhood-Diagnostik&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Passt der Punkt vielleicht besser zu einem Nachbargebaeude?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="1255" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step6_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c47a10;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=6;" value="&lt;b style=&quot;color:#c47a10;font-size:11px;&quot;&gt;Profil-Match bei Nachbar staerker&lt;/b&gt;&lt;br&gt;Zuordnung moeglicherweise verschoben&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;pair_consistency_score &amp;gt;= 0.60&lt;/span&gt;" vertex="1">
+          <mxGeometry x="50" y="1307" width="395" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step6_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c47a10;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=6;" value="&lt;b style=&quot;color:#c47a10;font-size:11px;&quot;&gt;Mehrere Nachbarn gleichgerichtet&lt;/b&gt;&lt;br&gt;Hinweis auf regionales Ereignis&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;Radius &amp;lt;= 25 m - max. 8 Kandidaten&lt;/span&gt;" vertex="1">
+          <mxGeometry x="455" y="1307" width="395" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step6_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#c47a10;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; Reflexionen koennen an Wintergaerten, Dachkanten oder Anbauten &amp;quot;wandern&amp;quot;." vertex="1">
+          <mxGeometry x="50" y="1395" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fefaf3;strokeColor=#c47a10;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="1445" width="820" height="218" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_h" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef8ef;strokeColor=#c47a10;strokeWidth=2;fontSize=11;align=center;verticalAlign=middle;spacing=6;arcSize=8;" value="&lt;font style=&quot;font-size:14px&quot;&gt;&lt;b&gt;7. Scoring und Labels&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;i style=&quot;color:#555;&quot;&gt;&amp;quot;Wie auffaellig ist der Punkt - und wie sicher sind wir uns?&amp;quot;&lt;/i&gt;" vertex="1">
+          <mxGeometry x="40" y="1445" width="820" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_a" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#c47a10;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=6;" value="&lt;b style=&quot;color:#c47a10;font-size:12px;&quot;&gt;Auffaelligkeits-Score&lt;/b&gt;&lt;br&gt;Cluster-Abweichung, lokale Lage, Regelverstoesse&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;0.60 * Cluster + 0.25 * Lokal + 0.15 * Regeln&lt;/span&gt;" vertex="1">
+          <mxGeometry x="50" y="1497" width="395" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_b" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#1a6b8a;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=6;" value="&lt;b style=&quot;color:#1a6b8a;font-size:12px;&quot;&gt;Vertrauens-Score&lt;/b&gt;&lt;br&gt;Cross-Track, Stuetzung, Signalqualitaet&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;0.45*(1-Auff) + 0.25*Cross + 0.20*Stuetze + 0.10*Signal&lt;/span&gt;" vertex="1">
+          <mxGeometry x="455" y="1497" width="395" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_label_intro" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#444444;" value="Daraus folgt das Label (anhand des Vertrauens-Score):" vertex="1">
+          <mxGeometry x="50" y="1583" width="800" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_normal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#2d6e4e;" value="&lt;b&gt;normal&lt;/b&gt;  &amp;gt;= 0.70" vertex="1">
+          <mxGeometry x="205" y="1605" width="145" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_suspect" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#7f6000;" value="&lt;b&gt;suspect&lt;/b&gt;  0.40 - 0.69" vertex="1">
+          <mxGeometry x="365" y="1605" width="170" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_outlier" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=1.5;fontSize=10;align=center;verticalAlign=middle;arcSize=40;fontColor=#a0282a;" value="&lt;b&gt;outlier&lt;/b&gt;  &amp;lt; 0.40" vertex="1">
+          <mxGeometry x="550" y="1605" width="145" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="step7_warum" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=10;fontColor=#c47a10;fontStyle=2;" value="&lt;b&gt;Warum:&lt;/b&gt; &amp;quot;Wie auffaellig&amp;quot; und &amp;quot;wie verlaesslich ist die Aussage&amp;quot; sind unterschiedliche Fragen - sie muessen getrennt sichtbar bleiben." vertex="1">
+          <mxGeometry x="50" y="1635" width="800" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="output_panel" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#82b366;strokeWidth=2;fontSize=11;align=left;verticalAlign=middle;spacing=12;arcSize=10;" value="&lt;center&gt;&lt;b style=&quot;font-size:14px;color:#1b5e20;&quot;&gt;Was liefert diese Pipeline fachlich?&lt;/b&gt;&lt;/center&gt;&lt;br&gt;&amp;#8226;&amp;nbsp; &lt;b&gt;Pro Punkt&lt;/b&gt; - ein Label und zwei Scores (Auffaelligkeit, Vertrauen)&lt;br&gt;&amp;#8226;&amp;nbsp; &lt;b&gt;Pro Cluster&lt;/b&gt; - raeumliche Huellen und Mediankennzahlen je Gebaeude+Track&lt;br&gt;&amp;#8226;&amp;nbsp; &lt;b&gt;Pro Gebaeude&lt;/b&gt; - konsolidiertes Bewegungsbild mit Vertrauensband&lt;br&gt;&amp;#8226;&amp;nbsp; &lt;b&gt;Diagnostik&lt;/b&gt; - Hinweise auf Fehlzuordnungen und Nachbarschafts-Ereignisse" vertex="1">
+          <mxGeometry x="40" y="1683" width="820" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="a01" parent="1" source="input" target="step1_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a12" parent="1" source="step1_container" target="step2_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a23" parent="1" source="step2_container" target="step3_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a34" parent="1" source="step3_container" target="step4_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a45" parent="1" source="step4_container" target="step5_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a56" parent="1" source="step5_container" target="step6_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a67" parent="1" source="step6_container" target="step7_container" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a78" parent="1" source="step7_container" target="output_panel" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#444444;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="Feature-Catalog" id="features">
+    <mxGraphModel dx="1188" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="fc_title" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontColor=#7b2d8e;" value="&lt;b&gt;Feature-Catalog - Phase-1 Detail&lt;/b&gt;" vertex="1">
+          <mxGeometry x="200" y="20" width="800" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_subtitle" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=11;fontColor=#777777;" value="Alle 20 Features mit Bedeutung, Datenquelle bzw. Berechnung und Verwendung" vertex="1">
+          <mxGeometry x="200" y="56" width="800" height="24" as="geometry" />
+        </mxCell>
+        <UserObject id="fc_back" label="&amp;larr; Zurueck zum methodischen Ueberblick" link="data:page/id,concept">
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef0f5;strokeColor=#7b2d8e;strokeWidth=1;fontSize=11;align=center;verticalAlign=middle;arcSize=8;fontColor=#7b2d8e;" vertex="1">
+            <mxGeometry x="40" y="92" width="280" height="28" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <mxCell id="fc_legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;strokeWidth=1;fontSize=10;align=left;verticalAlign=middle;arcSize=6;spacing=6;fontColor=#444444;" value="&lt;b&gt;Karten-Aufbau:&lt;/b&gt;  feature_name  /  Bedeutung  /  &lt;span style=&quot;color:#2d6e4e;font-weight:bold;&quot;&gt;direkt&lt;/span&gt; aus Tabelle  ODER  &lt;span style=&quot;color:#c47a10;font-weight:bold;&quot;&gt;berechnet&lt;/span&gt; aus mehreren Datenpunkten  /  -&amp;gt; verwendet in" vertex="1">
+          <mxGeometry x="340" y="92" width="820" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_motion" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbf6ff;strokeColor=#7b2d8e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="140" width="1120" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_motion_h" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#7b2d8e;" value="Bewegung &amp;mdash; 7 Features" vertex="1">
+          <mxGeometry x="60" y="148" width="1080" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_velocity" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;velocity&lt;/b&gt;&lt;br&gt;Bewegungsrate in Sicht-Linie (mm/a)&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: insar_points.velocity&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster-Vektor)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="190" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_acceleration" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;acceleration&lt;/b&gt;&lt;br&gt;Aenderung der Bewegungsrate ueber Zeit&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: insar_points.acceleration&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster-Vektor)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="350" y="190" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_ts_slope" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;ts_slope&lt;/b&gt;&lt;br&gt;Linearer Trend der Zeitreihe (mm/a)&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: polyfit(date, displacement, deg=1)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (local_deviation)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="620" y="190" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_ts_residual" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;ts_residual_std&lt;/b&gt;&lt;br&gt;Streuung nach Trend-Entfernung&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: std(displacement - linearer Trend)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="890" y="190" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_ts_step" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;ts_primary_step_abs&lt;/b&gt;&lt;br&gt;Groesster einzelner Sprung in der Zeitreihe&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: max(|disp[i] - disp[i-1]|)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty: unsupported_step)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="300" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_ts_rough" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;ts_roughness&lt;/b&gt;&lt;br&gt;Mittlere absolute 1.-Differenz (Jitter)&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: mean(|diff(displacement)|)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (local_deviation)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="350" y="300" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_season" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;season_amp&lt;/b&gt;&lt;br&gt;Amplitude saisonaler Schwingung&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: insar_points.season_amp&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (Kontext-Feature)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="620" y="300" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_signal" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbf6ff;strokeColor=#7b2d8e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="422" width="1120" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_signal_h" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#7b2d8e;" value="Signal-Stabilitaet &amp;mdash; 5 Features" vertex="1">
+          <mxGeometry x="60" y="430" width="1080" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_coh_pen" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;coherence_penalty&lt;/b&gt;&lt;br&gt;bestraft schwache Reflexionen&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: 1.0 - insar_points.coherence&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster-Vektor)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="472" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_amp_cv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;amp_ts_cv&lt;/b&gt;&lt;br&gt;Variations-Koeffizient der Amplitude&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: std(amp) / max(|mean(amp)|, 0.5)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty: unstable_amplitude)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="350" y="472" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_amp_spike" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;amp_ts_spike_rate&lt;/b&gt;&lt;br&gt;Anteil ungewoehnlich heller Bilder&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: Anteil amp &amp;gt; robuster Schwelle&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="620" y="472" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_vel_std" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;velocity_std&lt;/b&gt;&lt;br&gt;Streuung der Geschwindigkeit&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: insar_points.velocity_std&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty: high_velocity_std)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="890" y="472" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_ts_miss" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;ts_missing_rate&lt;/b&gt;&lt;br&gt;Anteil fehlender Beobachtungen&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: 1 - valid_epochs / expected_track_epochs&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (signal_quality)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="582" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_pos" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbf6ff;strokeColor=#7b2d8e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="704" width="1120" height="262" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_pos_h" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#7b2d8e;" value="Lage am Gebaeude &amp;mdash; 5 Features" vertex="1">
+          <mxGeometry x="60" y="712" width="1080" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_along" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;along_look_offset_m&lt;/b&gt;&lt;br&gt;Versatz parallel zur Sensor-Blickrichtung&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: (Punkt - Gebaeude_Mittelpkt) . sensor_dir&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster-Vektor)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="754" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_cross" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;cross_look_offset_m&lt;/b&gt;&lt;br&gt;Versatz quer zur Sensor-Blickrichtung&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: (Punkt - Gebaeude_Mittelpkt) . cross_dir&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster-Vektor)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="350" y="754" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_h_rank" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;height_rank_in_building&lt;/b&gt;&lt;br&gt;Rang der Hoehe am Gebaeude&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: rank(height) / count je (gebaeude, track)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 4 (Cluster) + 5 (Hauptbefund-Rang)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="620" y="754" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_b_height" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;building_height&lt;/b&gt;&lt;br&gt;Gesamthoehe des Gebaeudes (m)&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: gba_buildings.building_height_m&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 1 (range_offset) + 7 (Kontext)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="890" y="754" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_density" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;local_density&lt;/b&gt;&lt;br&gt;Punktdichte in der lokalen Umgebung&lt;br&gt;&lt;span style=&quot;color:#c47a10;font-size:9px;&quot;&gt;berechnet: count(points) / Flaeche je (gebaeude, track)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty: low_kept_support)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="864" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_terr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fbf6ff;strokeColor=#7b2d8e;strokeWidth=1;arcSize=8;" value="" vertex="1">
+          <mxGeometry x="40" y="986" width="1120" height="152" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_terr_h" parent="1" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1;fontColor=#7b2d8e;" value="Gelaende-Kontext &amp;mdash; 3 Features" vertex="1">
+          <mxGeometry x="60" y="994" width="1080" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_slope_mean" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;slope_mean_deg&lt;/b&gt;&lt;br&gt;Mittlere Hangneigung am Standort&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: building_terrain_context.slope_mean_deg&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 5 (Toleranz) + 7 (local_deviation)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="80" y="1028" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_slope_max" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;slope_max_deg&lt;/b&gt;&lt;br&gt;Maximale Hangneigung im Umfeld&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: building_terrain_context.slope_max_deg&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (rule_penalty)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="350" y="1028" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="fc_relief" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#7b2d8e;strokeWidth=1;fontSize=10;align=center;verticalAlign=middle;arcSize=8;spacing=4;" value="&lt;b style=&quot;color:#7b2d8e;font-size:11px;&quot;&gt;relief_range_m&lt;/b&gt;&lt;br&gt;Hoehenunterschied im Umfeld&lt;br&gt;&lt;span style=&quot;color:#2d6e4e;font-size:9px;&quot;&gt;direkt: building_terrain_context.relief_range_m&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#888;font-size:9px;&quot;&gt;-&amp;gt; Schritt 7 (local_deviation)&lt;/span&gt;" vertex="1">
+          <mxGeometry x="620" y="1028" width="240" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
