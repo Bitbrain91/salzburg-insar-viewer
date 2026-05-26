@@ -160,7 +160,7 @@ export default function PipelinePanel() {
     return mapBBox.map((v) => v.toFixed(4)).join(", ");
   }, [mapBBox]);
   const visibleRuns = useMemo(
-    () => (runsQuery.data ?? []).filter((run: any) => run.pipeline === PIPELINE_NAME),
+    () => (runsQuery.data ?? []).filter((run) => run.pipeline === PIPELINE_NAME),
     [runsQuery.data]
   );
 
@@ -418,7 +418,7 @@ export default function PipelinePanel() {
         )}
         {runsQuery.data && visibleRuns.length > 0 && (
           <ul className="grid gap-2">
-            {visibleRuns.map((run: any) => {
+            {visibleRuns.map((run) => {
               const isActive = run.run_id === activeRunId;
               return (
                 <li

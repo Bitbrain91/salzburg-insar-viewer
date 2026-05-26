@@ -12,6 +12,7 @@ import {
 import {
   HelpButton,
   SegmentedTabs,
+  SummaryMetric,
   Select,
   SelectContent,
   SelectItem,
@@ -19,6 +20,7 @@ import {
   SelectValue,
   Switch,
   Label as UiLabel,
+  type SummaryMetricTone,
 } from "./ui";
 import {
   getAttributeMetadata,
@@ -246,7 +248,7 @@ export default function InspectorPanel() {
   const formatCountLabel = (key: string) => {
     if (key === "44") return "Track 44";
     if (key === "95") return "Track 95";
-    return key.replaceAll("_", " ");
+    return key.split("_").join(" ");
   };
   const formatRetuningFlags = (
     weakSecondaryTrackFlag: boolean,
@@ -274,7 +276,7 @@ export default function InspectorPanel() {
     if (penalty.key === "very_low_track_agreement_band_cap") {
       return `Bandgrenze ${penalty.cap_band || "—"}`;
     }
-    return penalty.key.replaceAll("_", " ");
+    return penalty.key.split("_").join(" ");
   };
   const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
     penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";

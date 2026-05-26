@@ -67,6 +67,51 @@ export type BuildingDetail = {
   terrain: BuildingTerrainContext | null;
 };
 
+export type MlMetricValue = string | number | boolean | null;
+
+export type MlRunSummary = {
+  run_id: string;
+  status: string;
+  pipeline: string;
+  run_type: string;
+  created_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+  source?: string | null;
+  track?: number | null;
+};
+
+export type MlRunDetail = MlRunSummary & {
+  params: Record<string, unknown>;
+  mlflow_run_id?: string | null;
+  metrics: Record<string, MlMetricValue>;
+  error?: string | null;
+};
+
+export type MlRunCreatePayload = {
+  pipeline: string;
+  source?: string | null;
+  track?: number | null;
+  bbox?: number[] | null;
+  params?: Record<string, number>;
+};
+
+export type MlRunDeleteResponse = {
+  run_id: string;
+  db_deleted: boolean;
+  mlflow_deleted: boolean;
+  mlflow_error?: string | null;
+};
+
+export type MlPipelineListResponse = {
+  pipelines: Record<string, unknown> | Array<Record<string, unknown>>;
+};
+
+export type MlRunRecolorResponse = {
+  run_id: string;
+  building_colors: number;
+};
+
 export type MlPointExplainReason = {
   key: string;
   severity: number;
@@ -317,15 +362,15 @@ export function getMlBuildingContext(
 }
 
 export function listMlPipelines() {
-  return fetchJson(`/api/ml/pipelines`);
+  return fetchJson<MlPipelineListResponse>(`/api/ml/pipelines`);
 }
 
 export function listMlRuns() {
-  return fetchJson(`/api/ml/runs`);
+  return fetchJson<MlRunSummary[]>(`/api/ml/runs`);
 }
 
 export function getMlRunDetail(runId: string) {
-  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}`);
+  return fetchJson<MlRunDetail>(`/api/ml/runs/${encodeURIComponent(runId)}`);
 }
 
 export function getMlPointAnalysis(runId: string, code: string, track: number) {
@@ -334,8 +379,8 @@ export function getMlPointAnalysis(runId: string, code: string, track: number) {
   );
 }
 
-export function createMlRun(payload: any) {
-  return fetchJson(`/api/ml/runs`, {
+export function createMlRun(payload: MlRunCreatePayload) {
+  return fetchJson<MlRunSummary>(`/api/ml/runs`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -343,13 +388,13 @@ export function createMlRun(payload: any) {
 
 export function deleteMlRun(runId: string, force = false) {
   const query = force ? "?force=true" : "";
-  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}${query}`, {
+  return fetchJson<MlRunDeleteResponse>(`/api/ml/runs/${encodeURIComponent(runId)}${query}`, {
     method: "DELETE",
   });
 }
 
 export function recolorMlRun(runId: string) {
-  return fetchJson(`/api/ml/runs/${encodeURIComponent(runId)}/recolor`, {
+  return fetchJson<MlRunRecolorResponse>(`/api/ml/runs/${encodeURIComponent(runId)}/recolor`, {
     method: "POST",
   });
 }

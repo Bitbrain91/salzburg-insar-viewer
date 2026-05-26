@@ -744,7 +744,7 @@ export default function MapView() {
     const colorExpression = getMlColorExpression(mlView);
     const buildingColorExpression = getMlBuildingColorExpression(mlView);
 
-    map.addSource("ml_points", {
+    addSourceIfMissing(map, "ml_points", {
       type: "vector",
       tiles: [
         `${apiBase}/api/ml/runs/${activeRunId}/tiles/{z}/{x}/{y}.pbf?v=${mlTileVersion}&sv=${styleVersion}`,
@@ -754,7 +754,7 @@ export default function MapView() {
       maxzoom: 16,
     });
 
-    map.addSource("ml_buildings", {
+    addSourceIfMissing(map, "ml_buildings", {
       type: "vector",
       tiles: [
         `${apiBase}/api/ml/runs/${activeRunId}/buildings/{z}/{x}/{y}.pbf?v=${mlTileVersion}&sv=${styleVersion}`,
@@ -764,7 +764,7 @@ export default function MapView() {
       maxzoom: 16,
     });
 
-    map.addLayer({
+    addLayerIfMissing(map, {
       id: "ml_buildings_flat",
       type: "fill",
       source: "ml_buildings",
@@ -778,7 +778,7 @@ export default function MapView() {
       },
     });
 
-    map.addLayer({
+    addLayerIfMissing(map, {
       id: "ml_buildings_fill",
       type: "fill-extrusion",
       source: "ml_buildings",
@@ -794,7 +794,7 @@ export default function MapView() {
       },
     });
 
-    map.addLayer({
+    addLayerIfMissing(map, {
       id: "ml_buildings_outline",
       type: "line",
       source: "ml_buildings",
@@ -819,7 +819,7 @@ export default function MapView() {
       },
     });
 
-    map.addLayer({
+    addLayerIfMissing(map, {
       id: "ml_points",
       type: "circle",
       source: "ml_points",
