@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import maplibregl, { Map as MapLibreMap, MapMouseEvent } from "maplibre-gl";
 import { basemaps } from "../lib/basemaps";
@@ -6,28 +6,30 @@ import type { BasemapId } from "../lib/basemaps";
 import {
   DEFAULT_MAP_BEARING,
   DEFAULT_MAP_PITCH,
-  isSatelliteCameraMode,
-  satelliteCameraPresets,
+  cameraPresetForMode,
 } from "../lib/cameraModes";
 import type { CameraMode } from "../lib/cameraModes";
 import {
-  TRACK_44_OUTLINE_COLOR,
-  TRACK_95_OUTLINE_COLOR,
   TRACK_OUTLINE_SEPARATOR_COLOR,
   basePointInnerStrokeWidthExpression,
   basePointRadiusExpression,
   formatHeightLegendValue,
   getBasePointColorExpression,
+  getTrackOutlineColor,
   trackOutlineRingRadiusExpression,
   trackOutlineRingStrokeWidthExpression,
   velocityExpression,
 } from "../lib/pointStyling";
 import {
+  useAppConfig,
   getMlBuildingContext,
   getMlBuildingPoints,
   getMlRunDetail,
 } from "../hooks/useApi";
+import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
+import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { useAppStore } from "../lib/store";
+import type { MlBuildingTrackFilter } from "../lib/store";
 
 const tilesBase =
   import.meta.env.VITE_TILES_URL ||
@@ -38,6 +40,14 @@ const apiBase =
 
 const CAMERA_TRANSITION_MS = 700;
 const CAMERA_EPSILON = 0.05;
+const GENERIC_INSAR_SOURCE_ID = "insar_points";
+const GENERIC_INSAR_SOURCE_LAYER = "insar_points";
+const GENERIC_INSAR_OUTLINE_LAYER_ID = "insar_points_outline";
+const GENERIC_INSAR_LAYER_ID = "insar_points";
+const GENERIC_INSAR_SELECTED_LAYER_ID = "insar_selected_points";
+const EMPTY_POINT_FILTER = ["==", ["get", "code"], ""] as any;
+const EMPTY_GBA_FILTER = ["==", "gba_id", ""] as any;
+const EMPTY_OSM_FILTER = ["==", "osm_id", ""] as any;
 
 function getReliefOpacity(basemap: BasemapId) {
   return basemap === "satellite" ? 0.22 : 0.35;
@@ -66,11 +76,10 @@ function applyCameraMode(
   map: MapLibreMap,
   mode: CameraMode,
   freeCamera: { bearing: number; pitch: number },
+  tracks: TrackMetadata[],
   animate: boolean
 ) {
-  const target = isSatelliteCameraMode(mode)
-    ? satelliteCameraPresets[mode]
-    : freeCamera;
+  const target = cameraPresetForMode(mode, tracks) ?? freeCamera;
 
   const needsBearing = getBearingDifference(map.getBearing(), target.bearing) > CAMERA_EPSILON;
   const needsPitch = Math.abs(map.getPitch() - target.pitch) > CAMERA_EPSILON;
@@ -355,6 +364,20 @@ function readNumberFeatureProperty(
   return null;
 }
 
+function readStringFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): string | undefined {
+  const value = readFeatureProperty(properties, ...keys);
+  if (typeof value === "string" && value.trim() !== "") {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return undefined;
+}
+
 function formatTooltipNumber(value: number | null, digits = 2) {
   return value === null ? "—" : value.toFixed(digits);
 }
@@ -511,21 +534,38 @@ function applyBasePointColors(
   heightSensitivityM: number
 ) {
   const pointColorExpression = getBasePointColorExpression(pointColorMode, heightSensitivityM);
-  if (map.getLayer("insar_t44")) {
-    map.setPaintProperty("insar_t44", "circle-color", pointColorExpression as any);
-  }
-  if (map.getLayer("insar_t95")) {
-    map.setPaintProperty("insar_t95", "circle-color", pointColorExpression as any);
+  if (map.getLayer(GENERIC_INSAR_LAYER_ID)) {
+    map.setPaintProperty(GENERIC_INSAR_LAYER_ID, "circle-color", pointColorExpression as any);
   }
 }
 
 function applyTrackOutlineStyle(map: MapLibreMap, enabled: boolean) {
   const innerStrokeWidth = enabled ? (basePointInnerStrokeWidthExpression as any) : 0;
-  if (map.getLayer("insar_t44")) {
-    map.setPaintProperty("insar_t44", "circle-stroke-width", innerStrokeWidth);
+  if (map.getLayer(GENERIC_INSAR_LAYER_ID)) {
+    map.setPaintProperty(GENERIC_INSAR_LAYER_ID, "circle-stroke-width", innerStrokeWidth);
   }
-  if (map.getLayer("insar_t95")) {
-    map.setPaintProperty("insar_t95", "circle-stroke-width", innerStrokeWidth);
+}
+
+function buildTrackOutlineColorExpression(tracks: TrackMetadata[]) {
+  if (!tracks.length) return "#5662a8";
+  return [
+    "match",
+    ["concat", ["get", "dataset_id"], ":", ["to-string", ["get", "track"]]],
+    ...tracks.flatMap((track, index) => [
+      getTrackVisibilityKey(track.datasetId, track.track),
+      getTrackOutlineColor(index),
+    ]),
+    "#5662a8",
+  ] as any;
+}
+
+function applyTrackOutlineColors(map: MapLibreMap, tracks: TrackMetadata[]) {
+  if (map.getLayer(GENERIC_INSAR_OUTLINE_LAYER_ID)) {
+    map.setPaintProperty(
+      GENERIC_INSAR_OUTLINE_LAYER_ID,
+      "circle-stroke-color",
+      buildTrackOutlineColorExpression(tracks)
+    );
   }
 }
 
@@ -549,6 +589,7 @@ export default function MapView() {
   const filters = useAppStore((state) => state.filters);
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const selection = useAppStore((state) => state.selection);
+  const selectedAreaId = useAppStore((state) => state.selectedAreaId);
   const basemapId = useAppStore((state) => state.basemapId);
   const cameraMode = useAppStore((state) => state.cameraMode);
   const pointColorMode = useAppStore((state) => state.pointColorMode);
@@ -564,9 +605,12 @@ export default function MapView() {
   const mlView = useAppStore((state) => state.mlView);
   const mlTileVersion = useAppStore((state) => state.mlTileVersion);
   const setMapBBox = useAppStore((state) => state.setMapBBox);
-  const activeSatellitePreset = isSatelliteCameraMode(cameraMode)
-    ? satelliteCameraPresets[cameraMode]
-    : null;
+  const configQuery = useAppConfig();
+  const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
+  const appConfigRef = useRef<NormalizedAppConfig>(appConfig);
+  const selectedAreaIdRef = useRef(selectedAreaId);
+  const previousFitAreaIdRef = useRef(selectedAreaId);
+  const activeSatellitePreset = cameraPresetForMode(cameraMode, appConfig.tracks);
   const focusBuildingSelection = selection?.type === "building" ? selection : null;
 
   const activeRunQuery = useQuery({
@@ -580,7 +624,12 @@ export default function MapView() {
     queryKey: ["map-ml-building-points", activeRunId, focusBuildingSelection],
     queryFn: () =>
       focusBuildingSelection && activeRunId
-        ? getMlBuildingPoints(activeRunId, focusBuildingSelection.source, focusBuildingSelection.id)
+        ? getMlBuildingPoints(
+            activeRunId,
+            focusBuildingSelection.source,
+            focusBuildingSelection.id,
+            focusBuildingSelection.areaId
+          )
         : Promise.resolve(null),
     enabled: Boolean(activeRunId && focusBuildingSelection && isLocalAnomalyRun),
     retry: false,
@@ -589,7 +638,12 @@ export default function MapView() {
     queryKey: ["map-ml-building-context", activeRunId, focusBuildingSelection],
     queryFn: () =>
       focusBuildingSelection && activeRunId
-        ? getMlBuildingContext(activeRunId, focusBuildingSelection.source, focusBuildingSelection.id)
+        ? getMlBuildingContext(
+            activeRunId,
+            focusBuildingSelection.source,
+            focusBuildingSelection.id,
+            focusBuildingSelection.areaId
+          )
         : Promise.resolve(null),
     enabled: Boolean(activeRunId && focusBuildingSelection && isLocalAnomalyRun),
     retry: false,
@@ -600,6 +654,15 @@ export default function MapView() {
   }, [pointColorMode]);
 
   useEffect(() => {
+    appConfigRef.current = appConfig;
+    selectedAreaIdRef.current = selectedAreaId;
+  }, [appConfig, selectedAreaId]);
+
+  useEffect(() => {
+    setTooltip(null);
+  }, [selectedAreaId]);
+
+  useEffect(() => {
     cameraModeRef.current = cameraMode;
   }, [cameraMode]);
 
@@ -607,9 +670,7 @@ export default function MapView() {
     if (!mapContainer.current || mapRef.current) return;
 
     const initialCameraMode = useAppStore.getState().cameraMode;
-    const initialPreset = isSatelliteCameraMode(initialCameraMode)
-      ? satelliteCameraPresets[initialCameraMode]
-      : null;
+    const initialPreset = cameraPresetForMode(initialCameraMode, appConfigRef.current.tracks);
     cameraModeRef.current = initialCameraMode;
     previousCameraModeRef.current = initialCameraMode;
 
@@ -646,19 +707,43 @@ export default function MapView() {
         return;
       }
 
-      applyCameraMode(map, cameraModeRef.current, lastFreeCameraRef.current, false);
+      applyCameraMode(
+        map,
+        cameraModeRef.current,
+        lastFreeCameraRef.current,
+        appConfigRef.current.tracks,
+        false
+      );
     };
 
     map.on("style.load", () => {
       addCoreSourcesAndLayers(map);
       const state = useAppStore.getState();
-      applyLayerVisibility(map, state.layers, state.showTrackOutlines);
+      applyLayerVisibility(
+        map,
+        state.layers,
+        state.showTrackOutlines,
+        state.selectedAreaId
+      );
       applyTrackOutlineStyle(map, state.showTrackOutlines);
-      applyFilters(map, state.filters, state.filtersEnabled);
+      applyTrackOutlineColors(map, getConfiguredTracksForArea(state.selectedAreaId));
+      applyFilters(
+        map,
+        state.filters,
+        state.filtersEnabled,
+        state.layers,
+        state.selectedAreaId
+      );
       applySelection(map, state.selection);
       setCameraInteractionLock(map, state.cameraMode !== "default");
-      if (isSatelliteCameraMode(state.cameraMode)) {
-        applyCameraMode(map, state.cameraMode, lastFreeCameraRef.current, false);
+      if (state.cameraMode !== "default") {
+        applyCameraMode(
+          map,
+          state.cameraMode,
+          lastFreeCameraRef.current,
+          appConfigRef.current.tracks,
+          false
+        );
       }
       updateBBox();
       setStyleVersion((value) => value + 1);
@@ -698,9 +783,9 @@ export default function MapView() {
     }
 
     setCameraInteractionLock(map, cameraMode !== "default");
-    applyCameraMode(map, cameraMode, lastFreeCameraRef.current, true);
+    applyCameraMode(map, cameraMode, lastFreeCameraRef.current, appConfig.tracks, true);
     previousCameraModeRef.current = cameraMode;
-  }, [cameraMode]);
+  }, [appConfig.tracks, cameraMode]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -712,8 +797,18 @@ export default function MapView() {
 
   useEffect(() => {
     if (!mapRef.current) return;
-    applyLayerVisibility(mapRef.current, layers, showTrackOutlines);
-  }, [layers, showTrackOutlines, styleVersion]);
+    applyLayerVisibility(mapRef.current, layers, showTrackOutlines, selectedAreaId);
+    applyTrackOutlineColors(mapRef.current, getConfiguredTracksForArea(selectedAreaId));
+    applyFilters(mapRef.current, filters, filtersEnabled, layers, selectedAreaId);
+  }, [
+    appConfig,
+    filters,
+    filtersEnabled,
+    layers,
+    selectedAreaId,
+    showTrackOutlines,
+    styleVersion,
+  ]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -726,9 +821,52 @@ export default function MapView() {
   }, [showTrackOutlines, styleVersion]);
 
   useEffect(() => {
+    if (!mapRef.current || styleVersion === 0) return;
+    const map = mapRef.current;
+    addCoreSourcesAndLayers(map);
+    const state = useAppStore.getState();
+    applyLayerVisibility(map, state.layers, state.showTrackOutlines, state.selectedAreaId);
+    applyTrackOutlineStyle(map, state.showTrackOutlines);
+    applyTrackOutlineColors(map, getConfiguredTracksForArea(state.selectedAreaId));
+    applyFilters(map, state.filters, state.filtersEnabled, state.layers, state.selectedAreaId);
+    applySelection(map, state.selection);
+  }, [appConfig, selectedAreaId, styleVersion]);
+
+  useEffect(() => {
+    if (!mapRef.current || styleVersion === 0) return;
+    const previousAreaId = previousFitAreaIdRef.current;
+    if (previousAreaId === selectedAreaId) return;
+    const area = appConfig.areas.find((candidate) => candidate.id === selectedAreaId);
+    previousFitAreaIdRef.current = selectedAreaId;
+    if (!area?.bounds) return;
+
+    const [minLon, minLat, maxLon, maxLat] = area.bounds;
+    mapRef.current.fitBounds(
+      [
+        [minLon, minLat],
+        [maxLon, maxLat],
+      ],
+      {
+        padding: 56,
+        duration: CAMERA_TRANSITION_MS,
+        essential: true,
+        bearing: DEFAULT_MAP_BEARING,
+        pitch: DEFAULT_MAP_PITCH,
+      }
+    );
+  }, [appConfig.areas, selectedAreaId, styleVersion]);
+
+  useEffect(() => {
     if (!mapRef.current) return;
-    applyFilters(mapRef.current, filters, filtersEnabled);
-  }, [filters, filtersEnabled, styleVersion]);
+    applyFilters(mapRef.current, filters, filtersEnabled, layers, selectedAreaId);
+  }, [
+    appConfig,
+    filters,
+    filtersEnabled,
+    layers,
+    selectedAreaId,
+    styleVersion,
+  ]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -1064,13 +1202,10 @@ export default function MapView() {
       "ml_focus_points_noise",
       "ml_focus_points_core",
       "ml_focus_building_outline",
-      "insar_t44_outline",
-      "insar_t44",
-      "insar_t95_outline",
-      "insar_t95",
+      GENERIC_INSAR_OUTLINE_LAYER_ID,
+      GENERIC_INSAR_LAYER_ID,
       "ml_points",
-      "insar_selected_t44",
-      "insar_selected_t95",
+      GENERIC_INSAR_SELECTED_LAYER_ID,
       "gba_highlight",
       "osm_highlight",
     ];
@@ -1198,16 +1333,23 @@ export default function MapView() {
     }
   }
 
-  function trackFilterExpression(trackFilter: "both" | "44" | "95") {
-    if (trackFilter === "both") {
+  function trackFilterExpression(trackFilter: MlBuildingTrackFilter) {
+    if (trackFilter === "all") {
       return null;
     }
-    return ["==", ["get", "track"], Number(trackFilter)] as any;
+    const [datasetId, trackValue] = trackFilter.split(":");
+    const track = Number(trackValue);
+    if (!datasetId || !Number.isFinite(track)) return null;
+    return [
+      "all",
+      ["==", ["get", "dataset_id"], datasetId],
+      ["==", ["get", "track"], track],
+    ] as any;
   }
 
   function applyMlBuildingFocusFilters(
     map: MapLibreMap,
-    trackFilter: "both" | "44" | "95",
+    trackFilter: MlBuildingTrackFilter,
     showExcluded: boolean,
     showHulls: boolean
   ) {
@@ -1252,27 +1394,114 @@ export default function MapView() {
     }
   }
 
+  function getConfiguredTracksForArea(areaId: string) {
+    return appConfigRef.current.datasets
+      .filter((dataset) => dataset.areaId === areaId)
+      .flatMap((dataset) => dataset.tracks);
+  }
+
+  function hasGenericInsarForArea(areaId: string) {
+    return getConfiguredTracksForArea(areaId).length > 0;
+  }
+
+  function getInsarTrackVisibility(
+    vis: typeof layers,
+    datasetId: string,
+    track: number
+  ) {
+    const visibilityKey = getTrackVisibilityKey(datasetId, track);
+    const configuredValue = vis.insarTracks[visibilityKey];
+    if (configuredValue !== undefined) return configuredValue;
+    return true;
+  }
+
+  function buildGenericTrackVisibilityFilter(vis: typeof layers, areaId: string) {
+    const visibleTracks = getConfiguredTracksForArea(areaId).filter(({ datasetId, track }) =>
+      getInsarTrackVisibility(vis, datasetId, track)
+    );
+    if (!visibleTracks.length) return EMPTY_POINT_FILTER;
+    return [
+      "any",
+      ...visibleTracks.map(({ datasetId, track }) => [
+        "all",
+        ["==", ["get", "dataset_id"], datasetId],
+        ["==", ["to-string", ["get", "track"]], String(track)],
+      ]),
+    ] as any;
+  }
+
+  function buildGenericInsarFilter(
+    vis: typeof layers,
+    areaId: string,
+    filterState: typeof filters,
+    enabled: boolean
+  ) {
+    const clauses: any[] = [
+      ["==", ["get", "area_id"], areaId],
+      buildGenericTrackVisibilityFilter(vis, areaId),
+    ];
+    if (enabled) {
+      clauses.push(
+        [">=", ["get", "velocity"], filterState.velocityMin],
+        ["<=", ["get", "velocity"], filterState.velocityMax],
+        [">=", ["get", "coherence"], filterState.coherenceMin]
+      );
+    }
+    return ["all", ...clauses] as any;
+  }
+
+  function buildGenericSelectionFilter(currentSelection: typeof selection) {
+    if (!currentSelection || currentSelection.type !== "point") {
+      return EMPTY_POINT_FILTER;
+    }
+    const clauses: any[] = [["==", ["get", "code"], currentSelection.code]];
+    clauses.push(["==", ["get", "area_id"], currentSelection.areaId]);
+    clauses.push(["==", ["get", "dataset_id"], currentSelection.datasetId]);
+    if (currentSelection.track !== undefined) {
+      clauses.push(["==", ["to-string", ["get", "track"]], String(currentSelection.track)]);
+    }
+    return ["all", ...clauses] as any;
+  }
+
+  function buildAreaFeatureFilter(areaId: string) {
+    return ["==", "area_id", areaId] as any;
+  }
+
+  function buildBuildingSelectionFilter(
+    source: "gba" | "osm",
+    id: string,
+    areaId: string
+  ) {
+    const idField = source === "gba" ? "gba_id" : "osm_id";
+    const idValue = source === "osm" ? Number(id) : id;
+    const clauses: any[] = [["==", idField, idValue]];
+    clauses.push(buildAreaFeatureFilter(areaId));
+    return ["all", ...clauses] as any;
+  }
+
   function addCoreSourcesAndLayers(map: MapLibreMap) {
     const currentBasemapId = useAppStore.getState().basemapId;
     const {
+      layers: currentLayers,
+      filters: currentFilters,
+      filtersEnabled: currentFiltersEnabled,
       pointColorMode: currentPointColorMode,
       heightSensitivityM: currentHeightSensitivityM,
       showTrackOutlines: currentShowTrackOutlines,
+      selectedAreaId: currentSelectedAreaId,
+      selection: currentSelection,
     } = useAppStore.getState();
     const pointColorExpression = getBasePointColorExpression(
       currentPointColorMode,
       currentHeightSensitivityM
     );
-    addSourceIfMissing(map, "insar_t44", {
+    const trackOutlineColorExpression = buildTrackOutlineColorExpression(
+      getConfiguredTracksForArea(currentSelectedAreaId)
+    );
+    const genericInsarVisible = hasGenericInsarForArea(currentSelectedAreaId);
+    addSourceIfMissing(map, GENERIC_INSAR_SOURCE_ID, {
       type: "vector",
-      tiles: [`${tilesBase}/mbtiles/insar_t44/{z}/{x}/{y}.pbf`],
-      tileSize: 512,
-      minzoom: 0,
-      maxzoom: 16,
-    });
-    addSourceIfMissing(map, "insar_t95", {
-      type: "vector",
-      tiles: [`${tilesBase}/mbtiles/insar_t95/{z}/{x}/{y}.pbf`],
+      tiles: [`${tilesBase}/mbtiles/insar_points/{z}/{x}/{y}.pbf`],
       tileSize: 512,
       minzoom: 0,
       maxzoom: 16,
@@ -1333,26 +1562,33 @@ export default function MapView() {
     });
 
     addLayerIfMissing(map, {
-      id: "insar_t44_outline",
+      id: GENERIC_INSAR_OUTLINE_LAYER_ID,
       type: "circle",
-      source: "insar_t44",
-      "source-layer": "insar_t44",
+      source: GENERIC_INSAR_SOURCE_ID,
+      "source-layer": GENERIC_INSAR_SOURCE_LAYER,
       paint: {
         "circle-radius": trackOutlineRingRadiusExpression,
         "circle-color": "rgba(0, 0, 0, 0)",
         "circle-stroke-width": trackOutlineRingStrokeWidthExpression,
-        "circle-stroke-color": TRACK_44_OUTLINE_COLOR,
+        "circle-stroke-color": trackOutlineColorExpression,
       },
       layout: {
-        visibility: currentShowTrackOutlines ? "visible" : "none",
+        visibility:
+          genericInsarVisible && currentShowTrackOutlines ? "visible" : "none",
       },
+      filter: buildGenericInsarFilter(
+        currentLayers,
+        currentSelectedAreaId,
+        currentFilters,
+        currentFiltersEnabled
+      ),
     });
 
     addLayerIfMissing(map, {
-      id: "insar_t44",
+      id: GENERIC_INSAR_LAYER_ID,
       type: "circle",
-      source: "insar_t44",
-      "source-layer": "insar_t44",
+      source: GENERIC_INSAR_SOURCE_ID,
+      "source-layer": GENERIC_INSAR_SOURCE_LAYER,
       paint: {
         "circle-radius": basePointRadiusExpression,
         "circle-color": pointColorExpression,
@@ -1360,36 +1596,15 @@ export default function MapView() {
         "circle-stroke-width": currentShowTrackOutlines ? basePointInnerStrokeWidthExpression : 0,
         "circle-stroke-color": TRACK_OUTLINE_SEPARATOR_COLOR,
       },
-    });
-
-    addLayerIfMissing(map, {
-      id: "insar_t95_outline",
-      type: "circle",
-      source: "insar_t95",
-      "source-layer": "insar_t95",
-      paint: {
-        "circle-radius": trackOutlineRingRadiusExpression,
-        "circle-color": "rgba(0, 0, 0, 0)",
-        "circle-stroke-width": trackOutlineRingStrokeWidthExpression,
-        "circle-stroke-color": TRACK_95_OUTLINE_COLOR,
-      },
       layout: {
-        visibility: currentShowTrackOutlines ? "visible" : "none",
+        visibility: genericInsarVisible ? "visible" : "none",
       },
-    });
-
-    addLayerIfMissing(map, {
-      id: "insar_t95",
-      type: "circle",
-      source: "insar_t95",
-      "source-layer": "insar_t95",
-      paint: {
-        "circle-radius": basePointRadiusExpression,
-        "circle-color": pointColorExpression,
-        "circle-opacity": 1,
-        "circle-stroke-width": currentShowTrackOutlines ? basePointInnerStrokeWidthExpression : 0,
-        "circle-stroke-color": TRACK_OUTLINE_SEPARATOR_COLOR,
-      },
+      filter: buildGenericInsarFilter(
+        currentLayers,
+        currentSelectedAreaId,
+        currentFilters,
+        currentFiltersEnabled
+      ),
     });
 
     addLayerIfMissing(map, {
@@ -1402,6 +1617,7 @@ export default function MapView() {
         "fill-extrusion-color": "#4aa5d5",
         "fill-extrusion-opacity": 0.6,
       },
+      filter: buildAreaFeatureFilter(currentSelectedAreaId),
     });
 
     addLayerIfMissing(map, {
@@ -1413,34 +1629,24 @@ export default function MapView() {
         "fill-color": "#c9c6bf",
         "fill-opacity": 0.5,
       },
+      filter: buildAreaFeatureFilter(currentSelectedAreaId),
     });
 
     addLayerIfMissing(map, {
-      id: "insar_selected_t44",
+      id: GENERIC_INSAR_SELECTED_LAYER_ID,
       type: "circle",
-      source: "insar_t44",
-      "source-layer": "insar_t44",
+      source: GENERIC_INSAR_SOURCE_ID,
+      "source-layer": GENERIC_INSAR_SOURCE_LAYER,
       paint: {
         "circle-radius": 8,
         "circle-color": "#ffffff",
         "circle-stroke-width": 2,
         "circle-stroke-color": "#e27d3f",
       },
-      filter: ["==", ["get", "code"], ""],
-    });
-
-    addLayerIfMissing(map, {
-      id: "insar_selected_t95",
-      type: "circle",
-      source: "insar_t95",
-      "source-layer": "insar_t95",
-      paint: {
-        "circle-radius": 8,
-        "circle-color": "#ffffff",
-        "circle-stroke-width": 2,
-        "circle-stroke-color": "#e27d3f",
+      layout: {
+        visibility: genericInsarVisible ? "visible" : "none",
       },
-      filter: ["==", ["get", "code"], ""],
+      filter: buildGenericSelectionFilter(currentSelection),
     });
 
     addLayerIfMissing(map, {
@@ -1452,7 +1658,7 @@ export default function MapView() {
         "line-color": "#e27d3f",
         "line-width": 2,
       },
-      filter: ["==", ["get", "gba_id"], ""],
+      filter: EMPTY_GBA_FILTER,
     });
 
     addLayerIfMissing(map, {
@@ -1464,7 +1670,7 @@ export default function MapView() {
         "line-color": "#e27d3f",
         "line-width": 2,
       },
-      filter: ["==", ["get", "osm_id"], ""],
+      filter: EMPTY_OSM_FILTER,
     });
 
     ensureLayerOrder(map);
@@ -1481,77 +1687,55 @@ export default function MapView() {
 
   function applySelection(map: MapLibreMap, currentSelection: typeof selection) {
     if (!currentSelection) {
-      if (map.getLayer("insar_selected_t44")) {
-        map.setFilter("insar_selected_t44", ["==", ["get", "code"], ""]);
-      }
-      if (map.getLayer("insar_selected_t95")) {
-        map.setFilter("insar_selected_t95", ["==", ["get", "code"], ""]);
+      if (map.getLayer(GENERIC_INSAR_SELECTED_LAYER_ID)) {
+        map.setFilter(GENERIC_INSAR_SELECTED_LAYER_ID, EMPTY_POINT_FILTER);
       }
       if (map.getLayer("gba_highlight")) {
-        map.setFilter("gba_highlight", ["==", ["get", "gba_id"], ""]);
+        map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
       }
       if (map.getLayer("osm_highlight")) {
-        map.setFilter("osm_highlight", ["==", ["get", "osm_id"], ""]);
+        map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
       }
       return;
     }
 
     if (currentSelection.type === "point") {
-      const show44 =
-        currentSelection.track === 44 || currentSelection.track === undefined;
-      const show95 =
-        currentSelection.track === 95 || currentSelection.track === undefined;
-      if (map.getLayer("insar_selected_t44")) {
+      if (map.getLayer(GENERIC_INSAR_SELECTED_LAYER_ID)) {
         map.setFilter(
-          "insar_selected_t44",
-          show44
-            ? ["==", ["get", "code"], currentSelection.code]
-            : ["==", ["get", "code"], ""]
-        );
-      }
-      if (map.getLayer("insar_selected_t95")) {
-        map.setFilter(
-          "insar_selected_t95",
-          show95
-            ? ["==", ["get", "code"], currentSelection.code]
-            : ["==", ["get", "code"], ""]
+          GENERIC_INSAR_SELECTED_LAYER_ID,
+          buildGenericSelectionFilter(currentSelection)
         );
       }
       if (map.getLayer("gba_highlight")) {
-        map.setFilter("gba_highlight", ["==", ["get", "gba_id"], ""]);
+        map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
       }
       if (map.getLayer("osm_highlight")) {
-        map.setFilter("osm_highlight", ["==", ["get", "osm_id"], ""]);
+        map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
       }
     } else {
       if (currentSelection.source === "gba") {
         if (map.getLayer("gba_highlight")) {
-          map.setFilter("gba_highlight", [
-            "==",
-            ["get", "gba_id"],
-            currentSelection.id,
-          ]);
+          map.setFilter(
+            "gba_highlight",
+            buildBuildingSelectionFilter("gba", currentSelection.id, currentSelection.areaId)
+          );
         }
         if (map.getLayer("osm_highlight")) {
-          map.setFilter("osm_highlight", ["==", ["get", "osm_id"], ""]);
+          map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
         }
       } else {
         if (map.getLayer("osm_highlight")) {
-          map.setFilter("osm_highlight", [
-            "==",
-            ["get", "osm_id"],
-            currentSelection.id,
-          ]);
+          map.setFilter(
+            "osm_highlight",
+            buildBuildingSelectionFilter("osm", currentSelection.id, currentSelection.areaId)
+          );
         }
         if (map.getLayer("gba_highlight")) {
-          map.setFilter("gba_highlight", ["==", ["get", "gba_id"], ""]);
+          map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
         }
       }
-      if (map.getLayer("insar_selected_t44")) {
-        map.setFilter("insar_selected_t44", ["==", ["get", "code"], ""]);
-      }
-      if (map.getLayer("insar_selected_t95")) {
-        map.setFilter("insar_selected_t95", ["==", ["get", "code"], ""]);
+      if (map.getLayer(GENERIC_INSAR_SELECTED_LAYER_ID)) {
+        map.setFilter(GENERIC_INSAR_SELECTED_LAYER_ID, EMPTY_POINT_FILTER);
       }
     }
   }
@@ -1559,27 +1743,30 @@ export default function MapView() {
   function applyLayerVisibility(
     map: MapLibreMap,
     vis: typeof layers,
-    showTrackOutlines: boolean
+    showTrackOutlines: boolean,
+    areaId: string
   ) {
-    if (map.getLayer("insar_t44_outline")) {
+    const genericVisible = hasGenericInsarForArea(areaId);
+    if (map.getLayer(GENERIC_INSAR_OUTLINE_LAYER_ID)) {
       map.setLayoutProperty(
-        "insar_t44_outline",
+        GENERIC_INSAR_OUTLINE_LAYER_ID,
         "visibility",
-        vis.insar44 && showTrackOutlines ? "visible" : "none"
+        genericVisible && showTrackOutlines ? "visible" : "none"
       );
     }
-    if (map.getLayer("insar_t44")) {
-      map.setLayoutProperty("insar_t44", "visibility", vis.insar44 ? "visible" : "none");
-    }
-    if (map.getLayer("insar_t95_outline")) {
+    if (map.getLayer(GENERIC_INSAR_LAYER_ID)) {
       map.setLayoutProperty(
-        "insar_t95_outline",
+        GENERIC_INSAR_LAYER_ID,
         "visibility",
-        vis.insar95 && showTrackOutlines ? "visible" : "none"
+        genericVisible ? "visible" : "none"
       );
     }
-    if (map.getLayer("insar_t95")) {
-      map.setLayoutProperty("insar_t95", "visibility", vis.insar95 ? "visible" : "none");
+    if (map.getLayer(GENERIC_INSAR_SELECTED_LAYER_ID)) {
+      map.setLayoutProperty(
+        GENERIC_INSAR_SELECTED_LAYER_ID,
+        "visibility",
+        genericVisible ? "visible" : "none"
+      );
     }
     if (map.getLayer("relief_hillshade")) {
       map.setLayoutProperty(
@@ -1602,45 +1789,36 @@ export default function MapView() {
   function applyFilters(
     map: MapLibreMap,
     filterState: typeof filters,
-    enabled: boolean
+    enabled: boolean,
+    vis: typeof layers,
+    areaId: string
   ) {
-    if (!enabled) {
-      if (map.getLayer("insar_t44_outline")) {
-        map.setFilter("insar_t44_outline", null);
-      }
-      if (map.getLayer("insar_t44")) {
-        map.setFilter("insar_t44", null);
-      }
-      if (map.getLayer("insar_t95_outline")) {
-        map.setFilter("insar_t95_outline", null);
-      }
-      if (map.getLayer("insar_t95")) {
-        map.setFilter("insar_t95", null);
-      }
-      return;
+    if (map.getLayer(GENERIC_INSAR_OUTLINE_LAYER_ID)) {
+      map.setFilter(
+        GENERIC_INSAR_OUTLINE_LAYER_ID,
+        buildGenericInsarFilter(vis, areaId, filterState, enabled)
+      );
     }
-    const filterExpr = [
-      "all",
-      [">=", ["get", "velocity"], filterState.velocityMin],
-      ["<=", ["get", "velocity"], filterState.velocityMax],
-      [">=", ["get", "coherence"], filterState.coherenceMin],
-    ] as any;
-    if (map.getLayer("insar_t44_outline")) {
-      map.setFilter("insar_t44_outline", filterExpr);
+    if (map.getLayer(GENERIC_INSAR_LAYER_ID)) {
+      map.setFilter(
+        GENERIC_INSAR_LAYER_ID,
+        buildGenericInsarFilter(vis, areaId, filterState, enabled)
+      );
     }
-    if (map.getLayer("insar_t44")) {
-      map.setFilter("insar_t44", filterExpr);
+    if (map.getLayer("gba")) {
+      map.setFilter("gba", buildAreaFeatureFilter(areaId));
     }
-    if (map.getLayer("insar_t95_outline")) {
-      map.setFilter("insar_t95_outline", filterExpr);
-    }
-    if (map.getLayer("insar_t95")) {
-      map.setFilter("insar_t95", filterExpr);
+    if (map.getLayer("osm")) {
+      map.setFilter("osm", buildAreaFeatureFilter(areaId));
     }
   }
 
   function handleHover(event: MapMouseEvent, map: MapLibreMap) {
-    const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    const queryLayers = [
+      GENERIC_INSAR_LAYER_ID,
+      "gba",
+      "osm",
+    ].filter((layerId) => map.getLayer(layerId));
     if (map.getLayer("ml_focus_points_core")) {
       queryLayers.unshift("ml_focus_points_core");
     }
@@ -1736,8 +1914,12 @@ export default function MapView() {
         }${formatNeighbourPointTooltipLines(props)}<br/>
         Reason: ${props.top_reason || props.degraded_reason || props.method || "—"}
       `;
-    } else if (feature.layer.id.startsWith("insar")) {
+    } else if (feature.layer.id === GENERIC_INSAR_LAYER_ID) {
       const currentPointColorMode = pointColorModeRef.current;
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
+      const sensor = readStringFeatureProperty(props, "sensor", "platform");
+      const track = readNumberFeatureProperty(props, "track", "track_id", "trackId");
       const heightValue =
         props.height !== undefined && props.height !== null
           ? `${formatHeightLegendValue(Number(props.height))} m`
@@ -1753,6 +1935,9 @@ export default function MapView() {
       html = `
         <strong>InSAR Point</strong><br/>
         Code: ${props.code || "—"}<br/>
+        AOI: ${areaId}<br/>
+        Dataset: ${datasetId ?? "—"}<br/>
+        Sensor / Track: ${sensor ?? "—"} / ${track ?? "—"}<br/>
         ${
           currentPointColorMode === "height"
             ? `<strong>Height: ${heightValue}</strong><br/>`
@@ -1783,7 +1968,11 @@ export default function MapView() {
   }
 
   function handleClick(event: MapMouseEvent, map: MapLibreMap) {
-    const queryLayers = ["insar_t44", "insar_t95", "gba", "osm"];
+    const queryLayers = [
+      GENERIC_INSAR_LAYER_ID,
+      "gba",
+      "osm",
+    ].filter((layerId) => map.getLayer(layerId));
     if (map.getLayer("ml_focus_points_core")) {
       queryLayers.unshift("ml_focus_points_core");
     }
@@ -1820,41 +2009,74 @@ export default function MapView() {
     const props = feature.properties as any;
 
     if (feature.layer.id.startsWith("ml_focus_points")) {
-      if (props.code) {
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
+      if (props.code && areaId && datasetId) {
         setSelection({
           type: "point",
           code: String(props.code),
           track: props.track === undefined || props.track === null ? undefined : Number(props.track),
+          areaId,
+          datasetId,
+          sensor: readStringFeatureProperty(props, "sensor", "platform"),
         });
       }
     } else if (feature.layer.id.startsWith("ml_buildings")) {
-      if (props.building_id && props.building_source) {
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      if (props.building_id && props.building_source && areaId) {
         setSelection({
           type: "building",
           source: props.building_source,
           id: String(props.building_id),
+          areaId,
         });
       }
     } else if (feature.layer.id === "ml_points") {
-      if (props.code) {
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
+      if (props.code && areaId && datasetId) {
         setSelection({
           type: "point",
           code: String(props.code),
           track: props.track === undefined || props.track === null ? undefined : Number(props.track),
+          areaId,
+          datasetId,
+          sensor: readStringFeatureProperty(props, "sensor", "platform"),
         });
       }
-    } else if (feature.layer.id.startsWith("insar")) {
-      const track = feature.layer.id === "insar_t44" ? 44 : 95;
-      if (props.code) {
-        setSelection({ type: "point", code: props.code, track });
+    } else if (feature.layer.id === GENERIC_INSAR_LAYER_ID) {
+      const track = readNumberFeatureProperty(props, "track", "track_id", "trackId");
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
+      if (props.code && areaId && datasetId) {
+        setSelection({
+          type: "point",
+          code: String(props.code),
+          track,
+          areaId,
+          datasetId,
+          sensor: readStringFeatureProperty(props, "sensor", "platform"),
+        });
       }
     } else if (feature.layer.id === "gba") {
-      if (props.gba_id) {
-        setSelection({ type: "building", source: "gba", id: String(props.gba_id) });
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      if (props.gba_id && areaId) {
+        setSelection({
+          type: "building",
+          source: "gba",
+          id: String(props.gba_id),
+          areaId,
+        });
       }
     } else if (feature.layer.id === "osm") {
-      if (props.osm_id) {
-        setSelection({ type: "building", source: "osm", id: String(props.osm_id) });
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      if (props.osm_id && areaId) {
+        setSelection({
+          type: "building",
+          source: "osm",
+          id: String(props.osm_id),
+          areaId,
+        });
       }
     }
   }

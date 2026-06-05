@@ -31,6 +31,9 @@ class BuildingTerrainContext(BaseModel):
 
 
 class InSARPointDetail(BaseModel):
+    area_id: str
+    dataset_id: str
+    sensor: str
     code: str
     track: int
     los: str
@@ -46,6 +49,7 @@ class InSARPointDetail(BaseModel):
     s_amp_std: Optional[float] = None
     s_phs_std: Optional[float] = None
     incidence_angle: Optional[float] = None
+    look_angle: Optional[float] = None
     eff_area: Optional[float] = None
     amp_mean: Optional[float] = None
     amp_std: Optional[float] = None
@@ -60,12 +64,16 @@ class TimeseriesPoint(BaseModel):
 
 
 class TimeseriesResponse(BaseModel):
+    area_id: str
+    dataset_id: str
+    sensor: str
     code: str
     track: int
     measurements: List[TimeseriesPoint]
 
 
 class BuildingDetail(BaseModel):
+    area_id: str
     id: str
     source: str
     height: Optional[float] = None
@@ -82,11 +90,15 @@ class HealthResponse(BaseModel):
 
 class ConfigResponse(BaseModel):
     velocity_thresholds: dict
+    areas: List[dict] = Field(default_factory=list)
+    datasets: List[dict] = Field(default_factory=list)
     tracks: List[dict]
 
 
 class MLRunCreate(BaseModel):
     pipeline: str
+    area_id: Optional[str] = None
+    dataset_id: Optional[str] = None
     source: Optional[str] = None
     track: Optional[int] = None
     bbox: Optional[List[float]] = None
@@ -101,6 +113,8 @@ class MLRunSummary(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
+    area_id: str
+    dataset_id: str
     source: Optional[str] = None
     track: Optional[int] = None
 
@@ -129,6 +143,9 @@ class MLPointAnalysis(BaseModel):
     run_id: str
     pipeline: str
     run_type: str
+    area_id: str
+    dataset_id: str
+    sensor: Optional[str] = None
     code: str
     track: int
     quality_score: Optional[float] = None
@@ -155,6 +172,9 @@ class MLPointAnalysis(BaseModel):
 
 
 class MLBuildingPointSummary(BaseModel):
+    area_id: str
+    dataset_id: str
+    sensor: Optional[str] = None
     code: str
     track: int
     cluster_id: Optional[str] = None
@@ -168,6 +188,9 @@ class MLBuildingPointSummary(BaseModel):
 
 
 class MLBuildingClusterSummary(BaseModel):
+    area_id: str
+    dataset_id: str
+    sensor: Optional[str] = None
     cluster_id: str
     building_source: str
     building_id: str
@@ -206,6 +229,7 @@ class MLBuildingAnalysis(BaseModel):
     run_id: str
     pipeline: str
     run_type: str
+    area_id: str
     building_source: str
     building_id: str
     point_count: int = 0
@@ -223,8 +247,7 @@ class MLBuildingAnalysis(BaseModel):
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
     differential_motion_flag: bool = False
     building_status: Optional[str] = None
-    main_cluster_track_44_id: Optional[str] = None
-    main_cluster_track_95_id: Optional[str] = None
+    main_cluster_by_track: dict[str, Optional[str]] = Field(default_factory=dict)
     neighbour_context_available: bool = False
     neighbour_candidate_building_count: int = 0
     neighbour_misassignment_point_count: int = 0

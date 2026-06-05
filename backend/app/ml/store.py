@@ -10,6 +10,8 @@ async def create_run_record(
     pipeline: str,
     pipeline_version: str,
     run_type: str,
+    area_id: str,
+    dataset_id: str,
     source: str | None,
     track: int | None,
     bbox: tuple[float, float, float, float] | None,
@@ -18,15 +20,17 @@ async def create_run_record(
     await conn.execute(
         """
         INSERT INTO ml_runs (
-            run_id, pipeline, pipeline_version, run_type, source, track,
+            run_id, pipeline, pipeline_version, run_type, area_id, dataset_id, source, track,
             bbox, params, status, created_at
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11,$12)
         """,
         run_id,
         pipeline,
         pipeline_version,
         run_type,
+        area_id,
+        dataset_id,
         source,
         track,
         json.dumps(list(bbox) if bbox else None),
@@ -39,7 +43,8 @@ async def create_run_record(
 async def fetch_runs(conn, limit: int = 50):
     return await conn.fetch(
         """
-        SELECT run_id, status, pipeline, run_type, created_at, started_at, finished_at, source, track
+        SELECT run_id, status, pipeline, run_type, created_at, started_at, finished_at,
+               area_id, dataset_id, source, track
         FROM ml_runs
         ORDER BY created_at DESC
         LIMIT $1
@@ -52,7 +57,7 @@ async def fetch_run_detail(conn, run_id: str):
     run = await conn.fetchrow(
         """
         SELECT run_id, status, pipeline, run_type, created_at, started_at, finished_at,
-               source, track, params, mlflow_run_id, error
+               area_id, dataset_id, source, track, params, mlflow_run_id, error
         FROM ml_runs
         WHERE run_id = $1
         """,

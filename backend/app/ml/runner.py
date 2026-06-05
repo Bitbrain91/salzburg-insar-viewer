@@ -80,6 +80,8 @@ async def run_pipeline_async(
                     {
                         "pipeline": config.pipeline,
                         "pipeline_version": pipeline.version,
+                        "area_id": config.area_id,
+                        "dataset_id": config.dataset_id,
                         "source": config.source or "",
                         "track": config.track if config.track is not None else "",
                         "bbox": ",".join(map(str, config.bbox)) if config.bbox else "",

@@ -12,6 +12,7 @@ import mlflow
 import numpy as np
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 
+from ..area_metadata import resolve_area_dataset
 from ..config import settings
 from ..db import fetch_one
 from ..schemas import (
@@ -41,6 +42,7 @@ from ..ml.rollups import (
     nested_str as _nested_str,
     parse_meta as _parse_meta,
     track_motion_map,
+    track_string_map,
 )
 from ..ml.track_geometry import track_geometry_values_cte
 from ..ml.registry import get_pipeline, list_pipelines
@@ -106,10 +108,16 @@ async def create_run(request: Request, payload: MLRunCreate):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     run_id = str(uuid4())
     bbox = tuple(payload.bbox) if payload.bbox else None
+    try:
+        area_id, dataset_id = resolve_area_dataset(payload.area_id, payload.dataset_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     config = RunConfig(
         run_id=run_id,
         pipeline=payload.pipeline,
+        area_id=area_id,
+        dataset_id=dataset_id or "",
         source=payload.source,
         track=payload.track,
         bbox=bbox,
@@ -123,6 +131,8 @@ async def create_run(request: Request, payload: MLRunCreate):
             payload.pipeline,
             pipeline.version,
             pipeline.run_type,
+            area_id,
+            dataset_id or "",
             payload.source,
             payload.track,
             bbox,
@@ -147,6 +157,8 @@ async def create_run(request: Request, payload: MLRunCreate):
         created_at=datetime.now(timezone.utc),
         started_at=None,
         finished_at=None,
+        area_id=area_id,
+        dataset_id=dataset_id or "",
         source=payload.source,
         track=payload.track,
     )
@@ -165,6 +177,8 @@ async def list_runs(request: Request):
             created_at=r["created_at"],
             started_at=r["started_at"],
             finished_at=r["finished_at"],
+            area_id=r["area_id"],
+            dataset_id=r["dataset_id"],
             source=r["source"],
             track=r["track"],
         )
@@ -188,6 +202,8 @@ async def run_detail(request: Request, run_id: str):
         created_at=run["created_at"],
         started_at=run["started_at"],
         finished_at=run["finished_at"],
+        area_id=run["area_id"],
+        dataset_id=run["dataset_id"],
         source=run["source"],
         track=run["track"],
         params=run["params"] or {},
@@ -213,12 +229,16 @@ async def ml_point_analysis(
     run_id: str,
     code: str,
     track: int = Query(..., description="Track number for the selected point"),
+    area_id: str | None = Query(default=None, description="AOI identifier for the selected point"),
+    dataset_id: str | None = Query(default=None, description="Dataset identifier for the selected point"),
 ):
     query = """
         SELECT
             r.run_id,
             m.pipeline,
             m.run_type,
+            r.area_id,
+            r.dataset_id,
             r.code,
             r.track,
             r.quality_score,
@@ -236,8 +256,10 @@ async def ml_point_analysis(
         WHERE r.run_id = $1::uuid
           AND r.code = $2
           AND r.track = $3
+          AND r.area_id = COALESCE($4, m.area_id)
+          AND r.dataset_id = COALESCE($5, m.dataset_id)
     """
-    row = await fetch_one(request.app, query, run_id, code, track)
+    row = await fetch_one(request.app, query, run_id, code, track, area_id, dataset_id)
     if row is None:
         run = await fetch_one(
             request.app,
@@ -279,6 +301,8 @@ async def ml_point_analysis(
             run_id=str(row["run_id"]),
             pipeline=row["pipeline"],
             run_type=row["run_type"],
+            area_id=row["area_id"],
+            dataset_id=row["dataset_id"],
             code=row["code"],
             track=row["track"],
             quality_score=row.get("quality_score"),
@@ -315,6 +339,7 @@ async def ml_building_analysis(
     run_id: str,
     source: str,
     building_id: str,
+    area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
     if source not in {"gba", "osm"}:
         raise HTTPException(status_code=400, detail="Invalid source")
@@ -322,7 +347,7 @@ async def ml_building_analysis(
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
             """
-            SELECT run_id, pipeline, run_type
+            SELECT run_id, pipeline, run_type, area_id, dataset_id
             FROM ml_runs
             WHERE run_id = $1
             """,
@@ -330,10 +355,13 @@ async def ml_building_analysis(
         )
         if run is None:
             raise HTTPException(status_code=404, detail="Run not found")
+        selected_area_id = area_id or run["area_id"]
 
         rows = await conn.fetch(
             """
             SELECT
+                r.area_id,
+                r.dataset_id,
                 r.code,
                 r.track,
                 r.cluster_id,
@@ -347,11 +375,13 @@ async def ml_building_analysis(
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
               AND r.building_id = $3
+              AND r.area_id = $4
             ORDER BY r.quality_score ASC NULLS LAST, r.anomaly_score DESC NULLS LAST, r.code, r.track
             """,
             run_id,
             source,
             building_id,
+            selected_area_id,
         )
 
     point_count = len(rows)
@@ -419,8 +449,7 @@ async def ml_building_analysis(
             "agreement_tension_flag": False,
             "reliability_penalties": [],
             "differential_motion_flag": False,
-            "main_cluster_track_44_id": None,
-            "main_cluster_track_95_id": None,
+            "main_cluster_by_track": {},
             "neighbour_context_available": False,
             "neighbour_candidate_building_count": 0,
             "neighbour_misassignment_point_count": 0,
@@ -443,6 +472,7 @@ async def ml_building_analysis(
         run_id=str(run["run_id"]),
         pipeline=run["pipeline"],
         run_type=run["run_type"],
+        area_id=selected_area_id,
         building_source=source,
         building_id=building_id,
         point_count=point_count,
@@ -463,8 +493,7 @@ async def ml_building_analysis(
         ),
         differential_motion_flag=_rollup_bool(building_rollup, "differential_motion_flag"),
         building_status=_rollup_str(building_rollup, "building_status"),
-        main_cluster_track_44_id=_rollup_str(building_rollup, "main_cluster_track_44_id"),
-        main_cluster_track_95_id=_rollup_str(building_rollup, "main_cluster_track_95_id"),
+        main_cluster_by_track=track_string_map(building_rollup.get("main_cluster_by_track")),
         neighbour_context_available=_rollup_bool(building_rollup, "neighbour_context_available"),
         neighbour_candidate_building_count=_rollup_int(
             building_rollup,
@@ -496,6 +525,8 @@ async def ml_building_analysis(
         median_distance_m=float(np.median(distance_values)) if distance_values else None,
         clusters=[
             MLBuildingClusterSummary(
+                area_id=selected_area_id,
+                dataset_id=run["dataset_id"],
                 cluster_id=str(values["cluster_id"]),
                 building_source=str(values.get("building_source") or source),
                 building_id=str(values.get("building_id") or building_id),
@@ -557,6 +588,8 @@ async def ml_building_analysis(
         ],
         top_points=[
             MLBuildingPointSummary(
+                area_id=row["area_id"],
+                dataset_id=row["dataset_id"],
                 code=row["code"],
                 track=row["track"],
                 cluster_id=row.get("cluster_id"),
@@ -582,6 +615,7 @@ async def ml_building_points_visualization(
     run_id: str,
     source: str,
     building_id: str,
+    area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
     if source not in {"gba", "osm"}:
         raise HTTPException(status_code=400, detail="Invalid source")
@@ -589,7 +623,7 @@ async def ml_building_points_visualization(
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
             """
-            SELECT run_id, pipeline, run_type
+            SELECT run_id, pipeline, run_type, area_id
             FROM ml_runs
             WHERE run_id = $1
             """,
@@ -597,10 +631,13 @@ async def ml_building_points_visualization(
         )
         if run is None:
             raise HTTPException(status_code=404, detail="Run not found")
+        selected_area_id = area_id or run["area_id"]
 
         rows = await conn.fetch(
             """
             SELECT
+                r.area_id,
+                r.dataset_id,
                 r.code,
                 r.track,
                 r.cluster_id,
@@ -614,15 +651,20 @@ async def ml_building_points_visualization(
                 ST_AsGeoJSON(p.geom)::jsonb AS geometry
             FROM ml_point_results r
             JOIN insar_points p
-              ON p.code = r.code AND p.track = r.track
+              ON p.area_id = r.area_id
+             AND p.dataset_id = r.dataset_id
+             AND p.code = r.code
+             AND p.track = r.track
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
               AND r.building_id = $3
+              AND r.area_id = $4
             ORDER BY r.track, r.code
             """,
             run_id,
             source,
             building_id,
+            selected_area_id,
         )
 
     features = []
@@ -639,6 +681,8 @@ async def ml_building_points_visualization(
             GeoJsonFeature(
                 geometry=_json_object(row["geometry"]),
                 properties={
+                    "area_id": row["area_id"],
+                    "dataset_id": row["dataset_id"],
                     "code": row["code"],
                     "track": row["track"],
                     "cluster_id": row.get("cluster_id"),
@@ -760,6 +804,7 @@ async def ml_building_context_visualization(
     run_id: str,
     source: str,
     building_id: str,
+    area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
     if source not in {"gba", "osm"}:
         raise HTTPException(status_code=400, detail="Invalid source")
@@ -767,7 +812,7 @@ async def ml_building_context_visualization(
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
             """
-            SELECT run_id, pipeline, run_type, params
+            SELECT run_id, pipeline, run_type, area_id, dataset_id, params
             FROM ml_runs
             WHERE run_id = $1
             """,
@@ -775,6 +820,7 @@ async def ml_building_context_visualization(
         )
         if run is None:
             raise HTTPException(status_code=404, detail="Run not found")
+        selected_area_id = area_id or run["area_id"]
 
         params = _parse_meta(run.get("params"))
         default_incidence = float(params.get("default_incidence_angle_deg", 38.5) or 38.5)
@@ -794,8 +840,10 @@ async def ml_building_context_visualization(
                     ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
                 FROM gba_buildings
                 WHERE gba_id::text = $1
+                  AND area_id = $2
                 """,
                 building_id,
+                selected_area_id,
             )
         else:
             building_row = await conn.fetchrow(
@@ -807,8 +855,10 @@ async def ml_building_context_visualization(
                     ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
                 FROM osm_buildings
                 WHERE osm_id::text = $1
+                  AND area_id = $2
                 """,
                 building_id,
+                selected_area_id,
             )
         if building_row is None:
             raise HTTPException(status_code=404, detail="Building not found")
@@ -824,10 +874,16 @@ async def ml_building_context_visualization(
                         ST_Transform(geom, 32633) AS geom_utm
                     FROM gba_buildings
                     WHERE gba_id::text = $1
+                      AND area_id = $10
                 ),
-                {track_geometry_values_cte()},
+                {track_geometry_values_cte(
+                    area_id=selected_area_id,
+                    dataset_id=run["dataset_id"],
+                    direction_dependent_only=True,
+                )},
                 track_settings AS (
                     SELECT
+                        tg.dataset_id,
                         tg.track,
                         tg.los,
                         tg.name,
@@ -841,8 +897,14 @@ async def ml_building_context_visualization(
                             (
                                 SELECT percentile_disc(0.5) WITHIN GROUP (ORDER BY p.incidence_angle)
                                 FROM ml_point_results r
-                                JOIN insar_points p ON p.code = r.code AND p.track = r.track
+                                JOIN insar_points p
+                                  ON p.area_id = r.area_id
+                                 AND p.dataset_id = r.dataset_id
+                                 AND p.code = r.code
+                                 AND p.track = r.track
                                 WHERE r.run_id = $2::uuid
+                                  AND r.area_id = $10
+                                  AND r.dataset_id = $11
                                   AND r.building_source = $3
                                   AND r.building_id = $1
                                   AND r.track = tg.track
@@ -855,6 +917,7 @@ async def ml_building_context_visualization(
                 ),
                 candidate AS (
                     SELECT
+                        dataset_id,
                         track,
                         los,
                         name,
@@ -886,6 +949,7 @@ async def ml_building_context_visualization(
                     FROM candidate
                 )
                 SELECT
+                    dataset_id,
                     track,
                     los,
                     name,
@@ -927,30 +991,38 @@ async def ml_building_context_visualization(
                 default_height_m,
                 buffer_multiplier,
                 lateral_slack_m,
+                selected_area_id,
+                run["dataset_id"],
             )
 
         hull_rows = await conn.fetch(
             """
             SELECT
                 r.cluster_id,
+                r.dataset_id,
                 r.track,
                 COUNT(*)::integer AS point_count,
                 abs(hashtext(r.cluster_id)) % 60 AS cluster_color_index,
                 ST_AsGeoJSON(ST_ConvexHull(ST_Collect(p.geom)))::jsonb AS geometry
             FROM ml_point_results r
             JOIN insar_points p
-              ON p.code = r.code AND p.track = r.track
+              ON p.area_id = r.area_id
+             AND p.dataset_id = r.dataset_id
+             AND p.code = r.code
+             AND p.track = r.track
             WHERE r.run_id = $1::uuid
+              AND r.area_id = $4
               AND r.building_source = $2
               AND r.building_id = $3
               AND COALESCE(r.meta->'cluster'->>'cluster_role', '') = 'core'
               AND COALESCE(r.meta->'visual_context'->>'gate_excluded', 'false') = 'false'
-            GROUP BY r.cluster_id, r.track
+            GROUP BY r.cluster_id, r.dataset_id, r.track
             ORDER BY point_count DESC, r.cluster_id
             """,
             run_id,
             source,
             building_id,
+            selected_area_id,
         )
 
         summary_row = await conn.fetchrow(
@@ -958,6 +1030,7 @@ async def ml_building_context_visualization(
             SELECT meta
             FROM ml_point_results
             WHERE run_id = $1::uuid
+              AND area_id = $4
               AND building_source = $2
               AND building_id = $3
             ORDER BY
@@ -969,12 +1042,14 @@ async def ml_building_context_visualization(
             run_id,
             source,
             building_id,
+            selected_area_id,
         )
 
     candidate_features = [
         GeoJsonFeature(
             geometry=_json_object(row["geometry"]),
             properties={
+                "dataset_id": row["dataset_id"],
                 "track": row["track"],
                 "los": row["los"],
                 "name": row["name"],
@@ -997,6 +1072,7 @@ async def ml_building_context_visualization(
             geometry=_json_object(row["geometry"]),
             properties={
                 "cluster_id": row["cluster_id"],
+                "dataset_id": row["dataset_id"],
                 "track": row["track"],
                 "point_count": row["point_count"],
                 "cluster_color_index": int(row["cluster_color_index"]),
@@ -1016,6 +1092,7 @@ async def ml_building_context_visualization(
         building=GeoJsonFeature(
             geometry=_json_object(building_row["geometry"]),
             properties={
+                "area_id": selected_area_id,
                 "building_id": building_id,
                 "building_source": source,
                 "height_m": building_row.get("height"),
@@ -1081,6 +1158,8 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
         ),
         mvtgeom AS (
             SELECT
+                r.area_id,
+                r.dataset_id,
                 r.code,
                 r.track,
                 r.cluster_id,
@@ -1141,9 +1220,14 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 COALESCE(c.color_index, abs(hashtext(coalesce(r.building_id, r.code))) % 60) AS building_color_index,
                 ST_AsMVTGeom(ST_Transform(p.geom, 3857), bounds.geom, 4096, 64, true) AS geom
             FROM ml_point_results r
-            JOIN insar_points p ON p.code = r.code AND p.track = r.track
+            JOIN insar_points p
+              ON p.area_id = r.area_id
+             AND p.dataset_id = r.dataset_id
+             AND p.code = r.code
+             AND p.track = r.track
             LEFT JOIN ml_building_colors c
               ON c.run_id = r.run_id
+             AND c.area_id = r.area_id
              AND c.building_source = r.building_source
              AND c.building_id = r.building_id
             JOIN bounds ON ST_Intersects(ST_Transform(p.geom, 3857), bounds.geom)
@@ -1172,7 +1256,8 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
         building_rollups AS (
-            SELECT DISTINCT ON (building_source, building_id)
+            SELECT DISTINCT ON (area_id, building_source, building_id)
+                area_id,
                 building_source,
                 building_id,
                 (meta->'building_rollup'->>'building_motion_mm_a')::double precision AS building_motion_mm_a,
@@ -1193,8 +1278,8 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 (meta->'building_rollup'->>'kept_point_count')::integer AS kept_point_count,
                 (meta->'building_rollup'->>'noise_point_count')::integer AS noise_point_count,
                 (meta->'building_rollup'->>'excluded_point_count')::integer AS excluded_point_count,
-                (meta->'building_rollup'->>'main_cluster_track_44_id') AS main_cluster_track_44_id,
-                (meta->'building_rollup'->>'main_cluster_track_95_id') AS main_cluster_track_95_id,
+                COALESCE((meta->'building_rollup'->'main_cluster_by_track')::text, '{}')
+                    AS main_cluster_by_track_json,
                 COALESCE((meta->'building_rollup'->>'neighbour_context_available')::boolean, false)
                     AS neighbour_context_available,
                 (meta->'building_rollup'->>'neighbour_candidate_building_count')::integer
@@ -1217,6 +1302,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
             WHERE run_id = $4::uuid
               AND building_id IS NOT NULL
             ORDER BY
+                area_id,
                 building_source,
                 building_id,
                 COALESCE((meta->'cluster_rollup'->>'cluster_rank')::integer, 999),
@@ -1224,27 +1310,33 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 code
         ),
         assigned_buildings AS (
-            SELECT DISTINCT building_source, building_id
+            SELECT DISTINCT area_id, building_source, building_id
             FROM ml_point_results
             WHERE run_id = $4::uuid AND building_id IS NOT NULL
         ),
         gba AS (
-            SELECT b.gba_id::text AS building_id,
+            SELECT b.area_id,
+                   b.gba_id::text AS building_id,
                    'gba'::text AS building_source,
                    b.geom,
                    b.height AS height_m
             FROM gba_buildings b
             JOIN assigned_buildings ab
-              ON ab.building_source = 'gba' AND ab.building_id = b.gba_id::text
+              ON ab.area_id = b.area_id
+             AND ab.building_source = 'gba'
+             AND ab.building_id = b.gba_id::text
         ),
         osm AS (
-            SELECT b.osm_id::text AS building_id,
+            SELECT b.area_id,
+                   b.osm_id::text AS building_id,
                    'osm'::text AS building_source,
                    b.geom,
                    NULL::double precision AS height_m
             FROM osm_buildings b
             JOIN assigned_buildings ab
-              ON ab.building_source = 'osm' AND ab.building_id = b.osm_id::text
+              ON ab.area_id = b.area_id
+             AND ab.building_source = 'osm'
+             AND ab.building_id = b.osm_id::text
         ),
         all_buildings AS (
             SELECT * FROM gba
@@ -1253,6 +1345,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
         ),
         mvtgeom AS (
             SELECT
+                all_buildings.area_id,
                 all_buildings.building_id,
                 all_buildings.building_source,
                 height_m,
@@ -1271,8 +1364,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.kept_point_count,
                 rollups.noise_point_count,
                 rollups.excluded_point_count,
-                rollups.main_cluster_track_44_id,
-                rollups.main_cluster_track_95_id,
+                rollups.main_cluster_by_track_json,
                 rollups.neighbour_context_available,
                 rollups.neighbour_candidate_building_count,
                 rollups.neighbour_misassignment_point_count,
@@ -1284,7 +1376,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.supporting_track_count,
                 COALESCE(
                     c.color_index,
-                    abs(hashtext(all_buildings.building_id)) % 60
+                    abs(hashtext(all_buildings.area_id || ':' || all_buildings.building_id)) % 60
                 ) AS building_color_index,
                 ST_AsMVTGeom(
                     ST_Transform(all_buildings.geom, 3857),
@@ -1296,10 +1388,12 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
             FROM all_buildings
             LEFT JOIN ml_building_colors c
               ON c.run_id = $4::uuid
+             AND c.area_id = all_buildings.area_id
              AND c.building_source = all_buildings.building_source
              AND c.building_id = all_buildings.building_id
             LEFT JOIN building_rollups rollups
-              ON rollups.building_source = all_buildings.building_source
+              ON rollups.area_id = all_buildings.area_id
+             AND rollups.building_source = all_buildings.building_source
              AND rollups.building_id = all_buildings.building_id
             JOIN bounds ON ST_Intersects(ST_Transform(all_buildings.geom, 3857), bounds.geom)
         )

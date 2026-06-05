@@ -8,6 +8,8 @@ from typing import Optional
 class RunConfig:
     run_id: str
     pipeline: str
+    area_id: str
+    dataset_id: str
     source: Optional[str]
     track: Optional[int]
     bbox: Optional[tuple[float, float, float, float]]

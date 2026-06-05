@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAppStore } from "../lib/store";
+import { useAppStore, type MlBuildingTrackFilter } from "../lib/store";
 import {
   getBuildingDetail,
   getMlBuildingAnalysis,
   getMlPointAnalysis,
   getMlRunDetail,
   getPointDetail,
+  useAppConfig,
   type MlReliabilityPenalty,
 } from "../hooks/useApi";
 import {
@@ -27,6 +28,7 @@ import {
   type AttributeContext,
   type AttributeMetadata,
 } from "../lib/attributeMetadata";
+import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
 
 type InspectorTabId = "overview" | "metrics" | "ml" | "raw";
 
@@ -116,7 +118,7 @@ const metricAttributeHints: Record<string, AttributeHint> = {
   "Retuning-Anpassungen": { key: "reliability_penalties", context: "ml-building" },
   "Cluster / belastbar": { key: "cluster_count", context: "ml-building" },
   "Differenzielle Bewegung": { key: "differential_motion_flag", context: "ml-building" },
-  "Hauptcluster": { key: "main_cluster_track_44_id", context: "ml-building" },
+  "Hauptcluster": { key: "main_cluster_by_track", context: "ml-building" },
   "Track-Bewegung": { key: "track_motion_mm_a", context: "ml-building" },
   "Median-Abstand": { key: "median_distance_m", context: "ml-building" },
   "Mittlere Qualitaet": { key: "avg_quality_score", context: "ml-building" },
@@ -141,9 +143,9 @@ export default function InspectorPanel() {
   const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("overview");
   const selectionKey =
     selection?.type === "point"
-      ? `point:${selection.code}:${selection.track ?? "all"}`
+      ? `point:${selection.areaId ?? "unknown"}:${selection.datasetId ?? "unknown"}:${selection.code}:${selection.track ?? "all"}`
       : selection?.type === "building"
-        ? `building:${selection.source}:${selection.id}`
+        ? `building:${selection.areaId ?? "unknown"}:${selection.source}:${selection.id}`
         : "none";
 
   const activeRunQuery = useQuery({
@@ -152,12 +154,29 @@ export default function InspectorPanel() {
     enabled: Boolean(activeRunId),
     refetchInterval: activeRunId ? 5000 : false,
   });
+  const configQuery = useAppConfig();
+  const appConfig = normalizeAppConfig(configQuery.data);
   const hasResolvedActiveRun =
     Boolean(activeRunId) && activeRunQuery.data?.run_id === activeRunId;
   const activeRunStatus = hasResolvedActiveRun ? activeRunQuery.data?.status : undefined;
   const isActiveRunPending = activeRunStatus === "queued" || activeRunStatus === "running";
   const isActiveLocalAnomalyRun =
     hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_local_v1";
+  const mlBuildingTrackOptions =
+    selection?.type === "building"
+      ? appConfig.datasets
+          .filter(
+            (dataset) =>
+              dataset.areaId === selection.areaId &&
+              dataset.id === activeRunQuery.data?.dataset_id
+          )
+          .flatMap((dataset) =>
+            dataset.tracks.map((track) => ({
+              value: getTrackVisibilityKey(dataset.id, track.track) as MlBuildingTrackFilter,
+              label: `${track.sensor} Track ${track.track}${track.los ? ` ${track.los}` : ""}`,
+            }))
+          )
+      : [];
 
   useEffect(() => {
     setActivePointTab("overview");
@@ -180,7 +199,11 @@ export default function InspectorPanel() {
     queryKey: ["point-detail", selection],
     queryFn: () =>
       selection && selection.type === "point"
-        ? getPointDetail(selection.code, selection.track)
+        ? getPointDetail(selection.code, {
+            track: selection.track,
+            areaId: selection.areaId,
+            datasetId: selection.datasetId,
+          })
         : Promise.resolve(null),
     enabled: selection?.type === "point",
   });
@@ -189,7 +212,7 @@ export default function InspectorPanel() {
     queryKey: ["building-detail", selection],
     queryFn: () =>
       selection && selection.type === "building"
-        ? getBuildingDetail(selection.source, selection.id)
+        ? getBuildingDetail(selection.source, selection.id, selection.areaId)
         : Promise.resolve(null),
     enabled: selection?.type === "building",
   });
@@ -198,7 +221,7 @@ export default function InspectorPanel() {
     queryKey: ["ml-building-analysis", activeRunId, activeRunStatus, selection],
     queryFn: () =>
       selection && selection.type === "building" && activeRunId
-        ? getMlBuildingAnalysis(activeRunId, selection.source, selection.id)
+        ? getMlBuildingAnalysis(activeRunId, selection.source, selection.id, selection.areaId)
         : Promise.resolve(null),
     enabled:
       hasResolvedActiveRun &&
@@ -214,7 +237,11 @@ export default function InspectorPanel() {
       selection.type === "point" &&
       pointAnalysisRunId &&
       typeof selection.track === "number"
-        ? getMlPointAnalysis(pointAnalysisRunId, selection.code, selection.track)
+        ? getMlPointAnalysis(pointAnalysisRunId, selection.code, {
+            track: selection.track,
+            areaId: selection.areaId,
+            datasetId: selection.datasetId,
+          })
         : Promise.resolve(null),
     enabled:
       Boolean(pointAnalysisRunId) &&
@@ -246,9 +273,27 @@ export default function InspectorPanel() {
     return parsed === null || Number.isNaN(parsed) ? null : parsed;
   };
   const formatCountLabel = (key: string) => {
-    if (key === "44") return "Track 44";
-    if (key === "95") return "Track 95";
+    if (/^\d+$/.test(key)) return `Track ${key}`;
     return key.split("_").join(" ");
+  };
+  const sortTrackEntries = <T,>(values: Record<string, T>) =>
+    Object.entries(values).sort(([left], [right]) => {
+      const leftNumber = Number(left);
+      const rightNumber = Number(right);
+      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+        return leftNumber - rightNumber;
+      }
+      return left.localeCompare(right);
+    });
+  const formatTrackStringMap = (values: Record<string, string | null>) => {
+    const entries = sortTrackEntries(values);
+    if (!entries.length) return "—";
+    return entries.map(([track, value]) => `T${track} ${fmtStr(value)}`).join(" / ");
+  };
+  const formatTrackNumberMap = (values: Record<string, number | null>) => {
+    const entries = sortTrackEntries(values);
+    if (!entries.length) return "—";
+    return entries.map(([track, value]) => `T${track} ${fmtNum(value)}`).join(" / ");
   };
   const formatRetuningFlags = (
     weakSecondaryTrackFlag: boolean,
@@ -409,6 +454,13 @@ export default function InspectorPanel() {
     return (
       <div className="flex flex-col gap-4">
         <div className="rounded-lg border border-border bg-gradient-to-br from-primary/5 via-card to-card p-3">
+          {(() => {
+            const areaId = point.area_id ?? (selection?.type === "point" ? selection.areaId : null);
+            const datasetId =
+              point.dataset_id ?? (selection?.type === "point" ? selection.datasetId : null);
+            const sensor = point.sensor ?? (selection?.type === "point" ? selection.sensor : null);
+            return (
+              <>
           <div className="text-[10px] font-bold uppercase tracking-[1px] text-muted-foreground">
             Punkt
           </div>
@@ -416,7 +468,7 @@ export default function InspectorPanel() {
             {fmtStr(point.code)}
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            Track {fmtStr(point.track)} · LOS {fmtStr(point.los)}
+            {fmtStr(sensor)} Track {fmtStr(point.track)} · LOS {fmtStr(point.los)}
             {point.geometry?.lon !== undefined && point.geometry?.lat !== undefined && (
               <>
                 {" · "}
@@ -426,6 +478,14 @@ export default function InspectorPanel() {
               </>
             )}
           </div>
+          {(areaId || datasetId) && (
+            <div className="mt-1 break-all text-xs text-muted-foreground">
+              AOI {fmtStr(point.area_label ?? areaId)} · Dataset {fmtStr(point.dataset_label ?? datasetId)}
+            </div>
+          )}
+              </>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -772,16 +832,19 @@ export default function InspectorPanel() {
           <Select
             value={mlBuildingTrackFilter}
             onValueChange={(value) =>
-              setMlBuildingTrackFilter(value as "both" | "44" | "95")
+              setMlBuildingTrackFilter(value as MlBuildingTrackFilter)
             }
           >
             <SelectTrigger id="track-filter-select">
               <SelectValue placeholder="Track-Filter" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="both">ASC + DSC</SelectItem>
-              <SelectItem value="44">nur ASC</SelectItem>
-              <SelectItem value="95">nur DSC</SelectItem>
+              <SelectItem value="all">Alle Tracks</SelectItem>
+              {mlBuildingTrackOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -845,15 +908,11 @@ export default function InspectorPanel() {
             {renderMetric("Differenzielle Bewegung", analysis.differential_motion_flag ? "ja" : "nein")}
             {renderMetric(
               "Hauptcluster",
-              `T44 ${fmtStr(analysis.main_cluster_track_44_id)} / T95 ${fmtStr(
-                analysis.main_cluster_track_95_id
-              )}`
+              formatTrackStringMap(analysis.main_cluster_by_track)
             )}
             {renderMetric(
               "Track-Bewegung",
-              `T44 ${fmtNum(analysis.track_motion_mm_a["44"])} / T95 ${fmtNum(
-                analysis.track_motion_mm_a["95"]
-              )}`
+              formatTrackNumberMap(analysis.track_motion_mm_a)
             )}
             {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
             <div className="section-title">Nachbarschaft</div>

@@ -21,6 +21,7 @@ from ..rollups import (
     nested_list,
     parse_meta,
     track_motion_map,
+    track_string_map,
 )
 
 ARTIFACTS_DIR = BASE_DIR / "docs" / "pipelines" / "anomaly_local_v1" / "artifacts"
@@ -267,25 +268,23 @@ def _stability_band(point_count: int, support_ratio: float, ci_width: float | No
 
 def _building_stability_band(
     *,
-    has_track_44: bool,
-    has_track_95: bool,
-    track_band_44: str,
-    track_band_95: str,
+    track_bands: dict[str, str],
     building_ci_width: float | None,
     agreement_ci_width: float | None,
 ) -> str:
-    if not has_track_44 and not has_track_95:
+    if not track_bands:
         return "unstable"
-    if has_track_44 and has_track_95:
-        if track_band_44 == "stable" and track_band_95 == "stable":
+    if len(track_bands) >= 2:
+        bands = set(track_bands.values())
+        if bands == {"stable"}:
             if building_ci_width is not None and building_ci_width <= 1.00:
                 if agreement_ci_width is None or agreement_ci_width <= 0.35:
                     return "stable"
             return "monitor"
-        if track_band_44 == "unstable" and track_band_95 == "unstable":
+        if bands == {"unstable"}:
             return "unstable"
         return "monitor"
-    surviving_band = track_band_44 if has_track_44 else track_band_95
+    surviving_band = next(iter(track_bands.values()))
     return "monitor" if surviving_band != "unstable" else "unstable"
 
 
@@ -351,16 +350,7 @@ async def _fetch_building_rollups(conn: asyncpg.Connection, run_id: str) -> list
                 "kept_point_count": int(rollup.get("kept_point_count", 0) or 0),
                 "noise_point_count": int(rollup.get("noise_point_count", 0) or 0),
                 "excluded_point_count": int(rollup.get("excluded_point_count", 0) or 0),
-                "main_cluster_track_44_id": (
-                    str(rollup.get("main_cluster_track_44_id"))
-                    if rollup.get("main_cluster_track_44_id") is not None
-                    else None
-                ),
-                "main_cluster_track_95_id": (
-                    str(rollup.get("main_cluster_track_95_id"))
-                    if rollup.get("main_cluster_track_95_id") is not None
-                    else None
-                ),
+                "main_cluster_by_track": track_string_map(rollup.get("main_cluster_by_track")),
                 "neighbour_context_available": bool(
                     rollup.get("neighbour_context_available", False)
                 ),
@@ -616,16 +606,7 @@ async def _fetch_reference_case(
             else []
         ),
         "differential_motion_flag": bool(building_rollup.get("differential_motion_flag", False)),
-        "main_cluster_track_44_id": (
-            str(building_rollup.get("main_cluster_track_44_id"))
-            if building_rollup.get("main_cluster_track_44_id") is not None
-            else None
-        ),
-        "main_cluster_track_95_id": (
-            str(building_rollup.get("main_cluster_track_95_id"))
-            if building_rollup.get("main_cluster_track_95_id") is not None
-            else None
-        ),
+        "main_cluster_by_track": track_string_map(building_rollup.get("main_cluster_by_track")),
         "track_motion_mm_a": track_motion_map(building_rollup.get("track_motion_mm_a")),
         "cluster_count": int(building_rollup.get("cluster_count", 0) or 0),
         "reliable_cluster_count": int(building_rollup.get("reliable_cluster_count", 0) or 0),
@@ -753,18 +734,23 @@ def _compute_stability(
     bootstrap_samples: int,
     bootstrap_seed: int,
 ) -> dict[str, Any]:
-    main_cluster_ids = {
-        "44": building_analysis.get("main_cluster_track_44_id"),
-        "95": building_analysis.get("main_cluster_track_95_id"),
-    }
+    main_cluster_ids = track_string_map(building_analysis.get("main_cluster_by_track"))
     kept_point_count = max(int(building_analysis.get("kept_point_count", 0) or 0), 1)
     slope_mean_deg = _float(terrain_context.get("slope_mean_deg")) or 0.0
     allowed_diff_mm_a = 1.0 + (0.15 * slope_mean_deg)
 
     track_distributions: dict[str, list[float]] = {}
     track_summaries: dict[str, Any] = {}
-    for track in ("44", "95"):
-        cluster_id = main_cluster_ids[track]
+    track_ids = sorted(
+        {
+            str(point["track"])
+            for point in exported_points
+            if point.get("track") is not None
+        },
+        key=lambda value: int(value) if value.isdigit() else value,
+    )
+    for track in track_ids:
+        cluster_id = main_cluster_ids.get(track)
         velocities = [
             float(point["velocity_mm_a"])
             for point in exported_points
@@ -796,30 +782,32 @@ def _compute_stability(
         }
 
     building_distribution: list[float] = []
-    if track_distributions["44"] and track_distributions["95"]:
+    populated_track_distributions = [
+        distribution for distribution in track_distributions.values() if distribution
+    ]
+    if len(populated_track_distributions) >= 2:
         building_distribution = [
-            float((value_44 + value_95) / 2.0)
-            for value_44, value_95 in zip(track_distributions["44"], track_distributions["95"], strict=True)
+            float(np.mean(values))
+            for values in zip(*populated_track_distributions, strict=True)
         ]
-    elif track_distributions["44"]:
-        building_distribution = list(track_distributions["44"])
-    elif track_distributions["95"]:
-        building_distribution = list(track_distributions["95"])
+    elif populated_track_distributions:
+        building_distribution = list(populated_track_distributions[0])
 
     agreement_distribution: list[float] = []
-    if track_distributions["44"] and track_distributions["95"]:
+    if len(populated_track_distributions) >= 2:
         agreement_distribution = [
-            float(math.exp(-abs(value_44 - value_95) / max(allowed_diff_mm_a, 0.25)))
-            for value_44, value_95 in zip(track_distributions["44"], track_distributions["95"], strict=True)
+            float(math.exp(-(max(values) - min(values)) / max(allowed_diff_mm_a, 0.25)))
+            for values in zip(*populated_track_distributions, strict=True)
         ]
 
     building_summary = _distribution_summary(building_distribution)
     agreement_summary = _distribution_summary(agreement_distribution)
     building_band = _building_stability_band(
-        has_track_44=bool(track_distributions["44"]),
-        has_track_95=bool(track_distributions["95"]),
-        track_band_44=str(track_summaries["44"]["stability_band"]),
-        track_band_95=str(track_summaries["95"]["stability_band"]),
+        track_bands={
+            track: str(summary["stability_band"])
+            for track, summary in track_summaries.items()
+            if track_distributions.get(track)
+        },
         building_ci_width=building_summary["ci_width"] if building_summary else None,
         agreement_ci_width=agreement_summary["ci_width"] if agreement_summary else None,
     )

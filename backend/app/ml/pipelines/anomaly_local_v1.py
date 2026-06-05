@@ -41,6 +41,9 @@ CLUSTER_FIT_SCALE_FLOORS = {
 
 @dataclass
 class LocalPointRecord:
+    area_id: str
+    dataset_id: str
+    sensor: str | None
     code: str
     track: int
     los: str | None
@@ -66,6 +69,7 @@ class LocalPointRecord:
     range_offset_m: float | None
     look_bearing_deg: float | None
     sensor_bearing_deg: float | None
+    default_incidence_deg: float | None
     range_dx: float | None
     range_dy: float | None
     range_shift_x_m: float | None
@@ -155,7 +159,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 "multi_cluster_buildings": 0,
                 "small_n_buildings": 0,
                 "full_cross_track_points": 0,
-                "buildings_with_both_tracks_kept": 0,
+                "buildings_with_full_track_support": 0,
                 "median_cross_track_diff_before": 0.0,
                 "median_cross_track_diff_after": 0.0,
                 "cross_track_improvement": 0.0,
@@ -168,14 +172,23 @@ class AnomalyLocalV1Pipeline(BasePipeline):
     async def _fetch_inputs(self, pool, config, params: dict[str, Any]):
         min_lon, min_lat, max_lon, max_lat = config.bbox
         track_param = int(config.track) if config.track is not None else None
+        area_id = config.area_id
+        dataset_id = config.dataset_id
+        if not area_id:
+            raise ValueError("area_id is required for anomaly_local_v1")
+        if not dataset_id:
+            raise ValueError("dataset_id is required for anomaly_local_v1")
 
         points_query = f"""
             WITH envelope AS (
                 SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) AS geom
             ),
-            {track_geometry_values_cte()},
+            {track_geometry_values_cte(dataset_id=dataset_id, direction_dependent_only=True)},
             pts AS (
                 SELECT
+                    p.area_id,
+                    p.dataset_id,
+                    p.sensor,
                     p.code,
                     p.track,
                     p.los,
@@ -194,32 +207,20 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     ST_Y(p.geom) AS lat,
                     ST_X(ST_Transform(p.geom, 32633)) AS x_m,
                     ST_Y(ST_Transform(p.geom, 32633)) AS y_m,
-                    COALESCE(
-                        tg.look_bearing_deg,
-                        CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 90.0 ELSE 270.0 END
-                    ) AS look_bearing_deg,
-                    COALESCE(
-                        tg.sensor_bearing_deg,
-                        CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
-                    ) AS sensor_bearing_deg,
-                    COALESCE(tg.default_incidence_deg, $10::double precision) AS default_incidence_deg,
-                    COALESCE(
-                        tg.range_dx,
-                        sin(radians(
-                            CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
-                        ))
-                    ) AS range_dx,
-                    COALESCE(
-                        tg.range_dy,
-                        cos(radians(
-                            CASE WHEN upper(COALESCE(p.los, '')) = 'A' OR p.track = 44 THEN 270.0 ELSE 90.0 END
-                        ))
-                    ) AS range_dy,
-                    COALESCE(tg.contract_version, 'fallback_track_geometry_v1') AS track_geometry_contract_version
+                    tg.look_bearing_deg AS look_bearing_deg,
+                    tg.sensor_bearing_deg AS sensor_bearing_deg,
+                    tg.default_incidence_deg AS default_incidence_deg,
+                    tg.range_dx AS range_dx,
+                    tg.range_dy AS range_dy,
+                    tg.contract_version AS track_geometry_contract_version
                 FROM insar_points p
                 CROSS JOIN envelope
-                LEFT JOIN track_geometry tg ON tg.track = p.track
+                JOIN track_geometry tg
+                  ON tg.dataset_id = p.dataset_id
+                 AND tg.track = p.track
                 WHERE ST_Intersects(p.geom, envelope.geom)
+                  AND p.area_id = $12
+                  AND p.dataset_id = $13
                   AND ($5::integer IS NULL OR p.track = $5)
             ),
             buildings AS (
@@ -235,16 +236,21 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     terrain.relief_range_m
                 FROM gba_buildings b
                 LEFT JOIN building_terrain_context terrain
-                  ON terrain.building_source = 'gba'
+                  ON terrain.area_id = b.area_id
+                 AND terrain.building_source = 'gba'
                  AND terrain.building_id = b.gba_id::text
                 CROSS JOIN envelope
-                WHERE ST_DWithin(
+                WHERE b.area_id = $12
+                  AND ST_DWithin(
                     b.geom::geography,
                     envelope.geom::geography,
-                    ($8::double precision + $12::double precision)
+                    ($8::double precision + $11::double precision)
                 )
             )
             SELECT
+                p.area_id,
+                p.dataset_id,
+                p.sensor,
                 p.code,
                 p.track,
                 p.los,
@@ -270,6 +276,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 cand.range_offset_m,
                 p.look_bearing_deg,
                 p.sensor_bearing_deg,
+                p.default_incidence_deg,
                 p.range_dx,
                 p.range_dy,
                 cand.range_shift_x_m,
@@ -314,7 +321,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.range_offset_m,
                         (p.range_dx * b.range_offset_m) AS range_shift_x_m,
                         (p.range_dy * b.range_offset_m) AS range_shift_y_m,
-                        (b.range_offset_m + $11::double precision) AS buffer_m,
+                        (b.range_offset_m + $10::double precision) AS buffer_m,
                         false AS within_building,
                         b.slope_mean_deg,
                         b.slope_max_deg,
@@ -328,11 +335,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                                 LEAST(
                                     $8::double precision,
                                     COALESCE(base.building_height, $9::double precision)
-                                    * tan(radians(COALESCE(
-                                        p.incidence_angle,
-                                        p.default_incidence_deg,
-                                        $10::double precision
-                                    )))
+                                    * tan(radians(COALESCE(p.incidence_angle, p.default_incidence_deg)))
                                     * $6::double precision
                                 )
                             ) AS range_offset_m
@@ -348,7 +351,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                                     p.range_dy * b.range_offset_m
                                 )
                             ),
-                            $11::double precision
+                            $10::double precision
                         ),
                         p.geom_utm
                     )
@@ -365,14 +368,14 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         NULL::double precision AS range_offset_m,
                         NULL::double precision AS range_shift_x_m,
                         NULL::double precision AS range_shift_y_m,
-                        $12::double precision AS buffer_m,
+                        $11::double precision AS buffer_m,
                         false AS within_building,
                         b.slope_mean_deg,
                         b.slope_max_deg,
                         b.relief_range_m,
                         2 AS priority
                     FROM buildings b
-                    WHERE ST_DWithin(p.geom::geography, b.geom::geography, $12::double precision)
+                    WHERE ST_DWithin(p.geom::geography, b.geom::geography, $11::double precision)
                 ) candidates
                 ORDER BY priority, distance_m NULLS LAST
                 LIMIT 1
@@ -384,11 +387,17 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             WITH envelope AS (
                 SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) AS geom
             )
-            SELECT t.code, t.track, t.date, t.displacement
+            SELECT t.area_id, t.dataset_id, t.code, t.track, t.date, t.displacement
             FROM insar_timeseries t
-            JOIN insar_points p ON p.code = t.code AND p.track = t.track
+            JOIN insar_points p
+              ON p.area_id = t.area_id
+             AND p.dataset_id = t.dataset_id
+             AND p.code = t.code
+             AND p.track = t.track
             JOIN envelope ON ST_Intersects(p.geom, envelope.geom)
-            WHERE ($5::integer IS NULL OR p.track = $5)
+            WHERE p.area_id = $6
+              AND p.dataset_id = $7
+              AND ($5::integer IS NULL OR p.track = $5)
             ORDER BY t.track, t.code, t.date
         """
 
@@ -396,11 +405,17 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             WITH envelope AS (
                 SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) AS geom
             )
-            SELECT t.code, t.track, t.date, t.amplitude
+            SELECT t.area_id, t.dataset_id, t.code, t.track, t.date, t.amplitude
             FROM insar_amplitude_timeseries t
-            JOIN insar_points p ON p.code = t.code AND p.track = t.track
+            JOIN insar_points p
+              ON p.area_id = t.area_id
+             AND p.dataset_id = t.dataset_id
+             AND p.code = t.code
+             AND p.track = t.track
             JOIN envelope ON ST_Intersects(p.geom, envelope.geom)
-            WHERE ($5::integer IS NULL OR p.track = $5)
+            WHERE p.area_id = $6
+              AND p.dataset_id = $7
+              AND ($5::integer IS NULL OR p.track = $5)
             ORDER BY t.track, t.code, t.date
         """
 
@@ -416,9 +431,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 float(params["min_buffer_m"]),
                 float(params["max_buffer_m"]),
                 float(params["default_height_m"]),
-                float(params["default_incidence_angle_deg"]),
                 float(params["lateral_slack_m"]),
                 float(params["max_distance_m"]),
+                area_id,
+                dataset_id,
             )
             ts_rows = await conn.fetch(
                 timeseries_query,
@@ -427,6 +443,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 max_lon,
                 max_lat,
                 track_param,
+                area_id,
+                dataset_id,
             )
             amp_rows = await conn.fetch(
                 amplitude_query,
@@ -435,6 +453,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 max_lon,
                 max_lat,
                 track_param,
+                area_id,
+                dataset_id,
             )
 
         return base_rows, ts_rows, amp_rows
@@ -453,10 +473,13 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         return records, metrics
 
     def _build_records(self, base_rows, ts_rows, amp_rows) -> list[LocalPointRecord]:
-        records: dict[tuple[str, int], LocalPointRecord] = {}
+        records: dict[tuple[str, str, int], LocalPointRecord] = {}
         for row in base_rows:
-            key = (row["code"], row["track"])
+            key = (row["dataset_id"], row["code"], row["track"])
             records[key] = LocalPointRecord(
+                area_id=row["area_id"],
+                dataset_id=row["dataset_id"],
+                sensor=row.get("sensor"),
                 code=row["code"],
                 track=row["track"],
                 los=row.get("los"),
@@ -482,6 +505,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 range_offset_m=self._float_or_none(row["range_offset_m"]),
                 look_bearing_deg=self._float_or_none(row["look_bearing_deg"]),
                 sensor_bearing_deg=self._float_or_none(row["sensor_bearing_deg"]),
+                default_incidence_deg=self._float_or_none(row["default_incidence_deg"]),
                 range_dx=self._float_or_none(row["range_dx"]),
                 range_dy=self._float_or_none(row["range_dy"]),
                 range_shift_x_m=self._float_or_none(row["range_shift_x_m"]),
@@ -494,7 +518,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             )
 
         for row in ts_rows:
-            key = (row["code"], row["track"])
+            key = (row.get("dataset_id", ""), row["code"], row["track"])
             record = records.get(key)
             if not record:
                 continue
@@ -502,7 +526,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             record.displacement_values.append(float(row["displacement"]))
 
         for row in amp_rows:
-            key = (row["code"], row["track"])
+            key = (row.get("dataset_id", ""), row["code"], row["track"])
             record = records.get(key)
             if not record:
                 continue
@@ -962,7 +986,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
         diffs_before: list[float] = []
         diffs_after: list[float] = []
-        buildings_with_both_tracks_kept = 0
+        buildings_with_full_track_support = 0
 
         for building_id, building_records in by_building.items():
             building_rollup, cluster_rollups, cross_track_summary = self._build_building_rollup(
@@ -974,7 +998,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             if cross_track_summary.get("diff_after_mm_a") is not None:
                 diffs_after.append(float(cross_track_summary["diff_after_mm_a"]))
             if cross_track_summary.get("full_support"):
-                buildings_with_both_tracks_kept += 1
+                buildings_with_full_track_support += 1
 
             for record in building_records:
                 cluster_rollup = cluster_rollups.get((record.track, record.cluster_id))
@@ -986,11 +1010,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 record.flags["is_main_cluster"] = bool(record.cluster_rollup.get("is_main_cluster", False))
                 record.flags["cluster_rank"] = record.cluster_rollup.get("cluster_rank")
                 if record.building_context:
-                    record.building_context["main_cluster_track_44_id"] = building_rollup.get(
-                        "main_cluster_track_44_id"
-                    )
-                    record.building_context["main_cluster_track_95_id"] = building_rollup.get(
-                        "main_cluster_track_95_id"
+                    record.building_context["main_cluster_by_track"] = building_rollup.get(
+                        "main_cluster_by_track", {}
                     )
                     record.building_context["building_motion_mm_a"] = building_rollup.get(
                         "building_motion_mm_a"
@@ -1008,7 +1029,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         return {
             "median_cross_track_diff_before": float(np.median(diffs_before)) if diffs_before else 0.0,
             "median_cross_track_diff_after": float(np.median(diffs_after)) if diffs_after else 0.0,
-            "buildings_with_both_tracks_kept": float(buildings_with_both_tracks_kept),
+            "buildings_with_full_track_support": float(buildings_with_full_track_support),
             "full_cross_track_points": float(
                 sum(
                     1
@@ -1368,8 +1389,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             "agreement_tension_flag": agreement_tension_flag,
             "reliability_penalties": reliability_penalties,
             "differential_motion_flag": differential_motion_flag,
-            "main_cluster_track_44_id": track_rollups.get(44, {}).get("main_cluster_id"),
-            "main_cluster_track_95_id": track_rollups.get(95, {}).get("main_cluster_id"),
+            "main_cluster_by_track": {
+                str(track): values.get("main_cluster_id")
+                for track, values in sorted(track_rollups.items())
+                if values.get("main_cluster_id") is not None
+            },
             "track_motion_mm_a": {
                 str(track): values.get("track_motion_mm_a") for track, values in sorted(track_rollups.items())
             },
@@ -1387,8 +1411,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             "diff_after_mm_a": after_diff,
             "consistency": track_agreement_score,
             "full_support": full_support,
-            "main_cluster_track_44_id": building_rollup["main_cluster_track_44_id"],
-            "main_cluster_track_95_id": building_rollup["main_cluster_track_95_id"],
+            "main_cluster_by_track": building_rollup["main_cluster_by_track"],
         }
         return building_rollup, cluster_rollups, cross_track_summary
 
@@ -1850,7 +1873,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 1 for state in building_states.values() if state.get("building_status") == "small_n"
             ),
             "full_cross_track_points": int(cross_track_metrics["full_cross_track_points"]),
-            "buildings_with_both_tracks_kept": int(cross_track_metrics["buildings_with_both_tracks_kept"]),
+            "buildings_with_full_track_support": int(
+                cross_track_metrics["buildings_with_full_track_support"]
+            ),
             "median_cross_track_diff_before": cross_track_metrics["median_cross_track_diff_before"],
             "median_cross_track_diff_after": cross_track_metrics["median_cross_track_diff_after"],
             "cross_track_improvement": cross_track_metrics["median_cross_track_diff_before"]
@@ -1862,6 +1887,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         insert_query = """
             INSERT INTO ml_point_results (
                 run_id,
+                area_id,
+                dataset_id,
                 code,
                 track,
                 cluster_id,
@@ -1878,7 +1905,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 meta
             )
             VALUES (
-                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb
+                $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb
             )
         """
         payloads = []
@@ -1911,6 +1938,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             payloads.append(
                 (
                     run_id,
+                    record.area_id,
+                    record.dataset_id,
                     record.code,
                     record.track,
                     record.cluster_id,
@@ -2038,10 +2067,16 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             return {}
         rollup = building_records[0].building_rollup or {}
         main_clusters: dict[int, str] = {}
-        if rollup.get("main_cluster_track_44_id") is not None:
-            main_clusters[44] = str(rollup["main_cluster_track_44_id"])
-        if rollup.get("main_cluster_track_95_id") is not None:
-            main_clusters[95] = str(rollup["main_cluster_track_95_id"])
+        main_cluster_by_track = rollup.get("main_cluster_by_track")
+        if not isinstance(main_cluster_by_track, dict):
+            return main_clusters
+        for track, cluster_id in main_cluster_by_track.items():
+            if cluster_id is None:
+                continue
+            try:
+                main_clusters[int(track)] = str(cluster_id)
+            except (TypeError, ValueError):
+                continue
         return main_clusters
 
     def _build_cluster_fit_profile(
@@ -2314,12 +2349,18 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         return record.velocity / max(math.cos(incidence), 0.30)
 
     def _look_vector(self, record: LocalPointRecord) -> tuple[float, float]:
-        geometry = get_track_geometry(record.track, record.los)
+        geometry = get_track_geometry(record.track, record.los, dataset_id=record.dataset_id)
         bearing_deg = record.look_bearing_deg if record.look_bearing_deg is not None else geometry.look_bearing_deg
         return math.sin(math.radians(bearing_deg)), math.cos(math.radians(bearing_deg))
 
     def _default_incidence_deg(self, record: LocalPointRecord) -> float:
-        return get_track_geometry(record.track, record.los).default_incidence_deg
+        if record.default_incidence_deg is not None:
+            return record.default_incidence_deg
+        return get_track_geometry(
+            record.track,
+            record.los,
+            dataset_id=record.dataset_id,
+        ).default_incidence_deg
 
     def _mark_excluded(self, record: LocalPointRecord, track: int) -> None:
         suffix = record.building_id or record.code

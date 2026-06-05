@@ -4,8 +4,16 @@ type MapExpression = any[];
 
 export const HEIGHT_BASELINE_M = 450;
 export const HEIGHT_NEUTRAL_COLOR = "#9aa0a6";
-export const TRACK_44_OUTLINE_COLOR = "#0c7c74";
-export const TRACK_95_OUTLINE_COLOR = "#ad3f86";
+export const TRACK_OUTLINE_PALETTE = [
+  "#0c7c74",
+  "#ad3f86",
+  "#5662a8",
+  "#d87034",
+  "#345995",
+  "#7f4f24",
+  "#b56576",
+  "#1b9e77",
+];
 export const TRACK_OUTLINE_SEPARATOR_COLOR = "rgba(251, 250, 247, 0.96)";
 export const HEIGHT_PALETTE = [
   "#1d3557",
@@ -133,6 +141,10 @@ export function formatHeightSensitivity(value: number): string {
 
 export function formatHeightLegendValue(value: number): string {
   return value % 1 === 0 ? value.toFixed(0) : value.toFixed(1);
+}
+
+export function getTrackOutlineColor(index: number) {
+  return TRACK_OUTLINE_PALETTE[index % TRACK_OUTLINE_PALETTE.length];
 }
 
 export function getHeightLegendAnchors(value: number): number[] {

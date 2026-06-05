@@ -40,7 +40,7 @@ async def on_startup() -> None:
     raster_tiles_dir = settings.raster_tiles_dir
     logger.warning("Tiles dir: %s", tiles_dir)
     logger.warning("Raster tiles dir: %s", raster_tiles_dir)
-    for name in ("insar_t44", "insar_t95", "gba", "osm"):
+    for name in ("insar_points", "gba", "osm"):
         path = tiles_dir / f"{name}.mbtiles"
         logger.warning("Tiles file %s exists=%s", path, path.exists())
     for name in ("relief_hillshade", "relief_slope"):

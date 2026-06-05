@@ -1,3 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
+import type { AppConfigResponse } from "../lib/configMetadata";
+
 export const apiBase =
   import.meta.env.VITE_API_URL ||
   (typeof window !== "undefined" ? "http://127.0.0.1:8000" : "");
@@ -34,6 +37,11 @@ export type BuildingTerrainContext = {
 };
 
 export type PointDetail = {
+  area_id?: string | null;
+  dataset_id?: string | null;
+  sensor?: string | null;
+  area_label?: string | null;
+  dataset_label?: string | null;
   code: string;
   track: number;
   los: string;
@@ -57,6 +65,7 @@ export type PointDetail = {
 };
 
 export type BuildingDetail = {
+  area_id?: string | null;
   id: string;
   source: "gba" | "osm";
   height: number | null;
@@ -77,6 +86,8 @@ export type MlRunSummary = {
   created_at: string;
   started_at?: string | null;
   finished_at?: string | null;
+  area_id?: string | null;
+  dataset_id?: string | null;
   source?: string | null;
   track?: number | null;
 };
@@ -90,6 +101,8 @@ export type MlRunDetail = MlRunSummary & {
 
 export type MlRunCreatePayload = {
   pipeline: string;
+  area_id?: string | null;
+  dataset_id?: string | null;
   source?: string | null;
   track?: number | null;
   bbox?: number[] | null;
@@ -135,6 +148,9 @@ export type MlPointNeighbourContext = {
 };
 
 export type MlPointAnalysis = {
+  area_id?: string | null;
+  dataset_id?: string | null;
+  sensor?: string | null;
   run_id: string;
   pipeline: string;
   run_type: string;
@@ -170,6 +186,9 @@ export type MlPointAnalysisResponse = {
 };
 
 export type MlBuildingPointSummary = {
+  area_id?: string | null;
+  dataset_id?: string | null;
+  sensor?: string | null;
   code: string;
   track: number;
   cluster_id: string | null;
@@ -183,6 +202,9 @@ export type MlBuildingPointSummary = {
 };
 
 export type MlBuildingClusterSummary = {
+  area_id?: string | null;
+  dataset_id?: string | null;
+  sensor?: string | null;
   cluster_id: string;
   building_source: string;
   building_id: string;
@@ -230,6 +252,7 @@ export type MlBuildingNeighbourhoodSummary = {
 };
 
 export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
+  area_id?: string | null;
   run_id: string;
   pipeline: string;
   run_type: string;
@@ -250,8 +273,7 @@ export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
   reliability_penalties: MlReliabilityPenalty[];
   differential_motion_flag: boolean;
   building_status: string | null;
-  main_cluster_track_44_id: string | null;
-  main_cluster_track_95_id: string | null;
+  main_cluster_by_track: Record<string, string | null>;
   track_motion_mm_a: Record<string, number | null>;
   track_counts: Record<string, number>;
   label_counts: Record<string, number>;
@@ -316,48 +338,97 @@ export type MlBuildingVisualizationContextResponse = {
   summary: MlBuildingVisualizationSummary;
 };
 
-export function getPointDetail(code: string, track?: number) {
-  const query = track ? `?track=${track}` : "";
+export type PointIdentityQuery = {
+  track?: number | null;
+  areaId?: string | null;
+  datasetId?: string | null;
+};
+
+function buildPointQuery(identity: PointIdentityQuery = {}) {
+  if (!identity.areaId || !identity.datasetId) {
+    throw new Error("areaId and datasetId are required for point API requests");
+  }
+  const params = new URLSearchParams();
+  if (identity.track !== undefined && identity.track !== null) {
+    params.set("track", String(identity.track));
+  }
+  if (identity.areaId) {
+    params.set("area_id", identity.areaId);
+  }
+  if (identity.datasetId) {
+    params.set("dataset_id", identity.datasetId);
+  }
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export function getConfig() {
+  return fetchJson<AppConfigResponse>(`/api/config`);
+}
+
+export function useAppConfig() {
+  return useQuery({
+    queryKey: ["app-config"],
+    queryFn: getConfig,
+    staleTime: 60_000,
+    retry: false,
+  });
+}
+
+export function getPointDetail(code: string, identity: PointIdentityQuery = {}) {
+  const query = buildPointQuery(identity);
   return fetchJson<PointDetail>(`/api/points/${encodeURIComponent(code)}${query}`);
 }
 
-export function getPointTimeseries(code: string, track?: number) {
-  const query = track ? `?track=${track}` : "";
+export function getPointTimeseries(code: string, identity: PointIdentityQuery = {}) {
+  const query = buildPointQuery(identity);
   return fetchJson(`/api/points/${encodeURIComponent(code)}/timeseries${query}`);
 }
 
-export function getBuildingDetail(source: "gba" | "osm", id: string) {
+export function getBuildingDetail(source: "gba" | "osm", id: string, areaId: string) {
+  if (!areaId) {
+    throw new Error("areaId is required for building API requests");
+  }
   const suffix = source === "gba" ? "gba" : "osm";
-  return fetchJson<BuildingDetail>(`/api/buildings/${suffix}/${encodeURIComponent(id)}`);
+  const query = `?area_id=${encodeURIComponent(areaId)}`;
+  return fetchJson<BuildingDetail>(
+    `/api/buildings/${suffix}/${encodeURIComponent(id)}${query}`
+  );
 }
 
 export function getMlBuildingAnalysis(
   runId: string,
   source: "gba" | "osm",
-  id: string
+  id: string,
+  areaId?: string | null
 ) {
+  const query = areaId ? `?area_id=${encodeURIComponent(areaId)}` : "";
   return fetchJson<MlBuildingAnalysis>(
-    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}`
+    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}${query}`
   );
 }
 
 export function getMlBuildingPoints(
   runId: string,
   source: "gba" | "osm",
-  id: string
+  id: string,
+  areaId?: string | null
 ) {
+  const query = areaId ? `?area_id=${encodeURIComponent(areaId)}` : "";
   return fetchJson<MlBuildingVisualizationPointsResponse>(
-    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/points`
+    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/points${query}`
   );
 }
 
 export function getMlBuildingContext(
   runId: string,
   source: "gba" | "osm",
-  id: string
+  id: string,
+  areaId?: string | null
 ) {
+  const query = areaId ? `?area_id=${encodeURIComponent(areaId)}` : "";
   return fetchJson<MlBuildingVisualizationContextResponse>(
-    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/context`
+    `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}/context${query}`
   );
 }
 
@@ -373,9 +444,14 @@ export function getMlRunDetail(runId: string) {
   return fetchJson<MlRunDetail>(`/api/ml/runs/${encodeURIComponent(runId)}`);
 }
 
-export function getMlPointAnalysis(runId: string, code: string, track: number) {
+export function getMlPointAnalysis(
+  runId: string,
+  code: string,
+  identity: PointIdentityQuery & { track: number }
+) {
+  const query = buildPointQuery(identity);
   return fetchJson<MlPointAnalysisResponse>(
-    `/api/ml/runs/${encodeURIComponent(runId)}/points/${encodeURIComponent(code)}?track=${track}`
+    `/api/ml/runs/${encodeURIComponent(runId)}/points/${encodeURIComponent(code)}${query}`
   );
 }
 

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import asyncpg
 
+from ..area_metadata import DATASETS_BY_ID, resolve_area_dataset
 from ..config import settings
 from .registry import get_pipeline, list_pipelines
 from .runner import run_pipeline_async
@@ -34,6 +35,8 @@ async def _create_run(config: RunConfig) -> None:
                 config.pipeline,
                 pipeline.version,
                 pipeline.run_type,
+                config.area_id,
+                config.dataset_id,
                 config.source,
                 config.track,
                 config.bbox,
@@ -56,15 +59,20 @@ async def _run(config: RunConfig) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run InSAR ML pipelines.")
     parser.add_argument("--pipeline", required=True, choices=list_pipelines())
+    parser.add_argument("--area-id")
+    parser.add_argument("--dataset-id", choices=sorted(DATASETS_BY_ID))
     parser.add_argument("--source", choices=["gba", "osm"])
-    parser.add_argument("--track", type=int, choices=[44, 95])
+    parser.add_argument("--track", type=int, choices=[22, 44, 70, 93, 95])
     parser.add_argument("--bbox", help="min_lon,min_lat,max_lon,max_lat")
     parser.add_argument("--params", default="{}", help="JSON string with pipeline params")
     args = parser.parse_args()
+    area_id, dataset_id = resolve_area_dataset(args.area_id, args.dataset_id)
 
     config = RunConfig(
         run_id=str(uuid4()),
         pipeline=args.pipeline,
+        area_id=area_id,
+        dataset_id=dataset_id or "",
         source=args.source,
         track=args.track,
         bbox=_parse_bbox(args.bbox),

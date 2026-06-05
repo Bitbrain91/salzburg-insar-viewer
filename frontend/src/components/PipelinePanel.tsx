@@ -4,11 +4,13 @@ import { ChevronRight, Trash2 } from "lucide-react";
 import {
   createMlRun,
   deleteMlRun,
+  useAppConfig,
   getMlRunDetail,
   listMlRuns,
   recolorMlRun,
 } from "../hooks/useApi";
 import { useAppStore, type AppState } from "../lib/store";
+import { normalizeAppConfig } from "../lib/configMetadata";
 import {
   Badge,
   Button,
@@ -119,6 +121,7 @@ function Section({
 
 export default function PipelinePanel() {
   const mapBBox = useAppStore((state) => state.mapBBox);
+  const selectedAreaId = useAppStore((state) => state.selectedAreaId);
   const activeRunId = useAppStore((state) => state.activeRunId);
   const setActiveRunId = useAppStore((state) => state.setActiveRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
@@ -130,6 +133,15 @@ export default function PipelinePanel() {
   const bumpMlTileVersion = useAppStore((state) => state.bumpMlTileVersion);
 
   const pipeline = PIPELINE_NAME;
+  const configQuery = useAppConfig();
+  const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
+  const areaLabel =
+    appConfig.areas.find((area) => area.id === selectedAreaId)?.label ?? selectedAreaId;
+  const datasetsForArea = useMemo(
+    () => appConfig.datasets.filter((dataset) => dataset.areaId === selectedAreaId),
+    [appConfig.datasets, selectedAreaId]
+  );
+  const [datasetId, setDatasetId] = useState("");
   const [track, setTrack] = useState<string>("all");
   const [maxDistance, setMaxDistance] = useState(30);
   const [bufferMultiplier, setBufferMultiplier] = useState(1.0);
@@ -154,6 +166,11 @@ export default function PipelinePanel() {
     assignedBuildings === undefined ? true : Number(assignedBuildings) > 0;
   const activeRunPipeline = activeRunQuery.data?.pipeline;
   const isActiveRunLocalAnomaly = activeRunPipeline === PIPELINE_NAME;
+  const selectedDataset =
+    datasetsForArea.find((dataset) => dataset.id === datasetId) ?? datasetsForArea[0];
+  const mlTrackOptions = (selectedDataset?.tracks ?? []).filter(
+    (option) => option.directionDependentMl !== false
+  );
 
   const bboxLabel = useMemo(() => {
     if (!mapBBox) return "Kartenausschnitt noch nicht verfügbar";
@@ -186,8 +203,26 @@ export default function PipelinePanel() {
     }
   }, [activeRunId, activeRunPipeline, isActiveRunLocalAnomaly, mlView, setMlView]);
 
+  useEffect(() => {
+    if (!datasetsForArea.length) {
+      return;
+    }
+    if (!datasetsForArea.some((dataset) => dataset.id === datasetId)) {
+      setDatasetId(datasetsForArea[0].id);
+    }
+  }, [datasetId, datasetsForArea]);
+
+  useEffect(() => {
+    if (
+      track !== "all" &&
+      !mlTrackOptions.some((option) => String(option.track) === track)
+    ) {
+      setTrack("all");
+    }
+  }, [mlTrackOptions, track]);
+
   async function handleRun() {
-    if (!mapBBox) return;
+    if (!mapBBox || !selectedDataset) return;
     const params: Record<string, number> = {
       max_distance_m: maxDistance,
       buffer_multiplier: bufferMultiplier,
@@ -196,6 +231,8 @@ export default function PipelinePanel() {
     };
     const payload = {
       pipeline,
+      area_id: selectedAreaId,
+      dataset_id: selectedDataset.id,
       source: "gba",
       track: track === "all" ? null : Number(track),
       bbox: mapBBox,
@@ -239,6 +276,11 @@ export default function PipelinePanel() {
         <MetricLine label="Aktuelle Bounding Box" value={bboxLabel} />
         {activeRunQuery.data && (
           <>
+            <MetricLine label="AOI" value={activeRunQuery.data.area_id ?? "unbekannt"} />
+            <MetricLine
+              label="Dataset"
+              value={activeRunQuery.data.dataset_id ?? "unbekannt"}
+            />
             <MetricLine
               label="Zugeordnete Gebäude"
               value={activeRunQuery.data.metrics?.assigned_buildings ?? 0}
@@ -258,19 +300,46 @@ export default function PipelinePanel() {
         </div>
 
         <Badge variant="secondary" className="font-normal">
-          Gebäudequelle ist für {pipeline} fest auf GBA gesetzt.
+          AOI: {areaLabel}. Gebäudequelle ist für {pipeline} fest auf GBA gesetzt.
         </Badge>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="dataset-select">Dataset</Label>
+          <Select
+            value={selectedDataset?.id ?? ""}
+            onValueChange={(value) => setDatasetId(value)}
+            disabled={datasetsForArea.length <= 1}
+          >
+            <SelectTrigger id="dataset-select">
+              <SelectValue placeholder="Dataset wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              {datasetsForArea.map((dataset) => (
+                <SelectItem key={dataset.id} value={dataset.id}>
+                  {dataset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="track-select">InSAR-Track</Label>
           <Select value={track} onValueChange={setTrack}>
             <SelectTrigger id="track-select">
-              <SelectValue placeholder="Alle Tracks" />
+              <SelectValue placeholder="Alle ML-Tracks" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alle Tracks</SelectItem>
-              <SelectItem value="44">Track 44 (aufsteigend)</SelectItem>
-              <SelectItem value="95">Track 95 (absteigend)</SelectItem>
+              <SelectItem value="all">Alle verifizierten Tracks</SelectItem>
+              {(selectedDataset?.tracks ?? []).map((option) => (
+                <SelectItem
+                  key={`${option.datasetId}:${option.track}`}
+                  value={String(option.track)}
+                  disabled={option.directionDependentMl === false}
+                >
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -325,7 +394,7 @@ export default function PipelinePanel() {
           </CollapsibleContent>
         </Collapsible>
 
-        <Button className="w-full" onClick={handleRun} disabled={!mapBBox}>
+        <Button className="w-full" onClick={handleRun} disabled={!mapBBox || !selectedDataset}>
           Auswertung starten
         </Button>
       </Section>
@@ -442,7 +511,7 @@ export default function PipelinePanel() {
                       Lokale Anomalieanalyse
                     </span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                      {run.status}
+                      {(run.area_id ?? "unbekannt").replace("_", " ")} · {run.status}
                     </span>
                   </button>
                   <Button

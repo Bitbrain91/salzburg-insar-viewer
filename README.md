@@ -91,6 +91,10 @@ React + MapLibre Frontend
   - konvertiert Rohdaten -> GeoParquet
   - exportiert GeoJSONL -> MBTiles via Tippecanoe (Docker)
 
+- Erklaerdiagramme (`explainers/`)
+  - separate Vite/React-App fuer interaktive Lern- und Methodikdiagramme
+  - bewusst getrennt vom produktiven Viewer-Frontend
+
 ### Tile-Stack
 - MBTiles liegen unter `data/tiles_v2/`
 - Backend zeigt diese Dateien als Vector-Tiles an
@@ -245,6 +249,23 @@ npm install
 npx vite --host --port 3000
 ```
 Oeffne: `http://localhost:3000`
+
+### 8) Erklaerdiagramme starten
+Die Erklaer-App ist separat vom produktiven Viewer-Frontend und dient nur fuer
+interaktive Methodik- und Algorithmusdiagramme.
+
+```bash
+cd explainers
+npm install
+npm run dev -- --host --port 5174
+```
+Oeffne: `http://localhost:5174`
+
+Build/Check:
+```bash
+npm run typecheck
+npm run build
+```
 
 ## 5) ML Pipeline (`anomaly_local_v1`)
 Die Anwendung enthaelt ein schlankes Pipeline-Framework mit MLflow-Tracking.

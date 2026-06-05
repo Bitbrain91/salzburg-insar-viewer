@@ -1,13 +1,21 @@
 import { basemaps, type BasemapId } from "../lib/basemaps";
-import { satelliteCameraPresets } from "../lib/cameraModes";
+import {
+  cameraModeForTrack,
+  cameraPresetForTrack,
+  type CameraMode,
+} from "../lib/cameraModes";
+import { useAppConfig } from "../hooks/useApi";
+import {
+  getTrackVisibilityKey,
+  normalizeAppConfig,
+} from "../lib/configMetadata";
 import {
   HEIGHT_PALETTE,
-  TRACK_44_OUTLINE_COLOR,
-  TRACK_95_OUTLINE_COLOR,
   getHeightCycleLength,
   formatHeightLegendValue,
   formatHeightSensitivity,
   getHeightLegendAnchors,
+  getTrackOutlineColor,
   heightSensitivityToSlider,
   sliderToHeightSensitivity,
 } from "../lib/pointStyling";
@@ -30,11 +38,6 @@ const velocityLegendItems = [
   { color: "#2c9f7a", label: "Stabil (-1 bis 1)" },
   { color: "#4aa5d5", label: "Hebung (1 bis 5)" },
   { color: "#1c2f4a", label: "Starke Hebung (> 5)" },
-];
-
-const trackLegendItems = [
-  { color: TRACK_44_OUTLINE_COLOR, label: "Track 44 Umriss" },
-  { color: TRACK_95_OUTLINE_COLOR, label: "Track 95 Umriss" },
 ];
 
 type ToggleSpec = {
@@ -76,6 +79,7 @@ function Section({
 
 export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
+  const selectedAreaId = useAppStore((state) => state.selectedAreaId);
   const filters = useAppStore((state) => state.filters);
   const filtersEnabled = useAppStore((state) => state.filtersEnabled);
   const basemapId = useAppStore((state) => state.basemapId);
@@ -84,6 +88,8 @@ export default function LayerPanel() {
   const heightSensitivityM = useAppStore((state) => state.heightSensitivityM);
   const showTrackOutlines = useAppStore((state) => state.showTrackOutlines);
   const setLayer = useAppStore((state) => state.setLayer);
+  const setSelectedAreaId = useAppStore((state) => state.setSelectedAreaId);
+  const setInsarTrackVisibility = useAppStore((state) => state.setInsarTrackVisibility);
   const setFilter = useAppStore((state) => state.setFilter);
   const setFiltersEnabled = useAppStore((state) => state.setFiltersEnabled);
   const setBasemapId = useAppStore((state) => state.setBasemapId);
@@ -91,6 +97,25 @@ export default function LayerPanel() {
   const setPointColorMode = useAppStore((state) => state.setPointColorMode);
   const setHeightSensitivityM = useAppStore((state) => state.setHeightSensitivityM);
   const setShowTrackOutlines = useAppStore((state) => state.setShowTrackOutlines);
+  const configQuery = useAppConfig();
+  const appConfig = normalizeAppConfig(configQuery.data);
+  const selectedArea =
+    appConfig.areas.find((area) => area.id === selectedAreaId) ?? appConfig.areas[0];
+  const selectedAreaDatasets = appConfig.datasets.filter(
+    (dataset) => selectedArea && dataset.areaId === selectedArea.id
+  );
+  const selectedTracks = selectedAreaDatasets.flatMap((dataset) =>
+    dataset.tracks.map((track) => ({ dataset, track }))
+  );
+  const cameraOptions = selectedTracks
+    .map(({ dataset, track }) => ({
+      mode: cameraModeForTrack(dataset.id, track.track),
+      preset: cameraPresetForTrack(track),
+    }))
+    .filter(
+      (option): option is { mode: CameraMode; preset: NonNullable<ReturnType<typeof cameraPresetForTrack>> } =>
+        Boolean(option.preset)
+    );
 
   const heightLegendAnchors = getHeightLegendAnchors(heightSensitivityM);
   const heightCycleLength = getHeightCycleLength(heightSensitivityM);
@@ -112,6 +137,25 @@ export default function LayerPanel() {
 
       <Section title="Kartengrundlage">
         <div className="space-y-1.5">
+          <Label htmlFor="area-select">AOI</Label>
+          <Select
+            value={selectedArea?.id ?? ""}
+            onValueChange={setSelectedAreaId}
+            disabled={!selectedArea}
+          >
+            <SelectTrigger id="area-select">
+              <SelectValue placeholder="AOI wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              {appConfig.areas.map((area) => (
+                <SelectItem key={area.id} value={area.id}>
+                  {area.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="basemap-select">Basiskarte</Label>
           <Select
             value={basemapId}
@@ -129,16 +173,31 @@ export default function LayerPanel() {
       </Section>
 
       <Section title="InSAR-Tracks">
-        <ToggleRow
-          label="Track 44 aufsteigend, Blick 81,4 Grad Ost"
-          checked={layers.insar44}
-          onChange={(checked) => setLayer("insar44", checked)}
-        />
-        <ToggleRow
-          label="Track 95 absteigend, Blick 281,5 Grad West"
-          checked={layers.insar95}
-          onChange={(checked) => setLayer("insar95", checked)}
-        />
+        {selectedAreaDatasets.map((dataset) => (
+          <div key={dataset.id} className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+              {dataset.sensor} · {dataset.label}
+            </div>
+            {dataset.tracks.map((track) => {
+              const visibilityKey = getTrackVisibilityKey(dataset.id, track.track);
+              const checked = layers.insarTracks[visibilityKey] ?? true;
+              const bearing =
+                track.lookBearingDeg === undefined
+                  ? ""
+                  : `, Blick ${track.lookBearingDeg.toFixed(1).replace(".", ",")} Grad`;
+              return (
+                <ToggleRow
+                  key={visibilityKey}
+                  label={`${track.label}${bearing}`}
+                  checked={checked}
+                  onChange={(next) =>
+                    setInsarTrackVisibility(dataset.id, track.track, next)
+                  }
+                />
+              );
+            })}
+          </div>
+        ))}
       </Section>
 
       <Section title="Gebäude und Kontext">
@@ -172,23 +231,18 @@ export default function LayerPanel() {
           <Label htmlFor="camera-select">Perspektive</Label>
           <Select
             value={cameraMode}
-            onValueChange={(value) =>
-              setCameraMode(
-                value as "default" | "satellite_track44" | "satellite_track95"
-              )
-            }
+            onValueChange={(value) => setCameraMode(value as CameraMode)}
           >
             <SelectTrigger id="camera-select">
               <SelectValue placeholder="Perspektive wählen" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="default">Standardansicht</SelectItem>
-              <SelectItem value="satellite_track44">
-                {satelliteCameraPresets.satellite_track44.label}
-              </SelectItem>
-              <SelectItem value="satellite_track95">
-                {satelliteCameraPresets.satellite_track95.label}
-              </SelectItem>
+              {cameraOptions.map((option) => (
+                <SelectItem key={option.mode} value={option.mode}>
+                  {option.preset.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -316,17 +370,20 @@ export default function LayerPanel() {
         )}
         {showTrackOutlines && (
           <div className="legend mt-3">
-            {trackLegendItems.map((item) => (
-              <div className="legend-item" key={item.label}>
+            {selectedTracks.map(({ dataset, track }, index) => (
+              <div
+                className="legend-item"
+                key={getTrackVisibilityKey(dataset.id, track.track)}
+              >
                 <span
                   className="legend-swatch"
                   style={{
                     background: "#fbfaf7",
-                    border: `2px solid ${item.color}`,
+                    border: `2px solid ${getTrackOutlineColor(index)}`,
                     boxShadow: "0 0 0 1px rgba(251, 250, 247, 0.95)",
                   }}
                 />
-                {item.label}
+                {track.sensor} T{track.track}
               </div>
             ))}
           </div>

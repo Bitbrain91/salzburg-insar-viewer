@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "areas": {
+    "salzburg": {
+      "name": "Salzburg",
+      "bbox": [12.95, 47.75, 13.15, 47.85],
+      "gba": {
+        "path": "data/gba/salzburg_gba.geojson"
+      },
+      "osm": {
+        "enabled": true
+      }
+    },
+    "bad_gastein": {
+      "name": "Bad Gastein",
+      "bbox": [13.000531, 47.013449, 13.277222, 47.159603],
+      "gba": {
+        "path": "data/gba/bad_gastein_gba.geojson",
+        "wfs": {
+          "endpoint": "https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows",
+          "type_names": "global3D:lod1_global",
+          "srs_name": "EPSG:4326",
+          "sort_by": "ogc_fid",
+          "page_size": 1000,
+          "expected_columns": ["source", "id", "height", "var", "region", "geometry"]
+        }
+      },
+      "osm": {
+        "enabled": true
+      }
+    }
+  },
+  "datasets": {
+    "salzburg_snt": {
+      "area_id": "salzburg",
+      "sensor": "SNT",
+      "movement": {
+        "path": "data/Daten/Stadt_Salzburg.gpkg"
+      },
+      "tracks": [
+        {
+          "track_id": 44,
+          "layer": "44",
+          "los": "A",
+          "amplitude_path": "data/Daten/ASC_T44_AMP.gpkg"
+        },
+        {
+          "track_id": 95,
+          "layer": "95",
+          "los": "D",
+          "amplitude_path": "data/Daten/ASC_T95_AMP.gpkg"
+        }
+      ]
+    },
+    "bad_gastein_snt": {
+      "area_id": "bad_gastein",
+      "sensor": "SNT",
+      "movement": {
+        "zip_path": "data/Daten/Export Bad Gastein.zip",
+        "inner_path": "Gastein SNT/Gastein SNT.gpkg"
+      },
+      "tracks": [
+        {
+          "track_id": 22,
+          "layer": "22",
+          "los": "D"
+        },
+        {
+          "track_id": 44,
+          "layer": "44",
+          "los": "A"
+        },
+        {
+          "track_id": 95,
+          "layer": "95",
+          "los": "D"
+        }
+      ]
+    },
+    "bad_gastein_tsx_paz": {
+      "area_id": "bad_gastein",
+      "sensor": "TSX/PAZ",
+      "movement": {
+        "zip_path": "data/Daten/Export Bad Gastein.zip",
+        "inner_path": "Gastein TSX/Gastein TSX.gpkg"
+      },
+      "tracks": [
+        {
+          "track_id": 70,
+          "layer": "70",
+          "los": "D",
+          "defaults": {
+            "look_angle": 279.45,
+            "incidence_angle": 51.68
+          }
+        },
+        {
+          "track_id": 93,
+          "layer": "93",
+          "los": "A",
+          "defaults": {
+            "look_angle": 83.77,
+            "incidence_angle": 53.9
+          }
+        }
+      ]
+    }
+  }
+}

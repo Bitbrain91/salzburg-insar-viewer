@@ -114,3 +114,12 @@ def track_motion_map(value: Any) -> dict[str, float | None]:
         except (TypeError, ValueError):
             result[str(key)] = None
     return result
+
+
+def track_string_map(value: Any) -> dict[str, str | None]:
+    if not isinstance(value, dict):
+        return {}
+    result: dict[str, str | None] = {}
+    for key, item in value.items():
+        result[str(key)] = None if item is None else str(item)
+    return result

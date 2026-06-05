@@ -1,20 +1,32 @@
 import { create } from "zustand";
 import type { BasemapId } from "./basemaps";
 import type { CameraMode } from "./cameraModes";
+import {
+  DEFAULT_AREA_ID,
+  getTrackVisibilityKey,
+} from "./configMetadata";
 import type { PointColorMode } from "./pointStyling";
 
 export type LayerVisibility = {
-  insar44: boolean;
-  insar95: boolean;
+  insarTracks: Record<string, boolean>;
   reliefHillshade: boolean;
   reliefSlope: boolean;
   gba: boolean;
   osm: boolean;
 };
+export type SimpleLayerVisibilityKey = Exclude<keyof LayerVisibility, "insarTracks">;
+export type MlBuildingTrackFilter = "all" | `${string}:${number}`;
 
 export type Selection =
-  | { type: "point"; code: string; track?: number }
-  | { type: "building"; source: "gba" | "osm"; id: string }
+  | {
+      type: "point";
+      code: string;
+      track?: number;
+      areaId: string;
+      datasetId: string;
+      sensor?: string;
+    }
+  | { type: "building"; source: "gba" | "osm"; id: string; areaId: string }
   | null;
 
 export type Filters = {
@@ -25,6 +37,7 @@ export type Filters = {
 
 export type AppState = {
   layers: LayerVisibility;
+  selectedAreaId: string;
   filters: Filters;
   filtersEnabled: boolean;
   selection: Selection;
@@ -36,7 +49,7 @@ export type AppState = {
   activeRunId: string | null;
   showMlLayer: boolean;
   showMlBuildings: boolean;
-  mlBuildingTrackFilter: "both" | "44" | "95";
+  mlBuildingTrackFilter: MlBuildingTrackFilter;
   mlBuildingShowExcluded: boolean;
   mlBuildingShowHulls: boolean;
   mlView:
@@ -47,7 +60,13 @@ export type AppState = {
     | "reliability";
   mlTileVersion: number;
   mapBBox: [number, number, number, number] | null;
-  setLayer: (key: keyof LayerVisibility, value: boolean) => void;
+  setLayer: (key: SimpleLayerVisibilityKey, value: boolean) => void;
+  setSelectedAreaId: (areaId: string) => void;
+  setInsarTrackVisibility: (
+    datasetId: string,
+    track: number,
+    value: boolean
+  ) => void;
   setFilter: (key: keyof Filters, value: number) => void;
   setFiltersEnabled: (enabled: boolean) => void;
   setSelection: (selection: Selection) => void;
@@ -69,13 +88,13 @@ export type AppState = {
 
 export const useAppStore = create<AppState>((set) => ({
   layers: {
-    insar44: true,
-    insar95: true,
+    insarTracks: {},
     reliefHillshade: false,
     reliefSlope: false,
     gba: false,
     osm: false,
   },
+  selectedAreaId: DEFAULT_AREA_ID,
   filters: {
     velocityMin: -10,
     velocityMax: 10,
@@ -91,7 +110,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeRunId: null,
   showMlLayer: true,
   showMlBuildings: true,
-  mlBuildingTrackFilter: "both",
+  mlBuildingTrackFilter: "all",
   mlBuildingShowExcluded: true,
   mlBuildingShowHulls: true,
   mlView: "cluster",
@@ -99,6 +118,28 @@ export const useAppStore = create<AppState>((set) => ({
   mapBBox: null,
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
+  setSelectedAreaId: (areaId) =>
+    set((state) =>
+      state.selectedAreaId === areaId
+        ? state
+        : {
+            selectedAreaId: areaId,
+            selection: null,
+            cameraMode: "default",
+            mlBuildingTrackFilter: "all",
+          }
+    ),
+  setInsarTrackVisibility: (datasetId, track, value) =>
+    set((state) => {
+      const nextLayers: LayerVisibility = {
+        ...state.layers,
+        insarTracks: {
+          ...state.layers.insarTracks,
+          [getTrackVisibilityKey(datasetId, track)]: value,
+        },
+      };
+      return { layers: nextLayers };
+    }),
   setFilter: (key, value) =>
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),

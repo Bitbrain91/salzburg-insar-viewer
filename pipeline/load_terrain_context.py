@@ -49,6 +49,30 @@ def _stage_and_upsert(engine, df: pd.DataFrame, target_table: str, conflict_cols
         conn.execute(text(f"DROP TABLE IF EXISTS {staging_table}"))
 
 
+def _prepare_point_context(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    missing = {"area_id", "dataset_id", "code", "track"} - set(df.columns)
+    if missing:
+        raise ValueError(f"Point terrain parquet is missing required columns: {', '.join(sorted(missing))}")
+    if df[["area_id", "dataset_id", "code", "track"]].isna().any().any():
+        raise ValueError("Point terrain parquet contains empty identity values")
+    df["code"] = df["code"].astype(str)
+    df["track"] = df["track"].astype(int)
+    return df
+
+
+def _prepare_building_context(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    missing = {"area_id", "building_source", "building_id"} - set(df.columns)
+    if missing:
+        raise ValueError(f"Building terrain parquet is missing required columns: {', '.join(sorted(missing))}")
+    if df[["area_id", "building_source", "building_id"]].isna().any().any():
+        raise ValueError("Building terrain parquet contains empty identity values")
+    df["building_source"] = df["building_source"].astype(str)
+    df["building_id"] = df["building_id"].astype(str)
+    return df
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dsn", required=True, help="Postgres DSN")
@@ -67,22 +91,23 @@ def main() -> None:
     if not args.skip_points:
         if not POINT_TERRAIN_PATH.exists():
             raise FileNotFoundError(f"Point terrain parquet not found: {POINT_TERRAIN_PATH}")
-        point_df = pd.read_parquet(POINT_TERRAIN_PATH)
-        point_df["code"] = point_df["code"].astype(str)
-        point_df["track"] = point_df["track"].astype(int)
-        _stage_and_upsert(engine, point_df, "insar_point_terrain", ["code", "track"])
+        point_df = _prepare_point_context(pd.read_parquet(POINT_TERRAIN_PATH))
+        _stage_and_upsert(
+            engine,
+            point_df,
+            "insar_point_terrain",
+            ["area_id", "dataset_id", "code", "track"],
+        )
 
     if not args.skip_buildings:
         if not BUILDING_TERRAIN_PATH.exists():
             raise FileNotFoundError(f"Building terrain parquet not found: {BUILDING_TERRAIN_PATH}")
-        building_df = pd.read_parquet(BUILDING_TERRAIN_PATH)
-        building_df["building_source"] = building_df["building_source"].astype(str)
-        building_df["building_id"] = building_df["building_id"].astype(str)
+        building_df = _prepare_building_context(pd.read_parquet(BUILDING_TERRAIN_PATH))
         _stage_and_upsert(
             engine,
             building_df,
             "building_terrain_context",
-            ["building_source", "building_id"],
+            ["area_id", "building_source", "building_id"],
         )
 
     print("Terrain context load complete.")

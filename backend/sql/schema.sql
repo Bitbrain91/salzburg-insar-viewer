@@ -13,6 +13,9 @@ DROP TABLE IF EXISTS ml_point_results;
 DROP TABLE IF EXISTS ml_runs;
 
 CREATE TABLE insar_points (
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
+    sensor TEXT NOT NULL,
     code TEXT NOT NULL,
     track INTEGER NOT NULL,
     los TEXT NOT NULL,
@@ -28,56 +31,70 @@ CREATE TABLE insar_points (
     s_amp_std DOUBLE PRECISION,
     s_phs_std DOUBLE PRECISION,
     incidence_angle DOUBLE PRECISION,
+    look_angle DOUBLE PRECISION,
     eff_area DOUBLE PRECISION,
     amp_mean DOUBLE PRECISION,
     amp_std DOUBLE PRECISION,
     geom GEOMETRY(Point, 4326) NOT NULL,
-    PRIMARY KEY (code, track)
+    PRIMARY KEY (area_id, dataset_id, code, track)
 );
 
 CREATE INDEX insar_points_geom_idx ON insar_points USING GIST (geom);
-CREATE INDEX insar_points_track_idx ON insar_points (track);
+CREATE INDEX insar_points_area_idx ON insar_points (area_id);
+CREATE INDEX insar_points_track_idx ON insar_points (area_id, dataset_id, track);
 
 CREATE TABLE insar_timeseries (
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
     code TEXT NOT NULL,
     track INTEGER NOT NULL,
     date DATE NOT NULL,
     displacement DOUBLE PRECISION NOT NULL,
-    PRIMARY KEY (code, track, date)
+    PRIMARY KEY (area_id, dataset_id, code, track, date)
 );
 
-CREATE INDEX insar_timeseries_code_idx ON insar_timeseries (code);
+CREATE INDEX insar_timeseries_code_idx ON insar_timeseries (area_id, dataset_id, code, track);
 
 CREATE TABLE insar_amplitude_timeseries (
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
     code TEXT NOT NULL,
     track INTEGER NOT NULL,
     date DATE NOT NULL,
     amplitude DOUBLE PRECISION NOT NULL,
-    PRIMARY KEY (code, track, date)
+    PRIMARY KEY (area_id, dataset_id, code, track, date)
 );
 
-CREATE INDEX insar_amplitude_timeseries_code_idx ON insar_amplitude_timeseries (code);
+CREATE INDEX insar_amplitude_timeseries_code_idx ON insar_amplitude_timeseries (area_id, dataset_id, code, track);
 
 CREATE TABLE gba_buildings (
-    gba_id TEXT PRIMARY KEY,
+    area_id TEXT NOT NULL,
+    gba_id TEXT NOT NULL,
     height DOUBLE PRECISION,
     properties JSONB,
-    geom GEOMETRY(MultiPolygon, 4326)
+    geom GEOMETRY(MultiPolygon, 4326),
+    PRIMARY KEY (area_id, gba_id)
 );
 
 CREATE INDEX gba_buildings_geom_idx ON gba_buildings USING GIST (geom);
+CREATE INDEX gba_buildings_area_idx ON gba_buildings (area_id);
 
 CREATE TABLE osm_buildings (
-    osm_id BIGINT PRIMARY KEY,
+    area_id TEXT NOT NULL,
+    osm_id BIGINT NOT NULL,
     name TEXT,
     building_type TEXT,
     tags JSONB,
-    geom GEOMETRY(MultiPolygon, 4326)
+    geom GEOMETRY(MultiPolygon, 4326),
+    PRIMARY KEY (area_id, osm_id)
 );
 
 CREATE INDEX osm_buildings_geom_idx ON osm_buildings USING GIST (geom);
+CREATE INDEX osm_buildings_area_idx ON osm_buildings (area_id);
 
 CREATE TABLE insar_point_terrain (
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
     code TEXT NOT NULL,
     track INTEGER NOT NULL,
     terrain_source TEXT NOT NULL,
@@ -85,12 +102,13 @@ CREATE TABLE insar_point_terrain (
     terrain_elevation_m DOUBLE PRECISION,
     slope_deg DOUBLE PRECISION,
     aspect_deg DOUBLE PRECISION,
-    PRIMARY KEY (code, track)
+    PRIMARY KEY (area_id, dataset_id, code, track)
 );
 
-CREATE INDEX insar_point_terrain_source_idx ON insar_point_terrain (terrain_source);
+CREATE INDEX insar_point_terrain_source_idx ON insar_point_terrain (area_id, dataset_id, terrain_source);
 
 CREATE TABLE building_terrain_context (
+    area_id TEXT NOT NULL,
     building_source TEXT NOT NULL,
     building_id TEXT NOT NULL,
     terrain_source TEXT NOT NULL,
@@ -101,15 +119,17 @@ CREATE TABLE building_terrain_context (
     slope_mean_deg DOUBLE PRECISION,
     slope_max_deg DOUBLE PRECISION,
     relief_range_m DOUBLE PRECISION,
-    PRIMARY KEY (building_source, building_id)
+    PRIMARY KEY (area_id, building_source, building_id)
 );
 
 CREATE INDEX building_terrain_context_source_idx
-    ON building_terrain_context (terrain_source, building_source);
+    ON building_terrain_context (area_id, terrain_source, building_source);
 
 CREATE TABLE ml_runs (
     run_id UUID PRIMARY KEY,
     mlflow_run_id TEXT,
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
     pipeline TEXT NOT NULL,
     pipeline_version TEXT NOT NULL,
     run_type TEXT NOT NULL,
@@ -126,9 +146,12 @@ CREATE TABLE ml_runs (
 
 CREATE INDEX ml_runs_status_idx ON ml_runs (status);
 CREATE INDEX ml_runs_created_idx ON ml_runs (created_at);
+CREATE INDEX ml_runs_area_dataset_idx ON ml_runs (area_id, dataset_id);
 
 CREATE TABLE ml_point_results (
     run_id UUID NOT NULL,
+    area_id TEXT NOT NULL,
+    dataset_id TEXT NOT NULL,
     code TEXT NOT NULL,
     track INTEGER NOT NULL,
     cluster_id TEXT,
@@ -143,12 +166,12 @@ CREATE TABLE ml_point_results (
     feature_set_version TEXT,
     model_set_version TEXT,
     meta JSONB,
-    PRIMARY KEY (run_id, code, track)
+    PRIMARY KEY (run_id, area_id, dataset_id, code, track)
 );
 
 CREATE INDEX ml_point_results_run_idx ON ml_point_results (run_id);
-CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, cluster_id);
-CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, building_id);
+CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, dataset_id, cluster_id);
+CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, area_id, building_source, building_id);
 CREATE INDEX ml_point_results_label_idx ON ml_point_results (run_id, label);
 CREATE INDEX ml_point_results_quality_idx ON ml_point_results (run_id, quality_score);
 CREATE INDEX ml_point_results_anomaly_idx ON ml_point_results (run_id, anomaly_score);
@@ -163,9 +186,10 @@ CREATE TABLE ml_run_metrics (
 
 CREATE TABLE ml_building_colors (
     run_id UUID NOT NULL,
+    area_id TEXT NOT NULL,
     building_source TEXT NOT NULL,
     building_id TEXT NOT NULL,
     color_index INTEGER NOT NULL,
-    PRIMARY KEY (run_id, building_source, building_id)
+    PRIMARY KEY (run_id, area_id, building_source, building_id)
 );
 CREATE INDEX ml_building_colors_run_idx ON ml_building_colors (run_id);

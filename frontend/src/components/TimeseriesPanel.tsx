@@ -61,12 +61,22 @@ export default function TimeseriesPanel() {
   const [showAmplitude, setShowAmplitude] = useState(true);
 
   const tsQuery = useQuery({
-    queryKey: ["timeseries", pointSelection?.code, pointSelection?.track],
+    queryKey: [
+      "timeseries",
+      pointSelection?.areaId,
+      pointSelection?.datasetId,
+      pointSelection?.code,
+      pointSelection?.track,
+    ],
     queryFn: () =>
       pointSelection
         ? (getPointTimeseries(
             pointSelection.code,
-            pointSelection.track
+            {
+              track: pointSelection.track,
+              areaId: pointSelection.areaId,
+              datasetId: pointSelection.datasetId,
+            }
           ) as Promise<TimeseriesResponse>)
         : Promise.resolve(null),
     enabled: Boolean(pointSelection),

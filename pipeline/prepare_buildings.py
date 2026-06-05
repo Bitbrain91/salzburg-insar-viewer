@@ -11,15 +11,41 @@ import pandas as pd
 import requests
 from shapely.geometry import Polygon, MultiPolygon
 
-from config import EXTRACTS_DIR, PARQUET_DIR, GBA_SOURCE, SALZBURG_BBOX
+from config import (
+    EXTRACTS_DIR,
+    PARQUET_DIR,
+    area_choices,
+    area_parquet_dir,
+    iter_area_items,
+    resolve_repo_path,
+)
+
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+GBA_COLUMNS = ["area_id", "gba_id", "height", "properties", "geometry"]
+OSM_COLUMNS = ["area_id", "osm_id", "name", "building_type", "tags", "geometry"]
 
 
-def load_gba() -> gpd.GeoDataFrame:
-    if not GBA_SOURCE.exists():
-        raise FileNotFoundError(f"GBA GeoJSON not found: {GBA_SOURCE}")
+def _json_dumps_record(record: dict) -> str:
+    cleaned = {}
+    for key, value in record.items():
+        if hasattr(value, "item"):
+            value = value.item()
+        if isinstance(value, float) and math.isnan(value):
+            value = None
+        elif value is pd.NA or value is pd.NaT:
+            value = None
+        cleaned[key] = value
+    return json.dumps(cleaned, ensure_ascii=True)
 
-    gdf = gpd.read_file(GBA_SOURCE)
+
+def load_gba(area_id: str, gba_spec: dict | None = None) -> gpd.GeoDataFrame:
+    if not gba_spec or "path" not in gba_spec:
+        raise ValueError(f"Manifest GBA path is required for {area_id}")
+    source = resolve_repo_path(gba_spec["path"])
+    if not source.exists():
+        raise FileNotFoundError(f"GBA GeoJSON not found for {area_id}: {source}")
+
+    gdf = gpd.read_file(source)
     if "height" not in gdf.columns:
         for col in ["Height", "HEIGHT", "bldg_height", "building_height"]:
             if col in gdf.columns:
@@ -33,11 +59,13 @@ def load_gba() -> gpd.GeoDataFrame:
         gdf["gba_id"] = gdf["id"].astype(str)
     else:
         gdf["gba_id"] = gdf.index.astype(str)
-    # Capture all non-geometry properties for inspector
+    gdf["area_id"] = area_id
+
+    # Capture all non-geometry properties for inspector.
     props_cols = [c for c in gdf.columns if c not in {"geometry"}]
     gdf["properties"] = gdf[props_cols].to_dict(orient="records")
-    gdf["properties"] = gdf["properties"].apply(lambda v: json.dumps(v, ensure_ascii=True))
-    gdf = gdf[["gba_id", "height", "properties", "geometry"]].copy()
+    gdf["properties"] = gdf["properties"].apply(_json_dumps_record)
+    gdf = gdf[GBA_COLUMNS].copy()
     return gdf
 
 
@@ -168,28 +196,116 @@ def load_osm_overpass(bbox: tuple) -> gpd.GeoDataFrame:
     return merged
 
 
+def _standardize_osm(gdf: gpd.GeoDataFrame, area_id: str) -> gpd.GeoDataFrame:
+    if gdf.empty:
+        return gpd.GeoDataFrame(columns=OSM_COLUMNS, geometry="geometry", crs="EPSG:4326")
+
+    gdf = gdf.to_crs(epsg=4326).copy()
+    if "area_id" not in gdf.columns:
+        gdf["area_id"] = area_id
+    else:
+        gdf["area_id"] = gdf["area_id"].fillna(area_id)
+    if "osm_id" not in gdf.columns:
+        gdf["osm_id"] = gdf.index.astype(str)
+    for column in ["name", "building_type", "tags"]:
+        if column not in gdf.columns:
+            gdf[column] = ""
+    gdf["tags"] = gdf["tags"].apply(
+        lambda value: json.dumps(value, ensure_ascii=True) if isinstance(value, dict) else value
+    )
+    return gdf[OSM_COLUMNS].copy()
+
+
+def _load_osm_local(area_id: str, nested_out: Path, combined_out: Path) -> gpd.GeoDataFrame:
+    if nested_out.exists():
+        return _standardize_osm(gpd.read_parquet(nested_out), area_id)
+
+    if not combined_out.exists():
+        return gpd.GeoDataFrame(columns=OSM_COLUMNS, geometry="geometry", crs="EPSG:4326")
+
+    gdf = gpd.read_parquet(combined_out)
+    if "area_id" not in gdf.columns:
+        raise ValueError(f"Combined OSM parquet must contain area_id: {combined_out}")
+    if gdf["area_id"].isna().any():
+        raise ValueError(f"Combined OSM parquet contains empty area_id values: {combined_out}")
+    gdf = gdf[gdf["area_id"] == area_id].copy()
+    return _standardize_osm(gdf, area_id)
+
+
+def _write_area_buildings(gdf: gpd.GeoDataFrame, output_path: Path, label: str) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    gdf.to_parquet(output_path, index=False)
+    print(f"Saved {label}: {output_path}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--area", choices=area_choices(), default="salzburg")
     parser.add_argument("--osm-source", choices=["overpass", "local"], default="overpass")
+    parser.add_argument("--skip-gba", action="store_true")
+    parser.add_argument("--skip-osm", action="store_true")
     args = parser.parse_args()
 
     PARQUET_DIR.mkdir(parents=True, exist_ok=True)
     EXTRACTS_DIR.mkdir(parents=True, exist_ok=True)
+    selected_areas = list(iter_area_items(args.area))
 
-    # GBA
-    gba = load_gba()
-    gba_out = PARQUET_DIR / "gba_buildings.parquet"
-    gba.to_parquet(gba_out, index=False)
-    print(f"Saved GBA buildings: {gba_out}")
+    if not args.skip_gba:
+        gba_frames = []
+        for area_id, area in selected_areas:
+            if "gba" not in area:
+                print(f"Skipping GBA for {area_id} (no manifest source)")
+                continue
+            gba = load_gba(area_id, area["gba"])
+            _write_area_buildings(
+                gba,
+                area_parquet_dir(area_id) / "gba_buildings.parquet",
+                f"GBA buildings for {area_id}",
+            )
+            gba_frames.append(gba)
 
-    # OSM
-    osm_out = PARQUET_DIR / "osm_buildings.parquet"
-    if args.osm_source == "local" and osm_out.exists():
-        print(f"OSM parquet already exists: {osm_out}")
-    else:
-        osm = load_osm_overpass(SALZBURG_BBOX)
-        osm.to_parquet(osm_out, index=False)
-        print(f"Saved OSM buildings: {osm_out}")
+        if gba_frames:
+            combined_gba = gpd.GeoDataFrame(
+                pd.concat(gba_frames, ignore_index=True),
+                geometry="geometry",
+                crs="EPSG:4326",
+            )
+            _write_area_buildings(
+                combined_gba,
+                PARQUET_DIR / "gba_buildings.parquet",
+                "combined GBA buildings",
+            )
+
+    if not args.skip_osm:
+        osm_frames = []
+        combined_osm_out = PARQUET_DIR / "osm_buildings.parquet"
+        for area_id, area in selected_areas:
+            if not area.get("osm", {}).get("enabled", False):
+                print(f"Skipping OSM for {area_id} (disabled in manifest)")
+                continue
+
+            nested_out = area_parquet_dir(area_id) / "osm_buildings.parquet"
+            if args.osm_source == "local":
+                osm = _load_osm_local(area_id, nested_out, combined_osm_out)
+                if osm.empty:
+                    print(f"Skipping OSM for {area_id} (no local parquet)")
+                    continue
+            else:
+                if "bbox" not in area:
+                    raise ValueError(f"Area '{area_id}' is missing required bbox for OSM download")
+                bbox = tuple(area["bbox"])
+                osm = _standardize_osm(load_osm_overpass(bbox), area_id)
+
+            _write_area_buildings(osm, nested_out, f"OSM buildings for {area_id}")
+            osm_frames.append(osm)
+
+        if osm_frames:
+            combined_osm = gpd.GeoDataFrame(
+                pd.concat(osm_frames, ignore_index=True),
+                geometry="geometry",
+                crs="EPSG:4326",
+            )
+            _write_area_buildings(combined_osm, combined_osm_out, "combined OSM buildings")
 
 
 if __name__ == "__main__":

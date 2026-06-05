@@ -76,7 +76,7 @@ export {
   TooltipProvider,
 } from "./tooltip";
 
-/* ---------------- SegmentedTabs (legacy API) ---------------- */
+/* ---------------- SegmentedTabs compatibility API ---------------- */
 
 export type SegmentedTabOption<T extends string = string> = {
   id: T;
