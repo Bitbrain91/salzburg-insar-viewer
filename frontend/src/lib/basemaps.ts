@@ -5,12 +5,18 @@ const lightStyle =
   import.meta.env.VITE_BASEMAP_STYLE ||
   "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
+const defaultSatelliteMaxZoom = 19;
+const satelliteMaxZoomValue = Number(import.meta.env.VITE_BASEMAP_SATELLITE_MAXZOOM);
+const satelliteMaxZoom =
+  Number.isFinite(satelliteMaxZoomValue) && satelliteMaxZoomValue > 0
+    ? Math.floor(satelliteMaxZoomValue)
+    : defaultSatelliteMaxZoom;
+
 const satelliteTiles =
   import.meta.env.VITE_BASEMAP_SATELLITE_URL ||
-  "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  "https://maps.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg";
 
-const satelliteAttribution =
-  "Esri, Maxar, Earthstar Geographics, and the GIS User Community";
+const satelliteAttribution = "basemap.at";
 
 export const basemaps = {
   light: {
@@ -28,6 +34,7 @@ export const basemaps = {
           type: "raster",
           tiles: [satelliteTiles],
           tileSize: 256,
+          maxzoom: satelliteMaxZoom,
           attribution: satelliteAttribution,
         },
       },
