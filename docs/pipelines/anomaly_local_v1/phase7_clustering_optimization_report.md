@@ -18,8 +18,8 @@ Massgebliche Spezifikation:
 | --- | --- | --- |
 | P7-A-W1-T5 | OPTICS-Runtime-Fallback entfernen | green |
 | P7-A-W1-T6 | GBA-Hoehen-Audit | green |
-| P7-A-W1-T1 | Baseline einfrieren | planned |
-| P7-A-W1-T2 | Research-Matrix | in_progress |
+| P7-A-W1-T1 | Baseline einfrieren | green |
+| P7-A-W1-T2 | Research-Matrix | green |
 | P7-A-W1-T3 | AOI-Katalog | planned |
 | P7-A-W1-T4 | Referenzfaelle | planned |
 | P7-B-W2-T0 | Deep-Links + Track-Farben | planned |
@@ -102,3 +102,42 @@ Kernergebnisse:
   `height_above_ground_m`-Feature; O3 (globaler Kalibrierfaktor + var) nur
   als Experimentvariante mit geringer Erwartung; O2 (OSM) als
   Validierungsquelle; keine produktive Aenderung in P7-A.
+
+---
+
+## P7-A-W1-T1: Baseline einfrieren (green)
+
+Artefakt: `artifacts/phase7_baseline_summary.md`. Sieben frische Runs auf dem
+bereinigten Code (nach T5), alle `succeeded`:
+
+| Label | run_id |
+| --- | --- |
+| mirabell_snt | `c23cd637-3251-45bb-a95e-e2aa88abe6de` |
+| moosstrasse_snt | `15cee7d1-1f0c-44b2-a6e2-ecb633841db0` |
+| osthang_snt | `74c1481e-f2c7-4938-a4ac-8022e1fe2799` |
+| bg_flat_01_snt | `ff2217a1-098d-4126-a89a-c3c9b9c148e5` |
+| bg_slope_01_snt | `633325ef-409f-4a9e-a160-c9bc8394e574` |
+| bg_flat_01_tsx | `97672f6e-f06e-43d8-b279-1dddecc21300` |
+| bg_slope_01_tsx | `60a3899f-118a-4856-b40a-379939449e8a` |
+
+Wichtigste Befunde (Details und Abweichungs-Interpretation im Artefakt):
+
+- Mirabell reproduziert exakt den April-Referenzrun -> drift-freie Baseline.
+- Kohaerenz-Gate in den urbanen BG-AOIs nur ~4-6 % (datasetweit 17-24 %);
+  Scorecard-Erwartungen werden AOI-, nicht dataset-kalibriert.
+- bg_flat_01/SNT hat ein gesundes 6-12-Regime (36 %); Small-N-Dominanz gilt
+  v. a. fuer bg_slope (66 % unter 6 Punkten).
+- TSX-Runs bestaetigen `full_support=0`/`agreement=None` (44/95-Hardcode).
+- `bg_slope_01_snt` Agreement-Median `0.187` = erwarteter Hang-Stress.
+- nearest-Quoten 33-45 % der zugeordneten Punkte.
+
+---
+
+## P7-A-W1-T2: Research-Matrix (green)
+
+Artefakt: `artifacts/phase7_research_matrix.md` (Subagent-erstellt,
+Supervisor-geprueft). Handbook-Regeln mit Seitenreferenzen (AUG 8 Zeilen,
+TRE 11 Zeilen), 3 verifizierte Webquellen, 10 lokale Datenbefunde,
+12 konsolidierte Pflichtregeln, Abschnitt zu bewussten Abweichungen
+(EGMS ATBD durch TRE 2.1.2 gedeckt; Prediction Strength bei Small-N nicht
+anwendbar; AUG-vs-TRE-Toleranzdifferenz dokumentiert).
