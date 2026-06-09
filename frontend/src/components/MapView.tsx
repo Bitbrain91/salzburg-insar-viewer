@@ -30,6 +30,7 @@ import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata
 import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { useAppStore } from "../lib/store";
 import type { MlBuildingTrackFilter } from "../lib/store";
+import { consumeAutoFitUrlBuilding, urlCameraOverride } from "../lib/urlState";
 
 const tilesBase =
   import.meta.env.VITE_TILES_URL ||
@@ -293,6 +294,12 @@ const focusCandidateColorExpression: any[] = [
   "rgba(41, 128, 185, 0.28)",
   95,
   "rgba(216, 112, 52, 0.28)",
+  22,
+  "rgba(142, 68, 173, 0.28)",
+  70,
+  "rgba(192, 57, 43, 0.28)",
+  93,
+  "rgba(22, 160, 133, 0.28)",
   "rgba(140, 140, 140, 0.18)",
 ];
 
@@ -303,6 +310,12 @@ const focusCandidateLineExpression: any[] = [
   "#2980b9",
   95,
   "#d87034",
+  22,
+  "#8e44ad",
+  70,
+  "#c0392b",
+  93,
+  "#16a085",
   "#7f8c8d",
 ];
 
@@ -1114,6 +1127,43 @@ export default function MapView() {
     mlBuildingTrackFilter,
     styleVersion,
   ]);
+
+  // Deep-Link-Auto-Fit (P7-B-W2-T0): wurde ein Gebaeude per URL angefordert
+  // und liegt kein Kamera-Hash vor, einmalig auf die Gebaeudegeometrie
+  // zoomen. Standard ist die Nadir-Auditansicht (pitch=0, Nord oben);
+  // `pitch`/`bearing`-Query-Parameter erlauben einen expliziten Override.
+  useEffect(() => {
+    const map = mapRef.current;
+    const building = focusContextQuery.data?.building;
+    if (!map || !building) return;
+    if (!consumeAutoFitUrlBuilding()) return;
+    const bounds = new maplibregl.LngLatBounds();
+    const extend = (coords: unknown): void => {
+      if (!Array.isArray(coords)) return;
+      if (
+        coords.length >= 2 &&
+        typeof coords[0] === "number" &&
+        typeof coords[1] === "number"
+      ) {
+        bounds.extend([coords[0], coords[1]]);
+        return;
+      }
+      for (const child of coords) extend(child);
+    };
+    extend(
+      (building.geometry as { coordinates?: unknown } | null | undefined)
+        ?.coordinates
+    );
+    if (bounds.isEmpty()) return;
+    const override = urlCameraOverride();
+    map.fitBounds(bounds, {
+      padding: 140,
+      maxZoom: 18.5,
+      duration: 0,
+      pitch: override.pitch ?? 0,
+      bearing: override.bearing ?? 0,
+    });
+  }, [focusContextQuery.data]);
 
   useEffect(() => {
     if (!mapRef.current) return;

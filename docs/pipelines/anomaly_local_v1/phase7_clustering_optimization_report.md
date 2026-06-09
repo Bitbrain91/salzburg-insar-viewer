@@ -22,7 +22,7 @@ Massgebliche Spezifikation:
 | P7-A-W1-T2 | Research-Matrix | green |
 | P7-A-W1-T3 | AOI-Katalog | green |
 | P7-A-W1-T4 | Referenzfaelle | green |
-| P7-B-W2-T0 | Deep-Links + Track-Farben | planned |
+| P7-B-W2-T0 | Deep-Links + Track-Farben | green |
 | P7-B-W1-T1..T4 | Harness/Scorecard/Konfidenz/HR | planned |
 | P7-B-W2-T1 | Visual-Audit-Workflow | planned |
 | P7-E-W1-T3 | Run-Transparenz (vorgezogen) | planned |
@@ -164,3 +164,37 @@ Neu datenbasiert gefunden:
   Divergenzfall (SNT noise_dominated vs TSX ok).
 - Hang-Stress-Anker bg_slope_01: `238057563` (Agreement 0.188),
   `113309853` (ok trotz 0.229).
+
+---
+
+## P7-B-W2-T0: Viewer-Deep-Links und Track-Farben (green)
+
+Implementiert (3 Dateien plus Parameterdoku):
+
+- `frontend/src/lib/urlState.ts` (neu): Query-Parameter `area`, `run`,
+  `building` (`gba:<id>`/`osm:<id>`), `mlview`, `track` (`all` oder
+  `<dataset>:<track>`), `hulls`, `excluded`, `mlpoints`, `mlbuildings`,
+  `gba`, `osm`, `rawtracks` (blendet die rohen InSAR-Track-Layer fuer
+  Audit-Ansichten aus), `basemap`, `pitch`, `bearing`. Synchrones
+  `useAppStore.setState` VOR dem ersten Render (kein fitBounds-/
+  Selection-Reset-Race); ungueltige Werte werden still ignoriert.
+- `frontend/src/main.tsx`: Bootstrap-Aufruf vor `createRoot`.
+- `frontend/src/components/MapView.tsx`: einmaliger Auto-Fit auf die
+  Gebaeudegeometrie, wenn `building` gesetzt und kein Kamera-Hash vorhanden
+  ist - erzwingt Nadir (`pitch=0`, `bearing=0`), Override via
+  `pitch`/`bearing`-Parameter; Candidate-Area-Farben ergaenzt fuer Tracks
+  22 (violett), 70 (dunkelrot), 93 (tuerkis).
+
+Verifikation (Playwright, Frontend-Dev-Server + `npm run build` gruen):
+
+- Deep-Link `/?area=salzburg&run=c23cd637...&building=gba:548205&mlview=
+  cluster&hulls=1&rawtracks=0&basemap=satellite` stellt OHNE Klick die
+  Focus-View her: Satellitenbild, GBA-Umriss, Candidate-Areas, Inspector
+  mit Gebaeuderollup (`single_track_only`); Auto-Fit setzte die Kamera auf
+  `#18/47.806837/13.043029` (Nadir).
+- Mit explizitem Hash `#19/...` respektiert der Viewer die Hash-Kamera
+  (kein Auto-Fit) - Belegscreenshots:
+  `artifacts/phase7_visual_548205_t0proof_overview.png`,
+  `artifacts/phase7_visual_548205_t0proof_z19.png`.
+- Ohne Parameter ist das Default-Verhalten unveraendert (Standard-Kamera
+  `#12/47.8/13.05/-10/45`, keine Selektion, keine Konsolen-Fehler).
