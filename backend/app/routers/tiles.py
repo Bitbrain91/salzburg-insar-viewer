@@ -105,7 +105,9 @@ async def mbtiles_tile(name: str, z: int, x: int, y: int) -> Response:
     )
     row = cur.fetchone()
     if row is None:
-        raise HTTPException(status_code=404, detail="Tile not found")
+        # Tippecanoe omits vector tiles that contain no features. MapLibre can
+        # request those neighboring tiles during normal panning/initial load.
+        return Response(status_code=204, headers={"Cache-Control": "public, max-age=86400"})
 
     data = row[0]
     headers = {

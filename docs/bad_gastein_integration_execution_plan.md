@@ -34,8 +34,9 @@ harter Blocker auftritt.
 - `area_id` und `dataset_id` sind Pflicht in allen neuen Datenpfaden.
 - Salzburg bleibt Rueckwaertskompatibilitaets-Default.
 - OSM ist kein Ersatz fuer GBA; Bad-Gastein-Pipelines muessen GBA nutzen.
-- SNT22 wird importiert und angezeigt, aber fuer richtungsabhaengige ML-Logik
-  nur genutzt, wenn seine Blickrichtung fachlich verifiziert ist.
+- SNT22 ist fachlich verifiziert (Descending, Blickrichtung 280.2 deg,
+  Einfallswinkel 45.66 deg) und wird wie SNT44/95 fuer richtungsabhaengige
+  ML-Logik genutzt.
 - Subagents arbeiten an disjunkten Write-Sets; der Supervisor integriert und
   prueft Gates.
 
@@ -105,8 +106,9 @@ harter Blocker auftritt.
     `area_id`/`dataset_id`; Responses enthalten die neuen Identitaetsfelder.
   - Write-Set: `backend/app/`.
 - Ticket I: Track-Geometrie dataset-aware machen.
-  - DoD: alle bekannten Tracks haben Metadaten; SNT22 ist als unverified
-    markiert; Geometrie-Lookups erfordern ein `dataset_id`.
+  - DoD: alle bekannten Tracks haben Metadaten; SNT22 ist als verified
+    und direction-dependent markiert; Geometrie-Lookups erfordern ein
+    `dataset_id`.
   - Write-Set: `backend/app/ml/track_geometry.py`.
 
 #### Welle 2.2

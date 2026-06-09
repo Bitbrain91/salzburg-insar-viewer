@@ -102,9 +102,9 @@ DATASET_TRACKS: tuple[DatasetTrackMetadata, ...] = (
         track=22,
         los="D",
         sensor="SNT",
-        name="Bad Gastein SNT Track 22 (Unverified)",
-        geometry_status="unverified",
-        direction_dependent_ml=False,
+        name="Bad Gastein SNT Track 22 (Descending)",
+        geometry_status="verified",
+        direction_dependent_ml=True,
     ),
     DatasetTrackMetadata(
         area_id="bad_gastein",

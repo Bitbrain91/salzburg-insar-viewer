@@ -3,7 +3,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PIDS=()
-BROWSER_URL="${INSAR_VIEWER_URL:-http://localhost:3000}"
 
 cleanup() {
   echo ""
@@ -20,11 +19,6 @@ port_in_use() {
   local port="$1"
   ss -ltn 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"' | grep -q . || \
     netstat -ltn 2>/dev/null | awk -v p=":$port" '$4 ~ p"$"' | grep -q .
-}
-
-is_http_ready() {
-  local url="$1"
-  curl -fsS -o /dev/null "$url" >/dev/null 2>&1
 }
 
 wait_port_ready() {
@@ -68,49 +62,12 @@ wait_http_ready() {
   return 1
 }
 
-start_docker_desktop() {
-  if command -v powershell.exe >/dev/null 2>&1; then
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
-      "if (-not (Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue)) { Start-Process 'C:\Program Files\Docker\Docker\Docker Desktop.exe' }" \
-      >/dev/null 2>&1 || true
-  fi
-}
-
-wait_docker_ready() {
-  local timeout_seconds="${1:-180}"
-  local elapsed=0
-
-  while [ "$elapsed" -lt "$timeout_seconds" ]; do
-    if docker info >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-
-  return 1
-}
-
-open_browser() {
-  local url="$1"
-
-  if command -v cmd.exe >/dev/null 2>&1; then
-    cmd.exe /C start "" "$url" >/dev/null 2>&1 || true
-  elif command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "$url" >/dev/null 2>&1 || true
-  fi
-}
-
 # --- 0) Docker Desktop pruefen ---
 echo "==> Checking Docker..."
 if ! docker info >/dev/null 2>&1; then
-  echo "    Docker is not running yet. Starting Docker Desktop..."
-  start_docker_desktop
-  if ! wait_docker_ready 180; then
-    echo "    ERROR: Docker did not become ready within 180s."
-    echo "    Please start Docker Desktop manually, then re-run this script."
-    exit 1
-  fi
+  echo "    ERROR: Docker is not running."
+  echo "    Please start Docker Desktop first, then re-run this script."
+  exit 1
 fi
 echo "    Docker is running."
 
@@ -145,22 +102,13 @@ else
   fi
 fi
 
-BACKEND_PID=""
-if is_http_ready "http://127.0.0.1:8000/api/health"; then
-  echo "==> Backend already running (:8000)."
-elif port_in_use 8000; then
-  echo "    ERROR: Port 8000 is already in use, but backend health is not ready."
-  echo "    Stop the process on port 8000 or run ./stop.sh, then try again."
-  exit 1
-else
-  echo "==> Starting backend (uvicorn :8000)..."
-  (
-    cd "$ROOT_DIR/backend"
-    "$VENV_PY" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-  ) &
-  BACKEND_PID=$!
-  PIDS+=("$BACKEND_PID")
-fi
+echo "==> Starting backend (uvicorn :8000)..."
+(
+  cd "$ROOT_DIR/backend"
+  "$VENV_PY" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+) &
+BACKEND_PID=$!
+PIDS+=("$BACKEND_PID")
 
 # --- 3) Frontend ---
 VITE_BIN="$ROOT_DIR/frontend/node_modules/.bin/vite"
@@ -176,40 +124,21 @@ if [ ! -x "$VITE_BIN" ]; then
   fi
 fi
 
-FRONTEND_PID=""
-if is_http_ready "http://127.0.0.1:3000"; then
-  echo "==> Frontend already running (:3000)."
-elif port_in_use 3000; then
-  echo "    ERROR: Port 3000 is already in use, but the frontend is not ready."
-  echo "    Stop the process on port 3000 or run ./stop.sh, then try again."
-  exit 1
-else
-  echo "==> Starting frontend (vite :3000)..."
-  (
-    cd "$ROOT_DIR/frontend"
-    npm run dev -- --host --port 3000 --strictPort
-  ) &
-  FRONTEND_PID=$!
-  PIDS+=("$FRONTEND_PID")
-fi
+echo "==> Starting frontend (vite :3000)..."
+(
+  cd "$ROOT_DIR/frontend"
+  npm run dev -- --host --port 3000 --strictPort
+) &
+FRONTEND_PID=$!
+PIDS+=("$FRONTEND_PID")
 
-echo "==> Waiting for backend health on :8000..."
-if [ -n "$BACKEND_PID" ]; then
-  if ! wait_http_ready "http://127.0.0.1:8000/api/health" "Backend" 120; then
-    exit 1
-  fi
-elif ! is_http_ready "http://127.0.0.1:8000/api/health"; then
-  echo "    ERROR: Backend health is not ready at http://127.0.0.1:8000/api/health."
+echo "==> Waiting for backend on :8000..."
+if ! wait_port_ready 8000 "Backend" "$BACKEND_PID"; then
   exit 1
 fi
 
 echo "==> Waiting for frontend on :3000..."
-if [ -n "$FRONTEND_PID" ]; then
-  if ! wait_port_ready 3000 "Frontend" "$FRONTEND_PID"; then
-    exit 1
-  fi
-elif ! is_http_ready "http://127.0.0.1:3000"; then
-  echo "    ERROR: Frontend is not ready at http://127.0.0.1:3000."
+if ! wait_port_ready 3000 "Frontend" "$FRONTEND_PID"; then
   exit 1
 fi
 
@@ -227,11 +156,4 @@ echo "========================================"
 echo "  Press Ctrl+C to stop all services"
 echo "========================================"
 
-echo "==> Opening browser..."
-open_browser "$BROWSER_URL"
-
-if [ "${#PIDS[@]}" -gt 0 ]; then
-  wait "${PIDS[@]}"
-else
-  echo "All app processes were already running; browser opened."
-fi
+wait "${PIDS[@]}"

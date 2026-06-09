@@ -1,0 +1,594 @@
+- generic [ref=e425]:
+  - generic [ref=e427]:
+    - generic [ref=e428]:
+      - generic [ref=e429]:
+        - generic [ref=e430]:
+          - generic [ref=e431]:
+            - generic [ref=e432]:
+              - generic [ref=e433]:
+                - img "Markus Dörfler - MSc" [ref=e435]
+                - img [ref=e438]
+              - generic [ref=e448] [cursor=pointer]: Markus Dörfler
+            - generic [ref=e449]: May 6
+          - generic [ref=e450]:
+            - button "Zusammenfassen" [ref=e453] [cursor=pointer]:
+              - img [ref=e454]
+            - button "Menu" [ref=e458] [cursor=pointer]:
+              - img [ref=e459]
+            - button "Menu" [ref=e462] [cursor=pointer]:
+              - img [ref=e463]
+        - navigation "Breadcrumb" [ref=e466]:
+          - list [ref=e467]:
+            - listitem [ref=e468]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e469] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e470]
+                - generic [ref=e472]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e473]
+            - listitem [ref=e475]:
+              - link "WP3 - Seed AUGMENTERRA" [ref=e476] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/neue_gruppe69896
+                - img [ref=e477]
+                - generic [ref=e479]: WP3 - Seed AUGMENTERRA
+            - img [ref=e480]
+            - listitem [ref=e482]:
+              - link "Know-How Transfer zwischen FH und AUGMENTERRA" [ref=e483] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11398490903
+                - img [ref=e484]
+                - generic [ref=e486]: Know-How Transfer zwischen FH und AUGMENTERRA
+      - generic [ref=e487]:
+        - generic [ref=e488]:
+          - generic [ref=e489]:
+            - generic [ref=e492]:
+              - paragraph [ref=e493]:
+                - link "@Reinhard Portenkirchner" [ref=e494] [cursor=pointer]:
+                  - /url: https://georesearch-squad.monday.com/users/100475690-reinhard-portenkirchner
+                  - generic [ref=e495]: "@Reinhard Portenkirchner"
+              - paragraph [ref=e496]:
+                - text: "Hier findest du wie besprochen die Daten von Bad Gastein:"
+                - link "Export Bad Gastein.zip" [ref=e497] [cursor=pointer]:
+                  - /url: https://augmenterra-my.sharepoint.com/:u:/p/markus_doerfler/IQBxEEtifkGuS5FbRMhyR-s_Ab_JfOkUptlfcDq2zwnJnXk?e=blcScJ
+              - paragraph [ref=e498]:
+                - text: "Winkel:"
+                - text: "SNT:"
+              - paragraph [ref=e499]:
+                - text: "Track 44: Blickrichtung (81,4°), Einfallswinkel (38,32°)"
+                - text: "Track 95: Blickrichtung (281,5°), Einfallswinkel (37,16°)"
+                - text: "TSX/PAZ:"
+              - paragraph [ref=e500]:
+                - text: "Track 93: Blickrichtung (83,77°), Einfallswinkel (53.9°)"
+                - text: "Track 70: Blickrichtung (279,45°), Einfallswinkel (51.68°)"
+                - text: In diesem Bereich wissen wir, dass es sehr starke differentielle Bewegungen mit großen Bauschäden gibt.
+              - img [ref=e501] [cursor=pointer]
+            - button "... Mehr anzeigen" [ref=e502] [cursor=pointer]:
+              - generic [ref=e504]: ... Mehr anzeigen
+          - generic [ref=e508]:
+            - img [ref=e510]
+            - text: "1"
+        - generic [ref=e513]:
+          - button "Liken" [ref=e516] [cursor=pointer]:
+            - img [ref=e517]
+            - generic [ref=e519]: Liken
+          - button "Antworten" [ref=e520] [cursor=pointer]:
+            - img [ref=e521]
+            - text: Antworten
+        - generic [ref=e524]:
+          - generic [ref=e526]:
+            - generic [ref=e528] [cursor=pointer]:
+              - img "Markus Dörfler - MSc" [ref=e530]
+              - img [ref=e533]
+            - generic [ref=e537]:
+              - generic [ref=e538]:
+                - generic [ref=e539]:
+                  - generic [ref=e545] [cursor=pointer]: Markus Dörfler
+                  - generic [ref=e546]: May 6
+                - generic [ref=e547]:
+                  - generic [ref=e550]:
+                    - paragraph [ref=e551]:
+                      - link "@Reinhard Portenkirchner" [ref=e552] [cursor=pointer]:
+                        - /url: https://georesearch-squad.monday.com/users/100475690-reinhard-portenkirchner
+                        - generic [ref=e553]: "@Reinhard Portenkirchner"
+                      - text: "zwecks dem MatchSAR Algorithmus kannst du dir ganz grob folgende Schritte vorstellen:"
+                    - list [ref=e554]:
+                      - listitem [ref=e555]:
+                        - paragraph [ref=e556]: Zuordnung von Messpunkten (MPs) zu Objekt unter Berücksichtigung eines Objektbuffers von 5m
+                      - listitem [ref=e557]:
+                        - paragraph [ref=e558]: Filtern von MPs aufgrund von Qualitätskriterien (Basis sind die MP-Parameter)
+                      - listitem [ref=e559]:
+                        - paragraph [ref=e560]: Berechnung der durchschnittlichen Velocities pro Track und Metadaten
+                      - listitem [ref=e561]:
+                        - paragraph [ref=e562]: Filtern von Tracks aufgrund Processing Unsicherheiten
+                      - listitem [ref=e563]:
+                        - paragraph [ref=e564]: Filtern von Tracks aufgrund von Plausibilitätsprüfungen
+                      - listitem [ref=e565]:
+                        - paragraph [ref=e566]
+                      - listitem [ref=e568]:
+                        - paragraph [ref=e569]: Interpretation - Ampelsystem
+                    - paragraph [ref=e570]
+                  - button "... Mehr anzeigen" [ref=e571] [cursor=pointer]:
+                    - generic [ref=e573]: ... Mehr anzeigen
+              - generic [ref=e574]:
+                - generic [ref=e576]:
+                  - img [ref=e578]
+                  - text: "1"
+                - button [ref=e583] [cursor=pointer]:
+                  - img [ref=e584]
+                - button "Antworten" [ref=e587] [cursor=pointer]
+          - generic [ref=e588]:
+            - img [ref=e592]
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e593]:
+              - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e594]
+    - button "Als gelesen markieren" [ref=e597] [cursor=pointer]:
+      - img [ref=e598]
+  - generic [ref=e601]:
+    - generic [ref=e602]:
+      - generic [ref=e603]:
+        - generic [ref=e604]:
+          - generic [ref=e605]:
+            - generic [ref=e606]:
+              - generic [ref=e607]:
+                - img "Reinhard Portenkirchner" [ref=e609]
+                - img [ref=e612]
+              - generic [ref=e626] [cursor=pointer]: Reinhard Portenkirchner
+            - generic [ref=e627]: Apr 27
+          - generic [ref=e628]:
+            - button "Zusammenfassen" [ref=e631] [cursor=pointer]:
+              - img [ref=e632]
+            - button "Menu" [ref=e636] [cursor=pointer]:
+              - img [ref=e637]
+            - button "Menu" [ref=e640] [cursor=pointer]:
+              - img [ref=e641]
+        - navigation "Breadcrumb" [ref=e644]:
+          - list [ref=e645]:
+            - listitem [ref=e646]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e647] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e648]
+                - generic [ref=e650]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e651]
+            - listitem [ref=e653]:
+              - link "WP1 - Projektmanagement" [ref=e654] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/neue_gruppe43743
+                - img [ref=e655]
+                - generic [ref=e657]: WP1 - Projektmanagement
+            - img [ref=e658]
+            - listitem [ref=e660]:
+              - link "Informationsaustausch (siehe Story rechts)" [ref=e661] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11398529510
+                - img [ref=e662]
+                - generic [ref=e664]: Informationsaustausch (siehe Story rechts)
+      - generic [ref=e665]:
+        - generic [ref=e666]:
+          - generic [ref=e667]:
+            - generic [ref=e670]:
+              - paragraph [ref=e671]:
+                - strong [ref=e672]: Klärung Track-Geometrie und LOS-Konvention für Salzburg-Daten
+              - paragraph [ref=e673]:
+                - text: Hallo
+                - link "@Markus Dörfler" [ref=e674] [cursor=pointer]:
+                  - /url: /users/19583892
+                  - generic [ref=e675]: "@Markus Dörfler"
+                - text: ","
+              - paragraph [ref=e676]: wir validieren gerade die InSAR-Datenkette im Salzburg InSAR Viewer und möchten die Geometrie der gelieferten Datensätze sauber dokumentieren, statt sie aus indirekten Annahmen abzuleiten.
+              - paragraph [ref=e677]: "In den von euch gelieferten GPKG-Daten sehen wir für Salzburg zwei Tracks:"
+              - list [ref=e678]:
+                - listitem [ref=e679]: Track 44 mit los = A
+                - listitem [ref=e680]: Track 95 mit los = D
+              - paragraph [ref=e681]:
+                - text: Außerdem sind
+                - emphasis [ref=e682]: incidence_angle
+                - text: und die Aufnahmezeitpunkte bereits in den Daten enthalten.
+              - paragraph [ref=e683]: "Könnt ihr uns bitte kurz bestätigen:"
+              - list [ref=e684]:
+                - listitem [ref=e685]:
+                  - text: Bedeutet
+                  - emphasis [ref=e686]: los = A/D
+                  - text: in euren Daten Ascending bzw. Descending?
+                - listitem [ref=e687]: Entsprechen Track 44 und Track 95 den Sentinel-1 Relative-Orbit-Nummern 44 und 95?
+                - listitem [ref=e688]:
+                  - text: "Welche Radar-Blickrichtung bzw. Range-Richtung gilt für die beiden Tracks? Wir arbeiten derzeit mit der groben Annahme:"
+                  - list [ref=e689]:
+                    - listitem [ref=e690]: "Track 44: ostwärts"
+                    - listitem [ref=e691]: "Track 95: westwärts"
+                  - text: Für die aktuelle Version ist diese grobe Richtung ausreichend. Für eine präzisere Candidate-Area wäre aber die genaue Range-Richtung bzw. der Radar-Look-Azimut für Track 44 und Track 95 deutlich besser, falls diese Information in euren Stack- oder Prozessierungsmetadaten verfügbar ist.
+                - listitem [ref=e692]:
+                  - text: Bedeutet ein positiver Wert bei
+                  - emphasis [ref=e693]: velocity
+                  - text: und
+                  - emphasis [ref=e694]: displacement
+                  - text: Bewegung zum Satelliten hin oder vom Satelliten weg?
+              - paragraph [ref=e695]: "Hintergrund: Unsere adaptive Buffer-Berechnung für die Punkt-Gebäude-Zuordnung erweitert Candidate-Areas zur Sensor-/Near-Range-Seite. Aktuell verwenden wir dafür eine vereinfachte Ost/West-Richtung. Mit Heading bzw. Radar-Look-Azimut könnten wir diese Candidate-Area später präziser als echten 2D-Richtungsvektor modellieren."
+              - paragraph [ref=e696]: Zusätzlich wurde in unserem letzten Meeting ein Dokument zum von euch verwendeten SqueeSAR®-Algorithmus erwähnt. Falls dieses Dokument teilbar ist, würden wir uns sehr freuen, wenn ihr es uns zukommen lassen könntet.
+            - button "... Mehr anzeigen" [ref=e697] [cursor=pointer]:
+              - generic [ref=e699]: ... Mehr anzeigen
+          - generic [ref=e703]:
+            - img [ref=e705]
+            - text: "1"
+        - generic [ref=e708]:
+          - button "Liken" [ref=e711] [cursor=pointer]:
+            - img [ref=e712]
+            - generic [ref=e714]: Liken
+          - button "Antworten" [ref=e715] [cursor=pointer]:
+            - img [ref=e716]
+            - text: Antworten
+        - generic [ref=e719]:
+          - generic [ref=e721]:
+            - generic [ref=e723] [cursor=pointer]:
+              - img "Markus Dörfler - MSc" [ref=e725]
+              - img [ref=e728]
+            - generic [ref=e732]:
+              - generic [ref=e733]:
+                - generic [ref=e734]:
+                  - generic [ref=e740] [cursor=pointer]: Markus Dörfler
+                  - generic [ref=e741]: Apr 28
+                - generic [ref=e742]:
+                  - generic [ref=e743]:
+                    - generic [ref=e745]:
+                      - paragraph [ref=e746]:
+                        - link "@Reinhard Portenkirchner" [ref=e747] [cursor=pointer]:
+                          - /url: https://georesearch-squad.monday.com/users/100475690-reinhard-portenkirchner
+                      - paragraph [ref=e749]:
+                        - text: Danke für die Fragen :)
+                        - text: 1. Ja, A=Ascending und D=Descending
+                      - paragraph [ref=e750]: 2. Auch korrekt, das sind die Orbit Nummern
+                      - paragraph [ref=e751]:
+                        - text: 3. Track 44
+                        - strong [ref=e752]
+                      - paragraph [ref=e755]:
+                        - text: Track 95
+                        - strong [ref=e756]: Blickrichtung
+                        - text: (281,5°) - nahezu westwärts und
+                        - strong [ref=e757]: Einfallswinkel bzw. off-Nadir
+                        - text: (38,48°)
+                      - paragraph [ref=e758]: 4. negative Werte entsprechen einer verlängerung der LOS also weg vom Satelliten, positive Werte sind dementsprechend Bewegungen hin zum Satelliten
+                      - paragraph [ref=e759]
+                      - paragraph [ref=e760]: "Anbei noch 2 Docs:"
+                      - paragraph [ref=e761]
+                      - link " TREALTAMIRA_handbook_2.2_20180604.pdf" [ref=e763] [cursor=pointer]:
+                        - /url: https://georesearch-squad.monday.com/protected_static/8081193/resources/2929918113/TREALTAMIRA_handbook_2.2_20180604.pdf
+                        - generic [ref=e764]: 
+                        - text: TREALTAMIRA_handbook_2.2_20180604.pdf
+                      - paragraph [ref=e766]
+                      - paragraph [ref=e767]
+                      - link " AUGMENTERRA_InSAR_Handbook_v1_3.pdf" [ref=e769] [cursor=pointer]:
+                        - /url: https://georesearch-squad.monday.com/protected_static/8081193/resources/2929917701/AUGMENTERRA_InSAR_Handbook_v1_3.pdf
+                        - generic [ref=e770]: 
+                        - text: AUGMENTERRA_InSAR_Handbook_v1_3.pdf
+                      - paragraph [ref=e772]
+                      - paragraph [ref=e773]
+                    - button "Alle Dateien herunterladen" [ref=e774] [cursor=pointer]:
+                      - img [ref=e775]
+                      - text: Alle Dateien herunterladen
+                  - button "... Mehr anzeigen" [ref=e777] [cursor=pointer]:
+                    - generic [ref=e779]: ... Mehr anzeigen
+              - generic [ref=e780]:
+                - generic [ref=e782]:
+                  - img [ref=e784]
+                  - text: "1"
+                - button [ref=e789] [cursor=pointer]:
+                  - img [ref=e790]
+                - button "Antworten" [ref=e793] [cursor=pointer]
+          - generic [ref=e794]:
+            - img [ref=e798]
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e799]:
+              - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e800]
+    - button "Als gelesen markieren" [ref=e803] [cursor=pointer]:
+      - img [ref=e804]
+  - generic [ref=e807]:
+    - generic [ref=e808]:
+      - generic [ref=e809]:
+        - generic [ref=e810]:
+          - generic [ref=e811]:
+            - generic [ref=e812]:
+              - generic [ref=e813]:
+                - img "Michael Gadermayr" [ref=e815]
+                - img [ref=e818]
+              - generic [ref=e832] [cursor=pointer]: Michael Gadermayr
+            - generic [ref=e833]: Apr 20
+          - generic [ref=e834]:
+            - button "Zusammenfassen" [ref=e837] [cursor=pointer]:
+              - img [ref=e838]
+            - button "Menu" [ref=e842] [cursor=pointer]:
+              - img [ref=e843]
+            - button "Menu" [ref=e846] [cursor=pointer]:
+              - img [ref=e847]
+        - navigation "Breadcrumb" [ref=e850]:
+          - list [ref=e851]:
+            - listitem [ref=e852]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e853] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e854]
+                - generic [ref=e856]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e857]
+            - listitem [ref=e859]:
+              - link "WP6 - Kompetenznetzwerk" [ref=e860] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/group_mm12e42
+                - img [ref=e861]
+                - generic [ref=e863]: WP6 - Kompetenznetzwerk
+            - img [ref=e864]
+            - listitem [ref=e866]:
+              - link "Liste an Partnern für weiterführende Drittmittelprojekte" [ref=e867] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11398498175
+                - img [ref=e868]
+                - generic [ref=e870]: Liste an Partnern für weiterführende Drittmittelprojekte
+      - generic [ref=e871]:
+        - generic [ref=e872]:
+          - generic [ref=e876]:
+            - generic [ref=e877]: Liste
+            - list [ref=e878]:
+              - listitem [ref=e879]:
+                - text: Liebherr Manuel Bös (
+                - link "manuel.boes@liebherr.com" [ref=e880] [cursor=pointer]:
+                  - /url: mailto:manuel.boes@liebherr.com
+                - text: )
+              - listitem [ref=e881]:
+                - link "Roo.si" [ref=e882] [cursor=pointer]:
+                  - /url: http://Roo.si
+                - text: ", Gernot Bernert ("
+                - link "gernot.bernert@roo.si" [ref=e883] [cursor=pointer]:
+                  - /url: mailto:gernot.bernert@roo.si
+                - text: )
+              - listitem [ref=e884]:
+                - text: Cogvis, Reiner Planinc (
+                - link "planinc@cogvis.at" [ref=e885] [cursor=pointer]:
+                  - /url: mailto:planinc@cogvis.at
+                - text: )
+            - paragraph [ref=e886]
+          - generic [ref=e890]:
+            - img [ref=e892]
+            - text: "2"
+        - generic [ref=e895]:
+          - button "Liken" [ref=e898] [cursor=pointer]:
+            - img [ref=e899]
+            - generic [ref=e901]: Liken
+          - button "Antworten" [ref=e902] [cursor=pointer]:
+            - img [ref=e903]
+            - text: Antworten
+        - generic [ref=e907]:
+          - img [ref=e911]
+          - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e912]:
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e913]
+    - button "Als gelesen markieren" [ref=e916] [cursor=pointer]:
+      - img [ref=e917]
+  - generic [ref=e920]:
+    - generic [ref=e921]:
+      - generic [ref=e922]:
+        - generic [ref=e923]:
+          - generic [ref=e924]:
+            - generic [ref=e925]:
+              - generic [ref=e926]:
+                - img "Michael Gadermayr" [ref=e928]
+                - img [ref=e931]
+              - generic [ref=e945] [cursor=pointer]: Michael Gadermayr
+            - generic [ref=e946]: Apr 20
+          - generic [ref=e947]:
+            - button "Zusammenfassen" [ref=e950] [cursor=pointer]:
+              - img [ref=e951]
+            - button "Menu" [ref=e955] [cursor=pointer]:
+              - img [ref=e956]
+            - button "Menu" [ref=e959] [cursor=pointer]:
+              - img [ref=e960]
+        - navigation "Breadcrumb" [ref=e963]:
+          - list [ref=e964]:
+            - listitem [ref=e965]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e966] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e967]
+                - generic [ref=e969]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e970]
+            - listitem [ref=e972]:
+              - link "WP5 - Mini Seed (neue Partner)" [ref=e973] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/neue_gruppe83690
+                - img [ref=e974]
+                - generic [ref=e976]: WP5 - Mini Seed (neue Partner)
+            - img [ref=e977]
+            - listitem [ref=e979]:
+              - link "Austausch" [ref=e980] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11793221181
+                - img [ref=e981]
+                - generic [ref=e983]: Austausch
+      - generic [ref=e984]:
+        - generic [ref=e985]:
+          - generic [ref=e989]:
+            - paragraph [ref=e990]:
+              - text: Besprechung mit
+              - link "Roo.si" [ref=e991] [cursor=pointer]:
+                - /url: http://Roo.si
+              - text: (Gernot Bernert)
+            - list [ref=e992]:
+              - listitem [ref=e993]: Anknüpfungspunkte gefunden
+              - listitem [ref=e994]: "TODOs: Konkretisierung bei nächstem Treffen"
+            - paragraph [ref=e995]
+            - paragraph [ref=e996]
+          - generic [ref=e1000]:
+            - img [ref=e1002]
+            - text: "2"
+        - generic [ref=e1005]:
+          - button "Liken" [ref=e1008] [cursor=pointer]:
+            - img [ref=e1009]
+            - generic [ref=e1011]: Liken
+          - button "Antworten" [ref=e1012] [cursor=pointer]:
+            - img [ref=e1013]
+            - text: Antworten
+        - generic [ref=e1017]:
+          - img [ref=e1021]
+          - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1022]:
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1023]
+    - button "Als gelesen markieren" [ref=e1026] [cursor=pointer]:
+      - img [ref=e1027]
+  - generic [ref=e1030]:
+    - generic [ref=e1031]:
+      - generic [ref=e1032]:
+        - generic [ref=e1033]:
+          - generic [ref=e1034]:
+            - generic [ref=e1035]:
+              - generic [ref=e1036]:
+                - img "Michael Gadermayr" [ref=e1038]
+                - img [ref=e1041]
+              - generic [ref=e1055] [cursor=pointer]: Michael Gadermayr
+            - generic [ref=e1056]: Apr 20
+          - generic [ref=e1057]:
+            - button "Zusammenfassen" [ref=e1060] [cursor=pointer]:
+              - img [ref=e1061]
+            - button "Menu" [ref=e1065] [cursor=pointer]:
+              - img [ref=e1066]
+            - button "Menu" [ref=e1069] [cursor=pointer]:
+              - img [ref=e1070]
+        - navigation "Breadcrumb" [ref=e1073]:
+          - list [ref=e1074]:
+            - listitem [ref=e1075]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e1076] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e1077]
+                - generic [ref=e1079]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e1080]
+            - listitem [ref=e1082]:
+              - link "WP4 - Seed Synthetic Dimension" [ref=e1083] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/neue_gruppe75509
+                - img [ref=e1084]
+                - generic [ref=e1086]: WP4 - Seed Synthetic Dimension
+            - img [ref=e1087]
+            - listitem [ref=e1089]:
+              - link "Austausch" [ref=e1090] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11791611592
+                - img [ref=e1091]
+                - generic [ref=e1093]: Austausch
+      - generic [ref=e1094]:
+        - generic [ref=e1095]:
+          - generic [ref=e1096]:
+            - generic [ref=e1099]:
+              - paragraph [ref=e1100]: Erstes Ziel Evaluierung
+              - list [ref=e1101]:
+                - listitem [ref=e1102]: Apple Room Plan vs
+                - listitem [ref=e1103]:
+                  - text: Android Smartphone (agnostisch) +
+                  - list [ref=e1104]:
+                    - listitem [ref=e1105]: SfM
+                    - listitem [ref=e1106]: VGGT + Colmap
+              - paragraph [ref=e1107]
+              - paragraph [ref=e1108]: Evaluierungssetting 2D - automatisiert
+              - list [ref=e1109]:
+                - listitem [ref=e1110]:
+                  - text: Definition von 10 einfachen Räumen mit
+                  - list [ref=e1111]:
+                    - listitem [ref=e1112]: Rechteckige Räume
+                    - listitem [ref=e1113]: Raumdimension > 3 x 3m
+                - listitem [ref=e1114]: "Fokus auf: Länge, Breite von Raum"
+              - paragraph [ref=e1115]: Option
+              - list [ref=e1116]:
+                - listitem [ref=e1117]: 3d Punktwolke aus X
+                - listitem [ref=e1118]: PCA richtet aus, sodass Raumhöhe 3. Dimension
+                - listitem [ref=e1119]: aggregiere auf 2D
+                - listitem [ref=e1120]: RANSAC/hough für detektion von 4 geraden
+                - listitem [ref=e1121]: Schnittpunkte berechnen
+                - listitem [ref=e1122]: Längen berechnen
+                - listitem [ref=e1123]: Höhe ist Referenzmaß
+              - paragraph [ref=e1124]
+              - paragraph [ref=e1125]: Data sets (immer fixes setting)
+              - list [ref=e1126]:
+                - listitem [ref=e1127]: structured3D
+                - listitem [ref=e1128]: ScanNet
+                - listitem [ref=e1129]: HouseLayout3D
+                - listitem [ref=e1130]: ScanNet++
+              - paragraph [ref=e1131]
+              - paragraph [ref=e1132]: Abstract zb
+              - paragraph [ref=e1133]: We propose a systematic study of how imaging conditions affect multi-view 3D reconstruction of interior rooms from RGB imagery. While recent learning-based and classical structure-from-motion methods have achieved strong results on standard benchmarks, their sensitivity to controlled acquisition factors such as illumination, viewpoint distribution, motion blur, and exposure remains insufficiently understood. To address this gap, we introduce a novel synthetic–real hybrid dataset designed to isolate and independently vary key imaging parameters in indoor architectural scenes. The dataset provides multi-view RGB sequences with precise ground-truth geometry, enabling controlled evaluation of reconstruction quality under systematically perturbed capture conditions.
+              - paragraph [ref=e1134]: Using this dataset, we benchmark a range of representative multi-view RGB reconstruction methods, including classical feature-based pipelines (COLMAP + sift/roma), and end-to-end feed-forward approaches (vgg-t, da3). We evaluate performance not only in terms of standard photometric and depth accuracy metrics, but also with respect to geometric consistency, and architectural correctness.
+            - button "... Mehr anzeigen" [ref=e1135] [cursor=pointer]:
+              - generic [ref=e1137]: ... Mehr anzeigen
+          - generic [ref=e1138]:
+            - button "👍, +1, thumbsup 1" [ref=e1143] [cursor=pointer]:
+              - generic [ref=e1144]:
+                - generic "👍, +1, thumbsup" [ref=e1145]
+                - generic [ref=e1147]: "1"
+            - generic [ref=e1148]:
+              - generic [ref=e1149]: Bearbeitet
+              - generic [ref=e1151]:
+                - img [ref=e1153]
+                - text: "1"
+        - generic [ref=e1156]:
+          - button "Liken" [ref=e1159] [cursor=pointer]:
+            - img [ref=e1160]
+            - generic [ref=e1162]: Liken
+          - button "Antworten" [ref=e1163] [cursor=pointer]:
+            - img [ref=e1164]
+            - text: Antworten
+        - generic [ref=e1168]:
+          - img [ref=e1172]
+          - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1173]:
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1174]
+    - button "Als gelesen markieren" [ref=e1177] [cursor=pointer]:
+      - img [ref=e1178]
+  - generic [ref=e1181]:
+    - generic [ref=e1182]:
+      - generic [ref=e1183]:
+        - generic [ref=e1184]:
+          - generic [ref=e1185]:
+            - generic [ref=e1186]:
+              - generic [ref=e1187]:
+                - img "Markus Dörfler - MSc" [ref=e1189]
+                - img [ref=e1192]
+              - generic [ref=e1202] [cursor=pointer]: Markus Dörfler
+            - generic [ref=e1203]: Mar 2
+            - img [ref=e1205]
+          - generic [ref=e1207]:
+            - button "Zusammenfassen" [ref=e1210] [cursor=pointer]:
+              - img [ref=e1211]
+            - button "Menu" [ref=e1215] [cursor=pointer]:
+              - img [ref=e1216]
+            - button "Menu" [ref=e1219] [cursor=pointer]:
+              - img [ref=e1220]
+        - navigation "Breadcrumb" [ref=e1223]:
+          - list [ref=e1224]:
+            - listitem [ref=e1225]:
+              - link "Projekt CoInno - Trustworthy Spatial AI" [ref=e1226] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807
+                - img [ref=e1227]
+                - generic [ref=e1229]: Projekt CoInno - Trustworthy Spatial AI
+            - img [ref=e1230]
+            - listitem [ref=e1232]:
+              - link "WP1 - Projektmanagement" [ref=e1233] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/groups/neue_gruppe43743
+                - img [ref=e1234]
+                - generic [ref=e1236]: WP1 - Projektmanagement
+            - img [ref=e1237]
+            - listitem [ref=e1239]:
+              - link "Informationsaustausch (siehe Story rechts)" [ref=e1240] [cursor=pointer]:
+                - /url: https://georesearch-squad.monday.com/boards/18402108807/pulses/11398529510
+                - img [ref=e1241]
+                - generic [ref=e1243]: Informationsaustausch (siehe Story rechts)
+      - generic [ref=e1244]:
+        - generic [ref=e1245]:
+          - generic [ref=e1246]:
+            - generic [ref=e1249]:
+              - strong [ref=e1250]: Monday Board erstellt
+              - generic [ref=e1251]:
+                - generic [ref=e1252]: Hi Leute,
+                - generic [ref=e1253]: ich habe wie letztens besprochen ein Monday Board für das Projekt angelegt, ihr solltet beide schon eine Einladung bekommen haben.
+                - generic [ref=e1254]: Das Board folgt dem Projektantrag.
+                - generic [ref=e1255]: Meine Idee wäre, das Board als zentralen Informationsaustausch neben den Meetings zu nutzen.
+                - generic [ref=e1256]: Unter WP1 – Informationsaustauch findet ihr eine „User Story“. Das ist ein lebendes Dokument, welchen ich gerne laufend pflegen würde, um eine besser Übersicht und Dokumentation zu haben.
+                - generic [ref=e1257]: Bitte schaut es euch mal an. Es ist nur ein Vorschlag, wir merken aber, dass die Kommunikation über Monday wesentlich besser funktioniert als über Mails etc.
+                - generic [ref=e1258]: Ich kann dann auch noch weitere Personen einladen wenn ihr mir sagt wen.
+                - generic [ref=e1259]: Gerne kurzes Feedback dazu. Dann können wir es auch beim nächsten Meeting kurz besprechen.
+                - generic [ref=e1260]: Beste Grüße
+                - generic [ref=e1261]: Markus
+                - img [ref=e1264] [cursor=pointer]
+            - button "... Mehr anzeigen" [ref=e1265] [cursor=pointer]:
+              - generic [ref=e1267]: ... Mehr anzeigen
+          - generic [ref=e1271]:
+            - img [ref=e1273]
+            - text: "1"
+        - generic [ref=e1276]:
+          - button "Liken" [ref=e1279] [cursor=pointer]:
+            - img [ref=e1280]
+            - generic [ref=e1282]: Liken
+          - button "Antworten" [ref=e1283] [cursor=pointer]:
+            - img [ref=e1284]
+            - text: Antworten
+        - generic [ref=e1288]:
+          - img [ref=e1292]
+          - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1293]:
+            - button "Schreibe eine Antwort und erwähne andere mit @" [ref=e1294]
+    - button "Als gelesen markieren" [ref=e1297] [cursor=pointer]:
+      - img [ref=e1298]

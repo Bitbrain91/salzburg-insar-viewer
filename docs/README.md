@@ -22,6 +22,8 @@ Dieser Ordner ist nach Themen statt nach Einzeldateien organisiert. Neue Doku so
 
 - Workflow-Standard: `docs/workflows/ai_supervisor_workflow.md`
 - Aktueller Umsetzungsplan fuer `anomaly_local_v1`: `docs/pipelines/anomaly_local_v1/phase2_execution_plan.md`
+- Aktuelle Forschungsphase zur Clustering-Optimierung: `docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_plan.md`
+- Supervisor-Startprompt fuer die Clustering-Optimierung: `docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_supervisor_prompt.md`
 - Supervisor-Startprompt fuer `anomaly_local_v1`: `docs/pipelines/anomaly_local_v1/supervisor_prompt.md`
 - Runbook mit festen Test-AOIs: `docs/pipelines/anomaly_local_v1/runbook.md`
 - Fachliche Methodik der aktiven Pipeline: `docs/pipelines/anomaly_local_v1/methodik.md`

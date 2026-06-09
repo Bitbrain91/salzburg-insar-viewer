@@ -63,7 +63,11 @@
         {
           "track_id": 22,
           "layer": "22",
-          "los": "D"
+          "los": "D",
+          "defaults": {
+            "look_angle": 280.2,
+            "incidence_angle": 45.66
+          }
         },
         {
           "track_id": 44,

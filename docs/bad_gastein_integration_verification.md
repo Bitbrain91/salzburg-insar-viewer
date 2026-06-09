@@ -34,10 +34,10 @@ Stand: 2026-06-05
 - `npm run build` in `frontend/`: OK
 - `git diff --check`: OK, nur Git-CRLF-Warnungen im Arbeitsbaum.
 - Altpfad-/Default-Suchlaeufe fuer alte InSAR-Layer, Salzburg-Runtime-Defaults und feste 44/95-Hauptclusterfelder: OK, keine Treffer ausser realen Tracknummern in Manifest/Metadaten.
-- Track-Geometrie: SNT22 ist importierbar/anzeigbar, aber `direction_dependent_ml=false`; Bad-Gastein-SNT 44/95 und TSX/PAZ 70/93 sind fuer direction-dependent ML aktiv.
+- Track-Geometrie: SNT22 ist verifiziert und `direction_dependent_ml=true` mit Blickrichtung 280.2 deg, Sensor-Bearing 100.2 deg und Default-Einfallswinkel 45.66 deg; Bad-Gastein-SNT 44/95 und TSX/PAZ 70/93 sind fuer direction-dependent ML aktiv.
 - Frontend-Konfiguration dedupliziert Dataset-Track-Platzhalter gegen die detaillierten Track-Metadaten aus `/api/config`.
 - Kartenlayer filtern kombinierte InSAR- und Gebaeude-Tiles nach `area_id`; Gebaeude-Highlights nutzen `area_id` plus Gebaeude-ID.
-- ML-Startpanel sendet `area_id` und `dataset_id`; Track-Auswahl kommt aus `/api/config` und deaktiviert nicht verifizierte Tracks wie Bad-Gastein-SNT22.
+- ML-Startpanel sendet `area_id` und `dataset_id`; Track-Auswahl kommt aus `/api/config` und aktiviert verifizierte Tracks inklusive Bad-Gastein-SNT22.
 - Playwright-MCP-Smoke: Salzburg und Bad Gastein zeigen InSAR-Punkte; AOI-Wechsel Salzburg -> Bad Gastein setzt die Karte auf `#10.5/47.0866/13.1389/-10/45`; Bad Gastein zeigt SNT 22/44/95 und TSX/PAZ 70/93 inklusive dynamischer Kameraoptionen.
 - Playwright-MCP-Punktklick: Bad-Gastein-TSX/PAZ-Punkt `DWLVQXL`, Track 70, laedt `/api/points/...area_id=bad_gastein&dataset_id=bad_gastein_tsx_paz` und die passende Zeitreihe.
 

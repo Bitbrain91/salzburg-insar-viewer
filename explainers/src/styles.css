@@ -1,0 +1,53 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: 100 6% 94%;
+  --foreground: 156 14% 11%;
+  --card: 45 50% 98%;
+  --card-foreground: 156 14% 11%;
+  --primary: 175 81% 25%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 105 20% 95%;
+  --secondary-foreground: 156 14% 11%;
+  --muted: 105 20% 95%;
+  --muted-foreground: 156 6% 38%;
+  --border: 100 9% 84%;
+  --destructive: 3 61% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 175 81% 25%;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+.font-mono {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.section-title {
+  margin: 0 0 8px;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.explainer-slider {
+  accent-color: hsl(var(--primary));
+  width: 100%;
+}
