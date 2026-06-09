@@ -17,7 +17,7 @@ Massgebliche Spezifikation:
 | Ticket | Titel | Status |
 | --- | --- | --- |
 | P7-A-W1-T5 | OPTICS-Runtime-Fallback entfernen | green |
-| P7-A-W1-T6 | GBA-Hoehen-Audit | in_progress |
+| P7-A-W1-T6 | GBA-Hoehen-Audit | green |
 | P7-A-W1-T1 | Baseline einfrieren | planned |
 | P7-A-W1-T2 | Research-Matrix | in_progress |
 | P7-A-W1-T3 | AOI-Katalog | planned |
@@ -75,3 +75,30 @@ backend/.venv-wsl/bin/python -m backend.app.ml.cli \
   --source gba --bbox 13.04027,47.80375,13.04387,47.80735
 # Vergleich: ml_run_metrics beider Runs + JOIN ml_point_results auf (code, track)
 ```
+
+---
+
+## P7-A-W1-T6: GBA-Hoehen-Audit (green)
+
+Artefakt: `artifacts/phase7_gba_height_audit.md` (alle Queries enthalten).
+
+Kernergebnisse:
+
+- Kein Loader-Fehler: Rohdaten-GeoJSON enthaelt die niedrigen Hoehen samt
+  Schaetzvarianz `var`; GBA-Hoehenmodell unterschaetzt systematisch
+  (Median-Ratio GBA/OSM `0.735` ueber 673 oeffentliche OSM-Hoehen) und
+  saettigt bei hohen Gebaeuden (Dom 78 -> 27.4 m).
+- Bad-Gastein-OSM-Gegenprobe nicht moeglich: `osm_buildings` hat fuer
+  `bad_gastein` 0 Zeilen (nie geladen).
+- NEU/EHRLICH (Wirkungsquantifizierung, Run `488aa8d0`): Eine
+  Hoehenkorrektur `h/0.735` holt nur `10/210` (T44) bzw. `14/207` (T95)
+  nearest-Punkte in die Candidate-Area (~5-7 %). Dominante nearest-Ursache
+  ist seitlicher Versatz (laterale Slack 2 m vs. Geokodierung 8-12 m) bzw.
+  echte Fremdobjekte - NICHT die Range-Laenge. Die fruehere Hypothese
+  "Hoehenfehler erklaert einen relevanten Teil der nearest-Quote" ist damit
+  fuer Mirabell widerlegt; primaerer Hebel bleibt die Assignment-Hygiene
+  (`P7-C-W1-T5`, v. a. Demotion).
+- Empfehlung: O1 (InSAR-selbstkalibrierte Hoehe) fuer das
+  `height_above_ground_m`-Feature; O3 (globaler Kalibrierfaktor + var) nur
+  als Experimentvariante mit geringer Erwartung; O2 (OSM) als
+  Validierungsquelle; keine produktive Aenderung in P7-A.
