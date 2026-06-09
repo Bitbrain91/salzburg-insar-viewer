@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "ticket": "P7-A-W1-T3",
+  "stand": "2026-06-10",
+  "verification": "Punktzahlen, DS-Anteile, Terrain- und Zeitfenster am 2026-06-09/10 in PostGIS/Parquet verifiziert; Baseline-Runs siehe phase7_baseline_summary.md",
+  "dataset_windows": {
+    "salzburg_snt": {
+      "tracks": {
+        "44": {"los": "A", "epochs": 90, "window": ["2022-04-05", "2025-03-20"]},
+        "95": {"los": "D", "epochs": 88, "window": ["2022-04-09", "2025-03-24"]}
+      }
+    },
+    "bad_gastein_snt": {
+      "tracks": {
+        "22": {"los": "D", "epochs": 90, "window": ["2022-10-01", "2025-09-27"], "coverage_note": "nur lon 13.168-13.276, in keiner Katalog-AOI vorhanden"},
+        "44": {"los": "A", "epochs": 92, "window": ["2022-10-02", "2025-09-28"]},
+        "95": {"los": "D", "epochs": 90, "window": ["2022-10-06", "2025-09-20"]}
+      }
+    },
+    "bad_gastein_tsx_paz": {
+      "tracks": {
+        "70": {"los": "D", "epochs": 57, "window": ["2021-05-15", "2023-05-26"]},
+        "93": {"los": "A", "epochs": 65, "window": ["2021-05-20", "2023-05-27"]}
+      }
+    }
+  },
+  "cross_dataset": {
+    "bad_gastein_snt_vs_tsx_paz": {
+      "temporal_overlap_days": 232,
+      "overlap_window": ["2022-10-06", "2023-05-26"],
+      "consequence": "Bewegungsvergleiche nur qualitativ; HR-Pseudo-Referenz primaer raeumlich-strukturell"
+    }
+  },
+  "aois": [
+    {
+      "aoi_id": "mirabell",
+      "area_id": "salzburg",
+      "bbox": [13.04027, 47.80375, 13.04387, 47.80735],
+      "role": "regression_gate",
+      "purpose": "flacher Kontrollbereich, stabile Gebaeude, P1/P2-Referenz",
+      "buildings_gba": 58,
+      "terrain": {"slope_mean_avg_deg": 2.8, "slope_max_deg": 6.4, "relief_avg_m": 0.9},
+      "points_per_track": {"salzburg_snt": {"44": 700, "95": 781}},
+      "track22_points": 0,
+      "baseline_run": "c23cd637-3251-45bb-a95e-e2aa88abe6de"
+    },
+    {
+      "aoi_id": "moosstrasse",
+      "area_id": "salzburg",
+      "bbox": [13.02714, 47.79189, 13.03074, 47.79549],
+      "role": "regression_gate",
+      "purpose": "gemischte Strukturen, fachlich relevanter Meeting-Bereich, nearest-/Carport-Fallquelle",
+      "buildings_gba": 152,
+      "terrain": {"slope_mean_avg_deg": 1.3, "slope_max_deg": 3.3, "relief_avg_m": 0.2},
+      "points_per_track": {"salzburg_snt": {"44": 754, "95": 938}},
+      "track22_points": 0,
+      "baseline_run": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0"
+    },
+    {
+      "aoi_id": "osthang",
+      "area_id": "salzburg",
+      "bbox": [13.0492, 47.8036, 13.0528, 47.8054],
+      "role": "stress_diagnose",
+      "purpose": "steile Hanglage Salzburg, Topografie-Stress",
+      "buildings_gba": 51,
+      "terrain": {"slope_mean_avg_deg": 21.7, "slope_max_deg": 59.0, "relief_avg_m": 5.2},
+      "points_per_track": {"salzburg_snt": {"44": 289, "95": 327}},
+      "track22_points": 0,
+      "baseline_run": "74c1481e-f2c7-4938-a4ac-8022e1fe2799"
+    },
+    {
+      "aoi_id": "bg_flat_01",
+      "area_id": "bad_gastein",
+      "bbox": [13.132531, 47.106449, 13.135531, 47.109449],
+      "role": "calibration_gate",
+      "purpose": "primaerer flacher HR-Vergleich SNT vs TSX/PAZ",
+      "buildings_gba": 79,
+      "terrain": {"slope_mean_avg_deg": 2.8, "slope_max_deg": 7.5, "relief_avg_m": 0.4},
+      "points_per_track": {
+        "bad_gastein_snt": {"44": 561, "95": 634},
+        "bad_gastein_tsx_paz": {"70": 3152, "93": 3598}
+      },
+      "ds_points_tsx": {"70": 227, "93": 171},
+      "track22_points": 0,
+      "baseline_runs": {
+        "bad_gastein_snt": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+        "bad_gastein_tsx_paz": "97672f6e-f06e-43d8-b279-1dddecc21300"
+      }
+    },
+    {
+      "aoi_id": "bg_slope_01",
+      "area_id": "bad_gastein",
+      "bbox": [13.138531, 47.118449, 13.141531, 47.121449],
+      "role": "stress_diagnose",
+      "purpose": "primaerer Blickrichtungs-/Hangstress Bad Gastein; Agreement-Median Baseline 0.187",
+      "buildings_gba": 61,
+      "terrain": {"slope_mean_avg_deg": 19.8, "slope_max_deg": 31.5, "relief_avg_m": 3.9},
+      "points_per_track": {
+        "bad_gastein_snt": {"44": 312, "95": 405},
+        "bad_gastein_tsx_paz": {"70": 1806, "93": 2403}
+      },
+      "ds_points_tsx": {"70": 129, "93": 152},
+      "track22_points": 0,
+      "baseline_runs": {
+        "bad_gastein_snt": "633325ef-409f-4a9e-a160-c9bc8394e574",
+        "bad_gastein_tsx_paz": "60a3899f-118a-4856-b40a-379939449e8a"
+      }
+    },
+    {
+      "aoi_id": "bg_flat_02",
+      "area_id": "bad_gastein",
+      "bbox": [13.117531, 47.091449, 13.120531, 47.094449],
+      "role": "reserve_calibration",
+      "purpose": "dichte flache Kontrollzelle (Reserve, kein Baseline-Run in S1)",
+      "buildings_gba": 123,
+      "points_per_track": {
+        "bad_gastein_snt": {"44": 263, "95": 318},
+        "bad_gastein_tsx_paz": {"70": 1980, "93": 1897}
+      },
+      "track22_points": 0
+    }
+  ]
+}

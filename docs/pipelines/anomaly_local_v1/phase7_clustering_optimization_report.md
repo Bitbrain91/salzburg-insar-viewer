@@ -20,8 +20,8 @@ Massgebliche Spezifikation:
 | P7-A-W1-T6 | GBA-Hoehen-Audit | green |
 | P7-A-W1-T1 | Baseline einfrieren | green |
 | P7-A-W1-T2 | Research-Matrix | green |
-| P7-A-W1-T3 | AOI-Katalog | planned |
-| P7-A-W1-T4 | Referenzfaelle | planned |
+| P7-A-W1-T3 | AOI-Katalog | green |
+| P7-A-W1-T4 | Referenzfaelle | green |
 | P7-B-W2-T0 | Deep-Links + Track-Farben | planned |
 | P7-B-W1-T1..T4 | Harness/Scorecard/Konfidenz/HR | planned |
 | P7-B-W2-T1 | Visual-Audit-Workflow | planned |
@@ -141,3 +141,26 @@ TRE 11 Zeilen), 3 verifizierte Webquellen, 10 lokale Datenbefunde,
 12 konsolidierte Pflichtregeln, Abschnitt zu bewussten Abweichungen
 (EGMS ATBD durch TRE 2.1.2 gedeckt; Prediction Strength bei Small-N nicht
 anwendbar; AUG-vs-TRE-Toleranzdifferenz dokumentiert).
+
+---
+
+## P7-A-W1-T3 + T4: AOI-Katalog und Referenzfaelle (green)
+
+Artefakte: `artifacts/phase7_aoi_catalog.json` (6 AOIs inkl. Reserve
+`bg_flat_02`; je AOI Tracks, Punktzahlen, DS-Anteile, Terrain,
+Beobachtungsfenster; `temporal_overlap_days=232` SNT vs TSX;
+`track22_points=0` ueberall) und `artifacts/phase7_reference_cases.json`
+(18 Faelle).
+
+Neu datenbasiert gefunden:
+
+- Carport-/nearest-Verdachtsfaelle: 9 Core-Cluster in Moosstrasse mit
+  >=80 % nearest-Anteil und 5.5-9.7 m mittlerer Distanz, 8 davon als
+  MAIN-Cluster - exakt das vom User beobachtete Muster. Primaerfall
+  `96856632` (t44, 3/3 nearest, 9.7 m), Zweitfall `203343478`
+  (t95, 6/6 nearest). Visuelle Bestaetigung im Visual-Audit.
+- HR-Kopplungsfaelle bg_flat_01: `105022686` (ok in SNT 43 kept UND TSX
+  264 kept) als primaerer Kopplungsanker; `105022685` als
+  Divergenzfall (SNT noise_dominated vs TSX ok).
+- Hang-Stress-Anker bg_slope_01: `238057563` (Agreement 0.188),
+  `113309853` (ok trotz 0.229).

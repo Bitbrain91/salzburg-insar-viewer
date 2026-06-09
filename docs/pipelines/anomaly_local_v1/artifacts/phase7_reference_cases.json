@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "ticket": "P7-A-W1-T4",
+  "stand": "2026-06-10",
+  "notes": "Erwartungen sind semantisch formuliert. Baseline-Runs siehe phase7_baseline_summary.md. Visuelle Bestaetigung der *_suspect-Faelle erfolgt im Visual-Audit (P7-B-W2).",
+  "cases": [
+    {
+      "case_id": "mirabell_standard_weak_secondary",
+      "aoi": "mirabell", "dataset_id": "salzburg_snt", "building_id": "548205",
+      "case_type": "standard_ok_weak_secondary",
+      "expectation": "Belastbarer Zwei-Track-Fall, dessen Status durch Verlust EINES Track-95-Punkts kippt (dokumentierter Ein-Punkt-Flip seit P6). Erwartung an Kandidaten: weak-secondary wird klar ausgewiesen, keine hohe Konfidenz vorgespiegelt, Status-Flip wird durch Konfidenzmodul sichtbar."
+    },
+    {
+      "case_id": "mirabell_adjacent_standard",
+      "aoi": "mirabell", "dataset_id": "salzburg_snt", "building_id": "548204",
+      "case_type": "adjacent_ok",
+      "expectation": "Stabiler Nachbarfall mit moderaterem Agreement; darf sich durch Kandidaten nicht verschlechtern."
+    },
+    {
+      "case_id": "moosstrasse_differential_anchor",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96637447",
+      "case_type": "differential_motion",
+      "expectation": "Multi-Cluster mit differential_motion_flag bleibt erhalten; Wegglaetten zu einem Cluster ist candidate_red. Hinweis: t44:cluster_3 ist nearest-dominiert (3/3, 7.0 m) - Differenzial-Semantik darf nicht an einem Fremdcluster haengen."
+    },
+    {
+      "case_id": "moosstrasse_differential_low_agreement",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96637522",
+      "case_type": "differential_motion_low_reliability",
+      "expectation": "Differenzialfall mit niedrigem Agreement; ehrliche mittlere/niedrige Konfidenz erwartet."
+    },
+    {
+      "case_id": "moosstrasse_single_track_only",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96637488",
+      "case_type": "single_track_only",
+      "expectation": "Ein-Track-Fall bleibt single_track_only; sein t44-Main-Cluster ist komplett nearest (4/4, 7.0 m) und gehoert in die Assignment-Hygiene-Pruefung."
+    },
+    {
+      "case_id": "moosstrasse_small_n",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96959854",
+      "case_type": "small_n",
+      "expectation": "Knapper Support; keine kuenstliche Aufwertung durch Kandidaten."
+    },
+    {
+      "case_id": "moosstrasse_noise_dominated",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96637551",
+      "case_type": "noise_dominated",
+      "expectation": "Noise-dominiert; Kandidaten duerfen Noise nicht kosmetisch in Cluster pressen."
+    },
+    {
+      "case_id": "osthang_insufficient_support",
+      "aoi": "osthang", "dataset_id": "salzburg_snt", "building_id": "395674088",
+      "case_type": "insufficient_support",
+      "expectation": "2 Punkte, beide nearest, Steilhang: bleibt insufficient_support."
+    },
+    {
+      "case_id": "osthang_low_agreement",
+      "aoi": "osthang", "dataset_id": "salzburg_snt", "building_id": "54773363",
+      "case_type": "noise_dominated_low_agreement",
+      "expectation": "Hangfall mit Agreement ~0.13 und hohem Noise; Cross-Track-Disagreement ist hier Diagnose (Horizontalanteil moeglich), kein Fehler."
+    },
+    {
+      "case_id": "osthang_nearest_heavy_ok",
+      "aoi": "osthang", "dataset_id": "salzburg_snt", "building_id": "150506168",
+      "case_type": "nearest_heavy_suspicious_ok",
+      "expectation": "23/47 nearest bei Status ok/high: Kandidaten muessen Assignment-Unsicherheit sichtbar machen statt sie zu verstecken."
+    },
+    {
+      "case_id": "moosstrasse_carport_suspect_primary",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "96856632",
+      "case_type": "carport_nearest_main_suspect",
+      "expectation": "Main-Cluster t44 besteht zu 3/3 aus nearest-Punkten mit ~9.7 m Distanz - Verdachtsmuster des User-Carport-Falls. Visuelle Bestaetigung ausstehend; Zielverhalten: solche Cluster duerfen den Gebaeude-Motion-Score nicht praegen (Asymmetrie-Prinzip).",
+      "visual_confirmation": "pending"
+    },
+    {
+      "case_id": "moosstrasse_nearest_main_suspect_2",
+      "aoi": "moosstrasse", "dataset_id": "salzburg_snt", "building_id": "203343478",
+      "case_type": "carport_nearest_main_suspect",
+      "expectation": "Main-Cluster t95 6/6 nearest, ~7.3 m. Zweiter Verdachtsfall fuer Assignment-Hygiene und Visual-Audit.",
+      "visual_confirmation": "pending"
+    },
+    {
+      "case_id": "bg_flat_hr_coupling",
+      "aoi": "bg_flat_01", "dataset_id": "bad_gastein_snt+tsx_paz", "building_id": "105022686",
+      "case_type": "hr_coupling_ok",
+      "expectation": "Status ok in SNT (43 kept, Agreement 0.46) UND TSX (264 kept): primaerer Kopplungsfall fuer das HR-Modul - TSX-Clusterstruktur muss die SNT-Main-Cluster-Region stuetzen."
+    },
+    {
+      "case_id": "bg_flat_hr_divergence",
+      "aoi": "bg_flat_01", "dataset_id": "bad_gastein_snt+tsx_paz", "building_id": "105022685",
+      "case_type": "hr_divergence",
+      "expectation": "SNT noise_dominated (40 kept) vs TSX ok (219 kept): Diagnosefall - klaert das HR-Modul, ob SNT-Noise hier Datenqualitaet oder Clusterentscheidung ist?"
+    },
+    {
+      "case_id": "bg_flat_small_n",
+      "aoi": "bg_flat_01", "dataset_id": "bad_gastein_snt", "building_id": "238100070",
+      "case_type": "small_n",
+      "expectation": "BG-Small-N-Fall (8 kept) fuer P7-C-W1-T3."
+    },
+    {
+      "case_id": "bg_slope_noise_low_agreement",
+      "aoi": "bg_slope_01", "dataset_id": "bad_gastein_snt", "building_id": "238057563",
+      "case_type": "noise_dominated_low_agreement",
+      "expectation": "61 kept, Agreement 0.188, Hang: Stress-Anker Bad Gastein; ASC/DSC-Disagreement als Diagnose behandeln."
+    },
+    {
+      "case_id": "bg_slope_ok_low_agreement",
+      "aoi": "bg_slope_01", "dataset_id": "bad_gastein_snt", "building_id": "113309853",
+      "case_type": "ok_low_agreement_slope",
+      "expectation": "Status ok trotz Agreement 0.229: prueft, ob Kandidaten Agreement-Spannung ehrlich kennzeichnen."
+    },
+    {
+      "case_id": "bg_tsx_high_n_noise",
+      "aoi": "bg_flat_01", "dataset_id": "bad_gastein_tsx_paz", "building_id": "227901749",
+      "case_type": "high_n_noise_dominated",
+      "expectation": "173 kept und trotzdem noise_dominated in TSX: High-N-Diagnosefall fuer P7-C-W2-T2 (Schritt 5, hier nur dokumentiert)."
+    }
+  ]
+}
