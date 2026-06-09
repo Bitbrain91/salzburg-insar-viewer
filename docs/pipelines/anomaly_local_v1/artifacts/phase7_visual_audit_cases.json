@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "ticket": "P7-B-W2 (Mini-Audit Schritt 1; vollstaendiger Workflow in P7-B-W2-T1)",
+  "stand": "2026-06-10",
+  "camera_standard": "Nadir pitch=0, Nord oben; Baseline und Kandidat desselben Falls mit identischer Kamera (Deep-Link-Hash). Schraegansicht nur fuer Hoehenfragen mit gba=1.",
+  "label_set": [
+    "plausible_main_roof_cluster",
+    "possible_carport_merge",
+    "possible_outbuilding_as_main",
+    "track_part_mismatch",
+    "offset_expected_due_to_sar_geometry",
+    "offset_within_sensor_tolerance",
+    "ds_patch_ambiguous",
+    "layover_shadow_possible",
+    "ambiguous_visual",
+    "needs_human_review"
+  ],
+  "cases": [
+    {
+      "case_id": "audit_548205_baseline",
+      "building_id": "548205",
+      "run_id": "c23cd637-3251-45bb-a95e-e2aa88abe6de",
+      "deep_link": "/?area=salzburg&run=c23cd637-3251-45bb-a95e-e2aa88abe6de&building=gba:548205&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite",
+      "screenshots": [
+        "phase7_visual_548205_t0proof_overview.png",
+        "phase7_visual_548205_t0proof_z19.png"
+      ],
+      "labels": ["plausible_main_roof_cluster", "offset_expected_due_to_sar_geometry"],
+      "assessment": "Innenstadt-Gebaeudefluegel; Umriss und Candidate-Areas korrekt gerendert; Status single_track_only wird ehrlich angezeigt (weak secondary seit P6 bekannt). Keine visuelle Fehlzuordnung erkennbar; Punktdichte gering.",
+      "auditor": "claude_supervisor_session"
+    },
+    {
+      "case_id": "audit_96856632_nearest_main",
+      "building_id": "96856632",
+      "run_id": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "deep_link": "/?area=salzburg&run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&building=gba:96856632&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite",
+      "screenshots": [
+        "phase7_visual_96856632_nearest_main.png",
+        "phase7_visual_96856632_annotated.png"
+      ],
+      "labels": ["ambiguous_visual", "offset_expected_due_to_sar_geometry", "possible_carport_merge", "needs_human_review"],
+      "assessment": "Main-Cluster t44 = 3 nearest-Punkte (~9.7 m) an der WSW-Kante knapp ausserhalb des Footprints. Richtung passt EXAKT zur t44-Range-Verschiebung (Sensor-Bearing 261.4 deg) -> Hypothese A: echte Dachpunkte, degradiert weil Candidate-Area zu kurz (GBA-Hoehe unterschaetzt). An der SW-Ecke liegt aber auch eine kleine Nebenstruktur -> Hypothese B: Carport-/Anbau-Returns. Beide Hypothesen sind mit dem Bild vereinbar; in BEIDEN Faellen ist es fachlich falsch, dass diese Punkte ohne geometrische Begruendung den Motion-Score definieren. Primaerfall fuer P7-C-W1-T5 (A1-Demotion vs. Hoehenkorrektur-Kreuztest).",
+      "auditor": "claude_supervisor_session"
+    },
+    {
+      "case_id": "audit_105022686_bg_flat_hr",
+      "building_id": "105022686",
+      "run_id": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+      "deep_link": "/?area=bad_gastein&run=ff2217a1-098d-4126-a89a-c3c9b9c148e5&building=gba:105022686&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite",
+      "screenshots": [
+        "phase7_visual_105022686_bgflat.png",
+        "phase7_visual_105022686_annotated.png"
+      ],
+      "labels": ["plausible_main_roof_cluster"],
+      "assessment": "Grosses Zentrums-Gebaeude bg_flat_01: t44-Cores (11) und t95-Cores (16) liegen klar AUF dem Dach, Noise (16) verteilt dazwischen - gesunder Zwei-Track-Fall, bestaetigt als HR-Kopplungsanker (TSX-Seite: 264 kept im Pendant-Run 97672f6e). Interleaved Noise-Punkte auf dem Dach sind Kandidaten fuer False-Noise-Pruefung im Sweep.",
+      "auditor": "claude_supervisor_session"
+    }
+  ]
+}

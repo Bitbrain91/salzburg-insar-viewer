@@ -198,3 +198,30 @@ Verifikation (Playwright, Frontend-Dev-Server + `npm run build` gruen):
   `artifacts/phase7_visual_548205_t0proof_z19.png`.
 - Ohne Parameter ist das Default-Verhalten unveraendert (Standard-Kamera
   `#12/47.8/13.05/-10/45`, keine Selektion, keine Konsolen-Fehler).
+
+---
+
+## Schritt 1: Mini-Visual-Audit (3 Faelle, green)
+
+Artefakt: `artifacts/phase7_visual_audit_cases.json` (Labels, Deep-Links,
+Screenshots, Bewertungen). Methode: Deep-Link-Nadir-Screenshot plus
+deterministische Punkt-Annotation (API-Punkte via Web-Mercator auf den
+Screenshot projiziert).
+
+1. `548205` (Mirabell): plausibel, `single_track_only` ehrlich angezeigt;
+   keine visuelle Fehlzuordnung.
+2. `96856632` (Moosstrasse, nearest-Main-Verdacht): Die 3 nearest-Punkte des
+   Main-Clusters liegen an der WSW-Kante - die Richtung passt EXAKT zur
+   t44-Range-Verschiebung (261.4 deg). Damit ist der Fall AMBIVALENT:
+   verschobene echte Dachpunkte (zu kurze Candidate-Area wegen
+   GBA-Hoehenunterschaetzung) ODER Returns einer kleinen SW-Nebenstruktur.
+   In beiden Faellen definieren geometrisch unbegruendete Punkte den
+   Motion-Score -> Primaerfall fuer den A1-vs-Hoehenkorrektur-Kreuztest in
+   `P7-C-W1-T5`. Labels: ambiguous_visual, offset_expected_due_to_sar_
+   geometry, possible_carport_merge, needs_human_review.
+3. `105022686` (bg_flat_01): gesunder Zwei-Track-Fall, Cores beider Tracks
+   klar auf dem Dach; als HR-Kopplungsanker visuell bestaetigt;
+   interleaved Dach-Noise als False-Noise-Pruefkandidaten notiert.
+
+Damit ist Schritt 1 vollstaendig: T5, T6, T1, T2, T3, T4, T0 und
+Mini-Audit sind green.
