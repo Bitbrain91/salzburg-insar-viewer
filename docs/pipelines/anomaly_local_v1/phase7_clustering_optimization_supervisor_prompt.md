@@ -22,13 +22,22 @@ Kernauftrag:
 3. Recherchiere und dokumentiere die fachliche Basis fuer Clustering ohne Ground
    Truth, HDBSCAN/Alternativen, InSAR-Cross-Track-Evaluation und visuelle
    Luftbild-/Satellitenbild-Audits.
-4. Baue einen Experiment-Harness und eine Scorecard, die nicht nur interne
-   Clustering-Metriken misst, sondern auch Stabilitaet, Cross-Track-Support,
-   Bad-Gastein/TSX-PAZ als High-Resolution-Pseudo-Referenz und visuelle
-   Plausibilitaet.
+4. Baue einen Experiment-Harness und eine Scorecard. Primaere
+   Evaluationspfeiler (User-Entscheidung 2026-06-10): Cross-Track-Support
+   mit Gates, Bad-Gastein/TSX-PAZ als High-Resolution-Pseudo-Referenz und
+   Experten-/Visual-Validierung. Sensitivitaet/Konfidenz
+   (Messrauschen-Perturbation via `velocity_std`, Leave-one-out ab n>=4,
+   Bootstrap nur ab n>=8) ist Nebensignal; interne Metriken sind
+   Nebenindikator. Kein Size-Penalty gegen legitime 2-Punkt-Cluster.
 5. Teste HDBSCAN-Parameter, Feature-Sets, Small-N-Logik, Borderline-Noise-
-   Reassignment, Alternativalgorithmen und High-N-/TSX-PAZ-spezifische Strategien
-   getrennt.
+   Reassignment, Assignment-Hygiene und High-N-/TSX-PAZ-spezifische
+   Strategien getrennt. Algorithmus-Sequenz (User-Entscheidung 2026-06-10):
+   ZUERST HDBSCAN-Sweep auswerten, DANN OPTICS als explizit waehlbare
+   Variante vergleichen (`P7-C-W2-T1`), und erst danach weitere
+   Clustering-Algorithmen als groesseren eigenen Part (`P7-C-W2-T3`,
+   darf `defer` enden). Vorab entfernt `P7-A-W1-T5` den stillen
+   OPTICS-Runtime-Fallback: `hdbscan` wird harte Dependency, fehlender
+   Import ist harter Fehler, OPTICS niemals stiller Ersatz.
 6. Nutze Bad Gastein zuerst auf flachen AOIs als Pseudo-Referenz-Test und erst
    danach Hang-AOIs als Blickrichtungs-/Topografie-Stress.
 7. Fuehre in V1 einen KI-Agenten-gestuetzten optischen Audit ueber Playwright-
@@ -115,12 +124,35 @@ Handbook-Regeln, die fuer alle Tickets gelten:
   `scatterer_type`, wenn diese Information verfuegbar ist.
 - SNT und TSX/PAZ haben unterschiedliche Geokodierungsgenauigkeit. HR-Pseudo-
   Referenz darf keine exakte Punkt-zu-Punkt-Uebereinstimmung erzwingen.
-- Aktuelle Datenlage vom 2026-06-09:
+- Aktuelle Datenlage vom 2026-06-09 (verifiziert in Parquet UND PostGIS):
   - Salzburg/SNT und Bad-Gastein/SNT sind nach `eff_area` nur PS-like.
-  - Bad-Gastein/TSX-PAZ enthaelt DS-like Punkte mit `eff_area > 0`.
+  - Bad-Gastein/TSX-PAZ enthaelt DS-like Punkte mit `eff_area > 0`
+    (T70: 62,162/288,146; T93: 107,861/512,017; `eff_area` bis ~740 m²);
+    in urbanen AOI-Zellen sinkt der DS-Anteil auf ~5-8 %.
   - AMP-Features sind aktuell nur fuer Salzburg/SNT geladen.
   - Bad-Gastein/SNT und TSX/PAZ duerfen in Phase 7 keine AMP-Features
     voraussetzen.
+  - Beobachtungszeitraeume: Salzburg/SNT 2022-04..2025-03,
+    Bad-Gastein/SNT 2022-10..2025-09 (T22/T44/T95 kompatibel),
+    Bad-Gastein/TSX-PAZ 2021-05..2023-05. SNT vs. TSX/PAZ ueberlappen nur
+    ~7.5 Monate: Bewegungsvergleiche SNT vs. TSX/PAZ sind nur qualitativ
+    zulaessig; die HR-Pseudo-Referenz ist primaer raeumlich-strukturell.
+  - Kohaerenzregime: Salzburg/SNT Median ~0.73 (Floor 0.45 schneidet ~3 %),
+    Bad-Gastein/SNT Median ~0.49 (Floor schneidet 17-24 % aller Punkte!),
+    TSX/PAZ Median ~0.62-0.65. Gate-Exklusionsraten je Dataset/Track in der
+    Baseline ausweisen; Scorecard-Schwellen je Dataset kalibrieren.
+  - Gemessene n-Regime-Verteilung (kept pro Gebaeude x Track):
+    Salzburg/Mirabell 22/18/34/22/4 % fuer `<3/3-5/6-12/13-50/>50`;
+    Bad-Gastein/SNT-Smoke 39/37/21/3/0 % (3/4 unter 6 Punkten!);
+    TSX/PAZ-Smoke 13/13/24/42/8 %.
+  - Track-22-Abdeckung: nur Ostteil (lon 13.168..13.276); in ALLEN sieben
+    Bad-Gastein-AOI-Kandidaten 0 Track-22-Punkte. SNT in den AOIs ist
+    faktisch T44+T95.
+  - Felder `height_std`, `acceleration_std`, `s_amp_std`, `s_phs_std`,
+    `season_phs` (Handbook: h_stdev/a_stdev/...) sind in Parquet und
+    PostGIS fuer alle Datasets voll befuellt, werden von der
+    Pipeline-Query aber nicht selektiert; per-Punkt `slope_deg`/`aspect_deg`
+    existieren in `insar_point_terrain`.
 - Bewegungen sind relativ zu Referenzpunkt und erstem Akquisitionsdatum. Absolute
   Werte zwischen unabhaengigen Prozessierungen nur vergleichen, wenn
   Referenzpunkt, Zeitraum und Zeitnullpunkt kompatibel sind.
@@ -164,6 +196,66 @@ Aktueller technischer Startpunkt:
 - Borderline-Noise-Reassignment existiert.
 - `P6` hat `keep_2d_vector` entschieden; Candidate-Area-Geometrie ist nicht
   primaeres Thema.
+- KRITISCH (Code-Audit 2026-06-09): `_build_building_rollup` berechnet
+  `track_agreement_score`/`full_support` hartkodiert nur fuer das Paar
+  `44/95`. Fuer Bad-Gastein/TSX-PAZ (70/93) ist Agreement immer `NULL` und
+  `full_support` immer `false`; Track 22 wird im Agreement ignoriert,
+  zaehlt aber fuer `building_status`/`building_motion_mm_a`. Alle
+  Cross-Track-Diagnosen fuer Bad Gastein muessen deshalb in `P7-B`
+  harness-seitig dataset-agnostisch berechnet werden (Felder
+  `cross_track_pair_type`, `cross_track_source`, `temporal_overlap_days`).
+  Pipeline-Rollup-Werte fuer TSX/PAZ und Track 22 niemals als
+  "Cross-Track ok" interpretieren. Eine produktive Generalisierung ist nur
+  als P7-E-Kandidat zulaessig.
+- Cross-Track-Paartypen: `opposite_geometry` (ASC-DSC: 44/95, 93/70;
+  Disagreement kann Horizontalbewegung sein) vs. `same_geometry`
+  (DSC-DSC: 22/95, nur Ost-Overlap-Zone; horizontal-insensitive
+  Redundanzpruefung).
+
+Projektrahmen (User-Klarstellung 2026-06-09):
+
+- Produktziel ist das Clustering auf den flaechig verfuegbaren
+  Track-44/95-Daten. TSX/PAZ, Track 22 und Visual-Audit sind reine
+  VALIDIERUNGSINSTRUMENTE; keine Datenfusion, kein gemeinsames Clustering
+  ueber Sensoren.
+- Kernfrage der Phase ist Validierung: Wie gut ist das Clustering, wie
+  verlaesslich ist der Motion-Score - bisher haengt das fast allein an der
+  ASC/DSC-Kreuzpruefung.
+- Generik vor Feintuning: Ziel ist ein Algorithmus, der sich
+  verteilungsbasiert selbst an neue Gebiete anpasst. Gebietsspezifisch
+  handgesetzte Schwellen (heutiger AUGMENTERRA-Workflow) sind ein Anti-Ziel;
+  ein Kandidat, der nur damit gewinnt, ist nicht integrationsfaehig.
+- Der Plan enthaelt unter "Fachliches Zielbild: Was ist ein gutes Cluster?"
+  die verbindliche fachliche Qualitaetsdefinition (physische Traegerschaft,
+  kinematische Homogenitaet, Trennschaerfe statt Glaettung,
+  Anbau-/Nebenobjekt-Hygiene, Stabilitaet, ehrliche Konfidenz) inklusive
+  des realen Carport-Failure-Falls und der Pruefachse
+  Main-Cluster-Wahlkriterien. Alle Experimente und Audits bewerten gegen
+  diese Definition.
+- Evaluationsgewichtung (User-Entscheidung 2026-06-10): primaer
+  Cross-Track-Validierung, HR-Pseudo-Referenz und Experten-/
+  Visual-Validierung; Bootstrap-Stabilitaet ist wegen der Small-N-Realitaet
+  (76 % der Bad-Gastein-SNT-Gruppen unter 6 Punkten, legitime
+  2-Punkt-Cluster) nur ein Nebensignal in Form des
+  Sensitivitaets-/Konfidenzmoduls.
+- Asymmetrie-Prinzip (User-Entscheidung 2026-06-10): Falsche Aufnahme eines
+  Fremdpunkts (Carport/Schuppen, im GBA nicht kartiert) ist teurer als
+  falscher Ausschluss eines echten Punkts. `nearest`-Punkte ohne
+  geometrische Begruendung duerfen den Gebaeude-Motion-Score nicht praegen;
+  `P7-C-W1-T5` testet Demotion, Distanz-Verschaerfung,
+  Hoehenplausibilitaet (`height_above_ground_m`) und OSM-Fremdobjekt-Veto.
+- GBA-Hoehen sind systematisch unterschaetzt (verifiziert 2026-06-10:
+  Median-Ratio GBA/OSM = 0.735 ueber 673 Gebaeude; Dom 78 m -> 27.4 m;
+  Salzburg-Median nur 4.5 m; Schaetzvarianz `var` ungenutzt). Folge: zu
+  kurze Candidate-Areas, kuenstlich erhoehte nearest-Quote. `P7-A-W1-T6`
+  entscheidet die Hoehenstrategie (InSAR-selbstkalibriert, OSM-Anreicherung,
+  Kalibrierfaktor+var, konservativer Mindestoffset) als Input fuer
+  `P7-C-W1-T5`.
+- Run-Transparenz in der UI ist PFLICHT (User-Auftrag 2026-06-10,
+  `P7-E-W1-T3`, `P7-F-W1-T1` haengt hart daran): pro Run muessen Parameter,
+  Feature-Set, Algorithmus/Versionen, Experiment-ID, Dataset/Track/BBox und
+  Kennzahlen uebersichtlich im Viewer sichtbar sein; Experiment-Runs
+  schreiben dafuer ihre vollstaendige Konfiguration nach `ml_runs.params`.
 
 Verbindliche Nicht-Ziele:
 
@@ -193,8 +285,13 @@ Start-AOIs Bad Gastein:
 - `bg_slope_03`: `13.141531,47.121449,13.144531,47.124449`
 
 Die Bad-Gastein-AOIs sind initiale Kandidaten aus einer zellbasierten
-PostGIS-Voranalyse. Verifiziere sie in `P7-A-W1-T3` mit exakter Pipeline- und
-Building-Semantik, bevor sie als finaler AOI-Katalog verwendet werden.
+PostGIS-Voranalyse. Die Punktsummen wurden am 2026-06-09 in PostGIS exakt
+bestaetigt; sie bestehen SNT-seitig ausschliesslich aus T44+T95, Track 22
+hat in keiner Kandidatenzelle Punkte. Verifiziere die AOIs in `P7-A-W1-T3`
+mit exakter Pipeline- und Building-Semantik und weise pro AOI verfuegbare
+Tracks, Punktzahlen je Track, DS-Anteile, Beobachtungsfenster je Dataset
+und `temporal_overlap_days` aus, bevor sie als finaler AOI-Katalog
+verwendet werden.
 
 CLI-Beispiele:
 
@@ -234,7 +331,8 @@ Interpreterregel:
 ```bash
 backend/.venv-wsl/bin/python - <<'PY'
 import hdbscan
-print("hdbscan", hdbscan.__version__)
+import importlib.metadata
+print("hdbscan", importlib.metadata.version("hdbscan"))
 PY
 ```
 
@@ -253,6 +351,18 @@ Visual-Audit-Regel:
 - Starte Backend/Frontend, wenn noetig.
 - Screenshots muessen Satelliten-/Luftbildbasemap, GBA-Umriss, Cluster-Huellen,
   Punkte, Noise/Gate und Trackfilter sichtbar machen.
+- UI-Randbedingungen (Audit 2026-06-09): Cluster-Huellen/Candidate-Areas
+  existieren nur in der Focus-View eines selektierten Gebaeudes; der
+  Track-Filter wirkt nur dort. Setze ZUERST `P7-B-W2-T0` um
+  (URL-Deep-Links `area/run/building/mlview/track/hulls/basemap` plus
+  Candidate-Farben fuer Tracks 22/70/93; Implementierungsvorgabe steht im
+  Plan) und baue alle Audit-Faelle auf reproduzierbaren Deep-Links auf.
+- Kamera-Standard: Alle Audit-Screenshots in Nadir-Ansicht (`pitch=0`,
+  Nord oben, feste Zoomstufe, Gebaeude zentriert); Baseline und Kandidat
+  desselben Falls mit IDENTISCHER Kamera. Schraegansicht (`pitch~55-60`)
+  nur als optionale Zweitansicht fuer Hoehen-/Anbaufragen und nur mit
+  aktiver 3D-GBA-Extrusion - ein gekipptes Orthofoto allein liefert keine
+  Hoeheninformation, sondern nur Verzerrung.
 - Pro Audit-Fall strukturiert labeln:
   - `plausible_main_roof_cluster`
   - `possible_carport_merge`
@@ -265,10 +375,13 @@ Visual-Audit-Regel:
 
 Wellenfolge:
 
-1. `P7-A`: Baseline, Research, AOI-Katalog, Referenzfaelle.
-2. `P7-B`: Experiment-Harness, Scorecard, Stabilitaet, High-Resolution-
-   Pseudo-Referenz, Visual-Audit-Workflow.
-3. `P7-C`: HDBSCAN, Features, Small-N, Reassignment, Alternativen, High-N.
+1. `P7-A`: OPTICS-Fallback-Entfernung (`P7-A-W1-T5`, vor Baseline-Freeze),
+   Baseline, Research, AOI-Katalog, Referenzfaelle.
+2. `P7-B`: Experiment-Harness, Scorecard, Sensitivitaet/Konfidenz,
+   High-Resolution-Pseudo-Referenz, Visual-Audit-Workflow inkl. Deep-Links.
+3. `P7-C`: HDBSCAN, Features, Small-N, Reassignment, Assignment-Hygiene
+   (`nearest`-Politik, `P7-C-W1-T5`), High-N; danach OPTICS-Vergleich
+   (`P7-C-W2-T1`), weitere Algorithmen strikt zuletzt (`P7-C-W2-T3`).
 4. `P7-D`: Shortlist, volle Scorecard, Visual-Audit der Kandidaten.
 5. `P7-E`: Entscheidung und bedingte Integration.
 6. `P7-F`: Abschlussbericht und Folgeplanung.
@@ -283,7 +396,8 @@ Experimentregeln:
   - Parameter-/Feature-Delta,
   - AOI-Metriken,
   - Referenzfall-Metriken,
-  - Stabilitaet,
+  - Cross-Track-Diagnostik (harness-seitig, mit Paartyp),
+  - Sensitivitaet/Konfidenz als Nebensignal,
   - HR-Pseudo-Referenz,
   - Visual-Audit-Belege, soweit freigeschaltet,
   - Guardrail-Flags,
