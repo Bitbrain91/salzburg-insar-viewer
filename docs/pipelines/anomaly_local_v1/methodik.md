@@ -175,7 +175,12 @@ Warum HDBSCAN:
 - lokale Dichteunterschiede besser als klassisches DBSCAN
 - sinnvoll fuer heterogene Punktdichten innerhalb einzelner Gebaeude
 
-Wenn `hdbscan` im Laufzeitumfeld nicht verfuegbar ist, faellt die Implementierung auf `OPTICS` zurueck.
+`hdbscan` ist eine harte Pflicht-Dependency: Fehlt das Paket, schlaegt der
+Import der Pipeline mit einer klaren Fehlermeldung fehl. Der fruehere stille
+OPTICS-Runtime-Fallback wurde am 2026-06-10 entfernt (`P7-A-W1-T5`), weil er
+je nach Environment unbemerkt einen anderen Algorithmus mit anderen
+Ergebnissen aktivierte. OPTICS bleibt ausschliesslich als explizit waehlbare
+Vergleichsvariante im Phase-7-Experiment-Harness verfuegbar.
 
 ### Small-N-Fallback
 Fuer `3-5` behaltene Punkte ist Phase 1 explizit konservativer:

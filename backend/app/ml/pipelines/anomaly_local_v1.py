@@ -9,13 +9,16 @@ from datetime import date
 from typing import Any
 
 import numpy as np
-from sklearn.cluster import OPTICS
 from sklearn.preprocessing import RobustScaler
 
 try:
     import hdbscan  # type: ignore
-except ImportError:  # pragma: no cover - exercised in runtime environments without hdbscan wheels
-    hdbscan = None
+except ImportError as exc:  # pragma: no cover - hard dependency since P7-A-W1-T5
+    raise ImportError(
+        "anomaly_local_v1 requires the 'hdbscan' package. The silent OPTICS "
+        "runtime fallback was removed (P7-A-W1-T5, 2026-06-10); install "
+        "hdbscan in the backend environment."
+    ) from exc
 
 from .base import BasePipeline
 from ..track_geometry import get_track_geometry, track_geometry_values_cte
@@ -850,44 +853,18 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         min_cluster_size = max(2, min(8, int(math.ceil(0.2 * n_samples))))
         min_samples = max(1, int(math.floor(min_cluster_size / 2)))
 
-        labels: np.ndarray
-        probabilities: np.ndarray
-        outlier_scores: np.ndarray
-
-        if hdbscan is not None:
-            model = hdbscan.HDBSCAN(
-                min_cluster_size=min_cluster_size,
-                min_samples=min_samples,
-                metric="euclidean",
-                allow_single_cluster=True,
-                cluster_selection_method="eom",
-            )
-            labels = model.fit_predict(matrix)
-            probabilities = np.asarray(getattr(model, "probabilities_", np.ones(n_samples)), dtype=float)
-            outlier_scores = self._normalise_scores(
-                np.asarray(getattr(model, "outlier_scores_", 1.0 - probabilities), dtype=float),
-            )
-        else:
-            model = OPTICS(
-                min_samples=max(2, min_samples),
-                min_cluster_size=min_cluster_size,
-                cluster_method="xi",
-                xi=0.05,
-            )
-            labels = model.fit_predict(matrix)
-            reachability = np.asarray(getattr(model, "reachability_", np.full(n_samples, np.inf)), dtype=float)
-            finite = reachability[np.isfinite(reachability)]
-            if finite.size:
-                outlier_scores = np.asarray(
-                    [
-                        1.0 if not np.isfinite(value) else (value - np.min(finite)) / max(np.ptp(finite), EPSILON)
-                        for value in reachability
-                    ],
-                    dtype=float,
-                )
-            else:
-                outlier_scores = np.full(n_samples, 0.5, dtype=float)
-            probabilities = np.clip(1.0 - outlier_scores, 0.05, 0.95)
+        model = hdbscan.HDBSCAN(
+            min_cluster_size=min_cluster_size,
+            min_samples=min_samples,
+            metric="euclidean",
+            allow_single_cluster=True,
+            cluster_selection_method="eom",
+        )
+        labels = model.fit_predict(matrix)
+        probabilities = np.asarray(getattr(model, "probabilities_", np.ones(n_samples)), dtype=float)
+        outlier_scores = self._normalise_scores(
+            np.asarray(getattr(model, "outlier_scores_", 1.0 - probabilities), dtype=float),
+        )
 
         labels = self._coerce_single_cluster(labels, matrix)
         labels, probabilities, outlier_scores = self._reassign_borderline_noise(
