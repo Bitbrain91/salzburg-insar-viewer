@@ -1,0 +1,320 @@
+{
+  "stand": "2026-06-10",
+  "baseline": "noop",
+  "entries": {
+    "noop": {
+      "config": {
+        "experiment_id": "noop",
+        "description": "Produktionsidentische Variante (Determinismus-/No-op-Beweis)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        }
+      ],
+      "reference_cases_ok": true,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3534,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 17,
+          "status_counts": {
+            "ok": 23,
+            "insufficient_support": 14,
+            "single_track_only": 7,
+            "noise_dominated": 7,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6497,
+          "confidence_bands": {
+            "unstable": 11,
+            "stable": 23,
+            "monitor": 19
+          }
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.2792,
+          "multi_cluster_buildings": 71,
+          "nearest_dominated_main_clusters": 34,
+          "status_counts": {
+            "insufficient_support": 41,
+            "noise_dominated": 9,
+            "ok": 65,
+            "small_n": 21,
+            "single_track_only": 11
+          },
+          "xtrack_agreement_median": 0.4395,
+          "confidence_bands": {
+            "monitor": 8,
+            "unstable": 16,
+            "stable": 16
+          }
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2401,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 26,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.8497,
+          "confidence_bands": {
+            "unstable": 13,
+            "stable": 31,
+            "monitor": 11
+          }
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2965,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 40,
+          "status_counts": {
+            "ok": 42,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "noise_dominated": 6,
+            "single_track_only": 6
+          },
+          "xtrack_agreement_median": 0.5619,
+          "confidence_bands": {
+            "unstable": 19,
+            "monitor": 16,
+            "stable": 15
+          }
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3348,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "ok": 16,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1871,
+          "confidence_bands": {
+            "stable": 24,
+            "unstable": 16,
+            "monitor": 13
+          }
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3744,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 23,
+          "status_counts": {
+            "ok": 59,
+            "small_n": 4,
+            "noise_dominated": 12,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5267,
+          "confidence_bands": {
+            "stable": 11,
+            "monitor": 34,
+            "unstable": 15
+          }
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2867,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 10,
+          "status_counts": {
+            "ok": 44,
+            "noise_dominated": 7,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": {
+            "stable": 20,
+            "unstable": 9,
+            "monitor": 30
+          }
+        }
+      },
+      "guardrails": {},
+      "verdict": "baseline",
+      "reasons": []
+    }
+  },
+  "schema": {
+    "verdicts": [
+      "baseline",
+      "candidate_green",
+      "candidate_red",
+      "candidate_inconclusive"
+    ],
+    "rule": "Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.",
+    "cross_track_fields": [
+      "cross_track_source",
+      "cross_track_pair_type",
+      "temporal_overlap_days"
+    ]
+  }
+}

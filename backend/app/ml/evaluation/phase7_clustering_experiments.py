@@ -647,6 +647,17 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
             if int(r.building_rollup.get("reliable_cluster_count", 0) or 0) > 1:
                 multi += 1
     regimes = Counter(bucket(n) for n in groups.values())
+    # Main-Cluster, die mehrheitlich aus nearest-Punkten bestehen (Hygiene-Signal)
+    main_members: dict[tuple[str, str], list[LocalPointRecord]] = {}
+    for r in records:
+        if r.building_id and r.cluster_role == "core" and r.cluster_id and r.building_rollup:
+            mains = {str(v) for v in (r.building_rollup.get("main_cluster_by_track") or {}).values()}
+            if str(r.cluster_id) in mains:
+                main_members.setdefault((r.building_id, str(r.cluster_id)), []).append(r)
+    nearest_main = sum(
+        1 for members in main_members.values()
+        if sum(1 for m in members if m.assignment_method == "nearest") > len(members) / 2
+    )
     return {
         "points_total": len(records),
         "points_kept": sum(1 for r in records if r.kept_for_scoring),
@@ -654,7 +665,9 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         "points_nearest": sum(1 for r in records if r.assignment_method == "nearest"),
         "n_regimes": {k: regimes.get(k, 0) for k in ["<3", "3-5", "6-12", "13-50", ">50"]},
         "building_status_counts": dict(Counter(statuses.values())),
+        "building_statuses": statuses,
         "multi_cluster_buildings": multi,
+        "nearest_dominated_main_clusters": nearest_main,
     }
 
 
@@ -663,6 +676,168 @@ def point_assignments(records: list[LocalPointRecord]) -> dict[str, list[str | N
         f"{r.code}:t{r.track}": [r.cluster_id, r.cluster_role, r.label]
         for r in records
     }
+
+
+# ---------------------------------------------------------------------------
+# Scorecard (P7-B-W1-T2)
+# ---------------------------------------------------------------------------
+
+# Maschinell pruefbare Status-Erwartung je Referenzfalltyp; None = kein Status-Gate.
+CASE_TYPE_EXPECTED_STATUS: dict[str, set[str] | None] = {
+    "standard_ok_weak_secondary": {"ok", "single_track_only"},
+    "adjacent_ok": {"ok"},
+    "differential_motion": {"ok"},
+    "differential_motion_low_reliability": {"ok"},
+    "single_track_only": {"single_track_only"},
+    "small_n": {"small_n"},
+    "noise_dominated": {"noise_dominated"},
+    "noise_dominated_low_agreement": {"noise_dominated"},
+    "insufficient_support": {"insufficient_support"},
+    "nearest_heavy_suspicious_ok": {"ok"},
+    "ok_low_agreement_slope": {"ok"},
+    "high_n_noise_dominated": {"noise_dominated"},
+    "carport_nearest_main_suspect": None,
+    "hr_coupling_ok": None,
+    "hr_divergence": None,
+}
+
+AOI_KEYS_BY_CASE_AOI = {
+    "mirabell": ["mirabell"], "moosstrasse": ["moosstrasse"], "osthang": ["osthang"],
+    "bg_flat_01": ["bg_flat_01_snt", "bg_flat_01_tsx"],
+    "bg_slope_01": ["bg_slope_01_snt", "bg_slope_01_tsx"],
+}
+
+
+def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
+    ref_path = ARTIFACTS_DIR / "phase7_reference_cases.json"
+    if not ref_path.exists():
+        return []
+    cases = json.loads(ref_path.read_text())["cases"]
+    checks = []
+    for case in cases:
+        expected = CASE_TYPE_EXPECTED_STATUS.get(case["case_type"])
+        if expected is None:
+            continue
+        for aoi_key in AOI_KEYS_BY_CASE_AOI.get(case["aoi"], []):
+            aoi_out = exp_out["aois"].get(aoi_key)
+            if not aoi_out:
+                continue
+            ds = case.get("dataset_id", "")
+            if aoi_key.endswith("_tsx") and "tsx" not in ds:
+                continue
+            if aoi_key.endswith("_snt") and ds and "snt" not in ds:
+                continue
+            actual = aoi_out["summary"]["building_statuses"].get(case["building_id"])
+            if actual is None:
+                continue
+            checks.append({
+                "case_id": case["case_id"], "aoi": aoi_key,
+                "building_id": case["building_id"],
+                "expected_any_of": sorted(expected), "actual": actual,
+                "ok": actual in expected,
+            })
+    return checks
+
+
+def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[str, Any]:
+    base = results["experiments"].get(baseline_id)
+    scorecard: dict[str, Any] = {
+        "stand": results.get("stand"), "baseline": baseline_id, "entries": {}, "schema": {
+            "verdicts": ["baseline", "candidate_green", "candidate_red", "candidate_inconclusive"],
+            "rule": "Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.",
+            "cross_track_fields": ["cross_track_source", "cross_track_pair_type", "temporal_overlap_days"],
+        },
+    }
+    for exp_id, exp_out in results["experiments"].items():
+        ref_checks = check_reference_cases(exp_out)
+        entry: dict[str, Any] = {
+            "config": exp_out["config"],
+            "reference_case_checks": ref_checks,
+            "reference_cases_ok": all(c["ok"] for c in ref_checks) if ref_checks else None,
+            "aoi_aggregates": {}, "guardrails": {}, "verdict": None, "reasons": [],
+        }
+        for aoi, aoi_out in exp_out["aois"].items():
+            s = aoi_out["summary"]
+            entry["aoi_aggregates"][aoi] = {
+                "kept": s["points_kept"],
+                "noise_rate": round(s["points_noise"] / max(s["points_kept"], 1), 4),
+                "multi_cluster_buildings": s["multi_cluster_buildings"],
+                "nearest_dominated_main_clusters": s["nearest_dominated_main_clusters"],
+                "status_counts": s["building_status_counts"],
+                "xtrack_agreement_median": (aoi_out.get("cross_track") or {}).get("agreement_median"),
+                "confidence_bands": (aoi_out.get("confidence") or {}).get("band_counts"),
+            }
+        if exp_id == baseline_id or base is None:
+            entry["verdict"] = "baseline"
+        else:
+            reasons, hard_fail, soft_gain = [], False, False
+            for aoi, agg in entry["aoi_aggregates"].items():
+                bagg = base["aois"].get(aoi)
+                if not bagg:
+                    continue
+                bs = bagg["summary"]
+                b_multi = bs["multi_cluster_buildings"]
+                if b_multi and agg["multi_cluster_buildings"] < 0.8 * b_multi:
+                    hard_fail = True
+                    reasons.append(f"{aoi}: Multi-Cluster weggeglaettet ({agg['multi_cluster_buildings']} < 0.8*{b_multi})")
+                base_statuses = bs["building_statuses"]
+                cand_statuses = exp_out["aois"][aoi]["summary"]["building_statuses"]
+                promoted = [
+                    b for b, st in cand_statuses.items()
+                    if st == "ok" and base_statuses.get(b) in {"small_n", "insufficient_support"}
+                ]
+                if promoted:
+                    hard_fail = True
+                    reasons.append(f"{aoi}: Small-N/insufficient zu ok befoerdert: {promoted[:5]}")
+                if agg["nearest_dominated_main_clusters"] > bs["nearest_dominated_main_clusters"]:
+                    hard_fail = True
+                    reasons.append(f"{aoi}: mehr nearest-dominierte Main-Cluster")
+                b_noise = bs["points_noise"] / max(bs["points_kept"], 1)
+                b_x = (bagg.get("cross_track") or {}).get("agreement_median")
+                if (
+                    agg["noise_rate"] < b_noise * 0.8
+                    and agg["xtrack_agreement_median"] is not None and b_x is not None
+                    and agg["xtrack_agreement_median"] < b_x - 0.02
+                ):
+                    reasons.append(f"{aoi}: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn")
+                if agg["xtrack_agreement_median"] is not None and b_x is not None and agg["xtrack_agreement_median"] > b_x + 0.02:
+                    soft_gain = True
+            if entry["reference_cases_ok"] is False:
+                hard_fail = True
+                reasons.append("Referenzfall-Erwartung verletzt")
+            entry["verdict"] = (
+                "candidate_red" if hard_fail
+                else ("candidate_green" if soft_gain else "candidate_inconclusive")
+            )
+            entry["reasons"] = reasons
+        scorecard["entries"][exp_id] = entry
+    return scorecard
+
+
+def write_scorecard_md(scorecard: dict[str, Any], path: Path) -> None:
+    lines = [
+        "# Phase 7 - Scorecard (P7-B-W1-T2)", "",
+        f"Stand: {scorecard['stand']}. Baseline: `{scorecard['baseline']}`.",
+        "Regel: " + scorecard["schema"]["rule"], "",
+    ]
+    for exp_id, entry in scorecard["entries"].items():
+        lines.append(f"## {exp_id} -> {entry['verdict']}")
+        if entry["reasons"]:
+            lines += [f"- {r}" for r in entry["reasons"]]
+        lines.append("")
+        lines.append("| AOI | kept | noise | multi | nearest-main | xtrack_med | bands |")
+        lines.append("| --- | ---: | ---: | ---: | ---: | ---: | --- |")
+        for aoi, a in entry["aoi_aggregates"].items():
+            lines.append(
+                f"| {aoi} | {a['kept']} | {a['noise_rate']:.3f} | {a['multi_cluster_buildings']} | "
+                f"{a['nearest_dominated_main_clusters']} | {a['xtrack_agreement_median']} | {a['confidence_bands']} |"
+            )
+        ref = entry.get("reference_case_checks") or []
+        fails = [c for c in ref if not c["ok"]]
+        lines.append("")
+        lines.append(f"Referenzfaelle: {len(ref) - len(fails)}/{len(ref)} ok" + (f"; FAILS: {[c['case_id'] for c in fails]}" if fails else ""))
+        lines.append("")
+    path.write_text("\n".join(lines) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -719,6 +894,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--cross-track", action="store_true")
     p.add_argument("--hr-compare", metavar="SNT_AOI:TSX_AOI", help="z. B. bg_flat_01_snt:bg_flat_01_tsx")
     p.add_argument("--out", default=None, help="JSON-Ausgabedatei (default: artifacts/phase7_experiment_<id>.json)")
+    p.add_argument("--scorecard", action="store_true",
+                   help="Scorecard gegen die noop-Baseline bauen und nach artifacts/phase7_scorecard.{json,md} schreiben")
     return p
 
 
@@ -768,6 +945,16 @@ async def amain(argv: list[str] | None = None) -> int:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(results, indent=2, default=str))
     print(f"written: {out_path}")
+
+    if args.scorecard:
+        scorecard = build_scorecard(results)
+        sc_json = ARTIFACTS_DIR / "phase7_scorecard.json"
+        sc_md = ARTIFACTS_DIR / "phase7_scorecard.md"
+        sc_json.write_text(json.dumps(scorecard, indent=2, default=str))
+        write_scorecard_md(scorecard, sc_md)
+        print(f"scorecard: {sc_json}")
+        for exp_id, entry in scorecard["entries"].items():
+            print(f"  {exp_id}: {entry['verdict']} refcases_ok={entry['reference_cases_ok']}")
     # Kompakt-Zusammenfassung auf stdout
     for exp_id, exp_out in results["experiments"].items():
         for aoi, aoi_out in exp_out["aois"].items():
