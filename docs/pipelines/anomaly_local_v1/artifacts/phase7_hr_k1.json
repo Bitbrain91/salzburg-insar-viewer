@@ -1,0 +1,3533 @@
+{
+  "stand": "2026-06-10",
+  "experiments": {
+    "k1": {
+      "config": {
+        "experiment_id": "k1",
+        "description": "Kandidat K1 = smalln_strict (konservativ)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "optics_cluster_method": "xi",
+        "optics_xi": 0.05,
+        "optics_eps": 0.5,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0",
+        "smalln_mode": "strict",
+        "reassign_mode": "on"
+      },
+      "aois": {
+        "bg_flat_01_snt": {
+          "summary": {
+            "points_total": 1195,
+            "points_kept": 1042,
+            "points_noise": 308,
+            "points_nearest": 494,
+            "n_regimes": {
+              "<3": 36,
+              "3-5": 37,
+              "6-12": 54,
+              "13-50": 22,
+              ">50": 0
+            },
+            "building_status_counts": {
+              "ok": 41,
+              "insufficient_support": 21,
+              "small_n": 7,
+              "noise_dominated": 6,
+              "single_track_only": 7
+            },
+            "building_statuses": {
+              "238100082": "ok",
+              "238100050": "ok",
+              "238099999": "ok",
+              "238100036": "insufficient_support",
+              "238099996": "insufficient_support",
+              "238100066": "ok",
+              "Austria_120230032_6051": "small_n",
+              "238099991": "noise_dominated",
+              "238100000": "ok",
+              "656473446": "single_track_only",
+              "238100070": "small_n",
+              "367834834": "ok",
+              "193882807": "small_n",
+              "238100051": "ok",
+              "Austria_120230032_2136": "insufficient_support",
+              "238100063": "small_n",
+              "238100024": "ok",
+              "656482126": "small_n",
+              "656473448": "ok",
+              "659097270": "small_n",
+              "238100006": "single_track_only",
+              "193882782": "noise_dominated",
+              "238099982": "insufficient_support",
+              "238100016": "ok",
+              "238099993": "ok",
+              "238099970": "single_track_only",
+              "656482122": "insufficient_support",
+              "656482124": "insufficient_support",
+              "656473453": "ok",
+              "238099964": "noise_dominated",
+              "238088268": "single_track_only",
+              "656482123": "single_track_only",
+              "367694489": "ok",
+              "238100061": "insufficient_support",
+              "238099968": "noise_dominated",
+              "238100042": "ok",
+              "238100032": "ok",
+              "143823099": "ok",
+              "238100083": "ok",
+              "34031762": "ok",
+              "143823101": "ok",
+              "367694477": "ok",
+              "238099965": "ok",
+              "238099979": "ok",
+              "238100041": "ok",
+              "367694490": "ok",
+              "238099987": "ok",
+              "656292755": "ok",
+              "227901750": "ok",
+              "227901751": "ok",
+              "Austria_120230032_193": "ok",
+              "238088274": "insufficient_support",
+              "238100030": "ok",
+              "656292751": "insufficient_support",
+              "143823106": "insufficient_support",
+              "238079676": "ok",
+              "105022685": "noise_dominated",
+              "238088267": "ok",
+              "227901743": "ok",
+              "227901748": "single_track_only",
+              "238099976": "insufficient_support",
+              "227901757": "ok",
+              "367694478": "small_n",
+              "238088273": "insufficient_support",
+              "367828513": "ok",
+              "227901742": "ok",
+              "105022686": "ok",
+              "227901753": "ok",
+              "227901740": "ok",
+              "227901741": "insufficient_support",
+              "227901745": "ok",
+              "227901749": "ok",
+              "367849348": "insufficient_support",
+              "227901744": "insufficient_support",
+              "238100044": "insufficient_support",
+              "658863063": "noise_dominated",
+              "105022689": "insufficient_support",
+              "656482121": "insufficient_support",
+              "656482125": "single_track_only",
+              "Austria_120230032_23975": "insufficient_support",
+              "127361308": "insufficient_support",
+              "193882805": "insufficient_support"
+            },
+            "multi_cluster_buildings": 45,
+            "multi_cluster_buildings_robust": 23,
+            "nearest_dominated_main_clusters": 39
+          },
+          "pipeline_metrics": {
+            "total_points": 1195,
+            "assigned_points": 1084,
+            "assigned_buildings": 82,
+            "kept_points": 1042,
+            "gate_excluded_points": 153,
+            "normal_points": 471,
+            "suspect_points": 261,
+            "outlier_points": 463,
+            "noise_points": 308,
+            "buildings_with_clusters": 82,
+            "multi_cluster_buildings": 45,
+            "small_n_buildings": 7,
+            "full_cross_track_points": 607,
+            "buildings_with_full_track_support": 45,
+            "median_cross_track_diff_before": 1.0859043065124796,
+            "median_cross_track_diff_after": 0.8185830099656104,
+            "cross_track_improvement": 0.2673212965468692
+          },
+          "reassign_stats": {
+            "rescued_total": 107,
+            "method:directional_buffer": 26,
+            "regime:13-50": 82,
+            "method:nearest": 33,
+            "method:within": 48,
+            "regime:6-12": 25
+          },
+          "cross_track": {
+            "pair": [
+              44,
+              95
+            ],
+            "buildings_total": 82,
+            "buildings_with_agreement": 45,
+            "agreement_median": 0.5928,
+            "rows": [
+              {
+                "building_id": "238100082",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7423,
+                "diff_mm_a": 0.38,
+                "allowed_diff_mm_a": 1.276,
+                "support": {
+                  "44": 5,
+                  "95": 11
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100050",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6983,
+                "diff_mm_a": 0.51,
+                "allowed_diff_mm_a": 1.419,
+                "support": {
+                  "44": 12,
+                  "95": 11
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099999",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7778,
+                "diff_mm_a": 0.38,
+                "allowed_diff_mm_a": 1.513,
+                "support": {
+                  "44": 11,
+                  "95": 8
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100036",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099996",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100066",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5928,
+                "diff_mm_a": 0.637,
+                "allowed_diff_mm_a": 1.218,
+                "support": {
+                  "44": 8,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_6051",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 3
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099991",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9013,
+                "diff_mm_a": 0.129,
+                "allowed_diff_mm_a": 1.245,
+                "support": {
+                  "44": 6,
+                  "95": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100000",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7895,
+                "diff_mm_a": 0.371,
+                "allowed_diff_mm_a": 1.569,
+                "support": {
+                  "44": 15,
+                  "95": 11
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656473446",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 11,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100070",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 2
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "367834834",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7027,
+                "diff_mm_a": 0.43,
+                "allowed_diff_mm_a": 1.218,
+                "support": {
+                  "44": 13,
+                  "95": 12
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "193882807",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 3,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100051",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4055,
+                "diff_mm_a": 1.181,
+                "allowed_diff_mm_a": 1.308,
+                "support": {
+                  "44": 4,
+                  "95": 6
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_2136",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100063",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 3,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100024",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8504,
+                "diff_mm_a": 0.247,
+                "allowed_diff_mm_a": 1.525,
+                "support": {
+                  "44": 8,
+                  "95": 9
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656482126",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 3
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656473448",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6958,
+                "diff_mm_a": 0.57,
+                "allowed_diff_mm_a": 1.573,
+                "support": {
+                  "44": 5,
+                  "95": 8
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "659097270",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 2,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100006",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 5
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "193882782",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 2,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099982",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100016",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.447,
+                "diff_mm_a": 1.017,
+                "allowed_diff_mm_a": 1.263,
+                "support": {
+                  "44": 3,
+                  "95": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099993",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3456,
+                "diff_mm_a": 1.409,
+                "allowed_diff_mm_a": 1.326,
+                "support": {
+                  "44": 8,
+                  "95": 12
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099970",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 4
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482122",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482124",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656473453",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2605,
+                "diff_mm_a": 1.649,
+                "allowed_diff_mm_a": 1.226,
+                "support": {
+                  "44": 8,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099964",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.1784,
+                "diff_mm_a": 2.158,
+                "allowed_diff_mm_a": 1.252,
+                "support": {
+                  "44": 5,
+                  "95": 4
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088268",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 6
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482123",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 4
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "367694489",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5272,
+                "diff_mm_a": 1.139,
+                "allowed_diff_mm_a": 1.779,
+                "support": {
+                  "44": 11,
+                  "95": 8
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100061",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099968",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4615,
+                "diff_mm_a": 1.647,
+                "allowed_diff_mm_a": 2.13,
+                "support": {
+                  "44": 5,
+                  "95": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100042",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3868,
+                "diff_mm_a": 1.658,
+                "allowed_diff_mm_a": 1.746,
+                "support": {
+                  "44": 3,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100032",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9368,
+                "diff_mm_a": 0.114,
+                "allowed_diff_mm_a": 1.746,
+                "support": {
+                  "44": 3,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "143823099",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6643,
+                "diff_mm_a": 0.512,
+                "allowed_diff_mm_a": 1.251,
+                "support": {
+                  "44": 11,
+                  "95": 16
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100083",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6634,
+                "diff_mm_a": 0.819,
+                "allowed_diff_mm_a": 1.994,
+                "support": {
+                  "44": 4,
+                  "95": 12
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "34031762",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4128,
+                "diff_mm_a": 1.211,
+                "allowed_diff_mm_a": 1.369,
+                "support": {
+                  "44": 10,
+                  "95": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "143823101",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2602,
+                "diff_mm_a": 1.586,
+                "allowed_diff_mm_a": 1.178,
+                "support": {
+                  "44": 3,
+                  "95": 6
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694477",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9106,
+                "diff_mm_a": 0.129,
+                "allowed_diff_mm_a": 1.381,
+                "support": {
+                  "44": 2,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099965",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8458,
+                "diff_mm_a": 0.253,
+                "allowed_diff_mm_a": 1.51,
+                "support": {
+                  "44": 7,
+                  "95": 6
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099979",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7914,
+                "diff_mm_a": 0.308,
+                "allowed_diff_mm_a": 1.316,
+                "support": {
+                  "44": 4,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100041",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5079,
+                "diff_mm_a": 0.987,
+                "allowed_diff_mm_a": 1.456,
+                "support": {
+                  "44": 10,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694490",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5311,
+                "diff_mm_a": 1.006,
+                "allowed_diff_mm_a": 1.59,
+                "support": {
+                  "44": 3,
+                  "95": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099987",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.1535,
+                "diff_mm_a": 3.49,
+                "allowed_diff_mm_a": 1.862,
+                "support": {
+                  "44": 5,
+                  "95": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656292755",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4603,
+                "diff_mm_a": 0.9,
+                "allowed_diff_mm_a": 1.16,
+                "support": {
+                  "44": 9,
+                  "95": 5
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901750",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7696,
+                "diff_mm_a": 0.32,
+                "allowed_diff_mm_a": 1.224,
+                "support": {
+                  "44": 4,
+                  "95": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901751",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.692,
+                "diff_mm_a": 0.38,
+                "allowed_diff_mm_a": 1.033,
+                "support": {
+                  "44": 7,
+                  "95": 5
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_193",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3305,
+                "diff_mm_a": 1.643,
+                "allowed_diff_mm_a": 1.484,
+                "support": {
+                  "44": 5,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088274",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100030",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3662,
+                "diff_mm_a": 1.871,
+                "allowed_diff_mm_a": 1.862,
+                "support": {
+                  "44": 3,
+                  "95": 4
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656292751",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "143823106",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238079676",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.0047,
+                "diff_mm_a": 7.822,
+                "allowed_diff_mm_a": 1.457,
+                "support": {
+                  "44": 2,
+                  "95": 4
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "105022685",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6445,
+                "diff_mm_a": 0.618,
+                "allowed_diff_mm_a": 1.406,
+                "support": {
+                  "44": 6,
+                  "95": 9
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088267",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3244,
+                "diff_mm_a": 1.516,
+                "allowed_diff_mm_a": 1.346,
+                "support": {
+                  "44": 9,
+                  "95": 9
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901743",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6848,
+                "diff_mm_a": 0.457,
+                "allowed_diff_mm_a": 1.206,
+                "support": {
+                  "44": 7,
+                  "95": 4
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901748",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 5
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099976",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "227901757",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2424,
+                "diff_mm_a": 1.885,
+                "allowed_diff_mm_a": 1.331,
+                "support": {
+                  "44": 6,
+                  "95": 4
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694478",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 2,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238088273",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "367828513",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7727,
+                "diff_mm_a": 0.49,
+                "allowed_diff_mm_a": 1.901,
+                "support": {
+                  "44": 3,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901742",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2071,
+                "diff_mm_a": 1.907,
+                "allowed_diff_mm_a": 1.211,
+                "support": {
+                  "44": 2,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "105022686",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4629,
+                "diff_mm_a": 1.333,
+                "allowed_diff_mm_a": 1.731,
+                "support": {
+                  "44": 11,
+                  "95": 16
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901753",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6442,
+                "diff_mm_a": 0.633,
+                "allowed_diff_mm_a": 1.44,
+                "support": {
+                  "44": 12,
+                  "95": 8
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901740",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4704,
+                "diff_mm_a": 1.245,
+                "allowed_diff_mm_a": 1.651,
+                "support": {
+                  "44": 5,
+                  "95": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901741",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "227901745",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6162,
+                "diff_mm_a": 0.622,
+                "allowed_diff_mm_a": 1.284,
+                "support": {
+                  "44": 9,
+                  "95": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901749",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8881,
+                "diff_mm_a": 0.196,
+                "allowed_diff_mm_a": 1.651,
+                "support": {
+                  "44": 9,
+                  "95": 6
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367849348",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "227901744",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100044",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "658863063",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 2
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "105022689",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482121",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482125",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 7
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "Austria_120230032_23975",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "127361308",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "193882805",
+                "pair": "44/95",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "44": 0,
+                  "95": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              }
+            ]
+          }
+        },
+        "bg_flat_01_tsx": {
+          "summary": {
+            "points_total": 6750,
+            "points_kept": 5981,
+            "points_noise": 2239,
+            "points_nearest": 1488,
+            "n_regimes": {
+              "<3": 9,
+              "3-5": 8,
+              "6-12": 23,
+              "13-50": 71,
+              ">50": 49
+            },
+            "building_status_counts": {
+              "ok": 59,
+              "small_n": 4,
+              "noise_dominated": 12,
+              "single_track_only": 4,
+              "insufficient_support": 3
+            },
+            "building_statuses": {
+              "105022685": "ok",
+              "238099976": "ok",
+              "105022689": "ok",
+              "105022686": "ok",
+              "367828513": "small_n",
+              "238099979": "noise_dominated",
+              "238100030": "ok",
+              "227901749": "noise_dominated",
+              "227901744": "ok",
+              "367694490": "ok",
+              "367849348": "ok",
+              "238100041": "ok",
+              "238088267": "ok",
+              "227901753": "noise_dominated",
+              "658863063": "ok",
+              "238099987": "ok",
+              "227901745": "ok",
+              "367694478": "ok",
+              "227901741": "ok",
+              "227901740": "ok",
+              "238100042": "ok",
+              "Austria_120230032_193": "noise_dominated",
+              "238100083": "noise_dominated",
+              "238099965": "ok",
+              "238100032": "ok",
+              "238088273": "single_track_only",
+              "227901757": "ok",
+              "227901742": "ok",
+              "227901748": "ok",
+              "238088274": "ok",
+              "227901743": "noise_dominated",
+              "367694477": "ok",
+              "238099968": "ok",
+              "367694489": "ok",
+              "227901751": "noise_dominated",
+              "656292751": "ok",
+              "656482123": "ok",
+              "238100061": "ok",
+              "227901750": "ok",
+              "238099970": "ok",
+              "238099964": "ok",
+              "238079676": "ok",
+              "656292755": "ok",
+              "656482121": "ok",
+              "656482122": "ok",
+              "143823099": "noise_dominated",
+              "34031762": "ok",
+              "Austria_120230032_23975": "ok",
+              "238099993": "ok",
+              "143823106": "single_track_only",
+              "656482124": "ok",
+              "656473453": "ok",
+              "238100016": "ok",
+              "238099982": "ok",
+              "659097270": "noise_dominated",
+              "238100051": "ok",
+              "656482125": "ok",
+              "238100063": "small_n",
+              "143823101": "ok",
+              "238100006": "noise_dominated",
+              "238100066": "ok",
+              "238100024": "noise_dominated",
+              "656473448": "ok",
+              "238099991": "ok",
+              "238088268": "noise_dominated",
+              "238100050": "ok",
+              "Austria_120230032_6051": "single_track_only",
+              "238099999": "ok",
+              "238100082": "ok",
+              "367834834": "ok",
+              "238100000": "ok",
+              "656473446": "ok",
+              "238100036": "insufficient_support",
+              "193882782": "ok",
+              "238099996": "ok",
+              "238100070": "ok",
+              "193882807": "ok",
+              "193882805": "small_n",
+              "Austria_120230032_2136": "insufficient_support",
+              "127361308": "small_n",
+              "238100044": "single_track_only",
+              "367849345": "insufficient_support"
+            },
+            "multi_cluster_buildings": 72,
+            "multi_cluster_buildings_robust": 58,
+            "nearest_dominated_main_clusters": 23
+          },
+          "pipeline_metrics": {
+            "total_points": 6750,
+            "assigned_points": 6205,
+            "assigned_buildings": 82,
+            "kept_points": 5981,
+            "gate_excluded_points": 769,
+            "normal_points": 2682,
+            "suspect_points": 1060,
+            "outlier_points": 3008,
+            "noise_points": 2239,
+            "buildings_with_clusters": 82,
+            "multi_cluster_buildings": 72,
+            "small_n_buildings": 4,
+            "full_cross_track_points": 0,
+            "buildings_with_full_track_support": 0,
+            "median_cross_track_diff_before": 0.0,
+            "median_cross_track_diff_after": 0.0,
+            "cross_track_improvement": 0.0
+          },
+          "reassign_stats": {
+            "rescued_total": 2141,
+            "method:directional_buffer": 630,
+            "regime:>50": 1399,
+            "method:within": 1260,
+            "method:nearest": 251,
+            "regime:13-50": 729,
+            "regime:6-12": 13
+          },
+          "cross_track": {
+            "pair": [
+              93,
+              70
+            ],
+            "buildings_total": 82,
+            "buildings_with_agreement": 71,
+            "agreement_median": 0.5267,
+            "rows": [
+              {
+                "building_id": "105022685",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4481,
+                "diff_mm_a": 1.129,
+                "allowed_diff_mm_a": 1.406,
+                "support": {
+                  "93": 113,
+                  "70": 71
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099976",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.1852,
+                "diff_mm_a": 2.504,
+                "allowed_diff_mm_a": 1.485,
+                "support": {
+                  "93": 29,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "105022689",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5463,
+                "diff_mm_a": 1.155,
+                "allowed_diff_mm_a": 1.91,
+                "support": {
+                  "93": 10,
+                  "70": 3
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "105022686",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4302,
+                "diff_mm_a": 1.46,
+                "allowed_diff_mm_a": 1.731,
+                "support": {
+                  "93": 70,
+                  "70": 68
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367828513",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 3,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099979",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.1372,
+                "diff_mm_a": 2.614,
+                "allowed_diff_mm_a": 1.316,
+                "support": {
+                  "93": 9,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100030",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3303,
+                "diff_mm_a": 2.063,
+                "allowed_diff_mm_a": 1.862,
+                "support": {
+                  "93": 20,
+                  "70": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901749",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.62,
+                "diff_mm_a": 0.789,
+                "allowed_diff_mm_a": 1.651,
+                "support": {
+                  "93": 49,
+                  "70": 33
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901744",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4237,
+                "diff_mm_a": 1.379,
+                "allowed_diff_mm_a": 1.606,
+                "support": {
+                  "93": 22,
+                  "70": 18
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694490",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6629,
+                "diff_mm_a": 0.654,
+                "allowed_diff_mm_a": 1.59,
+                "support": {
+                  "93": 21,
+                  "70": 32
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367849348",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4032,
+                "diff_mm_a": 1.307,
+                "allowed_diff_mm_a": 1.439,
+                "support": {
+                  "93": 33,
+                  "70": 17
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100041",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4076,
+                "diff_mm_a": 1.307,
+                "allowed_diff_mm_a": 1.456,
+                "support": {
+                  "93": 43,
+                  "70": 27
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088267",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2644,
+                "diff_mm_a": 1.791,
+                "allowed_diff_mm_a": 1.346,
+                "support": {
+                  "93": 68,
+                  "70": 42
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901753",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8631,
+                "diff_mm_a": 0.212,
+                "allowed_diff_mm_a": 1.44,
+                "support": {
+                  "93": 20,
+                  "70": 19
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "658863063",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9852,
+                "diff_mm_a": 0.025,
+                "allowed_diff_mm_a": 1.703,
+                "support": {
+                  "93": 3,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099987",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6002,
+                "diff_mm_a": 0.951,
+                "allowed_diff_mm_a": 1.862,
+                "support": {
+                  "93": 17,
+                  "70": 25
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901745",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.882,
+                "diff_mm_a": 0.161,
+                "allowed_diff_mm_a": 1.284,
+                "support": {
+                  "93": 28,
+                  "70": 21
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694478",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3436,
+                "diff_mm_a": 1.367,
+                "allowed_diff_mm_a": 1.279,
+                "support": {
+                  "93": 44,
+                  "70": 17
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901741",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7077,
+                "diff_mm_a": 0.505,
+                "allowed_diff_mm_a": 1.462,
+                "support": {
+                  "93": 7,
+                  "70": 8
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901740",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4602,
+                "diff_mm_a": 1.282,
+                "allowed_diff_mm_a": 1.651,
+                "support": {
+                  "93": 44,
+                  "70": 49
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100042",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4505,
+                "diff_mm_a": 1.392,
+                "allowed_diff_mm_a": 1.746,
+                "support": {
+                  "93": 18,
+                  "70": 32
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_193",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5874,
+                "diff_mm_a": 0.789,
+                "allowed_diff_mm_a": 1.484,
+                "support": {
+                  "93": 27,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100083",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.317,
+                "diff_mm_a": 2.292,
+                "allowed_diff_mm_a": 1.994,
+                "support": {
+                  "93": 36,
+                  "70": 35
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099965",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5605,
+                "diff_mm_a": 0.874,
+                "allowed_diff_mm_a": 1.51,
+                "support": {
+                  "93": 34,
+                  "70": 22
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100032",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6119,
+                "diff_mm_a": 0.857,
+                "allowed_diff_mm_a": 1.746,
+                "support": {
+                  "93": 12,
+                  "70": 20
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088273",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 5,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "227901757",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.684,
+                "diff_mm_a": 0.505,
+                "allowed_diff_mm_a": 1.331,
+                "support": {
+                  "93": 25,
+                  "70": 12
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901742",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6897,
+                "diff_mm_a": 0.45,
+                "allowed_diff_mm_a": 1.211,
+                "support": {
+                  "93": 21,
+                  "70": 19
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901748",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4375,
+                "diff_mm_a": 1.001,
+                "allowed_diff_mm_a": 1.211,
+                "support": {
+                  "93": 15,
+                  "70": 13
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088274",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.0212,
+                "diff_mm_a": 5.063,
+                "allowed_diff_mm_a": 1.314,
+                "support": {
+                  "93": 16,
+                  "70": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901743",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5898,
+                "diff_mm_a": 0.637,
+                "allowed_diff_mm_a": 1.206,
+                "support": {
+                  "93": 27,
+                  "70": 23
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694477",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6424,
+                "diff_mm_a": 0.611,
+                "allowed_diff_mm_a": 1.381,
+                "support": {
+                  "93": 27,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099968",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6089,
+                "diff_mm_a": 1.057,
+                "allowed_diff_mm_a": 2.13,
+                "support": {
+                  "93": 33,
+                  "70": 30
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367694489",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4797,
+                "diff_mm_a": 1.307,
+                "allowed_diff_mm_a": 1.779,
+                "support": {
+                  "93": 27,
+                  "70": 37
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901751",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.1562,
+                "diff_mm_a": 1.918,
+                "allowed_diff_mm_a": 1.033,
+                "support": {
+                  "93": 32,
+                  "70": 19
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656292751",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.078,
+                "diff_mm_a": 2.636,
+                "allowed_diff_mm_a": 1.033,
+                "support": {
+                  "93": 8,
+                  "70": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656482123",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8732,
+                "diff_mm_a": 0.276,
+                "allowed_diff_mm_a": 2.034,
+                "support": {
+                  "93": 5,
+                  "70": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100061",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9363,
+                "diff_mm_a": 0.127,
+                "allowed_diff_mm_a": 1.937,
+                "support": {
+                  "93": 15,
+                  "70": 16
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "227901750",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.521,
+                "diff_mm_a": 0.798,
+                "allowed_diff_mm_a": 1.224,
+                "support": {
+                  "93": 31,
+                  "70": 63
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099970",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4659,
+                "diff_mm_a": 1.193,
+                "allowed_diff_mm_a": 1.562,
+                "support": {
+                  "93": 26,
+                  "70": 12
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099964",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6841,
+                "diff_mm_a": 0.475,
+                "allowed_diff_mm_a": 1.252,
+                "support": {
+                  "93": 57,
+                  "70": 65
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238079676",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9162,
+                "diff_mm_a": 0.127,
+                "allowed_diff_mm_a": 1.457,
+                "support": {
+                  "93": 6,
+                  "70": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656292755",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5136,
+                "diff_mm_a": 0.773,
+                "allowed_diff_mm_a": 1.16,
+                "support": {
+                  "93": 15,
+                  "70": 13
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656482121",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7886,
+                "diff_mm_a": 0.365,
+                "allowed_diff_mm_a": 1.536,
+                "support": {
+                  "93": 8,
+                  "70": 7
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656482122",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9997,
+                "diff_mm_a": 0.0,
+                "allowed_diff_mm_a": 1.536,
+                "support": {
+                  "93": 6,
+                  "70": 6
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "143823099",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4614,
+                "diff_mm_a": 0.968,
+                "allowed_diff_mm_a": 1.251,
+                "support": {
+                  "93": 35,
+                  "70": 34
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "34031762",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.711,
+                "diff_mm_a": 0.467,
+                "allowed_diff_mm_a": 1.369,
+                "support": {
+                  "93": 66,
+                  "70": 30
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_23975",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5244,
+                "diff_mm_a": 0.951,
+                "allowed_diff_mm_a": 1.473,
+                "support": {
+                  "93": 9,
+                  "70": 9
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099993",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4852,
+                "diff_mm_a": 0.959,
+                "allowed_diff_mm_a": 1.326,
+                "support": {
+                  "93": 30,
+                  "70": 27
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "143823106",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 12
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "656482124",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.279,
+                "diff_mm_a": 1.961,
+                "allowed_diff_mm_a": 1.536,
+                "support": {
+                  "93": 9,
+                  "70": 11
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656473453",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6927,
+                "diff_mm_a": 0.45,
+                "allowed_diff_mm_a": 1.226,
+                "support": {
+                  "93": 24,
+                  "70": 35
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100016",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4259,
+                "diff_mm_a": 1.078,
+                "allowed_diff_mm_a": 1.263,
+                "support": {
+                  "93": 11,
+                  "70": 10
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099982",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7462,
+                "diff_mm_a": 0.45,
+                "allowed_diff_mm_a": 1.536,
+                "support": {
+                  "93": 8,
+                  "70": 11
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "659097270",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4143,
+                "diff_mm_a": 1.264,
+                "allowed_diff_mm_a": 1.435,
+                "support": {
+                  "93": 4,
+                  "70": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100051",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7567,
+                "diff_mm_a": 0.365,
+                "allowed_diff_mm_a": 1.308,
+                "support": {
+                  "93": 26,
+                  "70": 19
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656482125",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8,
+                "diff_mm_a": 0.289,
+                "allowed_diff_mm_a": 1.294,
+                "support": {
+                  "93": 5,
+                  "70": 18
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100063",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 3
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "143823101",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3807,
+                "diff_mm_a": 1.137,
+                "allowed_diff_mm_a": 1.178,
+                "support": {
+                  "93": 36,
+                  "70": 23
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100006",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5758,
+                "diff_mm_a": 0.637,
+                "allowed_diff_mm_a": 1.154,
+                "support": {
+                  "93": 4,
+                  "70": 2
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100066",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5267,
+                "diff_mm_a": 0.781,
+                "allowed_diff_mm_a": 1.218,
+                "support": {
+                  "93": 19,
+                  "70": 47
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100024",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.9697,
+                "diff_mm_a": 0.047,
+                "allowed_diff_mm_a": 1.525,
+                "support": {
+                  "93": 27,
+                  "70": 26
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656473448",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3185,
+                "diff_mm_a": 1.799,
+                "allowed_diff_mm_a": 1.573,
+                "support": {
+                  "93": 46,
+                  "70": 39
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099991",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.4597,
+                "diff_mm_a": 0.968,
+                "allowed_diff_mm_a": 1.245,
+                "support": {
+                  "93": 30,
+                  "70": 31
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238088268",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6645,
+                "diff_mm_a": 0.564,
+                "allowed_diff_mm_a": 1.381,
+                "support": {
+                  "93": 23,
+                  "70": 16
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100050",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8137,
+                "diff_mm_a": 0.293,
+                "allowed_diff_mm_a": 1.419,
+                "support": {
+                  "93": 39,
+                  "70": 30
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "Austria_120230032_6051",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 7
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238099999",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8171,
+                "diff_mm_a": 0.306,
+                "allowed_diff_mm_a": 1.513,
+                "support": {
+                  "93": 39,
+                  "70": 72
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100082",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.6032,
+                "diff_mm_a": 0.645,
+                "allowed_diff_mm_a": 1.276,
+                "support": {
+                  "93": 34,
+                  "70": 80
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "367834834",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.2266,
+                "diff_mm_a": 1.808,
+                "allowed_diff_mm_a": 1.218,
+                "support": {
+                  "93": 67,
+                  "70": 65
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100000",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.7347,
+                "diff_mm_a": 0.484,
+                "allowed_diff_mm_a": 1.569,
+                "support": {
+                  "93": 46,
+                  "70": 33
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "656473446",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3694,
+                "diff_mm_a": 1.4,
+                "allowed_diff_mm_a": 1.406,
+                "support": {
+                  "93": 40,
+                  "70": 21
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100036",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "193882782",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.8053,
+                "diff_mm_a": 0.242,
+                "allowed_diff_mm_a": 1.117,
+                "support": {
+                  "93": 4,
+                  "70": 14
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238099996",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3201,
+                "diff_mm_a": 1.46,
+                "allowed_diff_mm_a": 1.282,
+                "support": {
+                  "93": 19,
+                  "70": 15
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "238100070",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.5046,
+                "diff_mm_a": 0.798,
+                "allowed_diff_mm_a": 1.166,
+                "support": {
+                  "93": 13,
+                  "70": 28
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "193882807",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": 0.3641,
+                "diff_mm_a": 1.104,
+                "allowed_diff_mm_a": 1.092,
+                "support": {
+                  "93": 42,
+                  "70": 22
+                },
+                "support_gate_ok": true
+              },
+              {
+                "building_id": "193882805",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 2
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "Austria_120230032_2136",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "127361308",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 2,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "238100044",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 20,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              },
+              {
+                "building_id": "367849345",
+                "pair": "93/70",
+                "cross_track_pair_type": "opposite_geometry",
+                "cross_track_source": "harness_computed",
+                "agreement": null,
+                "diff_mm_a": null,
+                "support": {
+                  "93": 0,
+                  "70": 0
+                },
+                "not_applicable_reason": "missing_main_cluster_on_one_track"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "hr_compare": {
+    "snt_aoi": "bg_flat_01_snt",
+    "tsx_aoi": "bg_flat_01_tsx",
+    "buildings_coupled": 81,
+    "buildings_with_match_eval": 60,
+    "hr_main_region_match_rate": 0.983,
+    "rows": [
+      {
+        "building_id": "105022685",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 40,
+        "tsx_kept": 219,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 105,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "105022686",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 43,
+        "tsx_kept": 264,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 84,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "105022689",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 20,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "127361308",
+        "snt_status": "insufficient_support",
+        "tsx_status": "small_n",
+        "snt_kept": 1,
+        "tsx_kept": 3,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "143823099",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 42,
+        "tsx_kept": 153,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 58,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "143823101",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 12,
+        "tsx_kept": 85,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 29,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "143823106",
+        "snt_status": "insufficient_support",
+        "tsx_status": "single_track_only",
+        "snt_kept": 1,
+        "tsx_kept": 14,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "193882782",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 7,
+        "tsx_kept": 24,
+        "hr_main_region_match": false,
+        "tsx_core_points_near_snt_main": 1,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "193882805",
+        "snt_status": "insufficient_support",
+        "tsx_status": "small_n",
+        "snt_kept": 2,
+        "tsx_kept": 5,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "193882807",
+        "snt_status": "small_n",
+        "tsx_status": "ok",
+        "snt_kept": 6,
+        "tsx_kept": 81,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 64,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901740",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 13,
+        "tsx_kept": 139,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 83,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901741",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 3,
+        "tsx_kept": 24,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901742",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 8,
+        "tsx_kept": 52,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 40,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901743",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 20,
+        "tsx_kept": 105,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 49,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901744",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 1,
+        "tsx_kept": 53,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901745",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 14,
+        "tsx_kept": 89,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 49,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901748",
+        "snt_status": "single_track_only",
+        "tsx_status": "ok",
+        "snt_kept": 10,
+        "tsx_kept": 53,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 27,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901749",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 16,
+        "tsx_kept": 173,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 54,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901750",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 22,
+        "tsx_kept": 171,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 81,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901751",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 14,
+        "tsx_kept": 103,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 45,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901753",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 22,
+        "tsx_kept": 101,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 39,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "227901757",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 12,
+        "tsx_kept": 42,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 26,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238079676",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 8,
+        "tsx_kept": 26,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 16,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238088267",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 19,
+        "tsx_kept": 157,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 42,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238088268",
+        "snt_status": "single_track_only",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 15,
+        "tsx_kept": 119,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 19,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238088273",
+        "snt_status": "insufficient_support",
+        "tsx_status": "single_track_only",
+        "snt_kept": 1,
+        "tsx_kept": 10,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238088274",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 39,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099964",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 22,
+        "tsx_kept": 144,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 86,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099965",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 15,
+        "tsx_kept": 94,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 38,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099968",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 30,
+        "tsx_kept": 108,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 52,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099970",
+        "snt_status": "single_track_only",
+        "tsx_status": "ok",
+        "snt_kept": 8,
+        "tsx_kept": 68,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 22,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099976",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 61,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099979",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 10,
+        "tsx_kept": 52,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 10,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099982",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 25,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099987",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 16,
+        "tsx_kept": 70,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 41,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099991",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 29,
+        "tsx_kept": 114,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 60,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099993",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 30,
+        "tsx_kept": 105,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 57,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099996",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 63,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238099999",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 26,
+        "tsx_kept": 134,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 103,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100000",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 33,
+        "tsx_kept": 115,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 76,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100006",
+        "snt_status": "single_track_only",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 7,
+        "tsx_kept": 13,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 3,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100016",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 12,
+        "tsx_kept": 38,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 21,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100024",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 21,
+        "tsx_kept": 107,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 52,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100030",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 10,
+        "tsx_kept": 33,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 30,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100032",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 11,
+        "tsx_kept": 43,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 32,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100036",
+        "snt_status": "insufficient_support",
+        "tsx_status": "insufficient_support",
+        "snt_kept": 4,
+        "tsx_kept": 5,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100041",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 15,
+        "tsx_kept": 103,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 61,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100042",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 11,
+        "tsx_kept": 72,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 50,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100044",
+        "snt_status": "insufficient_support",
+        "tsx_status": "single_track_only",
+        "snt_kept": 1,
+        "tsx_kept": 24,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100050",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 26,
+        "tsx_kept": 118,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 34,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100051",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 16,
+        "tsx_kept": 62,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 45,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100061",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 7,
+        "tsx_kept": 42,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100063",
+        "snt_status": "small_n",
+        "tsx_status": "small_n",
+        "snt_kept": 3,
+        "tsx_kept": 6,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 3,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100066",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 14,
+        "tsx_kept": 100,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 59,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100070",
+        "snt_status": "small_n",
+        "tsx_status": "ok",
+        "snt_kept": 8,
+        "tsx_kept": 57,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 36,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100082",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 22,
+        "tsx_kept": 169,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 88,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "238100083",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 19,
+        "tsx_kept": 154,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 71,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "34031762",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 33,
+        "tsx_kept": 173,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 77,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367694477",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 10,
+        "tsx_kept": 48,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 29,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367694478",
+        "snt_status": "small_n",
+        "tsx_status": "ok",
+        "snt_kept": 6,
+        "tsx_kept": 87,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 54,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367694489",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 29,
+        "tsx_kept": 100,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 60,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367694490",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 12,
+        "tsx_kept": 90,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 41,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367828513",
+        "snt_status": "ok",
+        "tsx_status": "small_n",
+        "snt_kept": 6,
+        "tsx_kept": 7,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 6,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367834834",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 28,
+        "tsx_kept": 165,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 73,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "367849348",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 83,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656292751",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 5,
+        "tsx_kept": 16,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656292755",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 15,
+        "tsx_kept": 52,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 28,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656473446",
+        "snt_status": "single_track_only",
+        "tsx_status": "ok",
+        "snt_kept": 18,
+        "tsx_kept": 90,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 61,
+        "motion_sign_compatible_qualitative": false,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656473448",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 18,
+        "tsx_kept": 101,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 85,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656473453",
+        "snt_status": "ok",
+        "tsx_status": "ok",
+        "snt_kept": 16,
+        "tsx_kept": 90,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 59,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656482121",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 26,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656482122",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 4,
+        "tsx_kept": 15,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656482123",
+        "snt_status": "single_track_only",
+        "tsx_status": "ok",
+        "snt_kept": 6,
+        "tsx_kept": 12,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 7,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656482124",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 2,
+        "tsx_kept": 25,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "656482125",
+        "snt_status": "single_track_only",
+        "tsx_status": "ok",
+        "snt_kept": 7,
+        "tsx_kept": 31,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 23,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "658863063",
+        "snt_status": "noise_dominated",
+        "tsx_status": "ok",
+        "snt_kept": 6,
+        "tsx_kept": 14,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 10,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "659097270",
+        "snt_status": "small_n",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 5,
+        "tsx_kept": 16,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 6,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "Austria_120230032_193",
+        "snt_status": "ok",
+        "tsx_status": "noise_dominated",
+        "snt_kept": 11,
+        "tsx_kept": 75,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 34,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "Austria_120230032_2136",
+        "snt_status": "insufficient_support",
+        "tsx_status": "insufficient_support",
+        "snt_kept": 1,
+        "tsx_kept": 4,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "Austria_120230032_23975",
+        "snt_status": "insufficient_support",
+        "tsx_status": "ok",
+        "snt_kept": 1,
+        "tsx_kept": 28,
+        "hr_main_region_match": null,
+        "motion_sign_compatible_qualitative": null,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      },
+      {
+        "building_id": "Austria_120230032_6051",
+        "snt_status": "small_n",
+        "tsx_status": "single_track_only",
+        "snt_kept": 6,
+        "tsx_kept": 9,
+        "hr_main_region_match": true,
+        "tsx_core_points_near_snt_main": 3,
+        "motion_sign_compatible_qualitative": true,
+        "temporal_overlap_days": 232,
+        "motion_comparison_scope": "qualitative_only"
+      }
+    ]
+  }
+}
