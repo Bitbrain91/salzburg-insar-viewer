@@ -575,3 +575,33 @@ der Clusterer; OPTICS wird nicht weiterverfolgt. Damit ist auch die
 Schritt-5-Reihenfolge abgeschlossen: weitere Algorithmusfamilien
 (P7-C-W2-T3) sind per User-Entscheidung 2026-06-10 in eine spaetere
 Optimierungsphase verschoben (siehe next_steps.md).
+
+## Schritt 5 / P7-C-W2-T2: High-N-/TSX-Strategie (green, Ergebnis: Folgephasen-Empfehlung)
+
+Varianten leaf, feat_spatial_hi, leaf+spatial (alle auf k2x-Basis) auf
+bg_flat_01_snt + beiden TSX-AOIs, je mit HR-Strukturvergleich
+(phase7_high_n_*.json). Befunde:
+
+- leaf reduziert TSX-Noise um Faktor ~7 (bg_flat_01_tsx: 2069 -> 257 von
+  5652) und leaf+spatial verbessert TSX-Cross-Track (+0.066:
+  0.5748 vs k2x 0.5091). Der High-N-Effekt ist real: dichte
+  TSX-Gebaeude profitieren von feinerer leaf-Selektion.
+- ABER: auf der SNT-Seite degradiert leaf+spatial deutlich
+  (bg_flat_01_snt xtrack 0.537 vs k2x 0.6646), und der V4-Sweep zeigt
+  leaf global candidate_red (Hygiene-Guardrail). DoD-Regel greift:
+  Nur-TSX-Verbesserung reicht nicht fuer den SNT-Default.
+- Skepsis-Befund: unter leaf/leaf+spatial verschwindet die KOMPLETTE
+  noise_dominated-Klasse auf TSX (8 -> 0 Gebaeude), inkl. des
+  diagnostischen Referenzfalls 227901749 (-> ok). Pauschales Wegbuegeln
+  einer Diagnoseklasse ohne Einzelfall-Verifikation ist nicht
+  akzeptierbar (gleiche Vorsicht wie beim a1-Aufblaeh-Effekt).
+- HR-Strukturmodul saettigt bei match_rate=1.0 fuer ALLE Varianten
+  (64 gekoppelte Gebaeude) - es diskriminiert auf Gebaeude-Granularitaet
+  nicht mehr; feinere HR-Metrik (Cluster-/Patch-Ebene) als
+  Folgephasen-Werkzeug notiert.
+
+ENTSCHEIDUNG T2: Keine Shortlist-Aufnahme, kein SNT-Default. Befund als
+Folgephasen-Empfehlung dokumentiert: regime-konditionale Strategie
+(leaf nur fuer >50-Gruppen/TSX) waere ein struktureller Eingriff und
+gehoert in die naechste Optimierungsphase, gemeinsam mit der feineren
+HR-Verifikation (next_steps.md).
