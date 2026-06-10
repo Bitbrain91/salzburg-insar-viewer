@@ -22,6 +22,7 @@ import asyncio
 import hashlib
 import json
 import math
+from collections import Counter
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any
@@ -91,11 +92,30 @@ OPPOSITE_PAIRS = {
 TEMPORAL_OVERLAP_DAYS = {("bad_gastein_snt", "bad_gastein_tsx_paz"): 232}
 
 EXTRA_FIELDS_QUERY = """
-    SELECT code, track, height_std, acceleration_std, s_amp_std, s_phs_std,
-           season_phs, eff_area
-    FROM insar_points
-    WHERE area_id = $5 AND dataset_id = $6
-      AND ST_Intersects(geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+    SELECT p.code, p.track, p.height_std, p.acceleration_std, p.s_amp_std,
+           p.s_phs_std, p.season_phs, p.eff_area,
+           t.terrain_elevation_m
+    FROM insar_points p
+    LEFT JOIN insar_point_terrain t
+      ON t.area_id = p.area_id AND t.dataset_id = p.dataset_id
+     AND t.code = p.code AND t.track = p.track
+    WHERE p.area_id = $5 AND p.dataset_id = $6
+      AND ST_Intersects(p.geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+"""
+
+# nearest-Punkte in einer OSM-Struktur OHNE GBA-Entsprechung (Carport-Veto,
+# nur Salzburg verfuegbar; Bad Gastein hat keine geladenen OSM-Gebaeude).
+OSM_FOREIGN_QUERY = """
+    SELECT p.code, p.track
+    FROM insar_points p
+    JOIN osm_buildings o
+      ON o.area_id = $5 AND ST_Covers(o.geom, p.geom)
+    WHERE p.area_id = $5 AND p.dataset_id = $6
+      AND ST_Intersects(p.geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
+      AND NOT EXISTS (
+        SELECT 1 FROM gba_buildings g
+        WHERE g.area_id = $5 AND ST_Intersects(g.geom, o.geom)
+      )
 """
 
 
@@ -121,6 +141,10 @@ class ExperimentConfig:
     coherence_gate_mode: str = "absolute" # absolute | percentile:<p>
     # Assignment-Politik (Schritt 4): a0 | a1_demote | a2_dist:<m> | a3_height | a4_osm
     assignment_policy: str = "a0"
+    # Small-N-Politik: baseline | strict (Konsistenzpflicht statt Pseudo-Core)
+    smalln_mode: str = "baseline"
+    # Borderline-Noise-Reassignment: on | off
+    reassign_mode: str = "on"
 
     def to_jsonable(self) -> dict[str, Any]:
         d = asdict(self)
@@ -146,9 +170,13 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
     Produktion (No-op-Beweis gegen persistierte Baseline-Runs).
     """
 
-    def __init__(self, exp: ExperimentConfig, extra_features: dict[tuple[str, int], dict[str, float | None]] | None = None):
+    def __init__(self, exp: ExperimentConfig, extra_features: dict[tuple[str, int], dict[str, float | None]] | None = None,
+                 osm_foreign: set[tuple[str, int]] | None = None):
         self.exp = exp
         self.extra_features = extra_features or {}
+        self.osm_foreign = osm_foreign or set()
+        self.reassign_stats: Counter = Counter()
+        self.policy_stats: Counter = Counter()
 
     # --- Zusatzfelder in die Feature-Map injizieren -----------------------
     def _compute_series_features(self, records: list[LocalPointRecord]) -> None:
@@ -177,6 +205,108 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                     stats["coherence_p05"] = float(np.nanpercentile(values, pct))
             params = {**params, "coherence_floor": 0.0}
         super()._apply_gate_rules(records, track_stats, params)
+        self._apply_assignment_policy(records)
+
+    def _apply_assignment_policy(self, records: list[LocalPointRecord]) -> None:
+        """A1/A3/A4: nearest-Punkte ohne geometrische Begruendung demotieren.
+
+        Demotion = gate-excluded mit eigenem Grund: sichtbar/geflaggt, aber
+        weder Cluster-Mitglied noch Score-Beitrag (Asymmetrie-Prinzip).
+        A2 (Distanz) wirkt ueber den Fetch-Parameter max_distance_m.
+        """
+        policy = self.exp.assignment_policy
+        if policy in ("a0",) or policy.startswith("a2_dist"):
+            return
+
+        def demote(record: LocalPointRecord, reason: str) -> None:
+            record.gate_reasons = list(record.gate_reasons) + [reason]
+            record.gate_excluded = True
+            record.kept_for_scoring = False
+            record.flags["gate_excluded"] = True
+            record.flags["gate_reasons"] = record.gate_reasons
+            record.flags.setdefault("degraded_reason", reason)
+            self.policy_stats[reason] += 1
+
+        if policy == "a1_demote":
+            for r in records:
+                if r.assignment_method == "nearest" and not r.gate_excluded:
+                    demote(r, "nearest_demoted")
+            return
+
+        if policy == "a3_height":
+            # Kalibrierung je Track: p25 der (Punkthoehe - Gelaendehoehe) der
+            # geometrisch begruendeten Punkte; nearest deutlich darunter
+            # (>2 m) = Bodenobjekt-/Carport-Verdacht.
+            rel_by_track: dict[int, list[float]] = {}
+            def rel(r: LocalPointRecord) -> float | None:
+                extra = self.extra_features.get((r.code, r.track)) or {}
+                terr = extra.get("terrain_elevation_m")
+                if terr is None or r.height is None:
+                    return None
+                return float(r.height) - float(terr)
+            for r in records:
+                if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
+                    v = rel(r)
+                    if v is not None:
+                        rel_by_track.setdefault(r.track, []).append(v)
+            p25 = {t: float(np.percentile(np.asarray(v), 25)) for t, v in rel_by_track.items() if v}
+            for r in records:
+                if r.assignment_method != "nearest" or r.gate_excluded:
+                    continue
+                v = rel(r)
+                ref = p25.get(r.track)
+                if v is not None and ref is not None and v < ref - 2.0:
+                    demote(r, "nearest_low_height")
+            return
+
+        if policy == "a4_osm":
+            for r in records:
+                if (
+                    r.assignment_method == "nearest" and not r.gate_excluded
+                    and (r.code, r.track) in self.osm_foreign
+                ):
+                    demote(r, "nearest_osm_foreign_structure")
+            return
+
+        raise ValueError(f"unknown assignment_policy: {policy}")
+
+    # --- Small-N-Politik (P7-C-W1-T3) --------------------------------------
+    def _apply_small_n_fallback(self, building_id, track, kept, noise_threshold):
+        if self.exp.smalln_mode == "baseline":
+            return super()._apply_small_n_fallback(building_id, track, kept, noise_threshold)
+        if self.exp.smalln_mode != "strict":
+            raise ValueError(f"unknown smalln_mode: {self.exp.smalln_mode}")
+        velocities = np.asarray([r.velocity for r in kept], dtype=float)
+        med = float(np.median(velocities))
+        tol = np.maximum(1.0, 2.0 * np.asarray([r.velocity_std or 0.5 for r in kept], dtype=float))
+        consistent = np.abs(velocities - med) <= tol
+        if int(consistent.sum()) >= 2:
+            return super()._apply_small_n_fallback(building_id, track, kept, noise_threshold)
+        for r in kept:
+            r.small_n_fallback = True
+            r.cluster_id = f"{building_id}:t{track}:weak_support"
+            r.cluster_role = "weak_support"
+            r.cluster_probability = 0.30
+            r.cluster_outlier_score = max(r.cluster_outlier_score, 0.50)
+
+    # --- Reassignment-Audit (P7-C-W1-T4) ------------------------------------
+    def _reassign_borderline_noise(self, kept, matrix, labels, probabilities, outlier_scores):
+        if self.exp.reassign_mode == "off":
+            self.reassign_stats["skipped_groups"] += 1
+            return labels, probabilities, outlier_scores
+        before = labels.copy()
+        labels, probabilities, outlier_scores = super()._reassign_borderline_noise(
+            kept, matrix, labels, probabilities, outlier_scores
+        )
+        for i in range(len(kept)):
+            if before[i] == -1 and labels[i] >= 0:
+                method = kept[i].assignment_method or "unassigned"
+                n = len(kept)
+                regime = "6-12" if n <= 12 else ("13-50" if n <= 50 else ">50")
+                self.reassign_stats["rescued_total"] += 1
+                self.reassign_stats[f"method:{method}"] += 1
+                self.reassign_stats[f"regime:{regime}"] += 1
+        return labels, probabilities, outlier_scores
 
     # --- Cluster-Matrix-Achse ----------------------------------------------
     def _cluster_matrix(self, records: list[LocalPointRecord]) -> np.ndarray:
@@ -286,7 +416,7 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
 # Input-Fetch und Ausfuehrung
 # ---------------------------------------------------------------------------
 
-async def fetch_aoi_inputs(aoi: str) -> dict[str, Any]:
+async def fetch_aoi_inputs(aoi: str, params_overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     spec = AOIS[aoi]
     config = RunConfig(
         run_id="00000000-0000-0000-0000-000000000000",
@@ -300,6 +430,8 @@ async def fetch_aoi_inputs(aoi: str) -> dict[str, Any]:
     )
     pipeline = AnomalyLocalV1Pipeline()
     params = pipeline.default_params()
+    if params_overrides:
+        params.update(params_overrides)
     pool = await asyncpg.create_pool(dsn=settings.db_dsn, min_size=1, max_size=2)
     try:
         base_rows, ts_rows, amp_rows = await pipeline._fetch_inputs(pool, config, params)
@@ -307,6 +439,11 @@ async def fetch_aoi_inputs(aoi: str) -> dict[str, Any]:
             extra_rows = await conn.fetch(
                 EXTRA_FIELDS_QUERY, *spec["bbox"], spec["area_id"], spec["dataset_id"]
             )
+            osm_rows = []
+            if spec["area_id"] == "salzburg":
+                osm_rows = await conn.fetch(
+                    OSM_FOREIGN_QUERY, *spec["bbox"], spec["area_id"], spec["dataset_id"]
+                )
     finally:
         await pool.close()
     extras = {
@@ -317,19 +454,72 @@ async def fetch_aoi_inputs(aoi: str) -> dict[str, Any]:
             "s_phs_std": r["s_phs_std"],
             "season_phs": r["season_phs"],
             "eff_area": r["eff_area"],
+            "terrain_elevation_m": r["terrain_elevation_m"],
         }
         for r in extra_rows
     }
     return {"spec": spec, "params": params, "base_rows": base_rows, "ts_rows": ts_rows,
-            "amp_rows": amp_rows, "extras": extras}
+            "amp_rows": amp_rows, "extras": extras,
+            "osm_foreign": {(r["code"], r["track"]) for r in osm_rows}}
+
+
+def fetch_overrides_for(exp: ExperimentConfig) -> dict[str, Any] | None:
+    if exp.assignment_policy.startswith("a2_dist:"):
+        return {"max_distance_m": float(exp.assignment_policy.split(":", 1)[1])}
+    return None
 
 
 def run_experiment_on_inputs(exp: ExperimentConfig, inputs: dict[str, Any]):
-    pipeline = ExperimentPipeline(exp, inputs["extras"])
+    pipeline = ExperimentPipeline(exp, inputs["extras"], inputs.get("osm_foreign"))
     records, metrics = pipeline._compute_run(
         inputs["base_rows"], inputs["ts_rows"], inputs["amp_rows"], dict(inputs["params"])
     )
     return pipeline, records, metrics
+
+
+def main_cluster_choice_audit(records: list[LocalPointRecord]) -> dict[str, Any]:
+    """Diagnose: wuerde eine within-share-first-Rangfolge den Main-Cluster aendern?
+
+    Keine Pipeline-Aenderung - reine Auswertung der Zielbild-Pruefachse
+    (support-basierte Wahl kann Anbau-/nearest-Cluster bevorzugen).
+    """
+    groups: dict[tuple[str, int], dict[str, list[LocalPointRecord]]] = {}
+    mains: dict[tuple[str, int], str | None] = {}
+    for r in records:
+        if not r.building_id or r.cluster_role != "core" or not r.cluster_id:
+            continue
+        key = (r.building_id, r.track)
+        groups.setdefault(key, {}).setdefault(str(r.cluster_id), []).append(r)
+        rollup = r.building_rollup or {}
+        mains[key] = (rollup.get("main_cluster_by_track") or {}).get(str(r.track))
+    changed = []
+    multi = 0
+    for key, clusters in groups.items():
+        if len(clusters) < 2:
+            continue
+        multi += 1
+        current = str(mains.get(key)) if mains.get(key) else None
+        def rank(item):
+            cid, members = item
+            within = sum(1 for m in members if m.assignment_method != "nearest")
+            return (-within / len(members), -len(members), cid)
+        alt = sorted(clusters.items(), key=rank)[0][0]
+        if current and alt != current:
+            cur_members = clusters.get(current, [])
+            nearest_share = (
+                sum(1 for m in cur_members if m.assignment_method == "nearest") / len(cur_members)
+                if cur_members else None
+            )
+            changed.append({
+                "building_id": key[0], "track": key[1],
+                "current_main": current, "alt_main": alt,
+                "current_nearest_share": round(nearest_share, 3) if nearest_share is not None else None,
+            })
+    return {
+        "multi_cluster_groups": multi,
+        "changed_main_count": len(changed),
+        "changed_cases": changed[:20],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -882,6 +1072,43 @@ async def verify_noop_against_db(aoi: str, records: list[LocalPointRecord]) -> d
 
 EXPERIMENTS: dict[str, ExperimentConfig] = {
     "noop": ExperimentConfig("noop", "Produktionsidentische Variante (Determinismus-/No-op-Beweis)"),
+    # --- P7-C-W1-T1: HDBSCAN-Sweep (isolierte Achsen) ---
+    "ms_equal": ExperimentConfig("ms_equal", "Bibliotheks-Default min_samples=min_cluster_size (Pflichtvergleich)", min_samples_mode="equal"),
+    "leaf": ExperimentConfig("leaf", "cluster_selection_method=leaf (feinere homogene Cluster)", cluster_selection_method="leaf"),
+    "no_single": ExperimentConfig("no_single", "allow_single_cluster=False", allow_single_cluster=False),
+    "mcs_03": ExperimentConfig("mcs_03", "min_cluster_size-Fraction 0.3 statt 0.2", mcs_fraction=0.3),
+    "mcs_floor3": ExperimentConfig("mcs_floor3", "min_cluster_size-Untergrenze 3 statt 2 (gegen Paar-Cluster)", mcs_floor=3),
+    "eps_05": ExperimentConfig("eps_05", "cluster_selection_epsilon=0.5 gegen Ueberfragmentierung", cluster_selection_epsilon=0.5),
+    # --- P7-C-W1-T2: Feature-Ablation/-Erweiterung (isolierte Achsen) ---
+    "feat_vel_lo": ExperimentConfig("feat_vel_lo", "Velocity-Dominanz senken (1.30 -> 0.90)", matrix_features=[
+        ("along_look_offset_m", 1.10), ("cross_look_offset_m", 1.00), ("height_rank_in_building", 0.75),
+        ("velocity", 0.90), ("acceleration", 0.90), ("coherence_penalty", 0.80)]),
+    "feat_no_accel": ExperimentConfig("feat_no_accel", "Acceleration aus der Matrix entfernen", matrix_features=[
+        ("along_look_offset_m", 1.10), ("cross_look_offset_m", 1.00), ("height_rank_in_building", 0.75),
+        ("velocity", 1.30), ("coherence_penalty", 0.80)]),
+    "feat_spatial_hi": ExperimentConfig("feat_spatial_hi", "Spatial-Features staerken (1.40/1.30)", matrix_features=[
+        ("along_look_offset_m", 1.40), ("cross_look_offset_m", 1.30), ("height_rank_in_building", 0.75),
+        ("velocity", 1.30), ("acceleration", 0.90), ("coherence_penalty", 0.80)]),
+    "feat_ts": ExperimentConfig("feat_ts", "Zeitreihen-Features zuschalten (ts_slope/ts_residual_std)", matrix_features=[
+        ("along_look_offset_m", 1.10), ("cross_look_offset_m", 1.00), ("height_rank_in_building", 0.75),
+        ("velocity", 1.30), ("acceleration", 0.90), ("coherence_penalty", 0.80),
+        ("ts_slope", 0.80), ("ts_residual_std", 0.60)]),
+    "feat_hstd": ExperimentConfig("feat_hstd", "height_std als Qualitaetsfeature zuschalten", matrix_features=[
+        ("along_look_offset_m", 1.10), ("cross_look_offset_m", 1.00), ("height_rank_in_building", 0.75),
+        ("velocity", 1.30), ("acceleration", 0.90), ("coherence_penalty", 0.80),
+        ("x_height_std", 0.60)]),
+    "feat_no_coh": ExperimentConfig("feat_no_coh", "coherence_penalty aus der Matrix entfernen", matrix_features=[
+        ("along_look_offset_m", 1.10), ("cross_look_offset_m", 1.00), ("height_rank_in_building", 0.75),
+        ("velocity", 1.30), ("acceleration", 0.90)]),
+    # --- P7-C-W1-T5: Assignment-Hygiene ---
+    "a1_demote": ExperimentConfig("a1_demote", "nearest-Punkte sichtbar, aber von Clustering/Score ausgeschlossen", assignment_policy="a1_demote"),
+    "a2_dist5": ExperimentConfig("a2_dist5", "nearest-Distanz 15 m -> 5 m (Fetch-Parameter)", assignment_policy="a2_dist:5"),
+    "a3_height": ExperimentConfig("a3_height", "nearest mit Bodenobjekt-Hoehenprofil demotieren (height-terrain < p25(within)-2m)", assignment_policy="a3_height"),
+    "a4_osm": ExperimentConfig("a4_osm", "nearest in OSM-Struktur ohne GBA-Entsprechung demotieren (nur Salzburg)", assignment_policy="a4_osm"),
+    # --- P7-C-W1-T3: Small-N ---
+    "smalln_strict": ExperimentConfig("smalln_strict", "Small-N nur mit Velocity-Konsistenz als Core, sonst weak_support", smalln_mode="strict"),
+    # --- P7-C-W1-T4: Reassignment ---
+    "no_reassign": ExperimentConfig("no_reassign", "Borderline-Noise-Reassignment deaktiviert", reassign_mode="off"),
 }
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -896,6 +1123,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=None, help="JSON-Ausgabedatei (default: artifacts/phase7_experiment_<id>.json)")
     p.add_argument("--scorecard", action="store_true",
                    help="Scorecard gegen die noop-Baseline bauen und nach artifacts/phase7_scorecard.{json,md} schreiben")
+    p.add_argument("--main-choice-audit", action="store_true",
+                   help="Main-Cluster-Wahl-Audit (support- vs within-share-Rangfolge) berechnen")
     return p
 
 
@@ -904,9 +1133,14 @@ async def amain(argv: list[str] | None = None) -> int:
     aois = [a.strip() for a in args.aois.split(",") if a.strip()]
     experiment_ids = [e.strip() for e in args.experiments.split(",") if e.strip()]
 
-    inputs_cache: dict[str, dict[str, Any]] = {}
-    for aoi in set(aois) | (set(args.hr_compare.split(":")) if args.hr_compare else set()):
-        inputs_cache[aoi] = await fetch_aoi_inputs(aoi)
+    inputs_cache: dict[tuple[str, str], dict[str, Any]] = {}
+
+    async def inputs_for(aoi: str, exp: ExperimentConfig) -> dict[str, Any]:
+        overrides = fetch_overrides_for(exp)
+        key = (aoi, json.dumps(overrides, sort_keys=True) if overrides else "default")
+        if key not in inputs_cache:
+            inputs_cache[key] = await fetch_aoi_inputs(aoi, overrides)
+        return inputs_cache[key]
 
     results: dict[str, Any] = {"stand": "2026-06-10", "experiments": {}}
     for exp_id in experiment_ids:
@@ -915,18 +1149,25 @@ async def amain(argv: list[str] | None = None) -> int:
         exp = EXPERIMENTS[exp_id]
         exp_out: dict[str, Any] = {"config": exp.to_jsonable(), "aois": {}}
         for aoi in aois:
-            pipeline, records, metrics = run_experiment_on_inputs(exp, inputs_cache[aoi])
+            inputs = await inputs_for(aoi, exp)
+            pipeline, records, metrics = run_experiment_on_inputs(exp, inputs)
             aoi_out: dict[str, Any] = {
                 "summary": summarize_records(records),
                 "pipeline_metrics": {k: v for k, v in metrics.items()},
             }
+            if pipeline.reassign_stats:
+                aoi_out["reassign_stats"] = dict(pipeline.reassign_stats)
+            if pipeline.policy_stats:
+                aoi_out["policy_stats"] = dict(pipeline.policy_stats)
+            if args.main_choice_audit:
+                aoi_out["main_choice_audit"] = main_cluster_choice_audit(records)
             if args.verify_noop and exp_id == "noop":
                 aoi_out["noop_verification"] = await verify_noop_against_db(aoi, records)
             if args.cross_track:
                 aoi_out["cross_track"] = harness_cross_track(records, AOIS[aoi]["dataset_id"])
             if args.confidence:
                 aoi_out["confidence"] = confidence_summary(
-                    pipeline, records, inputs_cache[aoi]["params"], args.confidence_max_groups
+                    pipeline, records, inputs["params"], args.confidence_max_groups
                 )
             exp_out["aois"][aoi] = aoi_out
         results["experiments"][exp_id] = exp_out
