@@ -271,13 +271,16 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
         if policy == "a5_crosslook":
             # Quer-Versatz-Politik (P7-V3, motiviert durch Fall 96959851):
             # Laengs-Versatz kann Radarprojektion sein, Quer-Versatz nicht.
-            # Selbstkalibrierend pro Gebaeude x Track: Toleranz = p95 des
-            # |cross_look_offset_m| der geometrisch begruendeten Anker
-            # (within/directional) + 3 m Geocoding-Marge + sqrt(eff_area)
-            # des Kandidatenpunkts (DS-Patch-Ausdehnung). Ohne Anker gibt es
-            # keine geometrische Referenz -> alle nearest demotieren
-            # (Asymmetrie-Prinzip), selektiver als a1 nur dort, wo Anker
-            # existieren.
+            # Selbstkalibrierend pro Gebaeude x Track: Toleranz aus ROBUSTER
+            # Statistik der |cross_look_offset_m| der geometrisch
+            # begruendeten Anker (within/directional):
+            #   limit = median + 3*1.4826*MAD + 3 m Geocoding-Marge
+            #           + sqrt(eff_area) des Kandidatenpunkts.
+            # Median/MAD statt p95, weil die Candidate-Area selbst
+            # Fremdpunkte als directional fangen kann (Fall 96959851:
+            # directional-Anker bei +13 m wuerde p95 vergiften). Ohne Anker
+            # gibt es keine geometrische Referenz -> alle nearest demotieren
+            # (Asymmetrie-Prinzip).
             anchors_by_group: dict[tuple[str | None, int], list[float]] = {}
             for r in records:
                 if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
@@ -295,8 +298,11 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                 if cross is None or not np.isfinite(cross):
                     demote(r, "nearest_crosslook_unknown")
                     continue
+                arr = np.asarray(anchors, dtype=float)
+                med = float(np.median(arr))
+                mad = float(np.median(np.abs(arr - med)))
                 eff_area = r.features.get("x_eff_area") or 0.0
-                limit = float(np.percentile(np.asarray(anchors), 95)) + 3.0 + math.sqrt(max(float(eff_area), 0.0))
+                limit = med + 3.0 * 1.4826 * mad + 3.0 + math.sqrt(max(float(eff_area), 0.0))
                 if abs(float(cross)) > limit:
                     demote(r, "nearest_crosslook_outlier")
             return

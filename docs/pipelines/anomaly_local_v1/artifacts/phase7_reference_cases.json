@@ -168,9 +168,11 @@
       "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden.",
       "policy_expectations": {
         "a1_demote": ["insufficient_support"],
-        "a3_height": ["single_track_only"]
+        "a3_height": ["single_track_only"],
+        "a5_crosslook": ["ok"]
       },
-      "visual_confirmation": "confirmed_2026-06-10"
+      "visual_confirmation": "confirmed_2026-06-10",
+      "a5_note": "P7-V3 2026-06-10: Unter a5_crosslook (Median+3*MAD-Anker) werden genau die 3 cross+13m-nearest demotiert, der vergiftete directional-Punkt faellt ohne deren Verstaerkung von selbst zu Noise, der t95-Main besteht aus 4 cross-konsistenten Punkten (-0.9) -> ok MIT sauberem Cluster ist hier das normative Ziel (Selektivitaet, die a1 nicht leistet)."
     }
   ]
 }

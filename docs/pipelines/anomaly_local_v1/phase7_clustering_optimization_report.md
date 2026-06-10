@@ -397,3 +397,122 @@ datenseitig belegt (96856632-Statuswechsel, Punktrollen im S4-JSON), aber
 nicht als Viewer-Screenshot der a1-Variante - Offline-Varianten sind keine
 persistierten Runs. Der After-Screenshot folgt in Schritt 6, sobald der
 Kandidat als getaggter Run persistiert wird.
+
+---
+
+# Session 2: Vorarbeiten V1-V4 + Schritte 5-6 (beauftragt 2026-06-10)
+
+User-Auftrag: drei Vorarbeiten (policy-bewusste Erwartungen,
+Kandidaten-Persistenz, hygienischer Re-Sweep) + Schritt 5 + Schritt 6
+vollstaendig; Anpassung: P7-C-W2-T3 (weitere Algorithmusfamilien ausser
+OPTICS) entfaellt und wandert in eine spaetere Optimierungsphase.
+Zusaetzlich aus der User-Diskussion: Offline-Ergebnisse muessen im Viewer
+sichtbar werden (Persistenz als getaggte Runs).
+
+## V1: Policy-bewusste Referenzfall-Erwartungen (green, Commit 7e477f1)
+
+Problem aus Schritt 4: Erwartungen waren baseline-kalibriert; Hygiene-
+Politiken wurden fuer beabsichtigte Ehrlichkeits-Downgrades automatisch
+candidate_red. Umsetzung:
+
+- `CLAIM_RANK`-Abstufungstoleranz (ok=3 > single_track_only=2 >
+  small_n/noise_dominated=1 > insufficient_support=0): Hygiene-Politiken
+  (assignment_policy!=a0 oder smalln_mode!=baseline) duerfen Anspruch
+  senken, NIE erhoehen (Asymmetrie-Prinzip maschinell).
+- `policy_expectations` je Referenzfall in phase7_reference_cases.json
+  (Aufloesung: experiment_id > assignment_policy > smalln_<mode>);
+  4 Pins datenbasiert gesetzt: 96959851 (a1 -> insufficient_support,
+  a3 -> single_track_only), 96856632, 203343478, 238100070.
+- Robuste Multi-Cluster-Zaehlung (`multi_cluster_buildings_robust`:
+  nearest-dominierte Cluster zaehlen nicht); Multi-Cluster-Guardrail fuer
+  Policy-Experimente auf die robuste Zaehlung umgestellt. Wirkung:
+  mirabell robust 26->26, osthang 22->21 (kein Fehlalarm mehr) bei
+  strikter Zaehlung 28->22/27->16.
+- CLI `--scorecard-baseline`/`--scorecard-out` fuer k2-relative Scorecards.
+
+Einzelfall-Untersuchungen vor dem Pinnen (Punktrollen-Level):
+
+- 238100070 (bg_flat): small_n -> single_track_only unter a1 ist LEGITIM
+  (t44 bestand aus 2/2 nearest ohne Geometrie-Begruendung; echter
+  t95-Kern within+directional traegt allein). Gepinnt.
+- 54773363 (osthang) + 238057563 (bg_slope): noise_dominated -> ok unter
+  a1 ist NICHT vertrauenswuerdig: Re-Clustering-Nebeneffekt nach Demotion
+  (mcs-Fraction/RobustScaler auf reduziertem kept-Set; Cluster blaehen von
+  11 auf 18 Kerne, Velocity-Spanne -0.7..+2.2 mm/a; t44/t95-Tension bleibt).
+  ABSICHTLICH nicht gepinnt - a1/a2 tragen diese zwei Fails zu Recht weiter.
+
+Validierung (alle 7 AOIs, noop punktidentisch auf allen): a3_height
+candidate_green, smalln_strict candidate_green, a4_osm inconclusive,
+no_reassign bleibt candidate_red, a1_demote bleibt candidate_red NUR noch
+wegen der zwei substanziellen Hang-Aufwertungen (5 Checks via Toleranz,
+4 via Pins gedeckt). Artefakte: phase7_experiment_s4_policyaware.json,
+phase7_scorecard.{json,md} regeneriert.
+
+Fachliche Konsequenz: Der a1-Nebeneffekt (Cluster-Aufblaehen durch
+veraendertes Skalierungs-Set) ist ein echtes Risiko fuer K2 und staerkt
+die Motivation fuer die selektive Quer-Versatz-Politik (V3/k2x).
+
+## V2: Kandidaten-Persistenz als getaggte Runs + UI-Badge (green, Commit 52e1d6b)
+
+Antwort auf den User-Schmerzpunkt "Offline-Ergebnisse sind im Viewer
+unsichtbar":
+
+- Harness-CLI `--persist`: voller Produktionspfad je (AOI, Experiment)
+  (create_run_record -> ExperimentPipeline.run() [geerbter Produktionspfad
+  inkl. _persist_results] -> assign_building_colors -> Metrics-Upsert ->
+  Statusuebergaenge nach runner.py-Muster), ohne MLflow. Vollstaendige
+  Konfiguration in ml_runs.params: experiment_id, experiment_config,
+  phase7_aoi, phase7_baseline_run. Registry phase7_persisted_runs.json.
+- Run-Liste: `params->>'experiment_id'` in fetch_runs/MLRunSummary;
+  violettes Experiment-Badge im PipelinePanel; Run-Detail liefert
+  experiment_id ebenfalls. Transparenz-Panel zeigte experiment_id schon
+  (P7-E-W1-T3) - jetzt inkl. experiment_config sichtbar.
+- BEWEIS: persistierter noop-Run `41f57f63-6344-42b7-8120-e45d0ed17397`
+  (Mirabell) ist punktidentisch zur Baseline `c23cd637` (1481/1481 Punkte,
+  0 Differenzen, Vergleich auf cluster_id/role/label); Status succeeded,
+  Metriken vorhanden, Farben gesetzt. Screenshots:
+  phase7_v2_runlist_badge.png, phase7_v2_transparency_panel.png.
+- Damit ist die Schritt-4-DoD-Abweichung (kein After-Screenshot moeglich)
+  strukturell behoben; die After-Screenshots folgen im Visual-Audit der
+  Shortlist (P7-D-W1-T3).
+
+## V3: a5_crosslook + Kandidaten-Registry k1/k2/k3/k2x (green)
+
+Neue Quer-Versatz-Politik `a5_crosslook` (motiviert durch den bestaetigten
+Fall 96959851): nearest-Punkte werden nur demotiert, wenn ihr
+|cross_look_offset_m| die selbstkalibrierte Toleranz des Gebaeude x Track
+ueberschreitet; ohne geometrische Anker werden alle nearest demotiert.
+
+Designiteration (ehrlich dokumentiert): Erste Fassung mit
+p95(|cross| der within/directional-Anker) SCHEITERTE am Primaerfall -
+die Candidate-Area hatte selbst einen Fremdpunkt als directional gefangen
+(Anker bei +13 m vergiftete das p95). Fix: robuste Statistik
+limit = median + 3*1.4826*MAD + 3 m Geocoding-Marge + sqrt(eff_area).
+Danach am Fall 96959851: genau die drei cross+13m-nearest demotiert
+(nearest_crosslook_outlier), der vergiftete directional-Punkt faellt ohne
+deren Verstaerkung von selbst zu Noise, t95-Main = 4 cross-konsistente
+Punkte (-0.9 m) -> Status ok MIT sauberem Cluster (als
+policy_expectations-Pin "a5_crosslook: ok" verankert).
+
+Kompositions-Helper `_variant()` + Kandidaten-Registry:
+k1=smalln_strict, k2=a1_demote+smalln_strict, k3=a3_height,
+k2x=a5_crosslook+smalln_strict.
+
+Lauf ueber alle 7 AOIs (noop punktidentisch; Artefakte
+phase7_experiment_candidates_v.json, phase7_scorecard_candidates.{json,md}):
+
+| Kandidat | Verdikt | 54773363/238057563 (Hang-Risiko) | 96959851 | 203343478 |
+| --- | --- | --- | --- | --- |
+| k1 | green | noise_dominated (ehrlich) | ok (unveraendert kontaminiert) | single_track_only |
+| k2 | RED | ok/ok (Aufblaeh-Effekt!) | insufficient_support | insufficient_support |
+| k3 | green | noise_dominated | single_track_only | noise_dominated |
+| k2x | green | noise_dominated (ehrlich) | ok MIT sauberem Cluster | insufficient_support |
+
+Kernbefund: k2x vermeidet den a1-Aufblaeh-Nebeneffekt (selektive Demotion
+laesst mcs/Scaler-Basis weitgehend stabil), liefert beim bestaetigten
+Carport-Fall das normative Zielverhalten (Fremdgruppe raus, echte
+Dachaussage bleibt) und nimmt beim Cross-Track den Grossteil des
+a1-Gewinns mit (bg_flat_01_snt: noop 0.5619, k2x 0.6646, k2 0.6956).
+a5-Demotionsvolumen deutlich unter a1 (z. B. moosstrasse 360 von 613
+nearest-Punkten). k2 ist damit als Hauptkandidat entthront; k2x
+uebernimmt, k1 bleibt konservative Option, k3 Alternative.
