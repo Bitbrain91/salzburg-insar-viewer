@@ -276,3 +276,37 @@ Module und zentrale Baseline-Befunde
   Pipeline@Version, Gebiet/Dataset/Track, BBox, Status, Zeitstempel,
   MLflow-Run, Experiment-ID und alle Parameter
   (Beleg: `artifacts/phase7_run_transparency_proof.png`).
+
+---
+
+## Schritt 3: HDBSCAN-Sweep und Feature-Ablation (P7-C-W1-T1/T2) - green
+
+12 isolierte Varianten auf allen 7 Pflicht-AOIs
+(`artifacts/phase7_experiment_sweep_s3.json`, Scorecard-Verdikte in
+`artifacts/phase7_scorecard.{json,md}` der Sweep-Generation):
+
+Sweep: `ms_equal` (Bibliotheks-Default), `leaf`, `no_single`, `mcs_03`,
+`mcs_floor3`, `eps_05`. Ablation: `feat_vel_lo`, `feat_no_accel`,
+`feat_spatial_hi`, `feat_ts`, `feat_hstd`, `feat_no_coh`.
+
+ERGEBNIS: ALLE 12 Varianten sind `candidate_red`. Das ist ein belastbares,
+inhaltlich wichtiges Resultat, kein Misserfolg des Harness:
+
+1. Dominanter Fail-Grund ist fast ueberall der nearest-Main-Guardrail
+   ("mehr nearest-dominierte Main-Cluster"): Jede Umsortierung der Cluster
+   laesst bei 33-45 % unbegruendeten nearest-Punkten haeufiger
+   Fremd-Cluster zum Main-Cluster werden. DIE KLUSTERPARAMETER SIND NICHT
+   DER ENGPASS - DIE ASSIGNMENT-HYGIENE IST ES. Das bestaetigt die
+   Schritt-4-Priorisierung datenbasiert.
+2. Noise-Senkungen kommen durchgehend mit Cross-Track-Verschlechterung
+   ("kein Gewinn") - die Regel "niedrigere Noise-Rate allein ist kein
+   Erfolg" greift messbar (z. B. `leaf`, `no_single`).
+3. Referenzfall-Verletzungen zeigen die erwarteten Fehlmodi:
+   `ms_equal` (konservativer) kippt `548204` zu noise_dominated;
+   `leaf` waescht noise_dominated-Diagnosen zu "ok" weich
+   (`54773363`, `238057563`, `227901749`) - exakt das Weichspuelen, das
+   die Scorecard verhindern soll.
+4. Konsequenz/Empfehlung: Die produktive HDBSCAN-Parametrierung ist unter
+   der aktuellen Scorecard lokal optimal. Ein erneuter Sweep lohnt erst auf
+   einer hygienisierten Baseline (nach `P7-C-W1-T5`-Entscheidung) - als
+   kombinierter Kandidat in Schritt 6 (nicht Teil dieser Session).

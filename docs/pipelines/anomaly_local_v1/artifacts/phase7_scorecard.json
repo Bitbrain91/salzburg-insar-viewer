@@ -177,11 +177,7 @@
             "small_n": 7
           },
           "xtrack_agreement_median": 0.6497,
-          "confidence_bands": {
-            "unstable": 11,
-            "stable": 23,
-            "monitor": 19
-          }
+          "confidence_bands": null
         },
         "moosstrasse": {
           "kept": 1601,
@@ -196,11 +192,7 @@
             "single_track_only": 11
           },
           "xtrack_agreement_median": 0.4395,
-          "confidence_bands": {
-            "monitor": 8,
-            "unstable": 16,
-            "stable": 16
-          }
+          "confidence_bands": null
         },
         "osthang": {
           "kept": 583,
@@ -215,11 +207,7 @@
             "noise_dominated": 1
           },
           "xtrack_agreement_median": 0.8497,
-          "confidence_bands": {
-            "unstable": 13,
-            "stable": 31,
-            "monitor": 11
-          }
+          "confidence_bands": null
         },
         "bg_flat_01_snt": {
           "kept": 1042,
@@ -234,11 +222,7 @@
             "single_track_only": 6
           },
           "xtrack_agreement_median": 0.5619,
-          "confidence_bands": {
-            "unstable": 19,
-            "monitor": 16,
-            "stable": 15
-          }
+          "confidence_bands": null
         },
         "bg_slope_01_snt": {
           "kept": 660,
@@ -253,11 +237,7 @@
             "insufficient_support": 15
           },
           "xtrack_agreement_median": 0.1871,
-          "confidence_bands": {
-            "stable": 24,
-            "unstable": 16,
-            "monitor": 13
-          }
+          "confidence_bands": null
         },
         "bg_flat_01_tsx": {
           "kept": 5981,
@@ -272,11 +252,7 @@
             "insufficient_support": 3
           },
           "xtrack_agreement_median": 0.5267,
-          "confidence_bands": {
-            "stable": 11,
-            "monitor": 34,
-            "unstable": 15
-          }
+          "confidence_bands": null
         },
         "bg_slope_01_tsx": {
           "kept": 3969,
@@ -291,16 +267,3483 @@
             "single_track_only": 3
           },
           "xtrack_agreement_median": 0.0856,
-          "confidence_bands": {
-            "stable": 20,
-            "unstable": 9,
-            "monitor": 30
-          }
+          "confidence_bands": null
         }
       },
       "guardrails": {},
       "verdict": "baseline",
       "reasons": []
+    },
+    "ms_equal": {
+      "config": {
+        "experiment_id": "ms_equal",
+        "description": "Bibliotheks-Default min_samples=min_cluster_size (Pflichtvergleich)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "equal",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": false
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.4237,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 19,
+            "noise_dominated": 12,
+            "insufficient_support": 14,
+            "single_track_only": 6,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.66,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.4072,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 36,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 49,
+            "small_n": 21,
+            "noise_dominated": 28,
+            "single_track_only": 8
+          },
+          "xtrack_agreement_median": 0.4672,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.4014,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "noise_dominated": 7,
+            "ok": 20,
+            "small_n": 7,
+            "single_track_only": 7,
+            "insufficient_support": 6
+          },
+          "xtrack_agreement_median": 0.8301,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.4319,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 34,
+          "status_counts": {
+            "noise_dominated": 15,
+            "ok": 33,
+            "insufficient_support": 21,
+            "small_n": 9,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.5123,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.4182,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 15,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 11,
+            "ok": 10,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1856,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.4121,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 23,
+          "status_counts": {
+            "ok": 55,
+            "noise_dominated": 17,
+            "small_n": 4,
+            "single_track_only": 3,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.4812,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.3464,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 6,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 5,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0859,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "bg_slope_01_snt: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "leaf": {
+      "config": {
+        "experiment_id": "leaf",
+        "description": "cluster_selection_method=leaf (feinere homogene Cluster)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "leaf",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "single_track_only",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.1107,
+          "multi_cluster_buildings": 34,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 28,
+            "insufficient_support": 14,
+            "single_track_only": 6,
+            "small_n": 10
+          },
+          "xtrack_agreement_median": 0.5963,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.1574,
+          "multi_cluster_buildings": 79,
+          "nearest_dominated_main_clusters": 46,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 70,
+            "small_n": 24,
+            "single_track_only": 9,
+            "noise_dominated": 3
+          },
+          "xtrack_agreement_median": 0.4293,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.1921,
+          "multi_cluster_buildings": 31,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 27,
+            "small_n": 8,
+            "single_track_only": 6,
+            "insufficient_support": 6
+          },
+          "xtrack_agreement_median": 0.8019,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.1305,
+          "multi_cluster_buildings": 51,
+          "nearest_dominated_main_clusters": 39,
+          "status_counts": {
+            "ok": 46,
+            "insufficient_support": 21,
+            "small_n": 9,
+            "single_track_only": 5,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.4716,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.1485,
+          "multi_cluster_buildings": 20,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 2,
+            "single_track_only": 5,
+            "ok": 18,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1821,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.0592,
+          "multi_cluster_buildings": 76,
+          "nearest_dominated_main_clusters": 33,
+          "status_counts": {
+            "ok": 71,
+            "small_n": 6,
+            "single_track_only": 2,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5072,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.0925,
+          "multi_cluster_buildings": 51,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 50,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0848,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "mirabell: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "osthang: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "bg_flat_01_snt: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "no_single": {
+      "config": {
+        "experiment_id": "no_single",
+        "description": "allow_single_cluster=False",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": false,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "single_track_only",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.1099,
+          "multi_cluster_buildings": 34,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 28,
+            "insufficient_support": 14,
+            "single_track_only": 6,
+            "small_n": 10
+          },
+          "xtrack_agreement_median": 0.5963,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.1555,
+          "multi_cluster_buildings": 79,
+          "nearest_dominated_main_clusters": 46,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 70,
+            "small_n": 24,
+            "single_track_only": 9,
+            "noise_dominated": 3
+          },
+          "xtrack_agreement_median": 0.4064,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.1904,
+          "multi_cluster_buildings": 31,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "ok": 27,
+            "small_n": 8,
+            "single_track_only": 6,
+            "insufficient_support": 6
+          },
+          "xtrack_agreement_median": 0.8019,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.1305,
+          "multi_cluster_buildings": 51,
+          "nearest_dominated_main_clusters": 39,
+          "status_counts": {
+            "ok": 46,
+            "insufficient_support": 21,
+            "small_n": 9,
+            "single_track_only": 5,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.4716,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.147,
+          "multi_cluster_buildings": 20,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 2,
+            "single_track_only": 5,
+            "ok": 18,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1805,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.0578,
+          "multi_cluster_buildings": 76,
+          "nearest_dominated_main_clusters": 32,
+          "status_counts": {
+            "ok": 71,
+            "small_n": 5,
+            "single_track_only": 3,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5045,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.0829,
+          "multi_cluster_buildings": 51,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 50,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0875,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "mirabell: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "moosstrasse: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "osthang: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "bg_flat_01_snt: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "bg_slope_01_snt: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "mcs_03": {
+      "config": {
+        "experiment_id": "mcs_03",
+        "description": "min_cluster_size-Fraction 0.3 statt 0.2",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.3,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": false
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3916,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 23,
+            "insufficient_support": 14,
+            "single_track_only": 7,
+            "noise_dominated": 7,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6459,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.3254,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 31,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 65,
+            "small_n": 21,
+            "noise_dominated": 11,
+            "single_track_only": 9
+          },
+          "xtrack_agreement_median": 0.4625,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2933,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "ok": 26,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.865,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.3541,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 38,
+          "status_counts": {
+            "noise_dominated": 9,
+            "ok": 40,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "single_track_only": 5
+          },
+          "xtrack_agreement_median": 0.5535,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3439,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "ok": 16,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1859,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3782,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 24,
+          "status_counts": {
+            "ok": 57,
+            "small_n": 4,
+            "noise_dominated": 15,
+            "single_track_only": 3,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5758,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2928,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 5,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "mcs_floor3": {
+      "config": {
+        "experiment_id": "mcs_floor3",
+        "description": "min_cluster_size-Untergrenze 3 statt 2 (gegen Paar-Cluster)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 3,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        }
+      ],
+      "reference_cases_ok": true,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3771,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "ok": 20,
+            "insufficient_support": 14,
+            "single_track_only": 8,
+            "noise_dominated": 9,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6347,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.3229,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 35,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 62,
+            "small_n": 21,
+            "noise_dominated": 13,
+            "single_track_only": 10
+          },
+          "xtrack_agreement_median": 0.4759,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2693,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 25,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.8255,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.3532,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 39,
+          "status_counts": {
+            "ok": 38,
+            "insufficient_support": 21,
+            "noise_dominated": 10,
+            "small_n": 7,
+            "single_track_only": 6
+          },
+          "xtrack_agreement_median": 0.5795,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3364,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 15,
+          "status_counts": {
+            "small_n": 21,
+            "noise_dominated": 3,
+            "ok": 17,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1772,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3775,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 23,
+          "status_counts": {
+            "ok": 57,
+            "small_n": 4,
+            "noise_dominated": 14,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5267,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2908,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 43,
+            "noise_dominated": 8,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "bg_slope_01_snt: mehr nearest-dominierte Main-Cluster"
+      ]
+    },
+    "eps_05": {
+      "config": {
+        "experiment_id": "eps_05",
+        "description": "cluster_selection_epsilon=0.5 gegen Ueberfragmentierung",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.5,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "single_track_only",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.0435,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 28,
+            "insufficient_support": 14,
+            "single_track_only": 8,
+            "small_n": 7,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.6477,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.0818,
+          "multi_cluster_buildings": 71,
+          "nearest_dominated_main_clusters": 44,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 70,
+            "small_n": 20,
+            "single_track_only": 13,
+            "noise_dominated": 3
+          },
+          "xtrack_agreement_median": 0.4216,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.0995,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "ok": 26,
+            "single_track_only": 8,
+            "small_n": 6,
+            "noise_dominated": 1,
+            "insufficient_support": 6
+          },
+          "xtrack_agreement_median": 0.8597,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.0672,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 41,
+          "status_counts": {
+            "ok": 45,
+            "insufficient_support": 21,
+            "small_n": 6,
+            "single_track_only": 8,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.5629,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.0894,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 3,
+            "single_track_only": 4,
+            "ok": 18,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1754,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.0573,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 30,
+          "status_counts": {
+            "ok": 71,
+            "small_n": 4,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5152,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.1043,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 47,
+            "noise_dominated": 3,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0872,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_snt: mehr nearest-dominierte Main-Cluster",
+        "bg_slope_01_snt: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "feat_vel_lo": {
+      "config": {
+        "experiment_id": "feat_vel_lo",
+        "description": "Velocity-Dominanz senken (1.30 -> 0.90)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.1
+          ],
+          [
+            "cross_look_offset_m",
+            1.0
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            0.9
+          ],
+          [
+            "acceleration",
+            0.9
+          ],
+          [
+            "coherence_penalty",
+            0.8
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3107,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 18,
+          "status_counts": {
+            "ok": 27,
+            "insufficient_support": 14,
+            "single_track_only": 7,
+            "noise_dominated": 3,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6175,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.2542,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 34,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 65,
+            "small_n": 20,
+            "single_track_only": 13,
+            "noise_dominated": 8
+          },
+          "xtrack_agreement_median": 0.4414,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2556,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "ok": 26,
+            "small_n": 7,
+            "single_track_only": 7,
+            "insufficient_support": 6,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.8497,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2917,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 38,
+          "status_counts": {
+            "ok": 45,
+            "insufficient_support": 21,
+            "small_n": 8,
+            "single_track_only": 6,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.5203,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.303,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "ok": 16,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.184,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3162,
+          "multi_cluster_buildings": 73,
+          "nearest_dominated_main_clusters": 25,
+          "status_counts": {
+            "ok": 65,
+            "single_track_only": 5,
+            "noise_dominated": 6,
+            "small_n": 3,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5355,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2424,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 10,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 5,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0871,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "mirabell: mehr nearest-dominierte Main-Cluster",
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "feat_no_accel": {
+      "config": {
+        "experiment_id": "feat_no_accel",
+        "description": "Acceleration aus der Matrix entfernen",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.1
+          ],
+          [
+            "cross_look_offset_m",
+            1.0
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            1.3
+          ],
+          [
+            "coherence_penalty",
+            0.8
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.2931,
+          "multi_cluster_buildings": 29,
+          "nearest_dominated_main_clusters": 15,
+          "status_counts": {
+            "ok": 25,
+            "noise_dominated": 4,
+            "insufficient_support": 14,
+            "single_track_only": 8,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6002,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.238,
+          "multi_cluster_buildings": 71,
+          "nearest_dominated_main_clusters": 36,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 68,
+            "small_n": 20,
+            "single_track_only": 12,
+            "noise_dominated": 6
+          },
+          "xtrack_agreement_median": 0.4229,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2504,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 25,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.8349,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2716,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 39,
+          "status_counts": {
+            "ok": 45,
+            "insufficient_support": 21,
+            "small_n": 9,
+            "single_track_only": 5,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.5777,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3258,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 6,
+            "ok": 15,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.171,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3045,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 24,
+          "status_counts": {
+            "ok": 68,
+            "noise_dominated": 3,
+            "small_n": 4,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.505,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2419,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 49,
+            "small_n": 4,
+            "noise_dominated": 1,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0837,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "feat_spatial_hi": {
+      "config": {
+        "experiment_id": "feat_spatial_hi",
+        "description": "Spatial-Features staerken (1.40/1.30)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.4
+          ],
+          [
+            "cross_look_offset_m",
+            1.3
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            1.3
+          ],
+          [
+            "acceleration",
+            0.9
+          ],
+          [
+            "coherence_penalty",
+            0.8
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3397,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 23,
+            "insufficient_support": 14,
+            "single_track_only": 8,
+            "noise_dominated": 6,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6445,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.2673,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 34,
+          "status_counts": {
+            "insufficient_support": 41,
+            "noise_dominated": 7,
+            "ok": 67,
+            "small_n": 19,
+            "single_track_only": 13
+          },
+          "xtrack_agreement_median": 0.4614,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.247,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 16,
+          "status_counts": {
+            "ok": 25,
+            "noise_dominated": 2,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6
+          },
+          "xtrack_agreement_median": 0.8252,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.3004,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 40,
+          "status_counts": {
+            "ok": 42,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "noise_dominated": 7,
+            "single_track_only": 5
+          },
+          "xtrack_agreement_median": 0.5619,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3136,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 15,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "ok": 16,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.184,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3867,
+          "multi_cluster_buildings": 73,
+          "nearest_dominated_main_clusters": 24,
+          "status_counts": {
+            "ok": 58,
+            "small_n": 4,
+            "noise_dominated": 13,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5144,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2867,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 43,
+            "noise_dominated": 7,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0837,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "osthang: mehr nearest-dominierte Main-Cluster",
+        "bg_slope_01_snt: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "feat_ts": {
+      "config": {
+        "experiment_id": "feat_ts",
+        "description": "Zeitreihen-Features zuschalten (ts_slope/ts_residual_std)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.1
+          ],
+          [
+            "cross_look_offset_m",
+            1.0
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            1.3
+          ],
+          [
+            "acceleration",
+            0.9
+          ],
+          [
+            "coherence_penalty",
+            0.8
+          ],
+          [
+            "ts_slope",
+            0.8
+          ],
+          [
+            "ts_residual_std",
+            0.6
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3809,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 17,
+          "status_counts": {
+            "ok": 22,
+            "insufficient_support": 14,
+            "single_track_only": 8,
+            "noise_dominated": 7,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6527,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.3092,
+          "multi_cluster_buildings": 70,
+          "nearest_dominated_main_clusters": 36,
+          "status_counts": {
+            "insufficient_support": 41,
+            "noise_dominated": 11,
+            "ok": 63,
+            "small_n": 20,
+            "single_track_only": 12
+          },
+          "xtrack_agreement_median": 0.3922,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2213,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 12,
+          "status_counts": {
+            "ok": 26,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.865,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2783,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 38,
+          "status_counts": {
+            "ok": 44,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "noise_dominated": 4,
+            "single_track_only": 6
+          },
+          "xtrack_agreement_median": 0.543,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3303,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 7,
+            "ok": 15,
+            "insufficient_support": 15,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": 0.1779,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3931,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 23,
+          "status_counts": {
+            "ok": 54,
+            "small_n": 4,
+            "noise_dominated": 17,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5246,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.293,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 44,
+            "noise_dominated": 7,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    },
+    "feat_hstd": {
+      "config": {
+        "experiment_id": "feat_hstd",
+        "description": "height_std als Qualitaetsfeature zuschalten",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.1
+          ],
+          [
+            "cross_look_offset_m",
+            1.0
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            1.3
+          ],
+          [
+            "acceleration",
+            0.9
+          ],
+          [
+            "coherence_penalty",
+            0.8
+          ],
+          [
+            "x_height_std",
+            0.6
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        }
+      ],
+      "reference_cases_ok": true,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3786,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 17,
+          "status_counts": {
+            "ok": 22,
+            "insufficient_support": 14,
+            "single_track_only": 7,
+            "noise_dominated": 8,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6479,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.2936,
+          "multi_cluster_buildings": 71,
+          "nearest_dominated_main_clusters": 37,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 65,
+            "small_n": 21,
+            "noise_dominated": 9,
+            "single_track_only": 11
+          },
+          "xtrack_agreement_median": 0.4117,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2384,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 25,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.8349,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2841,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 36,
+          "status_counts": {
+            "ok": 44,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "noise_dominated": 4,
+            "single_track_only": 6
+          },
+          "xtrack_agreement_median": 0.5239,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3318,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 12,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 6,
+            "ok": 15,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1871,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.4001,
+          "multi_cluster_buildings": 72,
+          "nearest_dominated_main_clusters": 27,
+          "status_counts": {
+            "ok": 57,
+            "noise_dominated": 14,
+            "small_n": 5,
+            "single_track_only": 3,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.4852,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.3044,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 5,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster"
+      ]
+    },
+    "feat_no_coh": {
+      "config": {
+        "experiment_id": "feat_no_coh",
+        "description": "coherence_penalty aus der Matrix entfernen",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": [
+          [
+            "along_look_offset_m",
+            1.1
+          ],
+          [
+            "cross_look_offset_m",
+            1.0
+          ],
+          [
+            "height_rank_in_building",
+            0.75
+          ],
+          [
+            "velocity",
+            1.3
+          ],
+          [
+            "acceleration",
+            0.9
+          ]
+        ],
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false
+        }
+      ],
+      "reference_cases_ok": false,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3328,
+          "multi_cluster_buildings": 28,
+          "nearest_dominated_main_clusters": 19,
+          "status_counts": {
+            "ok": 25,
+            "insufficient_support": 14,
+            "single_track_only": 9,
+            "small_n": 7,
+            "noise_dominated": 3
+          },
+          "xtrack_agreement_median": 0.6479,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.243,
+          "multi_cluster_buildings": 71,
+          "nearest_dominated_main_clusters": 39,
+          "status_counts": {
+            "insufficient_support": 41,
+            "ok": 69,
+            "small_n": 21,
+            "single_track_only": 11,
+            "noise_dominated": 5
+          },
+          "xtrack_agreement_median": 0.4353,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2573,
+          "multi_cluster_buildings": 27,
+          "nearest_dominated_main_clusters": 11,
+          "status_counts": {
+            "ok": 25,
+            "small_n": 7,
+            "single_track_only": 7,
+            "insufficient_support": 6,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.865,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2783,
+          "multi_cluster_buildings": 46,
+          "nearest_dominated_main_clusters": 40,
+          "status_counts": {
+            "ok": 45,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "single_track_only": 7,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": 0.5252,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3182,
+          "multi_cluster_buildings": 18,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "single_track_only": 4,
+            "ok": 16,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1871,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3384,
+          "multi_cluster_buildings": 74,
+          "nearest_dominated_main_clusters": 26,
+          "status_counts": {
+            "ok": 65,
+            "small_n": 4,
+            "noise_dominated": 6,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5177,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2283,
+          "multi_cluster_buildings": 50,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 46,
+            "noise_dominated": 4,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": 0.0859,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "mirabell: mehr nearest-dominierte Main-Cluster",
+        "moosstrasse: mehr nearest-dominierte Main-Cluster",
+        "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
+        "Referenzfall-Erwartung verletzt"
+      ]
     }
   },
   "schema": {
