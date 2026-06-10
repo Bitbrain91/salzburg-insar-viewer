@@ -686,3 +686,75 @@ Audit-Kernergebnisse:
 GATE-ERGEBNIS: bestanden. Keine neue Fehlklasse durch k2x; bekannte
 Carport-/Nebengebaeude-Fehler werden behoben statt erzeugt; ein
 Watch-Item (TSX-Vorzeichenwechsel) dokumentiert.
+
+## Schritt 6 / P7-E-W1-T1: Kandidatenentscheidung (green)
+
+ENTSCHEIDUNG: **integrate_candidate = k2x** (a5_crosslook + smalln_strict).
+
+Begruendung (Zusammenfuehrung Scorecard + HR + Visual-Gate):
+
+1. Volle Scorecard candidate_green, 0 Referenzfall-Fails - unter den in
+   V1 verschaerften, policy-bewussten Erwartungen (Aufwertungen werden
+   maschinell erkannt; die 15 k2x-Aufwertungen sind audit-gesichtet).
+2. Visual-Gate bestanden (14 Faelle): bestaetigter User-Fall 96959851
+   normativ geloest; unbegruendete Off-Footprint-Hauptaussagen entfernt
+   (203343478, 96637488); Anti-Aufblaeh-Belege auf beiden Hangfaellen;
+   Differential-/HR-/Weak-Secondary-Anker unveraendert.
+3. HR-Kopplung 1.000 (k1 0.983, k3 0.967); Cross-Track auf Flach-AOIs
+   verbessert (bg_flat_01_snt 0.5619 -> 0.6646); Konfidenz stabilisiert.
+4. Physikalisch begruendet (Quer-Versatz ist nicht radarprojizierbar)
+   und selbstkalibrierend pro Gebaeude x Track - KEINE
+   gebietsspezifischen Schwellen (User-Anti-Pattern AUGMENTERRA).
+5. k1 waere risikoaermer, loest aber das Kernproblem (Fremdpunkt-
+   Kontamination) nicht; k3 haengt an der GBA-/Terrain-Hoehenqualitaet
+   und loest die anker-losen Faelle nicht.
+
+Restpunkte (kein Blocker, in next_steps.md):
+- Watch-Item 113309836 (TSX-Aufwertung mit Vorzeichenwechsel, Band
+  medium) - menschliche Pruefung empfohlen.
+- Directional-Kontamination via verschobener Candidate-Area (der
+  +13m-directional-Punkt im Fall 96959851 wird nur indirekt entfernt) -
+  haengt an der Hoehenstrategie (P7-A-W1-T6-Optionen).
+
+## Schritt 6 / P7-E-W1-T2: Produktive Integration k2x (green)
+
+Kleinste produktive Aenderung in `anomaly_local_v1.py`:
+
+- `_apply_crosslook_policy()` am Ende von `_apply_gate_rules()`:
+  Quer-Versatz-Demotion fuer nearest (median + 3*1.4826*MAD + 3 m +
+  sqrt(eff_area); ohne Anker alle nearest), Gruende
+  `nearest_crosslook_outlier` / `nearest_no_geometric_anchor` /
+  `nearest_crosslook_unknown` in gate_reasons (UI zeigt sie ueber die
+  bestehende Grund-Anzeige).
+- `_apply_small_n_fallback()`: Pseudo-Core nur bei >= 2
+  velocity-konsistenten Punkten, sonst Rolle/Status `weak_support`.
+- `eff_area` in beide Punkt-SELECTs + `LocalPointRecord` aufgenommen.
+- `MODEL_SET_VERSION`: `local_hdbscan_rulegate_v1` ->
+  `local_hdbscan_rulegate_v2_k2x`.
+- Doku: methodik.md (Quer-Versatz-Politik, Small-N-Verschaerfung),
+  iterations.md (neue Zeile), next_steps.md.
+
+INTEGRATIONS-BEWEIS: In-Memory-Lauf der NEUEN Produktion (noop) ist auf
+ALLEN 7 AOIs punktidentisch zu den persistierten k2x-Experiment-Runs
+(diff=0, only=0 je AOI) - der Port ist exakt.
+
+Frische produktive Referenz-Runs (neue Baselines; alte Run-IDs bleiben
+als legacy_baseline_run im Harness dokumentiert):
+
+| AOI | neuer Baseline-Run | legacy |
+| --- | --- | --- |
+| mirabell | 5e56381a-1115-46f3-aeb4-337f7d067ead | c23cd637 |
+| moosstrasse | 9ef01ded-270f-47be-b662-3a9b5950c745 | 15cee7d1 |
+| osthang | 42b0d3df-3074-4a3a-b5f3-c02790113406 | 74c1481e |
+| bg_flat_01_snt | 619dc244-48c1-4a1f-8b22-af79cd7b403e | ff2217a1 |
+| bg_slope_01_snt | 78ce5c6b-1539-49a3-bb32-76218d10db8b | 633325ef |
+| bg_flat_01_tsx | 69f13507-3ab7-425a-9e59-07caee9fb8e5 | 97672f6e |
+| bg_slope_01_tsx | 49a4b1fa-3c9c-4d8b-8ab4-96281c975309 | 60a3899f |
+
+Verifikation nach Integration: `--verify-noop` gegen die NEUEN
+Baselines auf ALLEN 7 AOIs punktidentisch (kept/noise identisch zu den
+k2x-Werten, z. B. mirabell 1141/409) - Determinismus-Kette geschlossen:
+k2x-Experiment == persistierte k2x-Runs == neue Produktion == neue
+Baselines. Scorecard-Guardrails: die Abweichungen gegenueber den
+Legacy-Baselines sind exakt die in D2/D3 bewerteten und begruendeten
+k2x-Deltas (candidate_green, Gate bestanden).

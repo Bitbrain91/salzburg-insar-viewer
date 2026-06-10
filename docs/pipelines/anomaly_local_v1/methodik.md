@@ -98,6 +98,35 @@ Wichtig:
 - `nearest` ist bewusst nur Fallback.
 - Die Zuordnungsart wird fuer jeden Punkt gespeichert und visualisiert.
 
+### Quer-Versatz-Politik fuer nearest-Punkte (seit P7-E-W1-T2, 2026-06-10)
+
+`nearest`-Punkte tragen seit Phase 7 nur dann zu Clustering und
+Motion-Score bei, wenn ihr Quer-Versatz zur Blickrichtung geometrisch
+plausibel ist. Physikalische Begruendung: Radarprojektion (Layover)
+verschiebt Dachreflexionen nur LAENGS der Blickrichtung - genau das
+deckt die Candidate-Area ab. Ein grosser QUER-Versatz ist nicht durch
+die Radargeometrie erklaerbar und deutet auf ein Fremdobjekt (Carport,
+Nebengebaeude; bestaetigter Referenzfall 96959851).
+
+Selbstkalibrierende Toleranz je Gebaeude x Track (keine
+gebietsspezifischen Schwellen):
+
+```
+limit = median(|cross_look_offset| der within/directional-Anker)
+        + 3 * 1.4826 * MAD + 3 m Geocoding-Marge
+        + sqrt(eff_area) des Kandidatenpunkts
+```
+
+- Median/MAD statt Perzentil, weil die Candidate-Area selbst vereinzelt
+  Fremdpunkte als `directional` fangen kann (vergiftete Anker).
+- Ohne `within`/`directional`-Anker existiert keine geometrische
+  Referenz: alle `nearest`-Punkte der Gruppe werden demotiert
+  (Asymmetrie-Prinzip: lieber einen Punkt zu viel ausschliessen als
+  einen fremden aufnehmen).
+- Demotion = `gate_excluded` mit Grund `nearest_crosslook_outlier` /
+  `nearest_no_geometric_anchor` / `nearest_crosslook_unknown`: sichtbar
+  und geflaggt, aber weder Cluster-Mitglied noch Score-Beitrag.
+
 ## 2. Features
 ### Clustering-Features
 Diese Features bestimmen die lokale Gruppierung:
@@ -192,6 +221,14 @@ Warum:
 
 - Bei sehr kleinen Stichproben sind dichtebasierte Entscheidungen instabil.
 - Das Meeting hat genau diese kleinen Gebaeude als Praxisfall benannt.
+
+Verschaerfung seit P7-E-W1-T2 (2026-06-10, smalln_strict): Der
+Pseudo-Core wird nur noch gebildet, wenn mindestens 2 Punkte
+velocity-konsistent sind (`|v - median| <= max(1 mm/a, 2 *
+velocity_std)`). Andernfalls erhaelt die Gruppe den ehrlichen Status
+`weak_support` (Rolle `weak_support`, Wahrscheinlichkeit 0.30) statt
+eines kuenstlichen Kerns. 2-Punkt-Cluster bleiben ausdruecklich
+legitim, solange sie konsistent sind.
 
 ### Insufficient Support
 Bei `< 3` behaltenen Punkten wird nicht geclustert.

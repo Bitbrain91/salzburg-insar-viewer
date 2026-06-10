@@ -48,37 +48,44 @@ AOIS: dict[str, dict[str, Any]] = {
     "mirabell": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.04027, 47.80375, 13.04387, 47.80735),
-        "baseline_run": "c23cd637-3251-45bb-a95e-e2aa88abe6de",
+        "baseline_run": "5e56381a-1115-46f3-aeb4-337f7d067ead",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "c23cd637-3251-45bb-a95e-e2aa88abe6de",
     },
     "moosstrasse": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.02714, 47.79189, 13.03074, 47.79549),
-        "baseline_run": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+        "baseline_run": "9ef01ded-270f-47be-b662-3a9b5950c745",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
     },
     "osthang": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "stress_diagnose",
         "bbox": (13.0492, 47.8036, 13.0528, 47.8054),
-        "baseline_run": "74c1481e-f2c7-4938-a4ac-8022e1fe2799",
+        "baseline_run": "42b0d3df-3074-4a3a-b5f3-c02790113406",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "74c1481e-f2c7-4938-a4ac-8022e1fe2799",
     },
     "bg_flat_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        "baseline_run": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+        "baseline_run": "619dc244-48c1-4a1f-8b22-af79cd7b403e",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
     },
     "bg_slope_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "633325ef-409f-4a9e-a160-c9bc8394e574",
+        "baseline_run": "78ce5c6b-1539-49a3-bb32-76218d10db8b",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "633325ef-409f-4a9e-a160-c9bc8394e574",
     },
     "bg_flat_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        "baseline_run": "97672f6e-f06e-43d8-b279-1dddecc21300",
+        "baseline_run": "69f13507-3ab7-425a-9e59-07caee9fb8e5",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "97672f6e-f06e-43d8-b279-1dddecc21300",
     },
     "bg_slope_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "60a3899f-118a-4856-b40a-379939449e8a",
+        "baseline_run": "49a4b1fa-3c9c-4d8b-8ab4-96281c975309",  # P7-E-W1-T2 (v2_k2x)
+        "legacy_baseline_run": "60a3899f-118a-4856-b40a-379939449e8a",
     },
 }
 
@@ -1337,7 +1344,13 @@ async def persist_experiment_run(aoi: str, exp_id: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 EXPERIMENTS: dict[str, ExperimentConfig] = {
-    "noop": ExperimentConfig("noop", "Produktionsidentische Variante (Determinismus-/No-op-Beweis)"),
+    # Seit P7-E-W1-T2 (MODEL_SET_VERSION local_hdbscan_rulegate_v2_k2x)
+    # enthaelt die Produktion a5_crosslook + smalln_strict als Default;
+    # noop == NEUE Produktion (alte Baselines: legacy_baseline_run in
+    # AOIS). Die Politiken a1..a5/smalln_strict bleiben als
+    # Forschungs-Overrides; a5_crosslook/k1/k2x sind gegenueber noop
+    # jetzt verhaltensgleich (Doppel-Anwendung idempotent).
+    "noop": ExperimentConfig("noop", "Produktionsidentische Variante (seit v2_k2x inkl. a5_crosslook + smalln_strict)"),
     # --- P7-C-W1-T1: HDBSCAN-Sweep (isolierte Achsen) ---
     "ms_equal": ExperimentConfig("ms_equal", "Bibliotheks-Default min_samples=min_cluster_size (Pflichtvergleich)", min_samples_mode="equal"),
     "leaf": ExperimentConfig("leaf", "cluster_selection_method=leaf (feinere homogene Cluster)", cluster_selection_method="leaf"),

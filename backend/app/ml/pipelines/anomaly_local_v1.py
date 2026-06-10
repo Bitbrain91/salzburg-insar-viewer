@@ -25,7 +25,10 @@ from ..track_geometry import get_track_geometry, track_geometry_values_cte
 
 
 FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
-MODEL_SET_VERSION = "local_hdbscan_rulegate_v1"
+# P7-E-W1-T2 (2026-06-10): Kandidat k2x integriert (a5_crosslook +
+# smalln_strict als Default-Verhalten); Entscheidung und Evidenz in
+# docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_report.md.
+MODEL_SET_VERSION = "local_hdbscan_rulegate_v2_k2x"
 EPSILON = 1e-9
 NEIGHBOUR_BUILDING_RADIUS_M = 25.0
 MAX_NEIGHBOUR_BUILDINGS = 8
@@ -82,6 +85,9 @@ class LocalPointRecord:
     slope_mean_deg: float | None
     slope_max_deg: float | None
     relief_range_m: float | None
+    # SqueeSAR-Patch-Flaeche (m^2; 0 = PS): Toleranzterm der
+    # Quer-Versatz-Politik (P7-E-W1-T2).
+    eff_area: float | None = None
     displacement_dates: list[date] = field(default_factory=list)
     displacement_values: list[float] = field(default_factory=list)
     amplitude_dates: list[date] = field(default_factory=list)
@@ -204,6 +210,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     p.height,
                     p.amp_mean,
                     p.amp_std,
+                    p.eff_area,
                     p.geom,
                     ST_Transform(p.geom, 32633) AS geom_utm,
                     ST_X(p.geom) AS lon,
@@ -266,6 +273,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 p.height,
                 p.amp_mean,
                 p.amp_std,
+                p.eff_area,
                 p.lon,
                 p.lat,
                 p.x_m,
@@ -499,6 +507,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 height=self._float_or_none(row["height"]),
                 amp_mean=self._float_or_none(row["amp_mean"]),
                 amp_std=self._float_or_none(row["amp_std"]),
+                eff_area=self._float_or_none(row["eff_area"]),
                 building_id=row["building_id"],
                 building_height=self._float_or_none(row["building_height"]),
                 building_centroid_x_m=self._float_or_none(row["centroid_x_m"]),
@@ -772,6 +781,62 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             if reasons and "degraded_reason" not in record.flags:
                 record.flags["degraded_reason"] = reasons[0]
 
+        self._apply_crosslook_policy(records)
+
+    def _apply_crosslook_policy(self, records: list[LocalPointRecord]) -> None:
+        """Quer-Versatz-Politik fuer nearest-Punkte (P7-E-W1-T2, Kandidat k2x).
+
+        Laengs-Versatz zum Gebaeude kann Radarprojektion sein (Candidate-Area
+        deckt ihn ab), Quer-Versatz nicht. nearest-Punkte ohne geometrische
+        Begruendung werden demotiert (sichtbar, aber weder Cluster-Mitglied
+        noch Score-Beitrag - Asymmetrie-Prinzip), wenn ihr
+        |cross_look_offset_m| die selbstkalibrierte Toleranz des
+        Gebaeude x Track ueberschreitet:
+
+            limit = median(|cross| der within/directional-Anker)
+                    + 3 * 1.4826 * MAD + 3 m Geocoding-Marge
+                    + sqrt(eff_area) des Kandidatenpunkts.
+
+        Median/MAD statt Perzentil, weil die Candidate-Area selbst
+        Fremdpunkte als directional fangen kann (Referenzfall 96959851).
+        Ohne Anker gibt es keine geometrische Referenz -> alle nearest
+        demotieren. Keine gebietsspezifischen Schwellen (generisch,
+        selbstkalibrierend).
+        """
+        anchors_by_group: dict[tuple[str | None, int], list[float]] = {}
+        for record in records:
+            if record.assignment_method in ("within", "directional_buffer") and not record.gate_excluded:
+                cross = record.features.get("cross_look_offset_m")
+                if cross is not None and np.isfinite(cross):
+                    anchors_by_group.setdefault((record.building_id, record.track), []).append(abs(float(cross)))
+
+        def demote(record: LocalPointRecord, reason: str) -> None:
+            record.gate_reasons = list(record.gate_reasons) + [reason]
+            record.gate_excluded = True
+            record.kept_for_scoring = False
+            record.flags["gate_excluded"] = True
+            record.flags["gate_reasons"] = record.gate_reasons
+            record.flags.setdefault("degraded_reason", reason)
+
+        for record in records:
+            if record.assignment_method != "nearest" or record.gate_excluded:
+                continue
+            anchors = anchors_by_group.get((record.building_id, record.track))
+            if not anchors:
+                demote(record, "nearest_no_geometric_anchor")
+                continue
+            cross = record.features.get("cross_look_offset_m")
+            if cross is None or not np.isfinite(cross):
+                demote(record, "nearest_crosslook_unknown")
+                continue
+            arr = np.asarray(anchors, dtype=float)
+            med = float(np.median(arr))
+            mad = float(np.median(np.abs(arr - med)))
+            eff_area = record.eff_area if record.eff_area is not None else 0.0
+            limit = med + 3.0 * 1.4826 * mad + 3.0 + math.sqrt(max(float(eff_area), 0.0))
+            if abs(float(cross)) > limit:
+                demote(record, "nearest_crosslook_outlier")
+
     def _cluster_building_groups(self, records: list[LocalPointRecord], params: dict[str, Any]) -> None:
         building_track_groups: dict[tuple[str, int], list[LocalPointRecord]] = defaultdict(list)
         for record in records:
@@ -824,6 +889,25 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         kept: list[LocalPointRecord],
         noise_threshold: float,
     ) -> None:
+        # P7-E-W1-T2 (smalln_strict, Kandidat k2x): Small-N-Gruppen ohne
+        # Velocity-Konsistenz bekommen keinen Pseudo-Core, sondern den
+        # ehrlichen Status weak_support (Konsistenz: |v - median| <=
+        # max(1 mm/a, 2 * velocity_std) fuer mindestens 2 Punkte).
+        velocities = np.asarray([record.velocity for record in kept], dtype=float)
+        med = float(np.median(velocities))
+        tol = np.maximum(
+            1.0, 2.0 * np.asarray([record.velocity_std or 0.5 for record in kept], dtype=float)
+        )
+        consistent = np.abs(velocities - med) <= tol
+        if int(consistent.sum()) < 2:
+            for record in kept:
+                record.small_n_fallback = True
+                record.cluster_id = f"{building_id}:t{track}:weak_support"
+                record.cluster_role = "weak_support"
+                record.cluster_probability = 0.30
+                record.cluster_outlier_score = max(record.cluster_outlier_score, 0.50)
+            return
+
         scores = np.asarray([max(record.local_deviation_score, 0.0) for record in kept], dtype=float)
         ranked = np.argsort(scores)
         core_mask = scores <= noise_threshold
