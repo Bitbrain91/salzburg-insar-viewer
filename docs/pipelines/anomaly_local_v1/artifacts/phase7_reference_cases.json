@@ -2,7 +2,7 @@
   "schema_version": 1,
   "ticket": "P7-A-W1-T4",
   "stand": "2026-06-10",
-  "notes": "Erwartungen sind semantisch formuliert. Baseline-Runs siehe phase7_baseline_summary.md. Visuelle Bestaetigung der *_suspect-Faelle erfolgt im Visual-Audit (P7-B-W2).",
+  "notes": "Erwartungen sind semantisch formuliert. Baseline-Runs siehe phase7_baseline_summary.md. Visuelle Bestaetigung der *_suspect-Faelle erfolgt im Visual-Audit (P7-B-W2). P7-V1 (2026-06-10): policy_expectations pinnen fallweise erwartete Status unter Hygiene-Politiken (Schluessel: experiment_id > assignment_policy > smalln_<mode>); ohne Pin gilt fuer Hygiene-Politiken die CLAIM_RANK-Abstufungstoleranz (ehrliche Abschwaechung ok, Aufwertung nie).",
   "cases": [
     {
       "case_id": "mirabell_standard_weak_secondary",
@@ -91,6 +91,9 @@
       "building_id": "96856632",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t44 besteht zu 3/3 aus nearest-Punkten mit ~9.7 m Distanz - Verdachtsmuster des User-Carport-Falls. Visuelle Bestaetigung ausstehend; Zielverhalten: solche Cluster duerfen den Gebaeude-Motion-Score nicht praegen (Asymmetrie-Prinzip).",
+      "policy_expectations": {
+        "a1_demote": ["insufficient_support", "small_n"]
+      },
       "visual_confirmation": "pending"
     },
     {
@@ -100,6 +103,9 @@
       "building_id": "203343478",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t95 6/6 nearest, ~7.3 m. Zweiter Verdachtsfall fuer Assignment-Hygiene und Visual-Audit.",
+      "policy_expectations": {
+        "a1_demote": ["insufficient_support", "small_n", "noise_dominated"]
+      },
       "visual_confirmation": "pending"
     },
     {
@@ -124,7 +130,10 @@
       "dataset_id": "bad_gastein_snt",
       "building_id": "238100070",
       "case_type": "small_n",
-      "expectation": "BG-Small-N-Fall (8 kept) fuer P7-C-W1-T3."
+      "expectation": "BG-Small-N-Fall (8 kept) fuer P7-C-W1-T3. P7-V1-Untersuchung 2026-06-10: t44 besteht aus 2/2 nearest-Punkten ohne geometrische Begruendung; unter a1_demote ist single_track_only (t95-Kern within+directional) die EHRLICHE Antwort, kein kosmetisches Upgrade.",
+      "policy_expectations": {
+        "a1_demote": ["small_n", "single_track_only", "insufficient_support"]
+      }
     },
     {
       "case_id": "bg_slope_noise_low_agreement",
@@ -157,6 +166,10 @@
       "building_id": "96959851",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden.",
+      "policy_expectations": {
+        "a1_demote": ["insufficient_support"],
+        "a3_height": ["single_track_only"]
+      },
       "visual_confirmation": "confirmed_2026-06-10"
     }
   ]

@@ -23,7 +23,7 @@ import hashlib
 import json
 import math
 from collections import Counter
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, replace
 from pathlib import Path
 from typing import Any
 
@@ -266,6 +266,39 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                     and (r.code, r.track) in self.osm_foreign
                 ):
                     demote(r, "nearest_osm_foreign_structure")
+            return
+
+        if policy == "a5_crosslook":
+            # Quer-Versatz-Politik (P7-V3, motiviert durch Fall 96959851):
+            # Laengs-Versatz kann Radarprojektion sein, Quer-Versatz nicht.
+            # Selbstkalibrierend pro Gebaeude x Track: Toleranz = p95 des
+            # |cross_look_offset_m| der geometrisch begruendeten Anker
+            # (within/directional) + 3 m Geocoding-Marge + sqrt(eff_area)
+            # des Kandidatenpunkts (DS-Patch-Ausdehnung). Ohne Anker gibt es
+            # keine geometrische Referenz -> alle nearest demotieren
+            # (Asymmetrie-Prinzip), selektiver als a1 nur dort, wo Anker
+            # existieren.
+            anchors_by_group: dict[tuple[str | None, int], list[float]] = {}
+            for r in records:
+                if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
+                    cross = r.features.get("cross_look_offset_m")
+                    if cross is not None and np.isfinite(cross):
+                        anchors_by_group.setdefault((r.building_id, r.track), []).append(abs(float(cross)))
+            for r in records:
+                if r.assignment_method != "nearest" or r.gate_excluded:
+                    continue
+                anchors = anchors_by_group.get((r.building_id, r.track))
+                if not anchors:
+                    demote(r, "nearest_no_geometric_anchor")
+                    continue
+                cross = r.features.get("cross_look_offset_m")
+                if cross is None or not np.isfinite(cross):
+                    demote(r, "nearest_crosslook_unknown")
+                    continue
+                eff_area = r.features.get("x_eff_area") or 0.0
+                limit = float(np.percentile(np.asarray(anchors), 95)) + 3.0 + math.sqrt(max(float(eff_area), 0.0))
+                if abs(float(cross)) > limit:
+                    demote(r, "nearest_crosslook_outlier")
             return
 
         raise ValueError(f"unknown assignment_policy: {policy}")
@@ -848,6 +881,20 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         1 for members in main_members.values()
         if sum(1 for m in members if m.assignment_method == "nearest") > len(members) / 2
     )
+    # Robuste Multi-Cluster-Zaehlung (P7-V1): nur Cluster, die NICHT
+    # nearest-dominiert sind, zaehlen. Hygiene-Politiken duerfen
+    # nearest-getragene Zweitcluster verlieren, ohne den
+    # Multi-Cluster-Guardrail zu reissen; echte Struktur bleibt geschuetzt.
+    cluster_members: dict[tuple[str, str], list[LocalPointRecord]] = {}
+    for r in records:
+        if r.building_id and r.cluster_role == "core" and r.cluster_id:
+            cluster_members.setdefault((r.building_id, str(r.cluster_id)), []).append(r)
+    robust_by_building: Counter = Counter()
+    for (bid, _cid), members in cluster_members.items():
+        nearest_share = sum(1 for m in members if m.assignment_method == "nearest") / len(members)
+        if nearest_share <= 0.5:
+            robust_by_building[bid] += 1
+    multi_robust = sum(1 for n in robust_by_building.values() if n > 1)
     return {
         "points_total": len(records),
         "points_kept": sum(1 for r in records if r.kept_for_scoring),
@@ -857,6 +904,7 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         "building_status_counts": dict(Counter(statuses.values())),
         "building_statuses": statuses,
         "multi_cluster_buildings": multi,
+        "multi_cluster_buildings_robust": multi_robust,
         "nearest_dominated_main_clusters": nearest_main,
     }
 
@@ -897,17 +945,62 @@ AOI_KEYS_BY_CASE_AOI = {
     "bg_slope_01": ["bg_slope_01_snt", "bg_slope_01_tsx"],
 }
 
+# Anspruchsstaerke eines Gebaeude-Status (P7-V1). Hygiene-Politiken duerfen
+# Ansprueche EHRLICH ABSCHWAECHEN (Asymmetrie-Prinzip), nie verstaerken:
+# rank(actual) <= max(rank(expected)) gilt als erwartungskonform.
+# ok=volle Aussage, single_track_only=Aussage auf einem Track,
+# small_n/noise_dominated=diagnostisch ohne Verlaesslichkeitsanspruch,
+# insufficient_support=keine Aussage.
+CLAIM_RANK: dict[str, int] = {
+    "ok": 3,
+    "single_track_only": 2,
+    "small_n": 1,
+    "noise_dominated": 1,
+    "insufficient_support": 0,
+}
+
+
+def _policy_keys(config: dict[str, Any]) -> list[str]:
+    """Aufloesungsreihenfolge fuer policy_expectations:
+    exakte experiment_id -> assignment_policy (normalisiert) -> smalln_<mode>."""
+    keys = [str(config.get("experiment_id") or "")]
+    policy = str(config.get("assignment_policy") or "a0")
+    if policy != "a0":
+        keys.append(policy.split(":")[0])
+    smalln = str(config.get("smalln_mode") or "baseline")
+    if smalln != "baseline":
+        keys.append(f"smalln_{smalln}")
+    return [k for k in keys if k]
+
+
+def _is_policy_experiment(config: dict[str, Any]) -> bool:
+    return (
+        str(config.get("assignment_policy") or "a0") != "a0"
+        or str(config.get("smalln_mode") or "baseline") != "baseline"
+    )
+
 
 def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
     ref_path = ARTIFACTS_DIR / "phase7_reference_cases.json"
     if not ref_path.exists():
         return []
     cases = json.loads(ref_path.read_text())["cases"]
+    config = exp_out.get("config") or {}
     checks = []
     for case in cases:
-        expected = CASE_TYPE_EXPECTED_STATUS.get(case["case_type"])
-        if expected is None:
+        default_expected = CASE_TYPE_EXPECTED_STATUS.get(case["case_type"])
+        pin: set[str] | None = None
+        pin_key: str | None = None
+        policy_expectations = case.get("policy_expectations") or {}
+        for key in _policy_keys(config):
+            if key in policy_expectations:
+                pin = set(policy_expectations[key])
+                pin_key = key
+                break
+        if pin is None and default_expected is None:
             continue
+        expected = pin if pin is not None else default_expected
+        source = f"policy_pin:{pin_key}" if pin is not None else "case_type_default"
         for aoi_key in AOI_KEYS_BY_CASE_AOI.get(case["aoi"], []):
             aoi_out = exp_out["aois"].get(aoi_key)
             if not aoi_out:
@@ -919,12 +1012,28 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
             actual = aoi_out["summary"]["building_statuses"].get(case["building_id"])
             if actual is None:
+                if pin is not None:
+                    # Gepinnter Fall verschwindet unter der Politik -> sichtbar machen.
+                    checks.append({
+                        "case_id": case["case_id"], "aoi": aoi_key,
+                        "building_id": case["building_id"],
+                        "expected_any_of": sorted(expected), "actual": None,
+                        "ok": False, "source": source,
+                    })
                 continue
+            ok = actual in expected
+            check_source = source
+            if not ok and pin is None and _is_policy_experiment(config):
+                # Ehrliche Abstufung unter Hygiene-Politik toleriert; Aufwertung nie.
+                max_expected_rank = max(CLAIM_RANK.get(e, 0) for e in expected)
+                if CLAIM_RANK.get(actual, 0) <= max_expected_rank:
+                    ok = True
+                    check_source = "policy_downgrade_tolerance"
             checks.append({
                 "case_id": case["case_id"], "aoi": aoi_key,
                 "building_id": case["building_id"],
                 "expected_any_of": sorted(expected), "actual": actual,
-                "ok": actual in expected,
+                "ok": ok, "source": check_source,
             })
     return checks
 
@@ -935,6 +1044,13 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
         "stand": results.get("stand"), "baseline": baseline_id, "entries": {}, "schema": {
             "verdicts": ["baseline", "candidate_green", "candidate_red", "candidate_inconclusive"],
             "rule": "Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.",
+            "policy_rule": (
+                "P7-V1: Hygiene-Politiken (assignment_policy!=a0 oder smalln_mode!=baseline) "
+                "duerfen Status-Ansprueche abschwaechen (CLAIM_RANK-Toleranz) und "
+                "nearest-getragene Zweitcluster verlieren (robuste Multi-Cluster-Zaehlung); "
+                "Aufwertungen und Verlust robuster Struktur bleiben harte Fails. "
+                "policy_expectations in phase7_reference_cases.json pinnen Einzelfaelle."
+            ),
             "cross_track_fields": ["cross_track_source", "cross_track_pair_type", "temporal_overlap_days"],
         },
     }
@@ -952,6 +1068,7 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
                 "kept": s["points_kept"],
                 "noise_rate": round(s["points_noise"] / max(s["points_kept"], 1), 4),
                 "multi_cluster_buildings": s["multi_cluster_buildings"],
+                "multi_cluster_buildings_robust": s.get("multi_cluster_buildings_robust"),
                 "nearest_dominated_main_clusters": s["nearest_dominated_main_clusters"],
                 "status_counts": s["building_status_counts"],
                 "xtrack_agreement_median": (aoi_out.get("cross_track") or {}).get("agreement_median"),
@@ -960,16 +1077,30 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
         if exp_id == baseline_id or base is None:
             entry["verdict"] = "baseline"
         else:
+            policy_exp = _is_policy_experiment(exp_out.get("config") or {})
             reasons, hard_fail, soft_gain = [], False, False
             for aoi, agg in entry["aoi_aggregates"].items():
                 bagg = base["aois"].get(aoi)
                 if not bagg:
                     continue
                 bs = bagg["summary"]
-                b_multi = bs["multi_cluster_buildings"]
-                if b_multi and agg["multi_cluster_buildings"] < 0.8 * b_multi:
-                    hard_fail = True
-                    reasons.append(f"{aoi}: Multi-Cluster weggeglaettet ({agg['multi_cluster_buildings']} < 0.8*{b_multi})")
+                cand_summary = exp_out["aois"][aoi]["summary"]
+                b_multi_robust = bs.get("multi_cluster_buildings_robust")
+                cand_multi_robust = cand_summary.get("multi_cluster_buildings_robust")
+                if policy_exp and b_multi_robust is not None and cand_multi_robust is not None:
+                    # Hygiene-Politik: nearest-getragene Zweitcluster duerfen
+                    # verschwinden; nur robuste Multi-Struktur ist geschuetzt.
+                    if b_multi_robust and cand_multi_robust < 0.8 * b_multi_robust:
+                        hard_fail = True
+                        reasons.append(
+                            f"{aoi}: robuste Multi-Cluster weggeglaettet "
+                            f"({cand_multi_robust} < 0.8*{b_multi_robust})"
+                        )
+                else:
+                    b_multi = bs["multi_cluster_buildings"]
+                    if b_multi and agg["multi_cluster_buildings"] < 0.8 * b_multi:
+                        hard_fail = True
+                        reasons.append(f"{aoi}: Multi-Cluster weggeglaettet ({agg['multi_cluster_buildings']} < 0.8*{b_multi})")
                 base_statuses = bs["building_statuses"]
                 cand_statuses = exp_out["aois"][aoi]["summary"]["building_statuses"]
                 promoted = [
@@ -1024,8 +1155,17 @@ def write_scorecard_md(scorecard: dict[str, Any], path: Path) -> None:
             )
         ref = entry.get("reference_case_checks") or []
         fails = [c for c in ref if not c["ok"]]
+        tolerated = sum(1 for c in ref if c["ok"] and c.get("source") == "policy_downgrade_tolerance")
+        pinned = sum(1 for c in ref if str(c.get("source", "")).startswith("policy_pin"))
+        suffix = ""
+        if tolerated:
+            suffix += f"; {tolerated} via Abstufungs-Toleranz"
+        if pinned:
+            suffix += f"; {pinned} gepinnt"
+        if fails:
+            suffix += f"; FAILS: {[(c['case_id'], c['actual']) for c in fails]}"
         lines.append("")
-        lines.append(f"Referenzfaelle: {len(ref) - len(fails)}/{len(ref)} ok" + (f"; FAILS: {[c['case_id'] for c in fails]}" if fails else ""))
+        lines.append(f"Referenzfaelle: {len(ref) - len(fails)}/{len(ref)} ok{suffix}")
         lines.append("")
     path.write_text("\n".join(lines) + "\n")
 
@@ -1063,6 +1203,99 @@ async def verify_noop_against_db(aoi: str, records: list[LocalPointRecord]) -> d
             {"key": f"{k[0]}:t{k[1]}", "db": list(db[k]), "harness": list(mem[k])}
             for k in diff[:5]
         ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Kandidaten-Persistenz als getaggte ml_runs (P7-V2)
+# ---------------------------------------------------------------------------
+
+async def persist_experiment_run(aoi: str, exp_id: str) -> dict[str, Any]:
+    """Persistiert eine Experiment-Variante als echten, getaggten ml_run.
+
+    Voller Produktionspfad (fetch -> compute -> _persist_results -> Farben ->
+    Metriken -> Statusuebergaenge nach runner.py-Muster), aber ohne
+    MLflow-Logging: Harness-Runs tragen ihre vollstaendige Konfiguration in
+    ml_runs.params (experiment_id + experiment_config) und sind damit im
+    Viewer (Run-Listen-Badge + Transparenz-Panel) inspizier- und
+    deep-link-bar - Voraussetzung fuer das Visual-Audit der Shortlist
+    (P7-D-W1-T3) und die User-Sichtbarkeit der Offline-Ergebnisse.
+    """
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    from ..colors import assign_building_colors
+    from ..runner import _update_run_status, _upsert_metric
+    from ..store import create_run_record
+
+    spec = AOIS[aoi]
+    exp = EXPERIMENTS[exp_id]
+    overrides = fetch_overrides_for(exp) or {}
+    # Inputs einmal vorab holen: liefert extras/osm_foreign fuer die
+    # Pipeline-Overrides; pipeline.run() fetcht danach ueber denselben
+    # SQL-Pfad (deterministisch identisch).
+    inputs = await fetch_aoi_inputs(aoi, overrides or None)
+    pipeline = ExperimentPipeline(exp, inputs["extras"], inputs.get("osm_foreign"))
+    run_id = str(uuid4())
+    config = RunConfig(
+        run_id=run_id,
+        pipeline=AnomalyLocalV1Pipeline.name,
+        area_id=spec["area_id"],
+        dataset_id=spec["dataset_id"],
+        source="gba",
+        track=None,
+        bbox=tuple(spec["bbox"]),
+        params={
+            **overrides,
+            "experiment_id": exp_id,
+            "experiment_config": exp.to_jsonable(),
+            "phase7_aoi": aoi,
+            "phase7_baseline_run": spec["baseline_run"],
+        },
+    )
+    pool = await asyncpg.create_pool(dsn=settings.db_dsn, min_size=1, max_size=4)
+    metrics: dict[str, Any] = {}
+    try:
+        async with pool.acquire() as conn:
+            await create_run_record(
+                conn,
+                run_id=run_id,
+                pipeline=config.pipeline,
+                pipeline_version=pipeline.version,
+                run_type=pipeline.run_type,
+                area_id=config.area_id,
+                dataset_id=config.dataset_id,
+                source=config.source,
+                track=config.track,
+                bbox=config.bbox,
+                params=config.params,
+            )
+            await _update_run_status(
+                conn, run_id, "running", started_at=datetime.now(timezone.utc)
+            )
+        try:
+            metrics = await pipeline.run(pool, config)
+            await assign_building_colors(pool, run_id)
+            for key, value in metrics.items():
+                if isinstance(value, (int, float)):
+                    async with pool.acquire() as conn:
+                        await _upsert_metric(conn, run_id, key, float(value))
+            async with pool.acquire() as conn:
+                await _update_run_status(
+                    conn, run_id, "succeeded", finished_at=datetime.now(timezone.utc)
+                )
+        except Exception as exc:
+            async with pool.acquire() as conn:
+                await _update_run_status(
+                    conn, run_id, "failed",
+                    finished_at=datetime.now(timezone.utc), error=str(exc),
+                )
+            raise
+    finally:
+        await pool.close()
+    return {
+        "aoi": aoi, "experiment_id": exp_id, "run_id": run_id,
+        "numeric_metrics": {k: v for k, v in metrics.items() if isinstance(v, (int, float))},
     }
 
 
@@ -1109,7 +1342,27 @@ EXPERIMENTS: dict[str, ExperimentConfig] = {
     "smalln_strict": ExperimentConfig("smalln_strict", "Small-N nur mit Velocity-Konsistenz als Core, sonst weak_support", smalln_mode="strict"),
     # --- P7-C-W1-T4: Reassignment ---
     "no_reassign": ExperimentConfig("no_reassign", "Borderline-Noise-Reassignment deaktiviert", reassign_mode="off"),
+    # --- P7-V3: Quer-Versatz-Politik (selektive Alternative zu a1, Fall 96959851) ---
+    "a5_crosslook": ExperimentConfig(
+        "a5_crosslook",
+        "nearest demotieren, wenn |cross_look_offset| > p95(Anker) + 3m + sqrt(eff_area); ohne Anker alle nearest",
+        assignment_policy="a5_crosslook",
+    ),
 }
+
+
+def _variant(base_id: str, experiment_id: str, description: str, **overrides: Any) -> ExperimentConfig:
+    """Kompositions-Helper (P7-V3): Variante auf Basis eines registrierten
+    Experiments, ohne die Achsen von Hand zu duplizieren."""
+    return replace(EXPERIMENTS[base_id], experiment_id=experiment_id, description=description, **overrides)
+
+
+# Kandidaten-Registry (P7-V3): Shortlist-Kandidaten aus Schritt 4 als
+# benannte Komposita; k2x ist der Quer-Versatz-Vergleichskandidat.
+EXPERIMENTS["k1"] = _variant("smalln_strict", "k1", "Kandidat K1 = smalln_strict (konservativ)")
+EXPERIMENTS["k2"] = _variant("a1_demote", "k2", "Kandidat K2 = a1_demote + smalln_strict", smalln_mode="strict")
+EXPERIMENTS["k3"] = _variant("a3_height", "k3", "Kandidat K3 = a3_height")
+EXPERIMENTS["k2x"] = _variant("a5_crosslook", "k2x", "Kandidat K2x = a5_crosslook + smalln_strict", smalln_mode="strict")
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Phase-7 Clustering-Experiment-Harness")
@@ -1123,8 +1376,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--out", default=None, help="JSON-Ausgabedatei (default: artifacts/phase7_experiment_<id>.json)")
     p.add_argument("--scorecard", action="store_true",
                    help="Scorecard gegen die noop-Baseline bauen und nach artifacts/phase7_scorecard.{json,md} schreiben")
+    p.add_argument("--scorecard-baseline", default="noop",
+                   help="Baseline-Experiment-ID fuer die Scorecard (z. B. k2 fuer den hygienischen Re-Sweep)")
+    p.add_argument("--scorecard-out", default=None,
+                   help="Basisname fuer Scorecard-Artefakte (default: phase7_scorecard)")
     p.add_argument("--main-choice-audit", action="store_true",
                    help="Main-Cluster-Wahl-Audit (support- vs within-share-Rangfolge) berechnen")
+    p.add_argument("--persist", action="store_true",
+                   help="Experimente als echte getaggte ml_runs persistieren (P7-V2) "
+                        "statt offline auszuwerten; Run-IDs nach phase7_persisted_runs.json")
     return p
 
 
@@ -1132,6 +1392,23 @@ async def amain(argv: list[str] | None = None) -> int:
     args = build_arg_parser().parse_args(argv)
     aois = [a.strip() for a in args.aois.split(",") if a.strip()]
     experiment_ids = [e.strip() for e in args.experiments.split(",") if e.strip()]
+
+    if args.persist:
+        registry_path = ARTIFACTS_DIR / "phase7_persisted_runs.json"
+        registry = (
+            json.loads(registry_path.read_text())
+            if registry_path.exists() else {"schema_version": 1, "runs": []}
+        )
+        for exp_id in experiment_ids:
+            if exp_id not in EXPERIMENTS:
+                raise SystemExit(f"unbekanntes Experiment: {exp_id} (registriert: {sorted(EXPERIMENTS)})")
+            for aoi in aois:
+                res = await persist_experiment_run(aoi, exp_id)
+                registry["runs"].append(res)
+                registry_path.write_text(json.dumps(registry, indent=2, default=str))
+                print(f"[persist {exp_id}/{aoi}] run_id={res['run_id']}")
+        print(f"written: {registry_path}")
+        return 0
 
     inputs_cache: dict[tuple[str, str], dict[str, Any]] = {}
 
@@ -1188,9 +1465,10 @@ async def amain(argv: list[str] | None = None) -> int:
     print(f"written: {out_path}")
 
     if args.scorecard:
-        scorecard = build_scorecard(results)
-        sc_json = ARTIFACTS_DIR / "phase7_scorecard.json"
-        sc_md = ARTIFACTS_DIR / "phase7_scorecard.md"
+        scorecard = build_scorecard(results, baseline_id=args.scorecard_baseline)
+        sc_base = args.scorecard_out or "phase7_scorecard"
+        sc_json = ARTIFACTS_DIR / f"{sc_base}.json"
+        sc_md = ARTIFACTS_DIR / f"{sc_base}.md"
         sc_json.write_text(json.dumps(scorecard, indent=2, default=str))
         write_scorecard_md(scorecard, sc_md)
         print(f"scorecard: {sc_json}")

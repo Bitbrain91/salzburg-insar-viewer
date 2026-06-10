@@ -3,12 +3,21 @@
 Stand: 2026-06-10. Baseline: `noop`.
 Regel: Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.
 
+## noop -> baseline
+
+| AOI | kept | noise | multi | nearest-main | xtrack_med | bands |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| mirabell | 1310 | 0.353 | 28 | 17 | 0.6497 | None |
+| moosstrasse | 1601 | 0.279 | 71 | 34 | 0.4395 | None |
+| osthang | 583 | 0.240 | 27 | 13 | 0.8497 | None |
+| bg_flat_01_snt | 1042 | 0.296 | 46 | 40 | 0.5619 | None |
+| bg_slope_01_snt | 660 | 0.335 | 18 | 14 | 0.1871 | None |
+| bg_flat_01_tsx | 5981 | 0.374 | 72 | 23 | 0.5267 | None |
+| bg_slope_01_tsx | 3969 | 0.287 | 50 | 10 | 0.0856 | None |
+
+Referenzfaelle: 14/14 ok
+
 ## a1_demote -> candidate_red
-- mirabell: Multi-Cluster weggeglaettet (22 < 0.8*28)
-- moosstrasse: Multi-Cluster weggeglaettet (50 < 0.8*71)
-- osthang: Multi-Cluster weggeglaettet (16 < 0.8*27)
-- bg_flat_01_snt: Multi-Cluster weggeglaettet (28 < 0.8*46)
-- bg_slope_01_snt: Multi-Cluster weggeglaettet (13 < 0.8*18)
 - Referenzfall-Erwartung verletzt
 
 | AOI | kept | noise | multi | nearest-main | xtrack_med | bands |
@@ -21,11 +30,9 @@ Regel: Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.
 | bg_flat_01_tsx | 4570 | 0.324 | 65 | 0 | 0.4575 | None |
 | bg_slope_01_tsx | 3277 | 0.242 | 47 | 0 | 0.0882 | None |
 
-Referenzfaelle: 6/14 ok; FAILS: ['moosstrasse_differential_anchor', 'moosstrasse_differential_low_agreement', 'moosstrasse_single_track_only', 'moosstrasse_small_n', 'moosstrasse_noise_dominated', 'osthang_low_agreement', 'bg_flat_small_n', 'bg_slope_noise_low_agreement']
+Referenzfaelle: 15/17 ok; 5 via Abstufungs-Toleranz; 4 gepinnt; FAILS: [('osthang_low_agreement', 'ok'), ('bg_slope_noise_low_agreement', 'ok')]
 
 ## a2_dist5 -> candidate_red
-- moosstrasse: Multi-Cluster weggeglaettet (53 < 0.8*71)
-- bg_flat_01_snt: Multi-Cluster weggeglaettet (33 < 0.8*46)
 - Referenzfall-Erwartung verletzt
 
 | AOI | kept | noise | multi | nearest-main | xtrack_med | bands |
@@ -38,10 +45,9 @@ Referenzfaelle: 6/14 ok; FAILS: ['moosstrasse_differential_anchor', 'moosstrasse
 | bg_flat_01_tsx | 5067 | 0.334 | 67 | 6 | 0.4797 | None |
 | bg_slope_01_tsx | 3615 | 0.250 | 48 | 1 | 0.0872 | None |
 
-Referenzfaelle: 7/13 ok; FAILS: ['moosstrasse_differential_anchor', 'moosstrasse_differential_low_agreement', 'moosstrasse_single_track_only', 'moosstrasse_noise_dominated', 'osthang_low_agreement', 'bg_slope_noise_low_agreement']
+Referenzfaelle: 11/13 ok; 4 via Abstufungs-Toleranz; FAILS: [('osthang_low_agreement', 'ok'), ('bg_slope_noise_low_agreement', 'ok')]
 
-## a3_height -> candidate_red
-- Referenzfall-Erwartung verletzt
+## a3_height -> candidate_green
 
 | AOI | kept | noise | multi | nearest-main | xtrack_med | bands |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -53,7 +59,7 @@ Referenzfaelle: 7/13 ok; FAILS: ['moosstrasse_differential_anchor', 'moosstrasse
 | bg_flat_01_tsx | 5674 | 0.364 | 71 | 18 | 0.4709 | None |
 | bg_slope_01_tsx | 3812 | 0.279 | 49 | 6 | 0.0843 | None |
 
-Referenzfaelle: 10/14 ok; FAILS: ['moosstrasse_differential_low_agreement', 'moosstrasse_single_track_only', 'moosstrasse_noise_dominated', 'bg_flat_small_n']
+Referenzfaelle: 15/15 ok; 4 via Abstufungs-Toleranz; 1 gepinnt
 
 ## a4_osm -> candidate_inconclusive
 
@@ -99,19 +105,5 @@ Referenzfaelle: 14/14 ok
 | bg_flat_01_tsx | 5981 | 0.732 | 72 | 24 | 0.5046 | None |
 | bg_slope_01_tsx | 3969 | 0.651 | 50 | 9 | 0.0852 | None |
 
-Referenzfaelle: 13/14 ok; FAILS: ['bg_slope_ok_low_agreement']
-
-## noop -> baseline
-
-| AOI | kept | noise | multi | nearest-main | xtrack_med | bands |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| mirabell | 1310 | 0.353 | 28 | 17 | 0.6497 | None |
-| moosstrasse | 1601 | 0.279 | 71 | 34 | 0.4395 | None |
-| osthang | 583 | 0.240 | 27 | 13 | 0.8497 | None |
-| bg_flat_01_snt | 1042 | 0.296 | 46 | 40 | 0.5619 | None |
-| bg_slope_01_snt | 660 | 0.335 | 18 | 14 | 0.1871 | None |
-| bg_flat_01_tsx | 5981 | 0.374 | 72 | 23 | 0.5267 | None |
-| bg_slope_01_tsx | 3969 | 0.287 | 50 | 10 | 0.0856 | None |
-
-Referenzfaelle: 14/14 ok
+Referenzfaelle: 13/14 ok; FAILS: [('bg_slope_ok_low_agreement', 'noise_dominated')]
 

@@ -2,6 +2,301 @@
   "stand": "2026-06-10",
   "baseline": "noop",
   "entries": {
+    "noop": {
+      "config": {
+        "experiment_id": "noop",
+        "description": "Produktionsidentische Variante (Determinismus-/No-op-Beweis)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0",
+        "smalln_mode": "baseline",
+        "reassign_mode": "on"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        }
+      ],
+      "reference_cases_ok": true,
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1310,
+          "noise_rate": 0.3534,
+          "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 26,
+          "nearest_dominated_main_clusters": 17,
+          "status_counts": {
+            "ok": 23,
+            "insufficient_support": 14,
+            "single_track_only": 7,
+            "noise_dominated": 7,
+            "small_n": 7
+          },
+          "xtrack_agreement_median": 0.6497,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1601,
+          "noise_rate": 0.2792,
+          "multi_cluster_buildings": 71,
+          "multi_cluster_buildings_robust": 61,
+          "nearest_dominated_main_clusters": 34,
+          "status_counts": {
+            "insufficient_support": 41,
+            "noise_dominated": 9,
+            "ok": 65,
+            "small_n": 21,
+            "single_track_only": 11
+          },
+          "xtrack_agreement_median": 0.4395,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 583,
+          "noise_rate": 0.2401,
+          "multi_cluster_buildings": 27,
+          "multi_cluster_buildings_robust": 22,
+          "nearest_dominated_main_clusters": 13,
+          "status_counts": {
+            "ok": 26,
+            "single_track_only": 8,
+            "small_n": 6,
+            "insufficient_support": 6,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": 0.8497,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 1042,
+          "noise_rate": 0.2965,
+          "multi_cluster_buildings": 46,
+          "multi_cluster_buildings_robust": 23,
+          "nearest_dominated_main_clusters": 40,
+          "status_counts": {
+            "ok": 42,
+            "insufficient_support": 21,
+            "small_n": 7,
+            "noise_dominated": 6,
+            "single_track_only": 6
+          },
+          "xtrack_agreement_median": 0.5619,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 660,
+          "noise_rate": 0.3348,
+          "multi_cluster_buildings": 18,
+          "multi_cluster_buildings_robust": 16,
+          "nearest_dominated_main_clusters": 14,
+          "status_counts": {
+            "small_n": 20,
+            "noise_dominated": 5,
+            "ok": 16,
+            "single_track_only": 4,
+            "insufficient_support": 15
+          },
+          "xtrack_agreement_median": 0.1871,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5981,
+          "noise_rate": 0.3744,
+          "multi_cluster_buildings": 72,
+          "multi_cluster_buildings_robust": 58,
+          "nearest_dominated_main_clusters": 23,
+          "status_counts": {
+            "ok": 59,
+            "small_n": 4,
+            "noise_dominated": 12,
+            "single_track_only": 4,
+            "insufficient_support": 3
+          },
+          "xtrack_agreement_median": 0.5267,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3969,
+          "noise_rate": 0.2867,
+          "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 43,
+          "nearest_dominated_main_clusters": 10,
+          "status_counts": {
+            "ok": 44,
+            "noise_dominated": 7,
+            "small_n": 4,
+            "insufficient_support": 5,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": 0.0856,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "baseline",
+      "reasons": []
+    },
     "a1_demote": {
       "config": {
         "experiment_id": "a1_demote",
@@ -31,7 +326,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -41,7 +337,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -51,7 +348,8 @@
             "ok"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -61,7 +359,8 @@
             "ok"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -71,7 +370,8 @@
             "single_track_only"
           ],
           "actual": "insufficient_support",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -81,7 +381,8 @@
             "small_n"
           ],
           "actual": "insufficient_support",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -91,7 +392,8 @@
             "noise_dominated"
           ],
           "actual": "insufficient_support",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "osthang_insufficient_support",
@@ -101,7 +403,8 @@
             "insufficient_support"
           ],
           "actual": "insufficient_support",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -111,7 +414,8 @@
             "noise_dominated"
           ],
           "actual": "ok",
-          "ok": false
+          "ok": false,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -121,17 +425,46 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_carport_suspect_primary",
+          "aoi": "moosstrasse",
+          "building_id": "96856632",
+          "expected_any_of": [
+            "insufficient_support",
+            "small_n"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_pin:a1_demote"
+        },
+        {
+          "case_id": "moosstrasse_nearest_main_suspect_2",
+          "aoi": "moosstrasse",
+          "building_id": "203343478",
+          "expected_any_of": [
+            "insufficient_support",
+            "noise_dominated",
+            "small_n"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_pin:a1_demote"
         },
         {
           "case_id": "bg_flat_small_n",
           "aoi": "bg_flat_01_snt",
           "building_id": "238100070",
           "expected_any_of": [
+            "insufficient_support",
+            "single_track_only",
             "small_n"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_pin:a1_demote"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -141,7 +474,8 @@
             "noise_dominated"
           ],
           "actual": "ok",
-          "ok": false
+          "ok": false,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -151,7 +485,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -161,7 +496,19 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_carport_merge_confirmed",
+          "aoi": "moosstrasse",
+          "building_id": "96959851",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_pin:a1_demote"
         }
       ],
       "reference_cases_ok": false,
@@ -170,6 +517,7 @@
           "kept": 916,
           "noise_rate": 0.2718,
           "multi_cluster_buildings": 22,
+          "multi_cluster_buildings_robust": 26,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "ok": 19,
@@ -185,6 +533,7 @@
           "kept": 988,
           "noise_rate": 0.2156,
           "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 53,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "insufficient_support": 68,
@@ -200,6 +549,7 @@
           "kept": 385,
           "noise_rate": 0.2701,
           "multi_cluster_buildings": 16,
+          "multi_cluster_buildings_robust": 21,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "ok": 16,
@@ -215,6 +565,7 @@
           "kept": 573,
           "noise_rate": 0.2339,
           "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 32,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "ok": 25,
@@ -230,6 +581,7 @@
           "kept": 433,
           "noise_rate": 0.1801,
           "multi_cluster_buildings": 13,
+          "multi_cluster_buildings_robust": 15,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "insufficient_support": 31,
@@ -244,6 +596,7 @@
           "kept": 4570,
           "noise_rate": 0.3241,
           "multi_cluster_buildings": 65,
+          "multi_cluster_buildings_robust": 65,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "ok": 58,
@@ -259,6 +612,7 @@
           "kept": 3277,
           "noise_rate": 0.242,
           "multi_cluster_buildings": 47,
+          "multi_cluster_buildings_robust": 47,
           "nearest_dominated_main_clusters": 0,
           "status_counts": {
             "ok": 42,
@@ -274,11 +628,6 @@
       "guardrails": {},
       "verdict": "candidate_red",
       "reasons": [
-        "mirabell: Multi-Cluster weggeglaettet (22 < 0.8*28)",
-        "moosstrasse: Multi-Cluster weggeglaettet (50 < 0.8*71)",
-        "osthang: Multi-Cluster weggeglaettet (16 < 0.8*27)",
-        "bg_flat_01_snt: Multi-Cluster weggeglaettet (28 < 0.8*46)",
-        "bg_slope_01_snt: Multi-Cluster weggeglaettet (13 < 0.8*18)",
         "Referenzfall-Erwartung verletzt"
       ]
     },
@@ -311,7 +660,8 @@
             "single_track_only"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -321,7 +671,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -331,7 +682,8 @@
             "ok"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -341,7 +693,8 @@
             "ok"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -351,7 +704,8 @@
             "single_track_only"
           ],
           "actual": "insufficient_support",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -361,7 +715,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -371,7 +726,8 @@
             "noise_dominated"
           ],
           "actual": "insufficient_support",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -381,7 +737,8 @@
             "noise_dominated"
           ],
           "actual": "ok",
-          "ok": false
+          "ok": false,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -391,7 +748,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_flat_small_n",
@@ -401,7 +759,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -411,7 +770,8 @@
             "noise_dominated"
           ],
           "actual": "ok",
-          "ok": false
+          "ok": false,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -421,7 +781,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -431,7 +792,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         }
       ],
       "reference_cases_ok": false,
@@ -440,6 +802,7 @@
           "kept": 999,
           "noise_rate": 0.3213,
           "multi_cluster_buildings": 25,
+          "multi_cluster_buildings_robust": 28,
           "nearest_dominated_main_clusters": 2,
           "status_counts": {
             "ok": 21,
@@ -455,6 +818,7 @@
           "kept": 1216,
           "noise_rate": 0.2607,
           "multi_cluster_buildings": 53,
+          "multi_cluster_buildings_robust": 60,
           "nearest_dominated_main_clusters": 8,
           "status_counts": {
             "insufficient_support": 56,
@@ -470,6 +834,7 @@
           "kept": 477,
           "noise_rate": 0.2159,
           "multi_cluster_buildings": 22,
+          "multi_cluster_buildings_robust": 24,
           "nearest_dominated_main_clusters": 2,
           "status_counts": {
             "ok": 22,
@@ -484,6 +849,7 @@
           "kept": 702,
           "noise_rate": 0.2863,
           "multi_cluster_buildings": 33,
+          "multi_cluster_buildings_robust": 31,
           "nearest_dominated_main_clusters": 11,
           "status_counts": {
             "noise_dominated": 5,
@@ -499,6 +865,7 @@
           "kept": 516,
           "noise_rate": 0.2616,
           "multi_cluster_buildings": 16,
+          "multi_cluster_buildings_robust": 17,
           "nearest_dominated_main_clusters": 3,
           "status_counts": {
             "insufficient_support": 21,
@@ -514,6 +881,7 @@
           "kept": 5067,
           "noise_rate": 0.3337,
           "multi_cluster_buildings": 67,
+          "multi_cluster_buildings_robust": 63,
           "nearest_dominated_main_clusters": 6,
           "status_counts": {
             "ok": 60,
@@ -529,6 +897,7 @@
           "kept": 3615,
           "noise_rate": 0.2503,
           "multi_cluster_buildings": 48,
+          "multi_cluster_buildings_robust": 47,
           "nearest_dominated_main_clusters": 1,
           "status_counts": {
             "ok": 44,
@@ -544,8 +913,6 @@
       "guardrails": {},
       "verdict": "candidate_red",
       "reasons": [
-        "moosstrasse: Multi-Cluster weggeglaettet (53 < 0.8*71)",
-        "bg_flat_01_snt: Multi-Cluster weggeglaettet (33 < 0.8*46)",
         "Referenzfall-Erwartung verletzt"
       ]
     },
@@ -578,7 +945,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -588,7 +956,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -598,7 +967,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -608,7 +978,8 @@
             "ok"
           ],
           "actual": "single_track_only",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -618,7 +989,8 @@
             "single_track_only"
           ],
           "actual": "small_n",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -628,7 +1000,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -638,7 +1011,8 @@
             "noise_dominated"
           ],
           "actual": "small_n",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "osthang_insufficient_support",
@@ -648,7 +1022,8 @@
             "insufficient_support"
           ],
           "actual": "insufficient_support",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -658,7 +1033,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -668,7 +1044,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_flat_small_n",
@@ -678,7 +1055,8 @@
             "small_n"
           ],
           "actual": "noise_dominated",
-          "ok": false
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -688,7 +1066,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -698,7 +1077,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -708,15 +1088,28 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_carport_merge_confirmed",
+          "aoi": "moosstrasse",
+          "building_id": "96959851",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "policy_pin:a3_height"
         }
       ],
-      "reference_cases_ok": false,
+      "reference_cases_ok": true,
       "aoi_aggregates": {
         "mirabell": {
           "kept": 1239,
           "noise_rate": 0.3196,
           "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 28,
           "nearest_dominated_main_clusters": 12,
           "status_counts": {
             "ok": 23,
@@ -732,6 +1125,7 @@
           "kept": 1493,
           "noise_rate": 0.2693,
           "multi_cluster_buildings": 67,
+          "multi_cluster_buildings_robust": 59,
           "nearest_dominated_main_clusters": 30,
           "status_counts": {
             "insufficient_support": 45,
@@ -747,6 +1141,7 @@
           "kept": 515,
           "noise_rate": 0.2485,
           "multi_cluster_buildings": 25,
+          "multi_cluster_buildings_robust": 23,
           "nearest_dominated_main_clusters": 10,
           "status_counts": {
             "ok": 24,
@@ -762,6 +1157,7 @@
           "kept": 972,
           "noise_rate": 0.2706,
           "multi_cluster_buildings": 42,
+          "multi_cluster_buildings_robust": 26,
           "nearest_dominated_main_clusters": 28,
           "status_counts": {
             "ok": 41,
@@ -777,6 +1173,7 @@
           "kept": 626,
           "noise_rate": 0.3099,
           "multi_cluster_buildings": 17,
+          "multi_cluster_buildings_robust": 16,
           "nearest_dominated_main_clusters": 10,
           "status_counts": {
             "small_n": 17,
@@ -792,6 +1189,7 @@
           "kept": 5674,
           "noise_rate": 0.3636,
           "multi_cluster_buildings": 71,
+          "multi_cluster_buildings_robust": 61,
           "nearest_dominated_main_clusters": 18,
           "status_counts": {
             "ok": 59,
@@ -807,6 +1205,7 @@
           "kept": 3812,
           "noise_rate": 0.2789,
           "multi_cluster_buildings": 49,
+          "multi_cluster_buildings_robust": 44,
           "nearest_dominated_main_clusters": 6,
           "status_counts": {
             "ok": 44,
@@ -820,10 +1219,8 @@
         }
       },
       "guardrails": {},
-      "verdict": "candidate_red",
-      "reasons": [
-        "Referenzfall-Erwartung verletzt"
-      ]
+      "verdict": "candidate_green",
+      "reasons": []
     },
     "a4_osm": {
       "config": {
@@ -854,7 +1251,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -864,7 +1262,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -874,7 +1273,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -884,7 +1284,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -894,7 +1295,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -904,7 +1306,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -914,7 +1317,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_insufficient_support",
@@ -924,7 +1328,8 @@
             "insufficient_support"
           ],
           "actual": "insufficient_support",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -934,7 +1339,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -944,7 +1350,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_flat_small_n",
@@ -954,7 +1361,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -964,7 +1372,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -974,7 +1383,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -984,7 +1394,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         }
       ],
       "reference_cases_ok": true,
@@ -993,6 +1404,7 @@
           "kept": 1310,
           "noise_rate": 0.3534,
           "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 26,
           "nearest_dominated_main_clusters": 17,
           "status_counts": {
             "ok": 23,
@@ -1008,6 +1420,7 @@
           "kept": 1601,
           "noise_rate": 0.2792,
           "multi_cluster_buildings": 71,
+          "multi_cluster_buildings_robust": 61,
           "nearest_dominated_main_clusters": 34,
           "status_counts": {
             "insufficient_support": 41,
@@ -1023,6 +1436,7 @@
           "kept": 583,
           "noise_rate": 0.2401,
           "multi_cluster_buildings": 27,
+          "multi_cluster_buildings_robust": 22,
           "nearest_dominated_main_clusters": 13,
           "status_counts": {
             "ok": 26,
@@ -1038,6 +1452,7 @@
           "kept": 1042,
           "noise_rate": 0.2965,
           "multi_cluster_buildings": 46,
+          "multi_cluster_buildings_robust": 23,
           "nearest_dominated_main_clusters": 40,
           "status_counts": {
             "ok": 42,
@@ -1053,6 +1468,7 @@
           "kept": 660,
           "noise_rate": 0.3348,
           "multi_cluster_buildings": 18,
+          "multi_cluster_buildings_robust": 16,
           "nearest_dominated_main_clusters": 14,
           "status_counts": {
             "small_n": 20,
@@ -1068,6 +1484,7 @@
           "kept": 5981,
           "noise_rate": 0.3744,
           "multi_cluster_buildings": 72,
+          "multi_cluster_buildings_robust": 58,
           "nearest_dominated_main_clusters": 23,
           "status_counts": {
             "ok": 59,
@@ -1083,6 +1500,7 @@
           "kept": 3969,
           "noise_rate": 0.2867,
           "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 43,
           "nearest_dominated_main_clusters": 10,
           "status_counts": {
             "ok": 44,
@@ -1128,7 +1546,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -1138,7 +1557,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -1148,7 +1568,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -1158,7 +1579,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -1168,7 +1590,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -1178,7 +1601,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -1188,7 +1612,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_insufficient_support",
@@ -1198,7 +1623,8 @@
             "insufficient_support"
           ],
           "actual": "insufficient_support",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -1208,7 +1634,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -1218,7 +1645,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_flat_small_n",
@@ -1228,7 +1656,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -1238,7 +1667,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -1248,7 +1678,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -1258,7 +1689,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         }
       ],
       "reference_cases_ok": true,
@@ -1267,6 +1699,7 @@
           "kept": 1310,
           "noise_rate": 0.3534,
           "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 26,
           "nearest_dominated_main_clusters": 17,
           "status_counts": {
             "ok": 23,
@@ -1282,6 +1715,7 @@
           "kept": 1601,
           "noise_rate": 0.2786,
           "multi_cluster_buildings": 70,
+          "multi_cluster_buildings_robust": 60,
           "nearest_dominated_main_clusters": 34,
           "status_counts": {
             "insufficient_support": 41,
@@ -1297,6 +1731,7 @@
           "kept": 583,
           "noise_rate": 0.2401,
           "multi_cluster_buildings": 27,
+          "multi_cluster_buildings_robust": 22,
           "nearest_dominated_main_clusters": 13,
           "status_counts": {
             "ok": 26,
@@ -1312,6 +1747,7 @@
           "kept": 1042,
           "noise_rate": 0.2956,
           "multi_cluster_buildings": 45,
+          "multi_cluster_buildings_robust": 23,
           "nearest_dominated_main_clusters": 39,
           "status_counts": {
             "ok": 41,
@@ -1327,6 +1763,7 @@
           "kept": 660,
           "noise_rate": 0.3348,
           "multi_cluster_buildings": 18,
+          "multi_cluster_buildings_robust": 16,
           "nearest_dominated_main_clusters": 14,
           "status_counts": {
             "small_n": 20,
@@ -1342,6 +1779,7 @@
           "kept": 5981,
           "noise_rate": 0.3744,
           "multi_cluster_buildings": 72,
+          "multi_cluster_buildings_robust": 58,
           "nearest_dominated_main_clusters": 23,
           "status_counts": {
             "ok": 59,
@@ -1357,6 +1795,7 @@
           "kept": 3969,
           "noise_rate": 0.2867,
           "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 43,
           "nearest_dominated_main_clusters": 10,
           "status_counts": {
             "ok": 44,
@@ -1402,7 +1841,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "mirabell_adjacent_standard",
@@ -1412,7 +1852,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_anchor",
@@ -1422,7 +1863,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_differential_low_agreement",
@@ -1432,7 +1874,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_single_track_only",
@@ -1442,7 +1885,8 @@
             "single_track_only"
           ],
           "actual": "single_track_only",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_small_n",
@@ -1452,7 +1896,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "moosstrasse_noise_dominated",
@@ -1462,7 +1907,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_insufficient_support",
@@ -1472,7 +1918,8 @@
             "insufficient_support"
           ],
           "actual": "insufficient_support",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_low_agreement",
@@ -1482,7 +1929,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "osthang_nearest_heavy_ok",
@@ -1492,7 +1940,8 @@
             "ok"
           ],
           "actual": "ok",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_flat_small_n",
@@ -1502,7 +1951,8 @@
             "small_n"
           ],
           "actual": "small_n",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_noise_low_agreement",
@@ -1512,7 +1962,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_slope_ok_low_agreement",
@@ -1522,7 +1973,8 @@
             "ok"
           ],
           "actual": "noise_dominated",
-          "ok": false
+          "ok": false,
+          "source": "case_type_default"
         },
         {
           "case_id": "bg_tsx_high_n_noise",
@@ -1532,7 +1984,8 @@
             "noise_dominated"
           ],
           "actual": "noise_dominated",
-          "ok": true
+          "ok": true,
+          "source": "case_type_default"
         }
       ],
       "reference_cases_ok": false,
@@ -1541,6 +1994,7 @@
           "kept": 1310,
           "noise_rate": 0.5832,
           "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 25,
           "nearest_dominated_main_clusters": 19,
           "status_counts": {
             "ok": 15,
@@ -1556,6 +2010,7 @@
           "kept": 1601,
           "noise_rate": 0.3641,
           "multi_cluster_buildings": 71,
+          "multi_cluster_buildings_robust": 61,
           "nearest_dominated_main_clusters": 35,
           "status_counts": {
             "insufficient_support": 41,
@@ -1571,6 +2026,7 @@
           "kept": 583,
           "noise_rate": 0.3208,
           "multi_cluster_buildings": 27,
+          "multi_cluster_buildings_robust": 23,
           "nearest_dominated_main_clusters": 11,
           "status_counts": {
             "ok": 25,
@@ -1586,6 +2042,7 @@
           "kept": 1042,
           "noise_rate": 0.3992,
           "multi_cluster_buildings": 46,
+          "multi_cluster_buildings_robust": 23,
           "nearest_dominated_main_clusters": 40,
           "status_counts": {
             "ok": 34,
@@ -1601,6 +2058,7 @@
           "kept": 660,
           "noise_rate": 0.497,
           "multi_cluster_buildings": 18,
+          "multi_cluster_buildings_robust": 16,
           "nearest_dominated_main_clusters": 14,
           "status_counts": {
             "small_n": 20,
@@ -1616,6 +2074,7 @@
           "kept": 5981,
           "noise_rate": 0.7323,
           "multi_cluster_buildings": 72,
+          "multi_cluster_buildings_robust": 56,
           "nearest_dominated_main_clusters": 24,
           "status_counts": {
             "noise_dominated": 58,
@@ -1631,6 +2090,7 @@
           "kept": 3969,
           "noise_rate": 0.6515,
           "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 44,
           "nearest_dominated_main_clusters": 9,
           "status_counts": {
             "ok": 21,
@@ -1651,280 +2111,6 @@
         "bg_flat_01_tsx: mehr nearest-dominierte Main-Cluster",
         "Referenzfall-Erwartung verletzt"
       ]
-    },
-    "noop": {
-      "config": {
-        "experiment_id": "noop",
-        "description": "Produktionsidentische Variante (Determinismus-/No-op-Beweis)",
-        "algorithm": "hdbscan",
-        "mcs_fraction": 0.2,
-        "mcs_cap": 8,
-        "mcs_floor": 2,
-        "min_samples_mode": "half",
-        "cluster_selection_method": "eom",
-        "allow_single_cluster": true,
-        "cluster_selection_epsilon": 0.0,
-        "matrix_features": null,
-        "coherence_floor": null,
-        "coherence_gate_mode": "absolute",
-        "assignment_policy": "a0",
-        "smalln_mode": "baseline",
-        "reassign_mode": "on"
-      },
-      "reference_case_checks": [
-        {
-          "case_id": "mirabell_standard_weak_secondary",
-          "aoi": "mirabell",
-          "building_id": "548205",
-          "expected_any_of": [
-            "ok",
-            "single_track_only"
-          ],
-          "actual": "single_track_only",
-          "ok": true
-        },
-        {
-          "case_id": "mirabell_adjacent_standard",
-          "aoi": "mirabell",
-          "building_id": "548204",
-          "expected_any_of": [
-            "ok"
-          ],
-          "actual": "ok",
-          "ok": true
-        },
-        {
-          "case_id": "moosstrasse_differential_anchor",
-          "aoi": "moosstrasse",
-          "building_id": "96637447",
-          "expected_any_of": [
-            "ok"
-          ],
-          "actual": "ok",
-          "ok": true
-        },
-        {
-          "case_id": "moosstrasse_differential_low_agreement",
-          "aoi": "moosstrasse",
-          "building_id": "96637522",
-          "expected_any_of": [
-            "ok"
-          ],
-          "actual": "ok",
-          "ok": true
-        },
-        {
-          "case_id": "moosstrasse_single_track_only",
-          "aoi": "moosstrasse",
-          "building_id": "96637488",
-          "expected_any_of": [
-            "single_track_only"
-          ],
-          "actual": "single_track_only",
-          "ok": true
-        },
-        {
-          "case_id": "moosstrasse_small_n",
-          "aoi": "moosstrasse",
-          "building_id": "96959854",
-          "expected_any_of": [
-            "small_n"
-          ],
-          "actual": "small_n",
-          "ok": true
-        },
-        {
-          "case_id": "moosstrasse_noise_dominated",
-          "aoi": "moosstrasse",
-          "building_id": "96637551",
-          "expected_any_of": [
-            "noise_dominated"
-          ],
-          "actual": "noise_dominated",
-          "ok": true
-        },
-        {
-          "case_id": "osthang_insufficient_support",
-          "aoi": "osthang",
-          "building_id": "395674088",
-          "expected_any_of": [
-            "insufficient_support"
-          ],
-          "actual": "insufficient_support",
-          "ok": true
-        },
-        {
-          "case_id": "osthang_low_agreement",
-          "aoi": "osthang",
-          "building_id": "54773363",
-          "expected_any_of": [
-            "noise_dominated"
-          ],
-          "actual": "noise_dominated",
-          "ok": true
-        },
-        {
-          "case_id": "osthang_nearest_heavy_ok",
-          "aoi": "osthang",
-          "building_id": "150506168",
-          "expected_any_of": [
-            "ok"
-          ],
-          "actual": "ok",
-          "ok": true
-        },
-        {
-          "case_id": "bg_flat_small_n",
-          "aoi": "bg_flat_01_snt",
-          "building_id": "238100070",
-          "expected_any_of": [
-            "small_n"
-          ],
-          "actual": "small_n",
-          "ok": true
-        },
-        {
-          "case_id": "bg_slope_noise_low_agreement",
-          "aoi": "bg_slope_01_snt",
-          "building_id": "238057563",
-          "expected_any_of": [
-            "noise_dominated"
-          ],
-          "actual": "noise_dominated",
-          "ok": true
-        },
-        {
-          "case_id": "bg_slope_ok_low_agreement",
-          "aoi": "bg_slope_01_snt",
-          "building_id": "113309853",
-          "expected_any_of": [
-            "ok"
-          ],
-          "actual": "ok",
-          "ok": true
-        },
-        {
-          "case_id": "bg_tsx_high_n_noise",
-          "aoi": "bg_flat_01_tsx",
-          "building_id": "227901749",
-          "expected_any_of": [
-            "noise_dominated"
-          ],
-          "actual": "noise_dominated",
-          "ok": true
-        }
-      ],
-      "reference_cases_ok": true,
-      "aoi_aggregates": {
-        "mirabell": {
-          "kept": 1310,
-          "noise_rate": 0.3534,
-          "multi_cluster_buildings": 28,
-          "nearest_dominated_main_clusters": 17,
-          "status_counts": {
-            "ok": 23,
-            "insufficient_support": 14,
-            "single_track_only": 7,
-            "noise_dominated": 7,
-            "small_n": 7
-          },
-          "xtrack_agreement_median": 0.6497,
-          "confidence_bands": null
-        },
-        "moosstrasse": {
-          "kept": 1601,
-          "noise_rate": 0.2792,
-          "multi_cluster_buildings": 71,
-          "nearest_dominated_main_clusters": 34,
-          "status_counts": {
-            "insufficient_support": 41,
-            "noise_dominated": 9,
-            "ok": 65,
-            "small_n": 21,
-            "single_track_only": 11
-          },
-          "xtrack_agreement_median": 0.4395,
-          "confidence_bands": null
-        },
-        "osthang": {
-          "kept": 583,
-          "noise_rate": 0.2401,
-          "multi_cluster_buildings": 27,
-          "nearest_dominated_main_clusters": 13,
-          "status_counts": {
-            "ok": 26,
-            "single_track_only": 8,
-            "small_n": 6,
-            "insufficient_support": 6,
-            "noise_dominated": 1
-          },
-          "xtrack_agreement_median": 0.8497,
-          "confidence_bands": null
-        },
-        "bg_flat_01_snt": {
-          "kept": 1042,
-          "noise_rate": 0.2965,
-          "multi_cluster_buildings": 46,
-          "nearest_dominated_main_clusters": 40,
-          "status_counts": {
-            "ok": 42,
-            "insufficient_support": 21,
-            "small_n": 7,
-            "noise_dominated": 6,
-            "single_track_only": 6
-          },
-          "xtrack_agreement_median": 0.5619,
-          "confidence_bands": null
-        },
-        "bg_slope_01_snt": {
-          "kept": 660,
-          "noise_rate": 0.3348,
-          "multi_cluster_buildings": 18,
-          "nearest_dominated_main_clusters": 14,
-          "status_counts": {
-            "small_n": 20,
-            "noise_dominated": 5,
-            "ok": 16,
-            "single_track_only": 4,
-            "insufficient_support": 15
-          },
-          "xtrack_agreement_median": 0.1871,
-          "confidence_bands": null
-        },
-        "bg_flat_01_tsx": {
-          "kept": 5981,
-          "noise_rate": 0.3744,
-          "multi_cluster_buildings": 72,
-          "nearest_dominated_main_clusters": 23,
-          "status_counts": {
-            "ok": 59,
-            "small_n": 4,
-            "noise_dominated": 12,
-            "single_track_only": 4,
-            "insufficient_support": 3
-          },
-          "xtrack_agreement_median": 0.5267,
-          "confidence_bands": null
-        },
-        "bg_slope_01_tsx": {
-          "kept": 3969,
-          "noise_rate": 0.2867,
-          "multi_cluster_buildings": 50,
-          "nearest_dominated_main_clusters": 10,
-          "status_counts": {
-            "ok": 44,
-            "noise_dominated": 7,
-            "small_n": 4,
-            "insufficient_support": 5,
-            "single_track_only": 3
-          },
-          "xtrack_agreement_median": 0.0856,
-          "confidence_bands": null
-        }
-      },
-      "guardrails": {},
-      "verdict": "baseline",
-      "reasons": []
     }
   },
   "schema": {
@@ -1935,6 +2121,7 @@
       "candidate_inconclusive"
     ],
     "rule": "Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.",
+    "policy_rule": "P7-V1: Hygiene-Politiken (assignment_policy!=a0 oder smalln_mode!=baseline) duerfen Status-Ansprueche abschwaechen (CLAIM_RANK-Toleranz) und nearest-getragene Zweitcluster verlieren (robuste Multi-Cluster-Zaehlung); Aufwertungen und Verlust robuster Struktur bleiben harte Fails. policy_expectations in phase7_reference_cases.json pinnen Einzelfaelle.",
     "cross_track_fields": [
       "cross_track_source",
       "cross_track_pair_type",
