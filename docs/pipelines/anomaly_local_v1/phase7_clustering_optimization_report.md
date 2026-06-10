@@ -23,9 +23,9 @@ Massgebliche Spezifikation:
 | P7-A-W1-T3 | AOI-Katalog | green |
 | P7-A-W1-T4 | Referenzfaelle | green |
 | P7-B-W2-T0 | Deep-Links + Track-Farben | green |
-| P7-B-W1-T1..T4 | Harness/Scorecard/Konfidenz/HR | planned |
-| P7-B-W2-T1 | Visual-Audit-Workflow | planned |
-| P7-E-W1-T3 | Run-Transparenz (vorgezogen) | planned |
+| P7-B-W1-T1..T4 | Harness/Scorecard/Konfidenz/HR | green |
+| P7-B-W2-T1 | Visual-Audit-Workflow | green |
+| P7-E-W1-T3 | Run-Transparenz (vorgezogen) | green |
 | P7-C-W1-T1..T5 | Experimente Schritt 3/4 | planned |
 
 ---
@@ -225,3 +225,54 @@ Screenshot projiziert).
 
 Damit ist Schritt 1 vollstaendig: T5, T6, T1, T2, T3, T4, T0 und
 Mini-Audit sind green.
+
+---
+
+## Schritt 2: Mess-Werkzeug (P7-B-W1-T1..T4, P7-B-W2-T1, P7-E-W1-T3) - green
+
+Harness: `backend/app/ml/evaluation/phase7_clustering_experiments.py`.
+Architektur: `ExperimentPipeline` subclasst die Produktionspipeline; die
+No-op-Variante nutzt den EXAKTEN Produktionspfad. AOI-Inputs werden einmal
+geholt (Pipeline-SQL plus `height_std`, `acceleration_std`, `s_amp_std`,
+`s_phs_std`, `season_phs`, `eff_area`), Varianten re-clustern offline
+in-memory; volle CLI-Runs nur fuer Baselines.
+
+Determinismus-Beweis (haerter als gefordert): No-op ist auf ALLEN 7
+Pflicht-AOIs punktidentisch zu den persistierten Baseline-Runs
+(`noop_identical=True`; Mirabell 1481/1481 Punkte, 0 Abweichungen).
+
+Module und zentrale Baseline-Befunde
+(`artifacts/phase7_experiment_noop_baseline.json`,
+`artifacts/phase7_scorecard.{json,md}`):
+
+- Harness-Cross-Track (dataset-agnostisch, `cross_track_source=
+  harness_computed`, Paartyp `opposite_geometry`): Mirabell 0.650
+  (== Pipeline-Wert -> Querverifikation), Moosstrasse 0.440, Osthang 0.850,
+  bg_flat_01_snt 0.562, bg_slope_01_snt 0.187 und ERSTMALS TSX:
+  bg_flat_01_tsx 0.527, bg_slope_01_tsx 0.086 (extremer ASC/DSC-Stress am
+  Gasteiner Hang; vorher pipeline-bedingt NULL).
+- HR-Strukturmodul (building-gekoppelt, Toleranz SNT 12 m + TSX 3 m +
+  sqrt(eff_area) bei DS, Bewegung nur qualitativ,
+  `temporal_overlap_days=232`): bg_flat_01 SNT vs TSX: 81 Gebaeude
+  gekoppelt, `hr_main_region_match_rate = 0.983` - die raeumliche
+  SNT-Clusterstruktur im Flach-AOI ist nahezu durchgaengig TSX-gestuetzt.
+- Konfidenzmodul (Nebensignal; velocity_std-Jitter alle n, LOO ab n>=4,
+  Bootstrap ab n>=8; Seeds deterministisch aus Experiment/Gebaeude/Track):
+  Referenzfall `150506168:t44` (nearest-heavy, Status ok/high) faellt mit
+  Jitter-Jaccard 0.58 in `unstable` - das bestaetigt den Verdachtsfall
+  quantitativ. Baseline-Banding mit dokumentiertem Cap von 60 Gruppen je
+  AOI (kein silent cap).
+- Scorecard-Generator: maschinenpruefbare Referenzfall-Erwartungen je
+  Falltyp, harte Gates (Multi-Cluster-Erhalt, keine Small-N-Befoerderung,
+  nearest-Main darf nicht steigen, Noise-Senkung allein zaehlt nicht),
+  Verdikte `candidate_green/red/inconclusive`. Baseline: alle
+  Referenzfaelle ok.
+- Visual-Audit-Workflow formalisiert
+  (`artifacts/phase7_visual_audit_report.md`): Deep-Link-Schema,
+  Kamera-Standard, deterministische Punkt-Annotation, Labelset,
+  Eskalationsregel.
+- Run-Transparenz (User-Pflicht): Run-Detail liefert jetzt
+  `pipeline_version` und `bbox`; PipelinePanel zeigt Run-ID,
+  Pipeline@Version, Gebiet/Dataset/Track, BBox, Status, Zeitstempel,
+  MLflow-Run, Experiment-ID und alle Parameter
+  (Beleg: `artifacts/phase7_run_transparency_proof.png`).
