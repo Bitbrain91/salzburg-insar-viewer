@@ -2,7 +2,14 @@
 
 Stand: 2026-06-09 (revidiert nach unabhaengigem Review-Audit: Code-,
 PostGIS-, Parquet- und Handbook-Verifikation)
-Status: proposed for user review, not executed
+Status: AUSGEFUEHRT und abgeschlossen (2026-06-10, zwei
+Supervisor-Sessions). Die "Status: planned"-Felder der Tickets unten
+sind der Planungsstand und werden nicht einzeln nachgepflegt -
+massgeblich fuer den Ausfuehrungsstatus ist die Ticket-Gesamttabelle in
+`phase7_clustering_optimization_report.md` (alle green; P7-C-W2-T3
+deferred per User-Entscheidung). Ergebnis: integrate_candidate = k2x,
+produktiv seit `MODEL_SET_VERSION local_hdbscan_rulegate_v2_k2x`;
+Folgepunkte in `next_steps.md` (P7-N1..N7).
 
 Kurzname: `phase7_clustering_optimization`
 

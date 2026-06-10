@@ -129,6 +129,30 @@ Interpretation:
 - `Show gate-excluded points`: zeigt, welche Punkte schon vor der Clusterung rausgefallen sind
 - `Show cluster hulls`: zeigt die raeumliche Gruppierung besser als reine Punktdarstellung
 
+### Neue Punktrollen/-gruende seit `local_hdbscan_rulegate_v2_k2x` (P7-E-W1-T2, 2026-06-10)
+
+- `nearest`-Punkte koennen zusaetzlich zu den klassischen Gates demotiert
+  sein (gate-excluded, grau). Gruende im Inspector:
+  - `nearest_crosslook_outlier`: Quer-Versatz zur Blickrichtung
+    ueberschreitet die selbstkalibrierte Gebaeude-x-Track-Toleranz
+    (Fremdobjekt-Verdacht, vgl. Referenzfall 96959851).
+  - `nearest_no_geometric_anchor`: das Gebaeude hat auf diesem Track
+    keine within-/directional-Punkte; nearest allein darf keine
+    Aussage tragen (Asymmetrie-Prinzip).
+  - `nearest_crosslook_unknown`: Quer-Versatz nicht berechenbar.
+- Small-N-Gruppen ohne Velocity-Konsistenz erscheinen als
+  `weak_support` (orange in den Audit-Annotationen, Wahrscheinlichkeit
+  0.30) statt eines kuenstlichen Kern-Clusters; konsistente
+  2-Punkt-Cluster bleiben legitim.
+- Interpretationsfolge: Status-Abstufungen gegenueber Laeufen vor
+  v2_k2x (z. B. ok -> single_track_only/insufficient_support) sind in
+  der Regel beabsichtigte Ehrlichkeit, kein Datenverlust. Vergleich
+  Alt/Neu: Legacy-Baselines siehe `legacy_baseline_run` im
+  Phase-7-Harness bzw. phase7_clustering_optimization_report.md.
+- Experiment-Runs aus dem Phase-7-Harness tragen ein violettes Badge
+  in "Letzte Auswertungen"; ihre vollstaendige Konfiguration steht im
+  Transparenz-Panel (params.experiment_config).
+
 ## Woran gute Ergebnisse erkennbar sind
 - Punkte eines Gebaeudes liegen ueberwiegend in 1-2 plausiblen lokalen Clustern.
 - Rote Noise-Punkte liegen eher an Randbereichen oder reflektieren Nachbarstrukturen.
