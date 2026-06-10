@@ -44,7 +44,8 @@ async def fetch_runs(conn, limit: int = 50):
     return await conn.fetch(
         """
         SELECT run_id, status, pipeline, run_type, created_at, started_at, finished_at,
-               area_id, dataset_id, source, track
+               area_id, dataset_id, source, track,
+               params->>'experiment_id' AS experiment_id
         FROM ml_runs
         ORDER BY created_at DESC
         LIMIT $1

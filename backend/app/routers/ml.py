@@ -181,6 +181,7 @@ async def list_runs(request: Request):
             dataset_id=r["dataset_id"],
             source=r["source"],
             track=r["track"],
+            experiment_id=r["experiment_id"],
         )
         for r in rows
     ]
@@ -212,6 +213,7 @@ async def run_detail(request: Request, run_id: str):
         mlflow_run_id=run["mlflow_run_id"],
         metrics=metrics,
         error=run["error"],
+        experiment_id=(run["params"] or {}).get("experiment_id"),
     )
 
 

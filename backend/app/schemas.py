@@ -117,6 +117,9 @@ class MLRunSummary(BaseModel):
     dataset_id: str
     source: Optional[str] = None
     track: Optional[int] = None
+    # P7-V2: Harness-Experiment-Runs tragen params.experiment_id; in der
+    # Run-Liste als Badge sichtbar (Forschungsplattform-Transparenz).
+    experiment_id: Optional[str] = None
 
 
 class MLRunDetail(MLRunSummary):

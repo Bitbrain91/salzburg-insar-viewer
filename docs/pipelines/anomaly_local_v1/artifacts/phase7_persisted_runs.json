@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "aoi": "mirabell",
+      "experiment_id": "noop",
+      "run_id": "41f57f63-6344-42b7-8120-e45d0ed17397",
+      "numeric_metrics": {
+        "total_points": 1481,
+        "assigned_points": 1353,
+        "assigned_buildings": 58,
+        "kept_points": 1310,
+        "gate_excluded_points": 171,
+        "normal_points": 655,
+        "suspect_points": 188,
+        "outlier_points": 638,
+        "noise_points": 463,
+        "buildings_with_clusters": 57,
+        "multi_cluster_buildings": 28,
+        "small_n_buildings": 7,
+        "full_cross_track_points": 727,
+        "buildings_with_full_track_support": 28,
+        "median_cross_track_diff_before": 0.6415961396258826,
+        "median_cross_track_diff_after": 0.6089651168726322,
+        "cross_track_improvement": 0.03263102275325036
+      }
+    }
+  ]
+}

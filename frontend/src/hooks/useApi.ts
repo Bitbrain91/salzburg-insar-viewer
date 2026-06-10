@@ -90,6 +90,7 @@ export type MlRunSummary = {
   dataset_id?: string | null;
   source?: string | null;
   track?: number | null;
+  experiment_id?: string | null;
 };
 
 export type MlRunDetail = MlRunSummary & {

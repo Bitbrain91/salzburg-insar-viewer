@@ -570,8 +570,18 @@ export default function PipelinePanel() {
                       setMlView("cluster");
                     }}
                   >
-                    <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-                      Lokale Anomalieanalyse
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+                        Lokale Anomalieanalyse
+                      </span>
+                      {run.experiment_id && (
+                        <span
+                          className="shrink-0 rounded-sm bg-violet-600/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-300"
+                          title={`Experiment-Variante ${run.experiment_id} (Phase-7-Harness)`}
+                        >
+                          {run.experiment_id}
+                        </span>
+                      )}
                     </span>
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
                       {(run.area_id ?? "unbekannt").replace("_", " ")} · {run.status}
