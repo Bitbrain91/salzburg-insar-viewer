@@ -1,12 +1,21 @@
 # Phase 7 / Optimierungsphase 1 - Ausfuehrungsreport
 
-Stand: 2026-06-10
+Stand: 2026-06-10 (Session 2 abgeschlossen)
 Branch: `phase7-optimization`
-Session: autonome Supervisor-Session (Claude, Schritte 1-4), beauftragt am
-2026-06-10. Hinweis: Die "gpt-5.5"-Agentenregel des Plan-Dokuments stammt aus
-dem externen Codex-Supervisor-Workflow und wurde fuer diese Session durch den
-direkten User-Auftrag an die Claude-Session ersetzt; Subagent-Arbeit laeuft
-ueber Claude-Subagents und wird vom Supervisor gegen die Ticket-DoD geprueft.
+Session 1: autonome Supervisor-Session (Claude, Schritte 1-4), beauftragt am
+2026-06-10. Session 2: autonome Supervisor-Session (Claude, Vorarbeiten V1-V4
++ Schritte 5-6 inkl. Entscheidung und Integration), beauftragt am 2026-06-10;
+Anpassung per User: P7-C-W2-T3 (weitere Algorithmusfamilien) in spaetere
+Optimierungsphase verschoben. Hinweis: Die "gpt-5.5"-Agentenregel des
+Plan-Dokuments stammt aus dem externen Codex-Supervisor-Workflow und wurde
+fuer diese Sessions durch den direkten User-Auftrag an die Claude-Session
+ersetzt; Subagent-Arbeit laeuft ueber Claude-Subagents und wird vom
+Supervisor gegen die Ticket-DoD geprueft.
+
+ERGEBNIS PHASE 7: **integrate_candidate = k2x** - Quer-Versatz-Politik
+fuer nearest-Punkte + striktes Small-N sind produktiv
+(`MODEL_SET_VERSION local_hdbscan_rulegate_v2_k2x`); neue Baselines auf
+allen 7 Pflicht-AOIs; Folgepunkte in next_steps.md (P7-N1..N7).
 
 Massgebliche Spezifikation:
 `docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_plan.md`
@@ -31,6 +40,20 @@ Massgebliche Spezifikation:
 | P7-C-W1-T3 | Small-N-Alternativen | green (smalln_strict = candidate_green) |
 | P7-C-W1-T4 | Reassignment-Audit | green (Reassignment behalten) |
 | P7-C-W1-T5 | Assignment-Hygiene | green (a1 fachlich stark, Verdikt-Limitation dokumentiert) |
+| V1 (Session 2) | Policy-bewusste Scorecard-Erwartungen | green |
+| V2 (Session 2) | Kandidaten-Persistenz + UI-Badge | green |
+| V3 (Session 2) | a5_crosslook + Kandidaten-Registry | green (k2x neuer Hauptkandidat) |
+| V4 (Session 2) | Hygienischer Re-Sweep (k2x-Basis) | green (kein Achsen-Gewinn) |
+| P7-C-W2-T1 | OPTICS-Vergleich | green (no_alt_gain, alle 10 Varianten red) |
+| P7-C-W2-T2 | High-N-/TSX-Strategie | green (Folgephasen-Empfehlung P7-N2) |
+| P7-C-W2-T3 | Weitere Algorithmusfamilien | deferred (User-Entscheidung 2026-06-10, P7-N1) |
+| P7-D-W1-T1 | Kandidaten-Shortlist | green (k2x/k1/k3; k2 verworfen) |
+| P7-D-W1-T2 | Volle Scorecard Shortlist | green (alle 3 candidate_green) |
+| P7-D-W1-T3 | Visual-Audit Shortlist | green (14 Faelle, Gate bestanden) |
+| P7-E-W1-T1 | Kandidatenentscheidung | green (integrate_candidate = k2x) |
+| P7-E-W1-T2 | Produktive Integration | green (v2_k2x, punktidentisch bewiesen) |
+| P7-E-W1-T3 | Run-Transparenz UI | green (Schritt 2 + V2-Badge) |
+| P7-F-W1-T1 | Abschlussbericht + next_steps | green |
 
 ---
 
@@ -390,13 +413,18 @@ Playwright-verifiziert: Nadir-Hash ohne Pitch/Bearing, Run-Klick BG
 (Osthang), Deep-Link-Regression unveraendert, `?camera=nadir` laedt
 direkt senkrecht.
 
-### DoD-Abweichung (ehrlich ausgewiesen)
+### DoD-Abweichung (ehrlich ausgewiesen; GESCHLOSSEN in Session 2)
 
 Das "Visual-Audit vorher/nachher" fuer den nearest-heavy Fall ist
 datenseitig belegt (96856632-Statuswechsel, Punktrollen im S4-JSON), aber
 nicht als Viewer-Screenshot der a1-Variante - Offline-Varianten sind keine
 persistierten Runs. Der After-Screenshot folgt in Schritt 6, sobald der
 Kandidat als getaggter Run persistiert wird.
+
+STATUS-UPDATE Session 2: Abweichung geschlossen - P7-D-W1-T3 hat das
+Vorher/Nachher-Audit fuer 14 Faelle (inkl. 96856632) ueber persistierte
+Kandidaten-Runs mit identischer Kamera nachgeholt
+(phase7_s6_*-Screenshots, phase7_visual_audit_cases.json).
 
 ---
 
@@ -758,3 +786,41 @@ k2x-Experiment == persistierte k2x-Runs == neue Produktion == neue
 Baselines. Scorecard-Guardrails: die Abweichungen gegenueber den
 Legacy-Baselines sind exakt die in D2/D3 bewerteten und begruendeten
 k2x-Deltas (candidate_green, Gate bestanden).
+
+## Schritt 6 / P7-F-W1-T1: Abschluss (green)
+
+Session-2-Commit-Karte (Branch phase7-optimization, lokal, kein Push):
+
+| Commit | Inhalt |
+| --- | --- |
+| 7e477f1 | V1 policy-bewusste Scorecard + Re-Validierung S4 |
+| 52e1d6b | V2 Persistenz als getaggte Runs + UI-Badge (Beweis noop==Baseline) |
+| 8135bdf | V3 a5_crosslook (MAD) + Kandidaten-Lauf (k2x green, k2 red) |
+| 783feee | V4 hygienischer Re-Sweep (kein Achsen-Gewinn) + Audit-Werkzeug |
+| c8a8423 | S5-T1 OPTICS no_alt_gain |
+| bacbfe8 | S5-T2 High-N/TSX Folgephasen-Empfehlung |
+| 64a5fad | S6-D1/D2 Shortlist + volle Scorecard (alle green) |
+| 6e10ada | S6-Persist+D3 Visual-Audit 14 Faelle + Deep-Link-Kamera-Fix |
+| cb25864 | S6-E1/E2 Entscheidung + Integration k2x (v2_k2x) |
+| (dieser) | S6-F1 Abschluss: Ticket-Tabelle, next_steps P7-N1..N7 |
+
+Wesentliche fachliche Ausbeute der Phase 7:
+
+1. Das Kernproblem war nie der Clusterer, sondern die
+   Assignment-Hygiene: nearest-Punkte ohne geometrische Begruendung
+   praegten Gebaeudeaussagen (bestaetigter Fall 96959851; 203343478 und
+   96637488 hingen komplett an Off-Footprint-Reihen).
+2. Die Loesung ist physikalisch und selbstkalibrierend: Quer-Versatz
+   ist nicht radarprojizierbar; Toleranz aus robusten Anker-Statistiken
+   je Gebaeude x Track statt Gebietsschwellen.
+3. Pauschale Demotion (a1/k2) hat einen messbaren
+   Re-Clustering-Nebeneffekt (Cluster-Aufblaehen, kosmetische
+   ok-Upgrades auf Hangfaellen) - die selektive a5-Politik vermeidet
+   ihn nachweislich.
+4. Das Messwerkzeug ist jetzt policy-bewusst (Abstufung erlaubt,
+   Aufwertung audit-pflichtig, robuste Multi-Cluster-Zaehlung) und
+   die Offline-Ergebnisse sind als getaggte Runs im Viewer inspizierbar
+   (User-Auftrag Forschungsplattform).
+5. OPTICS und Parameter-/Feature-Achsen bringen keinen fachlichen
+   Gewinn (alle red/wirkungslos); High-N/TSX-leaf ist eine echte, aber
+   regime-konditionale Folgephasen-Chance.

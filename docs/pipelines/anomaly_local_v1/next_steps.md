@@ -208,3 +208,70 @@ Je nachdem, welches Höhenmodell man verwendet, ergeben sich unterschiedliche Au
 | 7 | Abgleich Pipeline vs. Deep Research | Deep Research abgeschlossen | Hoch |
 | 8 | Nachbargebäude-Kontext | Phase-1-Clustering pro Gebäude stabil | Mittel |
 | 9 | Geländemodell-Evaluation (DTM/DSM) | Recherche + ggf. AUGMENTERRA-Input | Mittel |
+
+---
+
+# Phase-7-Folgepunkte (Stand 2026-06-10, nach Integration k2x)
+
+Phase 7 / Optimierungsphase 1 ist abgeschlossen: Kandidat `k2x`
+(Quer-Versatz-Politik fuer nearest + striktes Small-N) ist produktiv
+integriert (`MODEL_SET_VERSION local_hdbscan_rulegate_v2_k2x`,
+Evidenz: `phase7_clustering_optimization_report.md`). Daraus ergeben
+sich folgende, bewusst NICHT in Phase 7 umgesetzte Punkte:
+
+## P7-N1: Weitere Clustering-Algorithmen (per User-Entscheidung 2026-06-10 verschoben)
+
+`P7-C-W2-T3` (GMM, PAM/k-Medoids, robuste/Constraint-Clusterer) wurde
+auf User-Wunsch in eine eigene spaetere Optimierungsphase verschoben.
+Startpunkt dann: HDBSCAN-Sweep- und OPTICS-Befunde (alle Varianten
+candidate_red; "Parameter sind nicht der Engpass") - ein neuer
+Algorithmus muss einen konkreten, benannten Schwachpunkt adressieren.
+
+## P7-N2: Regime-konditionale High-N-/TSX-Strategie
+
+`leaf` reduziert TSX-Noise um ~86% und verbessert TSX-Cross-Track,
+degradiert aber SNT und loescht die noise_dominated-Diagnoseklasse
+pauschal (S5-T2). Eine leaf-Strategie NUR fuer >50-Punkt-Gruppen waere
+ein struktureller Eingriff (regime-konditionale Konfiguration) und
+braucht die feinere HR-Verifikation (P7-N3).
+
+## P7-N3: Feinere HR-Pseudo-Referenz
+
+Das Struktur-Matching auf Gebaeudeebene saettigt bei match_rate 1.0
+und diskriminiert Kandidaten nicht mehr. Naechste Stufe:
+Cluster-/Patch-Ebene (TSX-Clusterzentren vs SNT-Cluster-Footprints),
+optional Bewegungs-Rangkorrelation (weiterhin qualitativ wegen
+temporal_overlap_days=232).
+
+## P7-N4: Watch-Item 113309836 + TSX-Aufwertungs-Review
+
+Unter k2x kippen vereinzelt TSX-Gebaeude von noise_dominated auf ok;
+227901743 ist als legitime Dekontamination auditiert (Motion
+unveraendert), 113309836 zeigt einen Vorzeichenwechsel (+1.00 ->
+-0.27 mm/a, Band medium) und braucht menschliche Pruefung. Die
+Scorecard zaehlt solche Aufwertungen jetzt maschinell
+(status_upgrades_vs_baseline) - bei kuenftigen Kandidaten Pflichtblick.
+
+## P7-N5: Directional-Kontamination via Candidate-Area (Hoehenstrategie)
+
+Die verschobene Candidate-Area kann Fremdpunkte als `directional`
+fangen (Fall 96959851: directional-Punkt bei cross +13 m; faellt unter
+k2x nur indirekt zu Noise). Ursache haengt an der GBA-Hoehenqualitaet
+(Audit P7-A-W1-T6: Ratio 0.735, Saturierung). Optionen O1-O4 aus dem
+Hoehen-Audit (u. a. Hoehenkorrektur, var-Feld, OSM-Fusion) bleiben
+offen; eine Anker-Plausibilisierung der directional-Punkte (gleiche
+MAD-Logik wie a5, auf directional angewandt) waere die generische
+Alternative ohne Hoehenabhaengigkeit.
+
+## P7-N6: Track-22-Ost-Diagnose + Bad-Gastein-Amplituden
+
+Unveraendert offen aus dem Phase-7-Plan (Track 22 deckt die Ost-AOIs
+nicht; Amplituden fuer bad_gastein_snt fehlen) - reine Daten-/
+Beschaffungsthemen, kein Algorithmus-Blocker.
+
+## P7-N7: UI-Kennzeichnung demotierter Punkte
+
+Demotierte nearest-Punkte tragen gate_reasons
+(`nearest_crosslook_outlier` etc.) und sind im Inspector sichtbar;
+eine eigene Kartensignatur (z. B. eigene Form statt nur grau) wuerde
+die Forschungs-Lesbarkeit weiter erhoehen. Klein, additiv.
