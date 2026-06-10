@@ -479,6 +479,69 @@ export default function PipelinePanel() {
         </Section>
       )}
 
+      {activeRunQuery.data && (
+        <Section title="Run-Konfiguration (Transparenz)">
+          <MetricLine label="Run-ID" value={activeRunQuery.data.run_id} />
+          <MetricLine
+            label="Pipeline / Version"
+            value={`${activeRunQuery.data.pipeline}${
+              activeRunQuery.data.pipeline_version
+                ? ` @ ${activeRunQuery.data.pipeline_version}`
+                : ""
+            }`}
+          />
+          <MetricLine
+            label="Gebiet / Dataset / Track"
+            value={`${activeRunQuery.data.area_id ?? "—"} / ${
+              activeRunQuery.data.dataset_id ?? "—"
+            } / ${activeRunQuery.data.track ?? "alle"}`}
+          />
+          <MetricLine
+            label="BBox"
+            value={
+              activeRunQuery.data.bbox
+                ? activeRunQuery.data.bbox.map((v) => v.toFixed(5)).join(", ")
+                : "—"
+            }
+          />
+          <MetricLine label="Status" value={activeRunQuery.data.status} />
+          <MetricLine
+            label="Gestartet / beendet"
+            value={`${activeRunQuery.data.started_at ?? "—"} / ${
+              activeRunQuery.data.finished_at ?? "—"
+            }`}
+          />
+          {typeof activeRunQuery.data.params?.experiment_id === "string" && (
+            <MetricLine
+              label="Experiment-ID"
+              value={activeRunQuery.data.params.experiment_id}
+            />
+          )}
+          {activeRunQuery.data.mlflow_run_id && (
+            <MetricLine
+              label="MLflow-Run"
+              value={activeRunQuery.data.mlflow_run_id}
+            />
+          )}
+          <div className="pt-1.5">
+            <div className="pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Vollständige Run-Parameter
+            </div>
+            {Object.keys(activeRunQuery.data.params ?? {}).length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                Keine Parameter-Overrides (Pipeline-Defaults aktiv).
+              </div>
+            ) : (
+              Object.entries(activeRunQuery.data.params)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([key, value]) => (
+                  <MetricLine key={key} label={key} value={value} />
+                ))
+            )}
+          </div>
+        </Section>
+      )}
+
       <Section title="Letzte Auswertungen">
         {runsQuery.isLoading && (
           <Badge variant="secondary" className="font-normal">

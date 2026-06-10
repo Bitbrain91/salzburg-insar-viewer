@@ -94,6 +94,8 @@ export type MlRunSummary = {
 
 export type MlRunDetail = MlRunSummary & {
   params: Record<string, unknown>;
+  pipeline_version?: string | null;
+  bbox?: number[] | null;
   mlflow_run_id?: string | null;
   metrics: Record<string, MlMetricValue>;
   error?: string | null;

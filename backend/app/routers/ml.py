@@ -207,6 +207,8 @@ async def run_detail(request: Request, run_id: str):
         source=run["source"],
         track=run["track"],
         params=run["params"] or {},
+        pipeline_version=run.get("pipeline_version"),
+        bbox=run.get("bbox"),
         mlflow_run_id=run["mlflow_run_id"],
         metrics=metrics,
         error=run["error"],

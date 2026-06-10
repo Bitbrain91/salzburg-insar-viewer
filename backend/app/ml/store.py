@@ -56,8 +56,9 @@ async def fetch_runs(conn, limit: int = 50):
 async def fetch_run_detail(conn, run_id: str):
     run = await conn.fetchrow(
         """
-        SELECT run_id, status, pipeline, run_type, created_at, started_at, finished_at,
-               area_id, dataset_id, source, track, params, mlflow_run_id, error
+        SELECT run_id, status, pipeline, pipeline_version, run_type, created_at,
+               started_at, finished_at, area_id, dataset_id, source, track, bbox,
+               params, mlflow_run_id, error
         FROM ml_runs
         WHERE run_id = $1
         """,
@@ -71,8 +72,15 @@ async def fetch_run_detail(conn, run_id: str):
             params = json.loads(params)
         except json.JSONDecodeError:
             params = {}
+    bbox = run["bbox"]
+    if isinstance(bbox, str):
+        try:
+            bbox = json.loads(bbox)
+        except json.JSONDecodeError:
+            bbox = None
     run = dict(run)
     run["params"] = params
+    run["bbox"] = bbox
     metrics = await conn.fetch(
         """
         SELECT metric, value

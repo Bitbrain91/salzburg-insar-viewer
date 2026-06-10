@@ -121,6 +121,8 @@ class MLRunSummary(BaseModel):
 
 class MLRunDetail(MLRunSummary):
     params: dict = Field(default_factory=dict)
+    pipeline_version: Optional[str] = None
+    bbox: Optional[List[float]] = None
     mlflow_run_id: Optional[str] = None
     metrics: dict = Field(default_factory=dict)
     error: Optional[str] = None
