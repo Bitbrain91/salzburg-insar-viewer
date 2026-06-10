@@ -543,3 +543,35 @@ unveraendert in die Kandidatenphase. Nebenprodukt: Werkzeug
 `backend/app/ml/evaluation/phase7_visual_audit.py` (DB-getriebene
 PIL-Annotation in Web-Mercator) fuer P7-D-W1-T3 vorbereitet und am
 Referenzfall 96959851 gegen das Schritt-1-Audit validiert.
+
+## Schritt 5 / P7-C-W2-T1: OPTICS-Vergleich (green, Ergebnis: no_alt_gain)
+
+User-Sequenz eingehalten: OPTICS erst NACH abgeschlossenem HDBSCAN-Sweep,
+als explizit waehlbare Variante (kein Fallback). ExperimentConfig um
+OPTICS-Achsen erweitert (optics_cluster_method xi|dbscan, optics_xi,
+optics_eps; xi=0.05-Hardcode abgeloest); identische Feature-Matrix,
+identische Scorecard. 10 Varianten (xi 0.03/0.05/0.10, ms_equal,
+dbscan-Extraktion eps=0.5 - jeweils auf Produktions- UND k2x-Basis),
+alle 7 AOIs, noop punktidentisch. Artefakte:
+phase7_candidate_optics.json, phase7_scorecard_optics.{json,md}.
+
+ERGEBNIS: alle 10 OPTICS-Varianten candidate_red - konsistentes Muster:
+
+- Noise-Raten sinken deutlich (mirabell 0.22-0.28 vs 0.35) und mirabell-
+  xtrack steigt (bis 0.7585) - aber moosstrasse-xtrack kollabiert
+  (0.34-0.35 vs 0.44) und bg_flat faellt unter die k2x-Referenz
+  (bestes OPTICS 0.5981 vs k2x 0.6646). Die Scorecard-Regel
+  "Noise sinkt, aber Cross-Track verschlechtert -> kein Gewinn" feuert
+  durchgaengig: xi-Extraktion bildet grosszuegigere Cluster und
+  produziert genau die kosmetische Verbesserung, gegen die das
+  Messwerkzeug gebaut wurde.
+- Konsistente Referenzfall-Fails ueber fast alle Varianten:
+  bg_flat_small_n, bg_slope_noise_low_agreement, bg_tsx_high_n_noise
+  (Aufwertungen diagnostischer Faelle) plus mehr nearest-dominierte
+  Main-Cluster.
+
+ENTSCHEIDUNG T1: no_alt_gain. HDBSCAN (eom, produktive Parameter) bleibt
+der Clusterer; OPTICS wird nicht weiterverfolgt. Damit ist auch die
+Schritt-5-Reihenfolge abgeschlossen: weitere Algorithmusfamilien
+(P7-C-W2-T3) sind per User-Entscheidung 2026-06-10 in eine spaetere
+Optimierungsphase verschoben (siehe next_steps.md).

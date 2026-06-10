@@ -1127,6 +1127,22 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
                 if promoted:
                     hard_fail = True
                     reasons.append(f"{aoi}: Small-N/insufficient zu ok befoerdert: {promoted[:5]}")
+                # P7-S5: Anspruchs-Aufwertungen (CLAIM_RANK steigt) sind kein
+                # automatischer Fail, aber AUDIT-PFLICHTIG - sie koennen
+                # legitime Kontaminations-Bereinigung ODER kosmetisches
+                # Re-Clustering sein (vgl. 54773363/238057563 unter a1).
+                upgrades = [
+                    (b, base_statuses.get(b), st) for b, st in cand_statuses.items()
+                    if base_statuses.get(b) is not None
+                    and CLAIM_RANK.get(st, 0) > CLAIM_RANK.get(base_statuses.get(b), 0)
+                ]
+                if upgrades:
+                    entry["aoi_aggregates"][aoi]["status_upgrades_vs_baseline"] = [
+                        {"building_id": b, "from": s0, "to": s1} for b, s0, s1 in sorted(upgrades)
+                    ]
+                    reasons.append(
+                        f"{aoi}: {len(upgrades)} Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)"
+                    )
                 if agg["nearest_dominated_main_clusters"] > bs["nearest_dominated_main_clusters"]:
                     hard_fail = True
                     reasons.append(f"{aoi}: mehr nearest-dominierte Main-Cluster")
@@ -1414,6 +1430,14 @@ for _oid, _odesc, _oover in [
 ]:
     EXPERIMENTS[_oid] = _variant("noop", _oid, f"S5: {_odesc} (Produktionsbasis)", **_oover)
     EXPERIMENTS[f"k2x_{_oid}"] = _variant("k2x", f"k2x_{_oid}", f"S5: {_odesc} (k2x-Basis)", **_oover)
+
+# High-N-/TSX-Strategie (P7-C-W2-T2): leaf+spatial-Kombination auf k2x-Basis
+# (Einzelachsen k2x_leaf / k2x_feat_spatial_hi laufen im V4-Sweep mit).
+EXPERIMENTS["k2x_leaf_spatial"] = _variant(
+    "k2x", "k2x_leaf_spatial", "S5-T2: leaf + Spatial 1.40/1.30 (k2x-Basis, High-N/TSX)",
+    cluster_selection_method="leaf",
+    matrix_features=EXPERIMENTS["feat_spatial_hi"].matrix_features,
+)
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Phase-7 Clustering-Experiment-Harness")
