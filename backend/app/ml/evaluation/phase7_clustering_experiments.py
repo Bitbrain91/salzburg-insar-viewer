@@ -134,6 +134,10 @@ class ExperimentConfig:
     cluster_selection_method: str = "eom" # eom | leaf
     allow_single_cluster: bool = True
     cluster_selection_epsilon: float = 0.0
+    # OPTICS-Achsen (P7-C-W2-T1; nur bei algorithm="optics" wirksam)
+    optics_cluster_method: str = "xi"     # xi | dbscan
+    optics_xi: float = 0.05
+    optics_eps: float = 0.5               # nur fuer cluster_method=dbscan (skalierter Feature-Raum)
     # Feature-Matrix: Liste (feature_name, gewicht); None = produktiver Default
     matrix_features: list[tuple[str, float]] | None = None
     # Gate-Achsen
@@ -411,12 +415,19 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                 np.asarray(getattr(model, "outlier_scores_", 1.0 - probabilities), dtype=float)
             )
         elif exp.algorithm == "optics":
-            model = OPTICS(
-                min_samples=max(2, min_samples),
-                min_cluster_size=min_cluster_size,
-                cluster_method="xi",
-                xi=0.05,
-            )
+            optics_kwargs: dict[str, Any] = {
+                "min_samples": max(2, min_samples),
+                "min_cluster_size": min_cluster_size,
+                "cluster_method": exp.optics_cluster_method,
+            }
+            if exp.optics_cluster_method == "xi":
+                optics_kwargs["xi"] = float(exp.optics_xi)
+            elif exp.optics_cluster_method == "dbscan":
+                # eps im skalierten, gewichteten Feature-Raum (RobustScaler 15/85)
+                optics_kwargs["eps"] = float(exp.optics_eps)
+            else:
+                raise ValueError(f"unknown optics_cluster_method: {exp.optics_cluster_method}")
+            model = OPTICS(**optics_kwargs)
             labels = model.fit_predict(matrix)
             reachability = np.asarray(getattr(model, "reachability_", np.full(n_samples, np.inf)), dtype=float)
             finite = reachability[np.isfinite(reachability)]
@@ -1369,6 +1380,40 @@ EXPERIMENTS["k1"] = _variant("smalln_strict", "k1", "Kandidat K1 = smalln_strict
 EXPERIMENTS["k2"] = _variant("a1_demote", "k2", "Kandidat K2 = a1_demote + smalln_strict", smalln_mode="strict")
 EXPERIMENTS["k3"] = _variant("a3_height", "k3", "Kandidat K3 = a3_height")
 EXPERIMENTS["k2x"] = _variant("a5_crosslook", "k2x", "Kandidat K2x = a5_crosslook + smalln_strict", smalln_mode="strict")
+
+# Hygienischer Re-Sweep (P7-V4): die 12 Schritt-3-Achsen auf der Basis des
+# fuehrenden Kandidaten k2x (Plan sah k2 vor; k2 wurde in V3 wegen des
+# Aufblaeh-Nebeneffekts entthront). Scorecard-Baseline: k2x.
+for _axis_id, _axis_desc, _axis_overrides in [
+    ("ms_equal", "min_samples=min_cluster_size", {"min_samples_mode": "equal"}),
+    ("leaf", "cluster_selection_method=leaf", {"cluster_selection_method": "leaf"}),
+    ("no_single", "allow_single_cluster=False", {"allow_single_cluster": False}),
+    ("mcs03", "mcs_fraction=0.3", {"mcs_fraction": 0.3}),
+    ("floor3", "mcs_floor=3", {"mcs_floor": 3}),
+    ("eps05", "cluster_selection_epsilon=0.5", {"cluster_selection_epsilon": 0.5}),
+    ("feat_vel_lo", "Velocity 1.30->0.90", {"matrix_features": EXPERIMENTS["feat_vel_lo"].matrix_features}),
+    ("feat_no_accel", "ohne Acceleration", {"matrix_features": EXPERIMENTS["feat_no_accel"].matrix_features}),
+    ("feat_spatial_hi", "Spatial 1.40/1.30", {"matrix_features": EXPERIMENTS["feat_spatial_hi"].matrix_features}),
+    ("feat_ts", "+ts_slope/ts_residual_std", {"matrix_features": EXPERIMENTS["feat_ts"].matrix_features}),
+    ("feat_hstd", "+x_height_std", {"matrix_features": EXPERIMENTS["feat_hstd"].matrix_features}),
+    ("feat_no_coh", "ohne coherence_penalty", {"matrix_features": EXPERIMENTS["feat_no_coh"].matrix_features}),
+]:
+    EXPERIMENTS[f"k2x_{_axis_id}"] = _variant(
+        "k2x", f"k2x_{_axis_id}", f"V4: k2x + {_axis_desc}", **_axis_overrides
+    )
+
+# OPTICS-Vergleich (P7-C-W2-T1, Schritt 5): explizit waehlbare Varianten,
+# KEIN Fallback (User-Entscheidung 2026-06-10). Identische Feature-Matrix
+# und Scorecard wie HDBSCAN; auf Produktions-Defaults UND k2x-Basis.
+for _oid, _odesc, _oover in [
+    ("optics_xi03", "OPTICS xi=0.03", {"algorithm": "optics", "optics_xi": 0.03}),
+    ("optics_xi05", "OPTICS xi=0.05", {"algorithm": "optics"}),
+    ("optics_xi10", "OPTICS xi=0.10", {"algorithm": "optics", "optics_xi": 0.10}),
+    ("optics_ms_equal", "OPTICS xi=0.05, min_samples=mcs", {"algorithm": "optics", "min_samples_mode": "equal"}),
+    ("optics_dbscan05", "OPTICS dbscan-Extraktion eps=0.5", {"algorithm": "optics", "optics_cluster_method": "dbscan"}),
+]:
+    EXPERIMENTS[_oid] = _variant("noop", _oid, f"S5: {_odesc} (Produktionsbasis)", **_oover)
+    EXPERIMENTS[f"k2x_{_oid}"] = _variant("k2x", f"k2x_{_oid}", f"S5: {_odesc} (k2x-Basis)", **_oover)
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Phase-7 Clustering-Experiment-Harness")

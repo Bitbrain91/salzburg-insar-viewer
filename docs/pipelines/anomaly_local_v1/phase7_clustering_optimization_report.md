@@ -516,3 +516,30 @@ a1-Gewinns mit (bg_flat_01_snt: noop 0.5619, k2x 0.6646, k2 0.6956).
 a5-Demotionsvolumen deutlich unter a1 (z. B. moosstrasse 360 von 613
 nearest-Punkten). k2 ist damit als Hauptkandidat entthront; k2x
 uebernimmt, k1 bleibt konservative Option, k3 Alternative.
+
+## V4: Hygienischer Re-Sweep auf k2x-Basis (green)
+
+Plan-Abweichung (begruendet): Der Plan sah die Sweep-Wiederholung auf
+K2-Basis vor; nach dem V3-Befund (k2 candidate_red wegen
+Aufblaeh-Nebeneffekt) laeuft der Re-Sweep auf der Basis des fuehrenden
+Kandidaten k2x. Scorecard-Baseline: k2x (via --scorecard-baseline).
+
+Alle 12 Schritt-3-Achsen als k2x-Komposita auf allen 7 AOIs
+(phase7_experiment_sweep_hygienic.json, phase7_scorecard_hygienic.{json,md}):
+
+- 11/12 candidate_red. Dominanter Fail erneut der Hygiene-Guardrail
+  (mehr nearest-dominierte Main-Cluster: die Achsen mischen die Cluster so
+  um, dass die von a5 bewusst BEHALTENEN nearest-Punkte haeufiger Mains
+  dominieren); mehrere Achsen reaktivieren ausserdem den
+  Aufblaeh-Effekt (osthang_low_agreement/bg_slope noise->ok).
+- k2x_floor3 candidate_inconclusive mit Cross-Track-Delta -0.0001
+  (wirkungslos).
+- Durchschnittliche Cross-Track-Deltas aller Achsen im Rauschband
+  (-0.03..+0.01).
+
+Fazit: "Clustering-Parameter sind nicht der Engpass" gilt AUCH auf
+bereinigter Basis. Kein Achsen-Komposit qualifiziert sich; k2x geht
+unveraendert in die Kandidatenphase. Nebenprodukt: Werkzeug
+`backend/app/ml/evaluation/phase7_visual_audit.py` (DB-getriebene
+PIL-Annotation in Web-Mercator) fuer P7-D-W1-T3 vorbereitet und am
+Referenzfall 96959851 gegen das Schritt-1-Audit validiert.
