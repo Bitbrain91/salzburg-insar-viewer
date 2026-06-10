@@ -26,7 +26,11 @@ Massgebliche Spezifikation:
 | P7-B-W1-T1..T4 | Harness/Scorecard/Konfidenz/HR | green |
 | P7-B-W2-T1 | Visual-Audit-Workflow | green |
 | P7-E-W1-T3 | Run-Transparenz (vorgezogen) | green |
-| P7-C-W1-T1..T5 | Experimente Schritt 3/4 | planned |
+| P7-C-W1-T1 | HDBSCAN-Sweep | green (alle Varianten red) |
+| P7-C-W1-T2 | Feature-Ablation | green (alle Varianten red) |
+| P7-C-W1-T3 | Small-N-Alternativen | green (smalln_strict = candidate_green) |
+| P7-C-W1-T4 | Reassignment-Audit | green (Reassignment behalten) |
+| P7-C-W1-T5 | Assignment-Hygiene | green (a1 fachlich stark, Verdikt-Limitation dokumentiert) |
 
 ---
 
@@ -310,3 +314,68 @@ inhaltlich wichtiges Resultat, kein Misserfolg des Harness:
    der aktuellen Scorecard lokal optimal. Ein erneuter Sweep lohnt erst auf
    einer hygienisierten Baseline (nach `P7-C-W1-T5`-Entscheidung) - als
    kombinierter Kandidat in Schritt 6 (nicht Teil dieser Session).
+
+---
+
+## Schritt 4: Assignment-Hygiene, Small-N, Reassignment, Main-Cluster-Wahl (P7-C-W1-T3/T4/T5) - green
+
+Artefakte: `artifacts/phase7_experiment_s4.json` plus Scorecard-Generation
+S4 (`phase7_scorecard.{json,md}`). 7 Varianten x 7 AOIs, HR-Gegenprobe
+unter `a1_demote`, Main-Choice-Audit, Reassignment-Zaehler.
+
+### Verdikte
+
+| Variante | Verdikt | Kernzahlen (moos / bg_flat_snt / bg_slope_snt) |
+| --- | --- | --- |
+| `smalln_strict` | **candidate_green** | 14/14 Referenzfaelle ok; xtrack 0.441/0.593/0.187 (moos+flach leicht besser); Kosten ~0 |
+| `a1_demote` | candidate_red (s. Limitation) | nearest-Mains 34/40/14 -> **0/0/0**; bg_flat xtrack **0.562 -> 0.696**; HR-Match **1.0** (64 gekoppelt); Kosten: ok 65->47 / 42->25 / 16->13 |
+| `a3_height` | candidate_red (s. Limitation) | selektiv (108 Demotionen moos): nearest-Mains 30/28/10; bg_flat xtrack 0.644; Kosten minimal (ok 63/41/15) |
+| `a2_dist5` | candidate_red | grobes Werkzeug: xtrack moos faellt auf 0.391 |
+| `a4_osm` | candidate_inconclusive | 0 Demotionen in allen AOIs - OSM-Veto greift hier nicht |
+| `no_reassign` | candidate_red | Reassignment HILFT: ohne es faellt xtrack (moos 0.403) und ok-Status sinken |
+
+### Schluesselfaelle
+
+- Carport-Verdachtsfall `96856632`: noop `small_n` -> unter `a1_demote`
+  `insufficient_support` - der 3/3-nearest-Main-Cluster praegt den
+  Motion-Score nicht mehr (Soll-Verhalten des Asymmetrie-Prinzips).
+- `548205` bleibt unter allen Politiken stabil `single_track_only`.
+- Main-Choice-Audit (Diagnose): in Moosstrasse wuerden 2 von 5
+  Multi-Cluster-Gruppen unter within-share-first einen anderen Main-Cluster
+  waehlen - Wahlkriterium bleibt relevante Schritt-6-Achse.
+- Reassignment-Aktivitaet: bg_flat_01_tsx rettet 2141 Punkte (davon 251
+  nearest, 1399 im >50-Regime) - im High-N-Regime sehr aktiv; fuer die
+  High-N-Strategie (Schritt 5) als Diagnose notiert.
+
+### Wichtige Verdikt-Limitation (dokumentiert, fuer Schritt 6 zu beheben)
+
+Die automatischen Referenzfall-Erwartungen sind auf der KONTAMINIERTEN
+Baseline kalibriert ("Status bleibt wie heute"). Hygiene-Politiken
+verletzen sie konstruktionsbedingt NACH UNTEN (ok -> single_track_only,
+small_n -> insufficient_support), was kein Weichspuelen ist, sondern der
+beabsichtigte Ehrlichkeitseffekt. Fuer Schritt 6 muessen die Erwartungen
+policy-bewusst formuliert werden (erwartete Statusmengen je
+Kandidatenklasse; Differential-Erhalt strukturell statt status-basiert
+pruefen). Die fachliche Bewertung von `a1_demote` stuetzt sich daher auf
+die Aggregate (nearest-Mains 0, bg_flat-xtrack +0.13, HR 1.0), nicht auf
+das automatische Verdikt.
+
+### Empfehlungs-Shortlist fuer Schritte 5/6
+
+1. `K1 = smalln_strict`: sofort kandidatenfaehig (green), klein, ehrlich.
+2. `K2 = a1_demote + smalln_strict`: fachlich staerkster Kandidat;
+   Voraussetzungen: policy-bewusste Referenzerwartungen, UI-Kennzeichnung
+   demotierter Punkte, Differential-Erhalt-Pruefung, Sweep-Re-Run auf
+   hygienisierter Baseline.
+3. `K3 = a3_height (+ smalln_strict)`: guenstige Alternative mit minimalen
+   Ehrlichkeitskosten, falls K2 zu teuer erscheint.
+4. Reassignment unveraendert BEHALTEN (no_reassign verschlechtert).
+5. `a4_osm` zurueckstellen (kein messbarer Effekt in den AOIs).
+
+### DoD-Abweichung (ehrlich ausgewiesen)
+
+Das "Visual-Audit vorher/nachher" fuer den nearest-heavy Fall ist
+datenseitig belegt (96856632-Statuswechsel, Punktrollen im S4-JSON), aber
+nicht als Viewer-Screenshot der a1-Variante - Offline-Varianten sind keine
+persistierten Runs. Der After-Screenshot folgt in Schritt 6, sobald der
+Kandidat als getaggter Run persistiert wird.

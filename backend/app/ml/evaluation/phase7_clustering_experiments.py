@@ -1175,8 +1175,8 @@ async def amain(argv: list[str] | None = None) -> int:
     if args.hr_compare:
         snt_aoi, tsx_aoi = args.hr_compare.split(":")
         exp = EXPERIMENTS[experiment_ids[0]]
-        _, snt_records, _ = run_experiment_on_inputs(exp, inputs_cache[snt_aoi])
-        _, tsx_records, _ = run_experiment_on_inputs(exp, inputs_cache[tsx_aoi])
+        _, snt_records, _ = run_experiment_on_inputs(exp, await inputs_for(snt_aoi, exp))
+        _, tsx_records, _ = run_experiment_on_inputs(exp, await inputs_for(tsx_aoi, exp))
         results["hr_compare"] = {
             "snt_aoi": snt_aoi, "tsx_aoi": tsx_aoi,
             **hr_structural_compare(snt_records, tsx_records),
