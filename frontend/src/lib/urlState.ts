@@ -23,8 +23,32 @@ const ML_VIEWS: readonly AppState["mlView"][] = [
 
 export type UrlCameraOverride = { pitch?: number; bearing?: number };
 
+export type BootHashCamera = {
+  zoom: number;
+  lat: number;
+  lon: number;
+  bearing: number;
+  pitch: number;
+};
+
 let autoFitUrlBuildingPending = false;
 let cameraOverride: UrlCameraOverride = {};
+let bootHashCamera: BootHashCamera | null = null;
+
+function parseHashCamera(hash: string): BootHashCamera | null {
+  // MapLibre-Hash-Format: #zoom/lat/lon[/bearing[/pitch]]
+  const parts = hash.replace(/^#/, "").split("/");
+  if (parts.length < 3) return null;
+  const [zoom, lat, lon, bearing, pitch] = parts.map(Number);
+  if (![zoom, lat, lon].every(Number.isFinite)) return null;
+  return {
+    zoom,
+    lat,
+    lon,
+    bearing: Number.isFinite(bearing) ? bearing : 0,
+    pitch: Number.isFinite(pitch) ? pitch : 0,
+  };
+}
 
 function parseBoolean(value: string | null): boolean | undefined {
   if (value === "1" || value === "true") return true;
@@ -55,6 +79,12 @@ export function applyUrlStateToStore(
   search: string = window.location.search,
   hash: string = window.location.hash
 ): void {
+  // Boot-Hash VOR jedem Map-Leben einfrieren: Unter React.StrictMode
+  // (Dev-Doppelmount) kann die erste, sofort wieder zerstoerte
+  // Map-Instanz den URL-Hash ueberschreiben, bevor die zweite ihn liest.
+  // MapView wendet die eingefrorene Kamera nach der Konstruktion
+  // explizit per jumpTo an (P7-D-W1-T3-Fix).
+  bootHashCamera = parseHashCamera(hash);
   const params = new URLSearchParams(search);
   if ([...params.keys()].length === 0) return;
 
@@ -154,6 +184,12 @@ export function consumeAutoFitUrlBuilding(): boolean {
   if (!autoFitUrlBuildingPending) return false;
   autoFitUrlBuildingPending = false;
   return true;
+}
+
+// Bewusst NICHT konsumierend: unter StrictMode konstruiert jede der beiden
+// Map-Instanzen einmal und beide sollen dieselbe Boot-Kamera anwenden.
+export function initialHashCamera(): BootHashCamera | null {
+  return bootHashCamera;
 }
 
 export function urlCameraOverride(): UrlCameraOverride {

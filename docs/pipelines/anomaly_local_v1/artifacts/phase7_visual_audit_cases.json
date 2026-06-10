@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "ticket": "P7-B-W2 (Mini-Audit Schritt 1; vollstaendiger Workflow in P7-B-W2-T1)",
+  "ticket": "P7-B-W2 (Schritt 1) + P7-D-W1-T3 (Schritt 6: Shortlist-Audit Baseline vs k2x, 14 Faelle)",
   "stand": "2026-06-10",
   "camera_standard": "Nadir pitch=0, Nord oben; Baseline und Kandidat desselben Falls mit identischer Kamera (Deep-Link-Hash). Schraegansicht nur fuer Hoehenfragen mit gba=1.",
   "label_set": [
@@ -81,6 +81,337 @@
       ],
       "assessment": "User-gemeldeter Fall, visuell und datenseitig BESTAETIGT: Der t95-Main-Cluster (7 Kerne) mischt echte Dachpunkte (within/directional, cross_look ~ -0.9 m) mit einer lateralen Gruppe bei cross_look +13 m, dominiert von nearest-Punkten (2.8-11.5 m Distanz), die an/ueber der Ostkante auf kleinen Nachbarstrukturen (Carport/kleines Haus) liegen. ENTSCHEIDEND: Der Versatz ist QUER zur Blickrichtung - radargeometrisch nicht erklaerbar (nur Laengs-Versatz waere es). Gleichzeitig wurde ein echter within-Punkt zu Noise und einer gate-excluded. Baseline-Status ok/medium ist damit kontaminiert; unter a1_demote -> insufficient_support, unter a3_height -> single_track_only (ehrliche Abstufung).",
       "auditor": "claude_supervisor_session + user_report"
+    },
+    {
+      "case_id": "audit_s6_96959851_k2x",
+      "building_id": "96959851",
+      "run_id_baseline": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "run_id_candidate": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&area=salzburg&building=gba:96959851&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.792373/13.028509",
+      "deep_link_candidate": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:96959851&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.792373/13.028509",
+      "screenshots": [
+        "phase7_s6_96959851_base.png",
+        "phase7_s6_96959851_base_annotated.png",
+        "phase7_s6_96959851_k2x.png",
+        "phase7_s6_96959851_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "possible_carport_merge"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "PFLICHTFALL (User-Befund, bestaetigt). Baseline: rote Kern-Saeule an der Ostkante AUF Nachbarstrukturen (nearest, cross+13m). k2x: exakt diese Saeule grau demotiert (nearest_crosslook_outlier), der vergiftete directional-Punkt (+13m) faellt zu Noise, Main = 4 cross-konsistente Dachpunkte. Status bleibt ok MIT sauberem Cluster - normatives Zielverhalten erreicht.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_96856632_k2x",
+      "building_id": "96856632",
+      "run_id_baseline": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "run_id_candidate": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&area=salzburg&building=gba:96856632&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.793732/13.030696",
+      "deep_link_candidate": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:96856632&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.793732/13.030696",
+      "screenshots": [
+        "phase7_s6_96856632_base.png",
+        "phase7_s6_96856632_base_annotated.png",
+        "phase7_s6_96856632_k2x.png",
+        "phase7_s6_96856632_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ambiguous_visual",
+        "possible_carport_merge",
+        "needs_human_review"
+      ],
+      "labels_candidate": [
+        "ambiguous_visual",
+        "needs_human_review"
+      ],
+      "assessment": "Ambivalenter Fall: 3 nearest-Kerne (cross -7.0) an der SW-Kante bleiben unter k2x (von directional-Anker +6.9 gedeckt); nur ankerloser t95-Punkt demotiert. k2x laesst die Ambivalenz ehrlich stehen (small_n); a1/k2 wuerden hart ausschliessen. Dokumentierter Selektivitaets-Trade-off.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_203343478_k2x",
+      "building_id": "203343478",
+      "run_id_baseline": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "run_id_candidate": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&area=salzburg&building=gba:203343478&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.794638/13.029387",
+      "deep_link_candidate": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:203343478&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.794638/13.029387",
+      "screenshots": [
+        "phase7_s6_203343478_base.png",
+        "phase7_s6_203343478_base_annotated.png",
+        "phase7_s6_203343478_k2x.png",
+        "phase7_s6_203343478_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "possible_outbuilding_as_main"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "STARKER Beleg: Baseline-single_track_only hing KOMPLETT an 6/6-nearest-Reihe (+8.2m) suedlich AUSSERHALB des Footprints, kein Punkt auf dem Dach. k2x: ganze Reihe grau (nearest_no_geometric_anchor) -> insufficient_support. Unbegruendete Hauptaussage entfernt.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_96637488_k2x",
+      "building_id": "96637488",
+      "run_id_baseline": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "run_id_candidate": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&area=salzburg&building=gba:96637488&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.795575/13.028845",
+      "deep_link_candidate": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:96637488&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.795575/13.028845",
+      "screenshots": [
+        "phase7_s6_96637488_base.png",
+        "phase7_s6_96637488_base_annotated.png",
+        "phase7_s6_96637488_k2x.png",
+        "phase7_s6_96637488_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "possible_outbuilding_as_main"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "Wie 203343478: 4/4-nearest-Reihe im Garten suedlich des Footprints trug single_track_only; unter k2x grau -> insufficient_support.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_96637447_k2x",
+      "building_id": "96637447",
+      "run_id_baseline": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+      "run_id_candidate": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=15cee7d1-1f0c-44b2-a6e2-ecb633841db0&area=salzburg&building=gba:96637447&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.794274/13.030414",
+      "deep_link_candidate": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:96637447&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.794274/13.030414",
+      "screenshots": [
+        "phase7_s6_96637447_base.png",
+        "phase7_s6_96637447_base_annotated.png",
+        "phase7_s6_96637447_k2x.png",
+        "phase7_s6_96637447_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "plausible_main_roof_cluster"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "Differential-Anker: 0 Rollenwechsel unter k2x, Multi-Cluster + differential-Kontext (0.74) identisch erhalten. Hinweis bleibt: t44:cluster_3 ist nearest-dominiert, aber cross-konsistent - kuenftige Baustelle, kein k2x-Schaden.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_548205_k2x",
+      "building_id": "548205",
+      "run_id_baseline": "c23cd637-3251-45bb-a95e-e2aa88abe6de",
+      "run_id_candidate": "386e83fd-55df-45cd-8c72-fd3bfaac5b15",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=c23cd637-3251-45bb-a95e-e2aa88abe6de&area=salzburg&building=gba:548205&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.806837/13.043038",
+      "deep_link_candidate": "/?run=386e83fd-55df-45cd-8c72-fd3bfaac5b15&area=salzburg&building=gba:548205&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.806837/13.043038",
+      "screenshots": [
+        "phase7_s6_548205_base.png",
+        "phase7_s6_548205_base_annotated.png",
+        "phase7_s6_548205_k2x.png",
+        "phase7_s6_548205_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "plausible_main_roof_cluster",
+        "offset_expected_due_to_sar_geometry"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "Weak-Secondary-Anker Mirabell: 0 Rollenwechsel unter k2x, single_track_only stabil. Byte-identischer Render (legitim, datenseitig verifiziert).",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_54773363_k2x",
+      "building_id": "54773363",
+      "run_id_baseline": "74c1481e-f2c7-4938-a4ac-8022e1fe2799",
+      "run_id_candidate": "99adb38e-0514-43a9-b829-4eeeb42b0330",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=74c1481e-f2c7-4938-a4ac-8022e1fe2799&area=salzburg&building=gba:54773363&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.805225/13.050679",
+      "deep_link_candidate": "/?run=99adb38e-0514-43a9-b829-4eeeb42b0330&area=salzburg&building=gba:54773363&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.805225/13.050679",
+      "screenshots": [
+        "phase7_s6_54773363_base.png",
+        "phase7_s6_54773363_base_annotated.png",
+        "phase7_s6_54773363_k2x.png",
+        "phase7_s6_54773363_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "layover_shadow_possible",
+        "ambiguous_visual"
+      ],
+      "labels_candidate": [
+        "ambiguous_visual"
+      ],
+      "assessment": "Osthang-Risikofall des a1-Aufblaeh-Effekts: unter k2x 0 Rollenwechsel, bleibt ehrlich noise_dominated (unter k2/a1 kosmetisch ok). Anti-Aufblaeh-Beleg.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_105022686_k2x",
+      "building_id": "105022686",
+      "run_id_baseline": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+      "run_id_candidate": "19a2e0ba-7a51-4568-ab99-22869ec0a98a",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=ff2217a1-098d-4126-a89a-c3c9b9c148e5&area=bad_gastein&building=gba:105022686&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#18.5/47.10821/13.135363",
+      "deep_link_candidate": "/?run=19a2e0ba-7a51-4568-ab99-22869ec0a98a&area=bad_gastein&building=gba:105022686&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#18.5/47.10821/13.135363",
+      "screenshots": [
+        "phase7_s6_105022686_base.png",
+        "phase7_s6_105022686_base_annotated.png",
+        "phase7_s6_105022686_k2x.png",
+        "phase7_s6_105022686_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "plausible_main_roof_cluster"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "HR-Kopplungsanker bg_flat: 0 Rollenwechsel, ok/0.74/high stabil, Kerne klar auf dem Dach.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_238100070_k2x",
+      "building_id": "238100070",
+      "run_id_baseline": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+      "run_id_candidate": "19a2e0ba-7a51-4568-ab99-22869ec0a98a",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=ff2217a1-098d-4126-a89a-c3c9b9c148e5&area=bad_gastein&building=gba:238100070&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.108257/13.132466",
+      "deep_link_candidate": "/?run=19a2e0ba-7a51-4568-ab99-22869ec0a98a&area=bad_gastein&building=gba:238100070&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.108257/13.132466",
+      "screenshots": [
+        "phase7_s6_238100070_base.png",
+        "phase7_s6_238100070_base_annotated.png",
+        "phase7_s6_238100070_k2x.png",
+        "phase7_s6_238100070_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ds_patch_ambiguous"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "Small-N-Fall: t44=2/2 nearest (eine auf Anbau/Parkstreifen) ohne Anker. k2x: ehrlich noise_dominated (konservativer als a1s single_track_only; beide ehrliche Nicht-Aussagen).",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_238057563_k2x",
+      "building_id": "238057563",
+      "run_id_baseline": "633325ef-409f-4a9e-a160-c9bc8394e574",
+      "run_id_candidate": "2bfa4f70-0e16-4b0e-b5a1-017f1b235b61",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=633325ef-409f-4a9e-a160-c9bc8394e574&area=bad_gastein&building=gba:238057563&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.120201/13.140758",
+      "deep_link_candidate": "/?run=2bfa4f70-0e16-4b0e-b5a1-017f1b235b61&area=bad_gastein&building=gba:238057563&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.120201/13.140758",
+      "screenshots": [
+        "phase7_s6_238057563_base.png",
+        "phase7_s6_238057563_base_annotated.png",
+        "phase7_s6_238057563_k2x.png",
+        "phase7_s6_238057563_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ambiguous_visual",
+        "layover_shadow_possible"
+      ],
+      "labels_candidate": [
+        "ambiguous_visual"
+      ],
+      "assessment": "BG-Hang-Risikofall: unter k2x 0 Rollenwechsel, bleibt noise_dominated mit sichtbaren nearest-Noise-Punkten. Anti-Aufblaeh-Beleg Nr. 2 (k2/a1: kosmetisch ok mit -0.7..+2.2-Spannen-Cluster).",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_113309843_k2x",
+      "building_id": "113309843",
+      "run_id_baseline": "633325ef-409f-4a9e-a160-c9bc8394e574",
+      "run_id_candidate": "2bfa4f70-0e16-4b0e-b5a1-017f1b235b61",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=633325ef-409f-4a9e-a160-c9bc8394e574&area=bad_gastein&building=gba:113309843&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.119449/13.13901",
+      "deep_link_candidate": "/?run=2bfa4f70-0e16-4b0e-b5a1-017f1b235b61&area=bad_gastein&building=gba:113309843&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.119449/13.13901",
+      "screenshots": [
+        "phase7_s6_113309843_base.png",
+        "phase7_s6_113309843_base_annotated.png",
+        "phase7_s6_113309843_k2x.png",
+        "phase7_s6_113309843_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "plausible_main_roof_cluster",
+        "offset_within_sensor_tolerance"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "Ehrlichkeitskosten-Fall Hang: demotierte nearest lagen ober-/unterhalb des Footprints am Hang UND trugen das negative Signal (-2.39 -> +0.76 mm/a). k2x: ok -> single_track_only, Dachkern traegt allein. Visuell sauber.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_227901743_k2x",
+      "building_id": "227901743",
+      "run_id_baseline": "97672f6e-f06e-43d8-b279-1dddecc21300",
+      "run_id_candidate": "7c53499a-3bc0-4404-aa87-aefd0807a155",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=97672f6e-f06e-43d8-b279-1dddecc21300&area=bad_gastein&building=gba:227901743&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.109144/13.134745",
+      "deep_link_candidate": "/?run=7c53499a-3bc0-4404-aa87-aefd0807a155&area=bad_gastein&building=gba:227901743&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.109144/13.134745",
+      "screenshots": [
+        "phase7_s6_227901743_base.png",
+        "phase7_s6_227901743_base_annotated.png",
+        "phase7_s6_227901743_k2x.png",
+        "phase7_s6_227901743_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ds_patch_ambiguous"
+      ],
+      "labels_candidate": [
+        "plausible_main_roof_cluster"
+      ],
+      "assessment": "TSX-Aufwertung LEGITIM: Noise-Dominanz kam von suedlicher t70-nearest-Gruppe ausserhalb des Footprints; nach Demotion traegt dichter t93-Dachkern, Motion UNVERAENDERT 0.49 mm/a -> echte Dekontamination, kein Kosmetik-Muster.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_227901749_k2x",
+      "building_id": "227901749",
+      "run_id_baseline": "97672f6e-f06e-43d8-b279-1dddecc21300",
+      "run_id_candidate": "7c53499a-3bc0-4404-aa87-aefd0807a155",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=97672f6e-f06e-43d8-b279-1dddecc21300&area=bad_gastein&building=gba:227901749&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.109127/13.135378",
+      "deep_link_candidate": "/?run=7c53499a-3bc0-4404-aa87-aefd0807a155&area=bad_gastein&building=gba:227901749&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.109127/13.135378",
+      "screenshots": [
+        "phase7_s6_227901749_base.png",
+        "phase7_s6_227901749_base_annotated.png",
+        "phase7_s6_227901749_k2x.png",
+        "phase7_s6_227901749_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ds_patch_ambiguous",
+        "ambiguous_visual"
+      ],
+      "labels_candidate": [
+        "ambiguous_visual"
+      ],
+      "assessment": "High-N-Negativkontrolle: bleibt unter k2x noise_dominated (178 Punkte, 0 Rollenwechsel) - im Gegensatz zur leaf-Variante, die die Diagnoseklasse wegbuegelt.",
+      "auditor": "claude_supervisor_session_s6"
+    },
+    {
+      "case_id": "audit_s6_113309836_k2x",
+      "building_id": "113309836",
+      "run_id_baseline": "60a3899f-118a-4856-b40a-379939449e8a",
+      "run_id_candidate": "9a23764c-01d7-4123-a909-4ad9a9cdd124",
+      "candidate": "k2x",
+      "deep_link_baseline": "/?run=60a3899f-118a-4856-b40a-379939449e8a&area=bad_gastein&building=gba:113309836&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.11918/13.138671",
+      "deep_link_candidate": "/?run=9a23764c-01d7-4123-a909-4ad9a9cdd124&area=bad_gastein&building=gba:113309836&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.0/47.11918/13.138671",
+      "screenshots": [
+        "phase7_s6_113309836_base.png",
+        "phase7_s6_113309836_base_annotated.png",
+        "phase7_s6_113309836_k2x.png",
+        "phase7_s6_113309836_k2x_annotated.png"
+      ],
+      "labels_baseline": [
+        "ambiguous_visual",
+        "needs_human_review"
+      ],
+      "labels_candidate": [
+        "needs_human_review"
+      ],
+      "assessment": "WATCH-ITEM: TSX-Hang-Aufwertung noise->ok unter k2x. Demotierte Punkte liegen plausibel ausserhalb (N/S), ABER Motion kippt +1.00 -> -0.27 mm/a (Band medium). Geometrisch begruendbar, aber Vorzeichenwechsel verlangt menschliche Pruefung/Cross-Track-Korroboration.",
+      "auditor": "claude_supervisor_session_s6"
     }
   ]
 }

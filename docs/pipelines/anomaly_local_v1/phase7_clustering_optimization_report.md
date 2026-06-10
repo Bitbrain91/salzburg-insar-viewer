@@ -605,3 +605,84 @@ Folgephasen-Empfehlung dokumentiert: regime-konditionale Strategie
 (leaf nur fuer >50-Gruppen/TSX) waere ein struktureller Eingriff und
 gehoert in die naechste Optimierungsphase, gemeinsam mit der feineren
 HR-Verifikation (next_steps.md).
+
+## Schritt 6 / P7-D-W1-T1: Kandidaten-Shortlist (green)
+
+`artifacts/phase7_candidate_shortlist.md`: K2x (a5_crosslook +
+smalln_strict, Hauptkandidat), K1 (smalln_strict, konservativ),
+K3 (a3_height, Alternative); k2 explizit verworfen (Aufblaeh-Effekt),
+ebenso alle Sweep-/Feature-Achsen, OPTICS und leaf/High-N (Folgephase).
+Jedes Delta klein und isoliert erklaerbar.
+
+## Schritt 6 / P7-D-W1-T2: Volle Scorecard der Shortlist (green)
+
+Lauf ueber alle 7 Pflicht-AOIs mit Cross-Track, Konfidenzmodul
+(max 200 Gruppen/AOI) und HR-Gegenproben; noop punktidentisch.
+Artefakte: phase7_candidate_shortlist_full.json,
+phase7_scorecard_shortlist.{json,md}, phase7_candidate_{k1,k2x,k3}.md,
+phase7_high_n_k2x.json + phase7_hr_{k1,k3}.json (HR).
+
+| Kandidat | Verdikt | Ref-Fails | Status-Aufwertungen (audit-pflichtig) |
+| --- | --- | --- | --- |
+| k1 | candidate_green | 0 | 0 |
+| k2x | candidate_green | 0 | 15 (TSX-lastig; 2 Schluesselfaelle auditiert) |
+| k3 | candidate_green | 0 | 11 |
+
+Flach/Hang getrennt: k2x verbessert Cross-Track auf den Flach-AOIs
+(bg_flat_01_snt 0.6646 vs 0.5619) und laesst die Hang-AOIs ehrlich
+unangetastet (osthang 0.8179 vs 0.8497 leicht niedriger durch
+Demotionen; bg_slope unveraendert niedrig = Diagnose). Konfidenz:
+moosstrasse stable-Gruppen 69 -> 96 unter k2x (Dekontamination
+stabilisiert die Konfidenz), keine kuenstliche high-Band-Inflation.
+
+## Schritt 6 / Persistierung der Shortlist (green)
+
+Alle drei Kandidaten auf allen 7 AOIs als getaggte Runs persistiert
+(21 Runs + noop-Beweisrun; Run-IDs in phase7_persisted_runs.json,
+im Viewer per Badge + Transparenz-Panel inspizierbar).
+
+## Schritt 6 / P7-D-W1-T3: Visual-Audit der Shortlist (green, 14 Faelle)
+
+Workflow: Deep-Link mit Kamera-Hash -> Nadir-Screenshot -> DB-getriebene
+PIL-Annotation (phase7_visual_audit.py) -> Expertenlabel; Baseline- und
+k2x-Run je Fall mit IDENTISCHER Kamera. 14 Faelle (4 Salzburg-Pflicht +
+Differential-Anker, 3 BG flach inkl. TSX, 3 BG Hang, 4 Failure-/
+nearest-/Small-N), alle in phase7_visual_audit_cases.json
+(audit_s6_*-Faelle) mit 56 Screenshots in artifacts/.
+
+Notwendiger Vorab-Fix (Deep-Link-Regression): Der Kamera-Hash wurde auf
+frischen Loads von zwei Movern ueberschrieben (StrictMode-Doppelmount
+verliert den Boot-Hash; ungeguardeter Gebaeude-Fokus-fitBounds + 
+cameraMode-Mount-Effekt easen zurueck). Fix: Boot-Hash wird in
+urlState.ts eingefroren und in MapView nach Konstruktion per jumpTo +
+lastFreeCameraRef-Seeding angewandt; Fokus-Flug skippt die erste
+URL-Selection bei vorhandenem Hash. Playwright-verifiziert (Hash stabil
+ueber 5 s). Ein Blank-Screenshot (Dev-Server-Race) erkannt und neu
+aufgenommen; 6 byte-identische Baseline/k2x-Paare datenseitig als
+legitim verifiziert (0 Rollenwechsel der Gebaeude-Punkte).
+
+Audit-Kernergebnisse:
+
+- 96959851 (PFLICHT, bestaetigt): k2x demotiert exakt die Ostkanten-
+  Saeule auf den Nachbarstrukturen; Main = 4 cross-konsistente
+  Dachpunkte; ok MIT sauberem Cluster. Zielverhalten visuell belegt.
+- 203343478 + 96637488: Baseline-Hauptaussagen hingen KOMPLETT an
+  nearest-Reihen ausserhalb des Footprints (suedliche Garten-/
+  Nachbarstreifen, kein Dachpunkt) - unter k2x honest entfernt.
+- Anti-Aufblaeh-Belege: 54773363 und 238057563 bleiben unter k2x
+  ehrlich noise_dominated (0 Rollenwechsel) - exakt die Faelle, die
+  k2/a1 kosmetisch aufwerten.
+- Struktur-Erhalt: 96637447 (Differential, Multi-Cluster) und
+  105022686 (HR-Anker, ok/high) unter k2x identisch.
+- TSX-Aufwertungen (audit-pflichtig): 227901743 LEGITIM (Fremdgruppe
+  ausserhalb Footprint raus, Motion unveraendert 0.49 mm/a);
+  113309836 WATCH-ITEM (geometrisch plausibel, aber Motion kippt
+  +1.00 -> -0.27 mm/a, Band medium -> needs_human_review, als
+  Restpunkt fuer P7-E dokumentiert).
+- Ehrlichkeitskosten visuell sauber: 113309843 verliert den ok-Status
+  an Hang-Punkte ausserhalb des Footprints, Dachkern traegt
+  single_track_only.
+
+GATE-ERGEBNIS: bestanden. Keine neue Fehlklasse durch k2x; bekannte
+Carport-/Nebengebaeude-Fehler werden behoben statt erzeugt; ein
+Watch-Item (TSX-Vorzeichenwechsel) dokumentiert.

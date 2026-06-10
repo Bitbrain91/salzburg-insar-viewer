@@ -30,7 +30,7 @@ import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata
 import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { useAppStore } from "../lib/store";
 import type { MlBuildingTrackFilter } from "../lib/store";
-import { consumeAutoFitUrlBuilding, urlCameraOverride } from "../lib/urlState";
+import { consumeAutoFitUrlBuilding, initialHashCamera, urlCameraOverride } from "../lib/urlState";
 
 const tilesBase =
   import.meta.env.VITE_TILES_URL ||
@@ -697,6 +697,27 @@ export default function MapView() {
       hash: true,
     });
 
+    // Deep-Link-Kamera robust anwenden: Der beim App-Boot eingefrorene
+    // URL-Hash gewinnt gegen Konstruktor-Defaults - auch wenn eine
+    // StrictMode-Vorgaenger-Instanz den Live-Hash bereits ueberschrieben
+    // hat (P7-D-W1-T3-Fix, Regression aus dem Run-Auto-Fokus-Umbau).
+    const bootCamera = initialHashCamera();
+    if (bootCamera) {
+      map.jumpTo({
+        center: [bootCamera.lon, bootCamera.lat],
+        zoom: bootCamera.zoom,
+        bearing: bootCamera.bearing,
+        pitch: bootCamera.pitch,
+      });
+      // Auch als "freie Kamera" verankern: der cameraMode-Mount-Effekt
+      // east bearing/pitch sonst auf den Default (-10/45) zurueck, weil
+      // das moveend des jumpTo vor der Handler-Registrierung feuert.
+      lastFreeCameraRef.current = {
+        bearing: bootCamera.bearing,
+        pitch: bootCamera.pitch,
+      };
+    }
+
     basemapRef.current = basemapId;
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }));
 
@@ -1203,9 +1224,17 @@ export default function MapView() {
     );
   }, [mlBuildingTrackFilter, mlBuildingShowExcluded, mlBuildingShowHulls]);
 
+  // Interaktiver Gebaeude-Fokus-Flug. Beim Deep-Link-Boot MIT Kamera-Hash
+  // darf die erste Ausloesung (URL-Selection + async Focus-Kontext) die
+  // Hash-Kamera nicht ueberschreiben (P7-D-W1-T3-Fix).
+  const bootFocusFitSkippedRef = useRef(false);
   useEffect(() => {
     if (!mapRef.current || !focusContextQuery.data?.bounds?.length || !focusBuildingSelection) return;
     if (!isLocalAnomalyRun) return;
+    if (initialHashCamera() && !bootFocusFitSkippedRef.current) {
+      bootFocusFitSkippedRef.current = true;
+      return;
+    }
     const [minLon, minLat, maxLon, maxLat] = focusContextQuery.data.bounds;
     mapRef.current.fitBounds(
       [
