@@ -100,6 +100,11 @@ export function applyUrlStateToStore(
     next.basemapId = basemap as BasemapId;
   }
 
+  const camera = params.get("camera");
+  if (camera === "default" || camera === "nadir" || /^track:[\w-]+:\d+$/.test(camera ?? "")) {
+    next.cameraMode = camera as AppState["cameraMode"];
+  }
+
   const gba = parseBoolean(params.get("gba"));
   const osm = parseBoolean(params.get("osm"));
   // `rawtracks=0` blendet alle rohen InSAR-Track-Layer aus (Audit-Ansicht):

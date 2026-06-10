@@ -372,6 +372,24 @@ das automatische Verdikt.
 4. Reassignment unveraendert BEHALTEN (no_reassign verschlechtert).
 5. `a4_osm` zurueckstellen (kein messbarer Effekt in den AOIs).
 
+### Nachtrag UI-Komfort (User-Auftrag 2026-06-10, nach Schritt 4)
+
+Zwei kleine Viewer-Erweiterungen fuer die manuelle visuelle Analyse:
+
+- Kamera-Modus "Senkrecht von oben (Nadir)" im Perspektive-Dropdown
+  (`cameraModes.ts`: `NADIR_CAMERA_PRESET`; Rotation/Pitch gesperrt wie bei
+  den LOS-Presets, Pan/Zoom frei). Zusaetzlich Deep-Link-Parameter
+  `camera=default|nadir|track:<dataset>:<track>`.
+- Auto-Fokus auf die Run-Area: Bei Auswahl eines Runs in "Letzte
+  Auswertungen" fliegt die Karte auf dessen BBox (MapView-Effekt auf
+  Run-Detail-`bbox`; Mount-Guard, damit Deep-Link-/Gebaeude-Auto-Fit
+  Vorrang behalten; aktuelle Perspektive bleibt erhalten).
+
+Playwright-verifiziert: Nadir-Hash ohne Pitch/Bearing, Run-Klick BG
+(`#17.06/47.119949/13.140031` = bg_slope_01) und zurueck nach Salzburg
+(Osthang), Deep-Link-Regression unveraendert, `?camera=nadir` laedt
+direkt senkrecht.
+
 ### DoD-Abweichung (ehrlich ausgewiesen)
 
 Das "Visual-Audit vorher/nachher" fuer den nearest-heavy Fall ist

@@ -1165,6 +1165,34 @@ export default function MapView() {
     });
   }, [focusContextQuery.data]);
 
+  // Auto-Fokus auf die Run-Area: Waehlt der User einen anderen Run aus,
+  // fliegt die Karte auf dessen BBox. Der Ref startet mit dem Mount-Wert,
+  // damit Seitenstart/Deep-Link (Gebaeude-Auto-Fit bzw. Kamera-Hash haben
+  // Vorrang) keinen Flug ausloesen. Perspektive (Nadir/LOS) bleibt erhalten.
+  const runFocusRef = useRef<string | null>(useAppStore.getState().activeRunId);
+  useEffect(() => {
+    const map = mapRef.current;
+    const detail = activeRunQuery.data;
+    if (!map || !detail || !activeRunId) return;
+    if (detail.run_id !== activeRunId) return;
+    if (runFocusRef.current === activeRunId) return;
+    runFocusRef.current = activeRunId;
+    const bbox = detail.bbox;
+    if (!bbox || bbox.length !== 4) return;
+    map.fitBounds(
+      [
+        [bbox[0], bbox[1]],
+        [bbox[2], bbox[3]],
+      ],
+      {
+        padding: 60,
+        duration: 700,
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+      }
+    );
+  }, [activeRunQuery.data, activeRunId]);
+
   useEffect(() => {
     if (!mapRef.current) return;
     applyMlBuildingFocusFilters(

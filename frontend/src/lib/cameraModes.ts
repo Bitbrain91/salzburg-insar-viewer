@@ -1,6 +1,6 @@
 import type { TrackMetadata } from "./configMetadata";
 
-export type CameraMode = "default" | `track:${string}:${number}`;
+export type CameraMode = "default" | "nadir" | `track:${string}:${number}`;
 
 export type CameraPreset = {
   bearing: number;
@@ -13,6 +13,17 @@ export type CameraPreset = {
 export const DEFAULT_MAP_BEARING = -10;
 export const DEFAULT_MAP_PITCH = 45;
 export const TRACK_CAMERA_PITCH = 38.8;
+
+// Senkrechte Draufsicht fuer visuelle Analysen (Audit-Standard, P7):
+// Pan/Zoom bleiben frei, Rotation/Pitch werden wie bei den LOS-Presets
+// gesperrt, damit die Karte zuverlaessig von oben bleibt.
+export const NADIR_CAMERA_PRESET: CameraPreset = {
+  bearing: 0,
+  pitch: 0,
+  label: "Senkrecht von oben (Nadir)",
+  overlayTitle: "Nadir",
+  overlayText: "Senkrechte Draufsicht (Audit-Standard)",
+};
 
 export function cameraModeForTrack(datasetId: string, track: number): CameraMode {
   return `track:${datasetId}:${track}`;
@@ -50,6 +61,7 @@ export function cameraPresetForMode(
   mode: CameraMode,
   tracks: TrackMetadata[]
 ): CameraPreset | null {
+  if (mode === "nadir") return NADIR_CAMERA_PRESET;
   const parsed = parseTrackCameraMode(mode);
   if (!parsed) return null;
   const track = tracks.find(

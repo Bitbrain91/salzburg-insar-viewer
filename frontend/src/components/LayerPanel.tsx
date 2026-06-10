@@ -238,6 +238,7 @@ export default function LayerPanel() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="default">Standardansicht</SelectItem>
+              <SelectItem value="nadir">Senkrecht von oben (Nadir)</SelectItem>
               {cameraOptions.map((option) => (
                 <SelectItem key={option.mode} value={option.mode}>
                   {option.preset.label}
