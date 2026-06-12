@@ -2,7 +2,7 @@
   "schema_version": 1,
   "ticket": "P7-A-W1-T4",
   "stand": "2026-06-10",
-  "notes": "Erwartungen sind semantisch formuliert. Baseline-Runs siehe phase7_baseline_summary.md. Visuelle Bestaetigung der *_suspect-Faelle erfolgt im Visual-Audit (P7-B-W2). P7-V1 (2026-06-10): policy_expectations pinnen fallweise erwartete Status unter Hygiene-Politiken (Schluessel: experiment_id > assignment_policy > smalln_<mode>); ohne Pin gilt fuer Hygiene-Politiken die CLAIM_RANK-Abstufungstoleranz (ehrliche Abschwaechung ok, Aufwertung nie).",
+  "notes": "Erwartungen sind semantisch formuliert. Baseline-Runs siehe phase7_baseline_summary.md. Visuelle Bestaetigung der *_suspect-Faelle erfolgt im Visual-Audit (P7-B-W2). P7-V1 (2026-06-10): policy_expectations pinnen fallweise erwartete Status unter Hygiene-Politiken (Schluessel: experiment_id > assignment_policy > smalln_<mode>); ohne Pin gilt fuer Hygiene-Politiken die CLAIM_RANK-Abstufungstoleranz (ehrliche Abschwaechung ok, Aufwertung nie). 2026-06-12: Der Pin a5_crosslook=['ok'] bei 96959851 bleibt bewusst stehen - er beschreibt das DETERMINISTISCHE k2x-Verhalten (Noop-Stabilitaet), NICHT die fachliche Korrektheit; die fachliche Soll-Erwartung an die NAECHSTE Politik steht im Feld residual_contamination desselben Falls und wird erst mit Existenz dieser Politik als neuer Pin formalisiert.",
   "cases": [
     {
       "case_id": "mirabell_standard_weak_secondary",
@@ -26,7 +26,7 @@
       "dataset_id": "salzburg_snt",
       "building_id": "96637447",
       "case_type": "differential_motion",
-      "expectation": "Multi-Cluster mit differential_motion_flag bleibt erhalten; Wegglaetten zu einem Cluster ist candidate_red. Hinweis: t44:cluster_3 ist nearest-dominiert (3/3, 7.0 m) - Differenzial-Semantik darf nicht an einem Fremdcluster haengen."
+      "expectation": "Multi-Cluster mit differential_motion_flag bleibt erhalten; Wegglaetten zu einem Cluster ist candidate_red. Hinweis: t44:cluster_3 ist nearest-dominiert (3/3, 7.0 m) - Differenzial-Semantik darf nicht an einem Fremdcluster haengen. NACHTRAG 2026-06-12 (Survivors-Scan): 4 ueberlebende t44-Cores an der Ostkante liegen auf der ANTI-Layover-Seite (physikalisch nicht dacherklaerbar); der cluster_3-Vorbehalt ist damit geometrisch belegt, Experten-Gegenlabeling vorgemerkt (phase7_survivors_scan_s6.md)."
     },
     {
       "case_id": "moosstrasse_differential_low_agreement",
@@ -165,14 +165,31 @@
       "dataset_id": "salzburg_snt",
       "building_id": "96959851",
       "case_type": "carport_nearest_main_suspect",
-      "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden.",
+      "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden. NACHTRAG 2026-06-12: Der Fall ist unter k2x nur TEILGELOEST - eine zweite Kontaminationsklasse (unkartiertes Nebengebaeude, along-look) blieb im Main-Cluster; siehe residual_contamination.",
       "policy_expectations": {
         "a1_demote": ["insufficient_support"],
         "a3_height": ["single_track_only"],
         "a5_crosslook": ["ok"]
       },
-      "visual_confirmation": "confirmed_2026-06-10",
-      "a5_note": "P7-V3 2026-06-10: Unter a5_crosslook (Median+3*MAD-Anker) werden genau die 3 cross+13m-nearest demotiert, der vergiftete directional-Punkt faellt ohne deren Verstaerkung von selbst zu Noise, der t95-Main besteht aus 4 cross-konsistenten Punkten (-0.9) -> ok MIT sauberem Cluster ist hier das normative Ziel (Selektivitaet, die a1 nicht leistet)."
+      "visual_confirmation": "confirmed_2026-06-10; residual_contamination_user_2026-06-11",
+      "a5_note": "P7-V3 2026-06-10: Unter a5_crosslook (Median+3*MAD-Anker) werden genau die 3 cross+13m-nearest demotiert, der vergiftete directional-Punkt faellt ohne deren Verstaerkung von selbst zu Noise, der t95-Main besteht aus 4 cross-konsistenten Punkten (-0.9). REVISION 2026-06-12: Die damalige Folgerung 'ok MIT sauberem Cluster = normatives Ziel erreicht' ist ueberholt - 'cross-konsistent' war ein ZIRKULAERES Kriterium (gleiche Achse wie die Politik). a5 prueft nur QUER zur Blickrichtung; das unkartierte Nebengebaeude liegt fuer beide Tracks LAENGS der Blickachse und ist fuer a5 strukturell unsichtbar. a5 bleibt korrekt fuer die +13m-Quer-Klasse, loest aber nicht den Gesamtfall.",
+      "residual_contamination": {
+        "source": "user_report",
+        "date": "2026-06-11",
+        "structure": "Unkartiertes Nebengebaeude mit Blechdach oestlich des Hauses (weder GBA noch OSM; Google-Maps-3D: eigener Baukoerper + tieferes Blech-Verbindungsdach). DB-verifiziert: kein kartiertes Objekt an den Punktpositionen (naechste 4.0/8.1 m).",
+        "points": [
+          {"code": "O2HC2XV01", "track": 44, "role": "noise", "evidence": "BEWIESEN fremd: anti-layover (dot -0.95, 2.9 m oestlich; t44/ASC verschiebt nur nach Westen) + 5-8.5 m unter Dachpunkten. Score-neutral, Zuordnung dennoch falsch."},
+          {"code": "NTC3CYZ01", "track": 95, "role": "core", "evidence": "SEHR WAHRSCHEINLICH fremd: d_fp 8.1 m -> implizite Reflektorhoehe 10.2 m bei plausiblen 7.9 m (GBA 3.6 m / Ratio 0.735 + 3 m). Praegt Motion-Score."},
+          {"code": "NTDA86J01", "track": 95, "role": "core", "evidence": "WAHRSCHEINLICH fremd: directional, d_fp 4.0 m, Hoehe -3.6 m unter Dach-Anker; staerkster negativer Beweger (-1.7 mm/a). Geometrisch allein nicht entscheidbar (Layover-Korridor)."}
+        ],
+        "consequence": "t95-Main-Motion -0.64 mm/a nicht belastbar (unstrittige Dachpunkte: +0.1/+0.4). PRUEFSTEIN fuer die naechste Politik (P7-N5): NTC3CYZ01 + NTDA86J01 muessen demotiert werden, OHNE NTF2IZV01/NTG9E7F01 zu verlieren; O2HC2XV01 darf nicht zugeordnet bleiben.",
+        "artifacts": [
+          "phase7_visual_96959851_k2x_survivors_zoom.png",
+          "phase7_visual_96959851_user_aerial_marked.png",
+          "phase7_visual_96959851_user_gmaps3d_1.jpg",
+          "phase7_survivors_scan_s6.md"
+        ]
+      }
     }
   ]
 }

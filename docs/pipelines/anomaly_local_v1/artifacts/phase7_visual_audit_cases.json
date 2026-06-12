@@ -1,12 +1,14 @@
 {
   "schema_version": 1,
-  "ticket": "P7-B-W2 (Schritt 1) + P7-D-W1-T3 (Schritt 6: Shortlist-Audit Baseline vs k2x, 14 Faelle)",
-  "stand": "2026-06-10",
+  "ticket": "P7-B-W2 (Schritt 1) + P7-D-W1-T3 (Schritt 6: Shortlist-Audit Baseline vs k2x, 14 Faelle) + Survivors-Pass-Nachtraege (2026-06-12)",
+  "stand": "2026-06-12",
   "camera_standard": "Nadir pitch=0, Nord oben; Baseline und Kandidat desselben Falls mit identischer Kamera (Deep-Link-Hash). Schraegansicht nur fuer Hoehenfragen mit gba=1.",
+  "survivors_pass_note": "2026-06-12: Rueckwirkender Survivors-Scan ueber alle 14 audit_s6_*-Faelle (phase7_survivors_scan_s6.{json,md}); Anlass: User-Befund 96959851 (unkartiertes Nebengebaeude blieb als Core unentdeckt, weil das Audit nur Demotierte prueft). Faelle mit befundrelevanten Flags tragen ein datiertes assessment_addendum; 238100070/238057563/227901749 hatten ausschliesslich Noise-Flags (score-neutral, siehe Scan-MD).",
   "label_set": [
     "plausible_main_roof_cluster",
     "possible_carport_merge",
     "possible_outbuilding_as_main",
+    "unmapped_structure_merge",
     "track_part_mismatch",
     "offset_expected_due_to_sar_geometry",
     "offset_within_sensor_tolerance",
@@ -94,16 +96,39 @@
         "phase7_s6_96959851_base.png",
         "phase7_s6_96959851_base_annotated.png",
         "phase7_s6_96959851_k2x.png",
-        "phase7_s6_96959851_k2x_annotated.png"
+        "phase7_s6_96959851_k2x_annotated.png",
+        "phase7_visual_96959851_k2x_survivors_zoom.png"
       ],
       "labels_baseline": [
         "possible_carport_merge"
       ],
       "labels_candidate": [
-        "plausible_main_roof_cluster"
+        "possible_outbuilding_as_main",
+        "unmapped_structure_merge",
+        "needs_human_review"
       ],
       "assessment": "PFLICHTFALL (User-Befund, bestaetigt). Baseline: rote Kern-Saeule an der Ostkante AUF Nachbarstrukturen (nearest, cross+13m). k2x: exakt diese Saeule grau demotiert (nearest_crosslook_outlier), der vergiftete directional-Punkt (+13m) faellt zu Noise, Main = 4 cross-konsistente Dachpunkte. Status bleibt ok MIT sauberem Cluster - normatives Zielverhalten erreicht.",
-      "auditor": "claude_supervisor_session_s6"
+      "assessment_addendum_2026_06_12": "REVISION (User-Befund 2026-06-11, Luftbild + Google-Maps-3D): Die urspruengliche Kandidaten-Bewertung 'plausible_main_roof_cluster / normatives Zielverhalten erreicht' ist UEBERHOLT. Oestlich des Hauses steht ein in GBA UND OSM unkartiertes Nebengebaeude mit Blechdach (plus tieferem Blech-Verbindungsdach); DB-verifiziert: kein kartiertes Objekt an den Punktpositionen (naechste Objekte 4.0/8.1 m). Von den 4 verbliebenen t95-Main-Cores gehoeren NTC3CYZ01 (nearest, d_fp 8.1 m, implizite Reflektorhoehe 10.2 m > plausibel 7.9 m) und NTDA86J01 (directional, d_fp 4.0 m, Hoehe -3.6 m unter Dach-Anker) sehr wahrscheinlich zum Nebengebaeude; O2HC2XV01 (t44 noise, anti-layover dot -0.95) beweisbar. Motion -0.64 mm/a damit weiter kontaminiert (saubere Dachpunkte +0.1/+0.4). NTG9E7F01 visuell gedeckt (Dach-Westkante/Traufe). Fall nur TEILGELOEST; Pruefstein fuer die naechste Politik (siehe phase7_reference_cases.json residual_contamination). Audit-Methodikfehler: zirkulaeres Cross-Kriterium + nur Demotierte geprueft -> Survivors-Pass jetzt Pflichtschritt.",
+      "auditor": "claude_supervisor_session_s6 + user_report_2026-06-11"
+    },
+    {
+      "case_id": "audit_96959851_unmapped_outbuilding_user",
+      "building_id": "96959851",
+      "run_id": "4a58de67-834c-4c5c-b598-1d548ae4bea3",
+      "deep_link": "/?run=4a58de67-834c-4c5c-b598-1d548ae4bea3&area=salzburg&building=gba:96959851&mlview=cluster&hulls=1&rawtracks=0&basemap=satellite#19.5/47.792373/13.028509",
+      "screenshots": [
+        "phase7_visual_96959851_k2x_survivors_zoom.png",
+        "phase7_visual_96959851_user_aerial_marked.png",
+        "phase7_visual_96959851_user_gmaps3d_1.jpg",
+        "phase7_visual_96959851_user_gmaps3d_2.jpg",
+        "phase7_visual_96959851_user_gmaps3d_3.jpg"
+      ],
+      "labels": [
+        "unmapped_structure_merge",
+        "possible_outbuilding_as_main"
+      ],
+      "assessment": "User-Befund 2026-06-11/12: Die graue Flaeche oestlich von gba:96959851 ist ein eigenstaendiges kleines Nebengebaeude mit Blechdach (Google-Maps-3D: eigenstaendiger Baukoerper entlang der Strasse, verbunden ueber ein tieferes Blechdach zum Haus), das weder in GBA noch in OSM existiert. Blechdaecher sind starke Radarreflektoren - drei stabile PS-Punkte (O2HC2XV01 t44, NTDA86J01 + NTC3CYZ01 t95) liegen auf/an der Struktur und wurden dem Haus zugeschrieben. Diese Fehlerklasse ist mit footprint-/OSM-basierten Checks PRINZIPIELL nicht erkennbar (Objekt fehlt in den Daten) und nur durch visuelle Luftbild-/3D-Pruefung oder hoehen-/layovergestuetzte Plausibilitaetschecks zu fangen. Geometrie-Koinzidenz: Die Struktur liegt fuer BEIDE Tracks ueberwiegend laengs der Blickrichtung -> a5 (Quer-Achse) strukturell blind; auf t44 anti-layover (beweisbar fremd), auf t95 im Layover-Korridor (geometrisch unentscheidbar, aber Reichweite/Hoehe implausibel).",
+      "auditor": "user_report + claude_supervisor_session (DB-Verifikation, Survivors-Scan)"
     },
     {
       "case_id": "audit_s6_96856632_k2x",
@@ -129,6 +154,7 @@
         "needs_human_review"
       ],
       "assessment": "Ambivalenter Fall: 3 nearest-Kerne (cross -7.0) an der SW-Kante bleiben unter k2x (von directional-Anker +6.9 gedeckt); nur ankerloser t95-Punkt demotiert. k2x laesst die Ambivalenz ehrlich stehen (small_n); a1/k2 wuerden hart ausschliessen. Dokumentierter Selektivitaets-Trade-off.",
+      "assessment_addendum_2026_06_12": "Survivors-Scan quantifiziert die Ambivalenz zugunsten von Hypothese B (Nebenstruktur): Die ueberlebenden t44-Cores O36XPYJ01 (d_fp 13.3 m) und O355F5701 (10.1 m) braeuchten implizite Reflektorhoehen von 16.6 bzw. 12.5 m - ueber der saettigungskorrigierten Plausibilitaetsgrenze 10.6 m und klar ueber einem Einfamilienhaus; das Gebaeude hat auf t44 KEINEN within-Hoehenanker. Visuell sitzen die Punkte an/auf der kleinen SW-Nebenstruktur. Kandidat fuer Experten-Gegenlabeling; ein Layover-Reichweiten-Check (P7-N5) wuerde beide demotieren.",
       "auditor": "claude_supervisor_session_s6"
     },
     {
@@ -195,9 +221,14 @@
         "plausible_main_roof_cluster"
       ],
       "labels_candidate": [
-        "plausible_main_roof_cluster"
+        "plausible_main_roof_cluster",
+        "needs_human_review"
       ],
       "assessment": "Differential-Anker: 0 Rollenwechsel unter k2x, Multi-Cluster + differential-Kontext (0.74) identisch erhalten. Hinweis bleibt: t44:cluster_3 ist nearest-dominiert, aber cross-konsistent - kuenftige Baustelle, kein k2x-Schaden.",
+      "assessment_addendum_2026_06_12": "Survivors-Scan verschaerft den cluster_3-Vorbehalt mit hartem Geometriebefund: 4 ueberlebende t44-Cores an der OSTKANTE liegen auf der ANTI-Layover-Seite (O37J5KI01/O384L6A01 dot -0.26 mit Hoehe -4.6/-7.5 m unter Anker, O355F5A01 dot -0.45, O36XPYO01 dot -0.84) - fuer t44/ASC physikalisch nicht als Dachpunkte erklaerbar ('cross-konsistent' reichte als Kriterium nicht, vgl. Fall 96959851). Zwei West-Cores (O33D4C101/O32ROQ901, h_impl 16.0/14.8 m, v +2.7/+3.0) sind dagegen durch GBA-Hoehensaettigung des grossen Blocks plausibel deckbar. Differential-Semantik selbst bleibt erhalten, darf aber nicht an cluster_3 haengen; Experten-Gegenlabeling + Anti-Layover-Check (P7-N5) noetig. Beleg: phase7_visual_96637447_k2x_survivors_zoom.png.",
+      "screenshots_addendum": [
+        "phase7_visual_96637447_k2x_survivors_zoom.png"
+      ],
       "auditor": "claude_supervisor_session_s6"
     },
     {
@@ -411,6 +442,10 @@
         "needs_human_review"
       ],
       "assessment": "WATCH-ITEM: TSX-Hang-Aufwertung noise->ok unter k2x. Demotierte Punkte liegen plausibel ausserhalb (N/S), ABER Motion kippt +1.00 -> -0.27 mm/a (Band medium). Geometrisch begruendbar, aber Vorzeichenwechsel verlangt menschliche Pruefung/Cross-Track-Korroboration.",
+      "assessment_addendum_2026_06_12": "Survivors-Scan liefert einen konkreten Verdachtsmechanismus fuer den Vorzeichenwechsel: Drei ueberlebende t70-Cores (DQU3HDL/DQUOWZC/DQUOWZD, v -2.6..-3.4 mm/a) liegen 13.7-15.0 m UEBER den within-Dachankern - am Osthang visuell vereinbar mit Returns von Hangstrukturen/oberhalb liegenden Objekten statt vom Dach. Genau diese Punkte sind die staerksten negativen Beweger; ohne sie kippt das Vorzeichen vermutlich nicht. Watch-Item-Prioritaet ERHOEHT (P7-N4); Experten-Gegenlabeling vor jeder Verwendung des -0.27-Werts. Beleg: phase7_visual_113309836_k2x_survivors_zoom.png.",
+      "screenshots_addendum": [
+        "phase7_visual_113309836_k2x_survivors_zoom.png"
+      ],
       "auditor": "claude_supervisor_session_s6"
     }
   ]
