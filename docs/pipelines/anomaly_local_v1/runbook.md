@@ -152,6 +152,16 @@ Interpretation:
 - Experiment-Runs aus dem Phase-7-Harness tragen ein violettes Badge
   in "Letzte Auswertungen"; ihre vollstaendige Konfiguration steht im
   Transparenz-Panel (params.experiment_config).
+- **Bekannte Grenze von v2_k2x (2026-06-12, Fall 96959851):** Die
+  a5-Politik prueft nur den QUER-Versatz zur Blickrichtung.
+  Fremdstrukturen, die LAENGS der Blickachse liegen - insbesondere
+  unkartierte Objekte, die weder in GBA noch in OSM existieren
+  (z. B. Nebengebaeude/Blechdaecher) - bleiben unentdeckt und koennen
+  als Cores den Motion-Score praegen. Ueberlebende Punkte ausserhalb
+  des Footprints daher nie unbesehen als Dachpunkte lesen:
+  Survivors-Pass (`phase7_survivors_scan.py`) + Luftbild-Pruefung,
+  siehe `artifacts/phase7_visual_audit_report.md` (Workflow v2).
+  Abhilfe-Kandidaten sind als P7-N5 in `next_steps.md` spezifiziert.
 
 ## Woran gute Ergebnisse erkennbar sind
 - Punkte eines Gebaeudes liegen ueberwiegend in 1-2 plausiblen lokalen Clustern.

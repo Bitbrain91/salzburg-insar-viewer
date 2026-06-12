@@ -252,22 +252,83 @@ unveraendert), 113309836 zeigt einen Vorzeichenwechsel (+1.00 ->
 Scorecard zaehlt solche Aufwertungen jetzt maschinell
 (status_upgrades_vs_baseline) - bei kuenftigen Kandidaten Pflichtblick.
 
-## P7-N5: Directional-Kontamination via Candidate-Area (Hoehenstrategie)
+## P7-N5: Assignment-Hygiene 2 - along-look, Hoehe, unkartierte Strukturen (erweitert 2026-06-12)
 
-Die verschobene Candidate-Area kann Fremdpunkte als `directional`
-fangen (Fall 96959851: directional-Punkt bei cross +13 m; faellt unter
-k2x nur indirekt zu Noise). Ursache haengt an der GBA-Hoehenqualitaet
-(Audit P7-A-W1-T6: Ratio 0.735, Saturierung). Optionen O1-O4 aus dem
-Hoehen-Audit (u. a. Hoehenkorrektur, var-Feld, OSM-Fusion) bleiben
-offen; eine Anker-Plausibilisierung der directional-Punkte (gleiche
-MAD-Logik wie a5, auf directional angewandt) waere die generische
-Alternative ohne Hoehenabhaengigkeit.
+**Neue Fehlerklasse (User-Befund 2026-06-11, Fall 96959851): Fremdpunkte
+unkartierter Strukturen.** Ein Nebengebaeude mit Blechdach, das weder in
+GBA noch in OSM existiert, traegt 3 stabile PS-Punkte, von denen 2 als
+t95-Cores den Motion-Score praegen (Blechdaecher = starke Reflektoren).
+Footprint-/OSM-basierte Fremdobjekt-Checks (a4) koennen diese Klasse
+PRINZIPIELL nie fangen - das Objekt fehlt in den Daten. Die produktive
+a5-Politik ist zusaetzlich strukturell blind, weil sie nur die QUER-Achse
+prueft und die Struktur fuer beide Tracks laengs der Blickachse liegt.
+Evidenz: `artifacts/phase7_reference_cases.json` (residual_contamination),
+`artifacts/phase7_survivors_scan_s6.md`, Visual-Audit-Report v2.
 
-## P7-N6: Track-22-Ost-Diagnose + Bad-Gastein-Amplituden
+Drei generische, kartierungsfreie Check-Kandidaten (alle selbstkalibrierend,
+keine Gebietskonstanten; Vorsortier-Versionen existieren bereits im
+Survivors-Scan-Tooling und sind dort am Fall validiert):
 
-Unveraendert offen aus dem Phase-7-Plan (Track 22 deckt die Ost-AOIs
-nicht; Amplituden fuer bad_gastein_snt fehlen) - reine Daten-/
-Beschaffungsthemen, kein Algorithmus-Blocker.
+1. **Anti-Layover-Vorzeichen-Check (hart, physikalisch):** Punkte ausserhalb
+   des Footprints, deren Versatz ENTGEGEN der Range-Verschiebungsrichtung
+   (range_dx/dy) liegt (Anti-Komponente > Geocoding-Toleranz), sind als
+   Dachpunkte nicht erklaerbar -> demote. Faengt O2HC2XV01-Typ; null Risiko
+   fuer echte Dachpunkte. Survivors-Scan-Beifang: auch Fall 96637447
+   (4 anti-layover-t44-Cores am Differential-Anker).
+2. **Layover-Reichweiten-Check:** implizite Reflektorhoehe d_fp/tan(inc)
+   gegen plausible Gebaeudehoehe (GBA/0.735 + Marge; Saturierungs-Ratio aus
+   P7-A-W1-T6). Faengt NTC3CYZ01-Typ (10.2 m noetig bei 3.6-m-Haus) und
+   96856632 (12.5-16.6 m). VORSICHT: bei stark gesaettigten Hoehen grosser
+   Gebaeude (105022686) ist der Check Hoehenfehler-Diagnostik - Kopplung an
+   die Hoehenoptionen O1-O4 des Hoehen-Audits noetig.
+3. **Anker-Plausibilisierung auf directional ausweiten + Hoehenprofil:**
+   gleiche MAD-Logik wie a5 auf directional-Punkte (NTDA86J01-Typ ist
+   geometrisch unentscheidbar, faellt aber im Hoehenprofil auf: -3.6 m
+   unter Dach-Anker als staerkster Beweger). Das nie getestete Komposit
+   **k2xh = a5_crosslook + a3_height + smalln_strict** ist der natuerliche
+   naechste Harness-Kandidat, erweitert um Checks 1-2 als eigene Varianten.
+
+**Pruefstein fuer jeden Kandidaten:** Fall 96959851 - NTC3CYZ01 und
+NTDA86J01 muessen demotiert werden, OHNE NTF2IZV01/NTG9E7F01 zu verlieren;
+O2HC2XV01 darf nicht zugeordnet bleiben (residual_contamination-Block).
+Zweitpruefstein 96637447 (anti-layover-Cores raus, Differential-Semantik
+und echte Dachkerne unveraendert). Watch-Item 113309836 (P7-N4) mitziehen:
+die 3 ueber-Anker-Cores (+13.7-15 m) erklaeren moeglicherweise den
+Vorzeichenwechsel.
+
+Hinweis Amplituden (siehe P7-N6): hohe, stabile Amplitude koennte die
+Blechdach-/Fremdstruktur-Hypothese als ZUSATZSIGNAL stuetzen - als
+Feature-Experiment in derselben Mini-Phase pruefbar.
+
+## P7-N6: Track-22-Ost-Diagnose + Bad-Gastein-Amplituden (aktualisiert 2026-06-12)
+
+**Bad-Gastein-Amplituden: ERLEDIGT (Datenbeschaffung).** Integration durch
+parallele Session (areas_manifest amplitude_path + prepare_insar +
+PostGIS-Load), verifiziert 2026-06-12: `insar_amplitude_timeseries` hat
+fuer bad_gastein_snt t44 17.0 Mio Zeilen (185 283 Punkte) und t95 13.5 Mio
+(149 861); `insar_points.amp_mean` ist zu 63.0 % (t44) bzw. 53.4 % (t95)
+befuellt - die Amplituden-Exports decken den Talkorridor ab, Teilabdeckung
+ist erwartet. Track 22 und TSX/PAZ weiterhin ohne Amplituden.
+
+Konsequenzen fuer die naechste Mini-Phase:
+
+- **Re-Baseline der BG-AOIs als Pflicht-Erstschritt:** Die Pipeline nutzt
+  Amplituden-Features produktiv (amp_ts_cv-Gate `unstable_amplitude`,
+  amp_quality im Scoring). Die persistierten v2_k2x-Baselines der BG-AOIs
+  entstanden OHNE Amplituden-Input; frische BG-Laeufe weichen jetzt ab ->
+  `--verify-noop` bricht auf bg_* erwartungsgemaess, bis neue Baselines
+  persistiert sind (Datenstands-Wechsel dokumentieren, alte Baselines als
+  legacy behalten). Salzburg ist unbetroffen (Amplituden seit Januar).
+- **Amplituden-Feature-Kandidaten fuer den Harness:** amp_ts_* wirken
+  bisher nur als Qualitaets-Gate/-Score, nie als Hygiene-Signal. Hypothese
+  "hohe + stabile Amplitude ausserhalb des Footprints = Blechdach-/
+  Fremdstruktur-Indikator" (Fall 96959851); Erstbefund siehe
+  `artifacts/phase7_amplitude_recon.md`. Moegliche Achsen: amp_mean-Rang
+  im Gebaeudekontext, amp_ts_cv als Anker-Gewicht, Amplituden-Konsistenz
+  pro Cluster.
+
+**Track-22-Ost-Diagnose: unveraendert offen** (Track 22 deckt die Ost-AOIs
+nicht; reines Datenthema, kein Algorithmus-Blocker).
 
 ## P7-N7: UI-Kennzeichnung demotierter Punkte
 

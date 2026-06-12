@@ -824,3 +824,44 @@ Wesentliche fachliche Ausbeute der Phase 7:
 5. OPTICS und Parameter-/Feature-Achsen bringen keinen fachlichen
    Gewinn (alle red/wirkungslos); High-N/TSX-leaf ist eine echte, aber
    regime-konditionale Folgephasen-Chance.
+
+---
+
+# Nachtrag 2026-06-12: Fall 96959851 teilgeloest (User-Befund), Survivors-Pass eingefuehrt
+
+Der User wies per Luftbild + Google-Maps-3D nach, dass beim Pflichtfall
+96959851 nach der k2x-Demotion der +13m-Quergruppe eine ZWEITE
+Kontaminationsklasse im t95-Main-Cluster ueberlebte: 2 Cores (NTC3CYZ01,
+NTDA86J01) + 1 Noise (O2HC2XV01, t44) stammen sehr wahrscheinlich von
+einem in GBA UND OSM unkartieren Nebengebaeude mit Blechdach oestlich
+des Hauses (DB-verifiziert: kein kartiertes Objekt an den
+Punktpositionen). Konsequenzen fuer die Lesart dieses Reports:
+
+- **S6-D3 (Visual-Audit) und S6-E1 (Entscheidung) sind zu relativieren:**
+  Der Fall 96959851 ist KEIN "geloest"-Beleg mehr, sondern teilgeloest -
+  der dortige Kandidaten-Befund "Main = 4 cross-konsistente Dachpunkte,
+  normatives Zielverhalten erreicht" beruhte auf einem zirkulaeren
+  Kriterium (Cross-Konsistenz = Politik-Achse) und prueft nur Demotierte,
+  nicht Ueberlebende. Motion -0.64 mm/a des Gebaeudes ist nicht belastbar.
+- **Die k2x-Integrationsentscheidung selbst bleibt gerechtfertigt:** Die
+  entfernte +13m-Quer-Klasse war real und beweisbar; a5 leistet exakt
+  das, wofuer es gebaut wurde. Die neue Fehlerklasse (unkartierte
+  Strukturen laengs der Blickachse) liegt strukturell ausserhalb der
+  a5-Reichweite und definiert die naechste Mini-Phase (P7-N5 erweitert).
+- **Audit-Methodik nachgeschaerft (Workflow v2):** Survivors-Pass als
+  Pflichtschritt (phase7_survivors_scan.py: anti_layover /
+  implied_height / height_outlier als Vorsortierung), Annotation mit
+  Punkt-Codes + Footprint-Overlay + Zoom-Crop. Rueckwirkender Scan ueber
+  alle 14 S6-Faelle: 96637447 (4 anti-layover-t44-Cores, cluster_3-
+  Vorbehalt geometrisch belegt), 96856632 (Hypothese B quantifiziert),
+  113309836 (Watch-Item verschaerft: die 3 staerksten negativen Beweger
+  liegen +13.7-15 m UEBER den Dachankern). Uebrige Faelle gedeckt.
+- **Evidenz:** artifacts/phase7_survivors_scan_s6.{json,md},
+  artifacts/phase7_visual_96959851_k2x_survivors_zoom.png,
+  artifacts/phase7_visual_96959851_user_*.{png,jpg},
+  phase7_reference_cases.json (residual_contamination = Pruefstein),
+  phase7_visual_audit_report.md (v2 + Lessons Learned).
+- **Zusatz:** Bad-Gastein-Amplituden (SNT t44/95) sind seit 2026-06-12 in
+  der DB (Talkorridor, 63 %/53 % Punktabdeckung); BG-Baselines muessen zu
+  Beginn der naechsten Mini-Phase neu persistiert werden (Datenstands-
+  Wechsel; Details P7-N6, Erstbefund phase7_amplitude_recon.md).
