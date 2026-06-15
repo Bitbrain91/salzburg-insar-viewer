@@ -72,12 +72,14 @@
         {
           "track_id": 44,
           "layer": "44",
-          "los": "A"
+          "los": "A",
+          "amplitude_path": "data/Daten/austria_snt_t44_a_amp.gpkg"
         },
         {
           "track_id": 95,
           "layer": "95",
-          "los": "D"
+          "los": "D",
+          "amplitude_path": "data/Daten/austria_snt_t95_d_amp.gpkg"
         }
       ]
     },

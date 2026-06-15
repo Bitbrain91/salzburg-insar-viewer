@@ -14,19 +14,24 @@ Der Salzburg InSAR Viewer stellt bodenbasierte Deformationsmessungen (InSAR) vis
 ### InSAR-Daten
 Quelle: lokale GeoPackages im Repo unter `insar_viewer_app/data/Daten`.
 Dateien:
-- `data/Daten/Stadt_Salzburg.gpkg` (Bewegungs-/InSAR-Layer, Tracks 44 und 95)
-- `data/Daten/ASC_T44_AMP.gpkg` (Amplitude-Zeitreihen Track 44)
-- `data/Daten/ASC_T95_AMP.gpkg` (Amplitude-Zeitreihen Track 95)
+- `data/Daten/Stadt_Salzburg.gpkg` (Salzburg: Bewegungs-/InSAR-Layer, Tracks 44 und 95)
+- `data/Daten/ASC_T44_AMP.gpkg` (Salzburg: Amplitude-Zeitreihen Track 44)
+- `data/Daten/ASC_T95_AMP.gpkg` (Salzburg: Amplitude-Zeitreihen Track 95)
+- `data/Daten/Export Bad Gastein.zip` (Bad Gastein: Bewegungs-/InSAR-Layer, SNT-Tracks 22/44/95 und TSX/PAZ-Tracks 70/93)
+- `data/Daten/austria_snt_t44_a_amp.gpkg` (Bad Gastein: Amplitude-Zeitreihen SNT-Track 44)
+- `data/Daten/austria_snt_t95_d_amp.gpkg` (Bad Gastein: Amplitude-Zeitreihen SNT-Track 95)
+
+Fuer Bad Gastein liegen Amplitude-Zeitreihen nur fuer die SNT-Tracks 44 und 95 vor
+(Track 22 und TSX/PAZ ohne Amplitude); die Amplitude-Exports decken den Talkorridor ab,
+daher hat nur ein Teil der Bewegungspunkte Amplitudenwerte.
 
 Aufbereitung:
-- `pipeline/prepare_insar.py` liest die GPKG-Layer, standardisiert Spalten,
-  berechnet `amp_mean`/`amp_std`, extrahiert Amplitude-Zeitreihen und schreibt:
-  - `data/parquet/insar_points_t44.parquet`
-  - `data/parquet/insar_points_t95.parquet`
-  - `data/parquet/insar_timeseries_t44.parquet`
-  - `data/parquet/insar_timeseries_t95.parquet`
-  - `data/parquet/insar_amplitude_timeseries_t44.parquet`
-  - `data/parquet/insar_amplitude_timeseries_t95.parquet`
+- `pipeline/prepare_insar.py` liest die GPKG-Layer gemaess `pipeline/areas_manifest.json`,
+  standardisiert Spalten, berechnet `amp_mean`/`amp_std`, extrahiert Amplitude-Zeitreihen
+  (Tracks mit `amplitude_path`) und schreibt je Track nach `data/parquet/<area_id>/<dataset_id>/`:
+  - `insar_points_t{track}.parquet`
+  - `insar_timeseries_t{track}.parquet`
+  - `insar_amplitude_timeseries_t{track}.parquet`
 
 ### Global Building Atlas (GBA)
 Quelle: lokales GeoJSON
