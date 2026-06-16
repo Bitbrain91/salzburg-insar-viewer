@@ -29,7 +29,7 @@ import {
 import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
 import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { useAppStore } from "../lib/store";
-import type { MlBuildingTrackFilter } from "../lib/store";
+import type { MlBuildingTrackFilter, SearchFocus } from "../lib/store";
 import { consumeAutoFitUrlBuilding, initialHashCamera, urlCameraOverride } from "../lib/urlState";
 
 const tilesBase =
@@ -41,11 +41,20 @@ const apiBase =
 
 const CAMERA_TRANSITION_MS = 700;
 const CAMERA_EPSILON = 0.05;
+const SEARCH_FOCUS_ZOOM = {
+  point: 18.5,
+  building: 20.5,
+  addressLocal: 20.5,
+  addressExternal: 18.5,
+  mlRun: 15,
+};
 const GENERIC_INSAR_SOURCE_ID = "insar_points";
 const GENERIC_INSAR_SOURCE_LAYER = "insar_points";
 const GENERIC_INSAR_OUTLINE_LAYER_ID = "insar_points_outline";
 const GENERIC_INSAR_LAYER_ID = "insar_points";
 const GENERIC_INSAR_SELECTED_LAYER_ID = "insar_selected_points";
+const SEARCH_FOCUS_SOURCE_ID = "search_focus";
+const SEARCH_FOCUS_LAYER_ID = "search_focus_marker";
 const EMPTY_POINT_FILTER = ["==", ["get", "code"], ""] as any;
 const EMPTY_GBA_FILTER = ["==", "gba_id", ""] as any;
 const EMPTY_OSM_FILTER = ["==", "osm_id", ""] as any;
@@ -71,6 +80,31 @@ function setCameraInteractionLock(map: MapLibreMap, locked: boolean) {
   map.touchZoomRotate.enableRotation();
   map.touchPitch.enable();
   map.keyboard.enableRotation();
+}
+
+function getSearchFocusMaxZoom(focus: NonNullable<SearchFocus>) {
+  if (focus.resultType === "ml_run") return undefined;
+  if (focus.resultType === "building") return SEARCH_FOCUS_ZOOM.building;
+  if (focus.resultType === "address") {
+    return focus.external ? SEARCH_FOCUS_ZOOM.addressExternal : SEARCH_FOCUS_ZOOM.addressLocal;
+  }
+  return SEARCH_FOCUS_ZOOM.point;
+}
+
+function getSearchFocusTargetZoom(focus: NonNullable<SearchFocus>) {
+  if (focus.resultType === "ml_run") return SEARCH_FOCUS_ZOOM.mlRun;
+  const maxZoom = getSearchFocusMaxZoom(focus);
+  return maxZoom ?? SEARCH_FOCUS_ZOOM.point;
+}
+
+function getSearchFocusPadding(focus: NonNullable<SearchFocus>) {
+  if (focus.resultType === "ml_run") return 60;
+  return {
+    top: 150,
+    right: 72,
+    bottom: 72,
+    left: 72,
+  };
 }
 
 function applyCameraMode(
@@ -618,11 +652,13 @@ export default function MapView() {
   const mlView = useAppStore((state) => state.mlView);
   const mlTileVersion = useAppStore((state) => state.mlTileVersion);
   const setMapBBox = useAppStore((state) => state.setMapBBox);
+  const searchFocus = useAppStore((state) => state.searchFocus);
   const configQuery = useAppConfig();
   const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
   const appConfigRef = useRef<NormalizedAppConfig>(appConfig);
   const selectedAreaIdRef = useRef(selectedAreaId);
   const previousFitAreaIdRef = useRef(selectedAreaId);
+  const searchAreaFitSkipRequestRef = useRef<number | null>(null);
   const activeSatellitePreset = cameraPresetForMode(cameraMode, appConfig.tracks);
   const focusBuildingSelection = selection?.type === "building" ? selection : null;
 
@@ -855,7 +891,7 @@ export default function MapView() {
   }, [showTrackOutlines, styleVersion]);
 
   useEffect(() => {
-    if (!mapRef.current || styleVersion === 0) return;
+    if (!mapRef.current || styleVersion === 0 || !mapRef.current.isStyleLoaded()) return;
     const map = mapRef.current;
     addCoreSourcesAndLayers(map);
     const state = useAppStore.getState();
@@ -872,6 +908,14 @@ export default function MapView() {
     if (previousAreaId === selectedAreaId) return;
     const area = appConfig.areas.find((candidate) => candidate.id === selectedAreaId);
     previousFitAreaIdRef.current = selectedAreaId;
+    const currentSearchFocus = useAppStore.getState().searchFocus;
+    if (
+      currentSearchFocus?.areaId === selectedAreaId &&
+      searchAreaFitSkipRequestRef.current !== currentSearchFocus.requestId
+    ) {
+      searchAreaFitSkipRequestRef.current = currentSearchFocus.requestId;
+      return;
+    }
     if (!area?.bounds) return;
 
     const [minLon, minLat, maxLon, maxLat] = area.bounds;
@@ -1215,6 +1259,30 @@ export default function MapView() {
   }, [activeRunQuery.data, activeRunId]);
 
   useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) return;
+    if (!searchFocus) {
+      removeSearchFocusMarker(map);
+      ensureLayerOrder(map);
+      return;
+    }
+    applySearchFocusToMap(map, searchFocus);
+  }, [searchFocus?.requestId, styleVersion]);
+
+  useEffect(() => {
+    const handleSearchFocus = (event: Event) => {
+      const focus = (event as CustomEvent<SearchFocus>).detail;
+      const map = mapRef.current;
+      if (!focus || !map || !map.isStyleLoaded()) return;
+      applySearchFocusToMap(map, focus);
+    };
+    window.addEventListener("insar:search-focus", handleSearchFocus);
+    return () => {
+      window.removeEventListener("insar:search-focus", handleSearchFocus);
+    };
+  }, [styleVersion]);
+
+  useEffect(() => {
     if (!mapRef.current) return;
     applyMlBuildingFocusFilters(
       mapRef.current,
@@ -1291,6 +1359,104 @@ export default function MapView() {
     }
   }
 
+  function addSearchFocusMarker(map: MapLibreMap, lon: number, lat: number, label: string) {
+    addOrUpdateGeoJsonSource(map, SEARCH_FOCUS_SOURCE_ID, {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          properties: { label },
+        },
+      ],
+    });
+    addLayerIfMissing(map, {
+      id: SEARCH_FOCUS_LAYER_ID,
+      type: "circle",
+      source: SEARCH_FOCUS_SOURCE_ID,
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10,
+          7,
+          16,
+          10,
+          20,
+          12,
+        ],
+        "circle-color": "#111827",
+        "circle-opacity": 0.92,
+        "circle-stroke-width": 3,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+  }
+
+  function removeSearchFocusMarker(map: MapLibreMap) {
+    if (map.getLayer(SEARCH_FOCUS_LAYER_ID)) {
+      map.removeLayer(SEARCH_FOCUS_LAYER_ID);
+    }
+    if (map.getSource(SEARCH_FOCUS_SOURCE_ID)) {
+      map.removeSource(SEARCH_FOCUS_SOURCE_ID);
+    }
+  }
+
+  function applySearchFocusToMap(map: MapLibreMap, focus: NonNullable<SearchFocus>) {
+    const center = focus.center;
+    const hasCenter = Boolean(
+      center &&
+      Number.isFinite(center.lon) &&
+      Number.isFinite(center.lat)
+    );
+    const shouldShowMarker =
+      focus.resultType === "address" && focus.external && hasCenter;
+    if (shouldShowMarker && center) {
+      addSearchFocusMarker(map, center.lon, center.lat, focus.label);
+    } else {
+      removeSearchFocusMarker(map);
+    }
+
+    const bbox = focus.bbox;
+    if (
+      bbox &&
+      bbox.length === 4 &&
+      bbox.every((value) => Number.isFinite(value)) &&
+      bbox[0] < bbox[2] &&
+      bbox[1] < bbox[3]
+    ) {
+      map.fitBounds(
+        [
+          [bbox[0], bbox[1]],
+          [bbox[2], bbox[3]],
+        ],
+        {
+          padding: getSearchFocusPadding(focus),
+          duration: CAMERA_TRANSITION_MS,
+          bearing: map.getBearing(),
+          pitch: map.getPitch(),
+          maxZoom: getSearchFocusMaxZoom(focus),
+          essential: true,
+        }
+      );
+    } else if (hasCenter && center) {
+      map.flyTo({
+        center: [center.lon, center.lat],
+        zoom: Math.max(map.getZoom(), getSearchFocusTargetZoom(focus)),
+        duration: CAMERA_TRANSITION_MS,
+        bearing: map.getBearing(),
+        pitch: map.getPitch(),
+        essential: true,
+      });
+    }
+
+    ensureLayerOrder(map);
+  }
+
   function ensureLayerOrder(map: MapLibreMap) {
     // Move operational layers above any basemap style layers (including satellite raster).
     const orderedLayerIds = [
@@ -1315,6 +1481,7 @@ export default function MapView() {
       GENERIC_INSAR_SELECTED_LAYER_ID,
       "gba_highlight",
       "osm_highlight",
+      SEARCH_FOCUS_LAYER_ID,
     ];
     for (const layerId of orderedLayerIds) {
       if (map.getLayer(layerId)) {

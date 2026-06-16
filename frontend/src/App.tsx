@@ -3,6 +3,7 @@ import LayerPanel from "./components/LayerPanel";
 import InspectorPanel from "./components/InspectorPanel";
 import MapView from "./components/MapView";
 import PipelinePanel from "./components/PipelinePanel";
+import SearchBox from "./components/SearchBox";
 import TimeseriesPanel from "./components/TimeseriesPanel";
 import {
   ShadTabs as Tabs,
@@ -51,10 +52,7 @@ export default function App() {
       <div className="map-shell">
         <MapView />
         <div className="map-overlay">
-          <span className="badge">Salzburg InSAR Viewer</span>
-          <span className="text-muted-foreground">
-            Multi-Source-Bewegungsanalytik
-          </span>
+          <SearchBox />
         </div>
       </div>
 

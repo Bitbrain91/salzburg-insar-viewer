@@ -42,6 +42,7 @@ CREATE TABLE insar_points (
 CREATE INDEX insar_points_geom_idx ON insar_points USING GIST (geom);
 CREATE INDEX insar_points_area_idx ON insar_points (area_id);
 CREATE INDEX insar_points_track_idx ON insar_points (area_id, dataset_id, track);
+CREATE INDEX insar_points_code_lower_prefix_idx ON insar_points (lower(code) text_pattern_ops);
 
 CREATE TABLE insar_timeseries (
     area_id TEXT NOT NULL,
@@ -78,6 +79,7 @@ CREATE TABLE gba_buildings (
 
 CREATE INDEX gba_buildings_geom_idx ON gba_buildings USING GIST (geom);
 CREATE INDEX gba_buildings_area_idx ON gba_buildings (area_id);
+CREATE INDEX gba_buildings_gba_id_lower_prefix_idx ON gba_buildings (lower(gba_id) text_pattern_ops);
 
 CREATE TABLE osm_buildings (
     area_id TEXT NOT NULL,
@@ -91,6 +93,8 @@ CREATE TABLE osm_buildings (
 
 CREATE INDEX osm_buildings_geom_idx ON osm_buildings USING GIST (geom);
 CREATE INDEX osm_buildings_area_idx ON osm_buildings (area_id);
+CREATE INDEX osm_buildings_osm_id_lower_prefix_idx ON osm_buildings (lower(osm_id::text) text_pattern_ops);
+CREATE INDEX osm_buildings_tags_gin_idx ON osm_buildings USING GIN (tags);
 
 CREATE TABLE insar_point_terrain (
     area_id TEXT NOT NULL,
@@ -147,6 +151,8 @@ CREATE TABLE ml_runs (
 CREATE INDEX ml_runs_status_idx ON ml_runs (status);
 CREATE INDEX ml_runs_created_idx ON ml_runs (created_at);
 CREATE INDEX ml_runs_area_dataset_idx ON ml_runs (area_id, dataset_id);
+CREATE INDEX ml_runs_run_id_lower_prefix_idx ON ml_runs (lower(run_id::text) text_pattern_ops);
+CREATE INDEX ml_runs_mlflow_run_id_lower_prefix_idx ON ml_runs (lower(mlflow_run_id) text_pattern_ops);
 
 CREATE TABLE ml_point_results (
     run_id UUID NOT NULL,

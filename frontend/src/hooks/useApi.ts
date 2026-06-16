@@ -76,6 +76,48 @@ export type BuildingDetail = {
   terrain: BuildingTerrainContext | null;
 };
 
+export type SearchResultType = "point" | "building" | "ml_run" | "address";
+
+export type SearchResultSelection =
+  | {
+      type: "point";
+      code: string;
+      track?: number | null;
+      areaId: string;
+      datasetId: string;
+      sensor?: string | null;
+    }
+  | {
+      type: "building";
+      source: "gba" | "osm";
+      id: string;
+      areaId: string;
+    };
+
+export type SearchResult = {
+  result_type: SearchResultType;
+  id: string;
+  label: string;
+  subtitle?: string | null;
+  area_id?: string | null;
+  dataset_id?: string | null;
+  track?: number | null;
+  source?: string | null;
+  code?: string | null;
+  run_id?: string | null;
+  center?: { lon: number; lat: number } | null;
+  bbox?: number[] | null;
+  selection?: SearchResultSelection | null;
+  external: boolean;
+};
+
+export type SearchResponse = {
+  query: string;
+  count: number;
+  results: SearchResult[];
+  external_fallback_used: boolean;
+};
+
 export type MlMetricValue = string | number | boolean | null;
 
 export type MlRunSummary = {
@@ -397,6 +439,24 @@ export function getBuildingDetail(source: "gba" | "osm", id: string, areaId: str
   return fetchJson<BuildingDetail>(
     `/api/buildings/${suffix}/${encodeURIComponent(id)}${query}`
   );
+}
+
+export function searchTargets(
+  query: string,
+  options: { areaId?: string | null; limit?: number; includeExternal?: boolean } = {}
+) {
+  const params = new URLSearchParams();
+  params.set("q", query);
+  if (options.areaId) {
+    params.set("area_id", options.areaId);
+  }
+  if (options.limit !== undefined) {
+    params.set("limit", String(options.limit));
+  }
+  if (options.includeExternal !== undefined) {
+    params.set("include_external", String(options.includeExternal));
+  }
+  return fetchJson<SearchResponse>(`/api/search?${params.toString()}`);
 }
 
 export function getMlBuildingAnalysis(

@@ -58,6 +58,21 @@ class Settings:
         else f"http://{_default_service_host()}:5001"
     )
     mlflow_experiment: str = os.getenv("MLFLOW_EXPERIMENT", "insar_anomaly_local_v1")
+    nominatim_enabled: bool = os.getenv("NOMINATIM_ENABLED", "true").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+    }
+    nominatim_url: str = os.getenv(
+        "NOMINATIM_URL",
+        "https://nominatim.openstreetmap.org/search",
+    )
+    nominatim_user_agent: str = os.getenv(
+        "NOMINATIM_USER_AGENT",
+        "salzburg-insar-viewer/0.1 (local development)",
+    )
+    nominatim_min_interval_s: float = float(os.getenv("NOMINATIM_MIN_INTERVAL_S", "1.0"))
+    nominatim_timeout_s: float = float(os.getenv("NOMINATIM_TIMEOUT_S", "5.0"))
 
     @property
     def db_dsn(self) -> str:
