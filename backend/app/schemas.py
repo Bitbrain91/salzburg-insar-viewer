@@ -95,6 +95,30 @@ class ConfigResponse(BaseModel):
     tracks: List[dict]
 
 
+class SearchResult(BaseModel):
+    result_type: Literal["point", "building", "ml_run", "address"]
+    id: str
+    label: str
+    subtitle: Optional[str] = None
+    area_id: Optional[str] = None
+    dataset_id: Optional[str] = None
+    track: Optional[int] = None
+    source: Optional[str] = None
+    code: Optional[str] = None
+    run_id: Optional[str] = None
+    center: Optional[GeometryPoint] = None
+    bbox: Optional[List[float]] = None
+    selection: Optional[dict[str, Any]] = None
+    external: bool = False
+
+
+class SearchResponse(BaseModel):
+    query: str
+    count: int
+    results: List[SearchResult] = Field(default_factory=list)
+    external_fallback_used: bool = False
+
+
 class MLRunCreate(BaseModel):
     pipeline: str
     area_id: Optional[str] = None

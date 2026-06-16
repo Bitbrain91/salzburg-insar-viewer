@@ -1,10 +1,19 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
+import math
+import re
+import time
+from typing import Any
+from urllib.parse import urlencode
+from urllib.request import Request as UrlRequest, urlopen
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from ..area_metadata import area_contracts, dataset_contracts, resolve_area_dataset
+from ..area_metadata import AREAS_BY_ID, area_contracts, dataset_contracts, resolve_area_dataset
+from ..config import settings
 from ..db import fetch_all, fetch_one
 from ..ml.track_geometry import track_geometries_contract
 from ..schemas import (
@@ -14,9 +23,12 @@ from ..schemas import (
     HealthResponse,
     InSARPointDetail,
     PointTerrainContext,
+    SearchResponse,
+    SearchResult,
     TimeseriesResponse,
 )
 router = APIRouter(prefix="/api", tags=["api"])
+logger = logging.getLogger(__name__)
 
 
 VELOCITY_THRESHOLDS = {
@@ -27,6 +39,510 @@ VELOCITY_THRESHOLDS = {
     "moderate_uplift": 2.0,
     "strong_uplift": 5.0,
 }
+
+_NOMINATIM_CACHE: dict[tuple[str, str | None, int], list[dict[str, Any]]] = {}
+_NOMINATIM_LOCK = asyncio.Lock()
+_NOMINATIM_LAST_REQUEST_AT = 0.0
+
+
+def _safe_float(value) -> float | None:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if math.isfinite(parsed) else None
+
+
+def _safe_bbox(value) -> list[float] | None:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(value, (list, tuple)) or len(value) != 4:
+        return None
+    bbox = [_safe_float(item) for item in value]
+    if any(item is None for item in bbox):
+        return None
+    min_lon, min_lat, max_lon, max_lat = bbox
+    if min_lon >= max_lon or min_lat >= max_lat:
+        return None
+    return [float(item) for item in bbox]
+
+
+def _point_center(lon, lat) -> dict[str, float] | None:
+    lon_value = _safe_float(lon)
+    lat_value = _safe_float(lat)
+    if lon_value is None or lat_value is None:
+        return None
+    return {"lon": lon_value, "lat": lat_value}
+
+
+def _area_id_for_point(lon: float, lat: float, preferred_area_id: str | None = None) -> str | None:
+    if preferred_area_id:
+        area = AREAS_BY_ID.get(preferred_area_id)
+        if area:
+            min_lon, min_lat, max_lon, max_lat = area.bounds
+            if min_lon <= lon <= max_lon and min_lat <= lat <= max_lat:
+                return preferred_area_id
+    for area in AREAS_BY_ID.values():
+        min_lon, min_lat, max_lon, max_lat = area.bounds
+        if min_lon <= lon <= max_lon and min_lat <= lat <= max_lat:
+            return area.area_id
+    return preferred_area_id
+
+
+def _result_with_center(result: SearchResult, lon, lat) -> SearchResult:
+    center = _point_center(lon, lat)
+    if not center:
+        return result
+    if hasattr(result, "model_copy"):
+        return result.model_copy(update={"center": center})
+    return result.copy(update={"center": center})
+
+
+def _nominatim_request(url: str) -> list[dict[str, Any]]:
+    req = UrlRequest(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": settings.nominatim_user_agent,
+        },
+    )
+    with urlopen(req, timeout=settings.nominatim_timeout_s) as response:
+        payload = response.read().decode("utf-8")
+    parsed = json.loads(payload)
+    return parsed if isinstance(parsed, list) else []
+
+
+async def _fetch_nominatim(
+    query: str,
+    *,
+    area_id: str | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    if not settings.nominatim_enabled:
+        return []
+
+    cache_key = (query.casefold(), area_id, limit)
+    if cache_key in _NOMINATIM_CACHE:
+        return _NOMINATIM_CACHE[cache_key]
+
+    params: dict[str, str | int] = {
+        "q": query,
+        "format": "jsonv2",
+        "addressdetails": 1,
+        "limit": min(limit, 5),
+        "countrycodes": "at",
+    }
+    area = AREAS_BY_ID.get(area_id or "")
+    if area:
+        min_lon, min_lat, max_lon, max_lat = area.bounds
+        params["viewbox"] = f"{min_lon},{max_lat},{max_lon},{min_lat}"
+        params["bounded"] = 1
+
+    url = f"{settings.nominatim_url}?{urlencode(params)}"
+    async with _NOMINATIM_LOCK:
+        global _NOMINATIM_LAST_REQUEST_AT
+        elapsed = time.monotonic() - _NOMINATIM_LAST_REQUEST_AT
+        wait_s = max(0.0, settings.nominatim_min_interval_s - elapsed)
+        if wait_s:
+            await asyncio.sleep(wait_s)
+        _NOMINATIM_LAST_REQUEST_AT = time.monotonic()
+
+        try:
+            results = await asyncio.to_thread(_nominatim_request, url)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("Nominatim fallback failed for query '%s': %s", query, exc)
+            results = []
+
+    _NOMINATIM_CACHE[cache_key] = results
+    return results
+
+
+def _address_tokens(query: str) -> list[str]:
+    return [
+        token.casefold()
+        for token in re.split(r"\s+", query.strip())
+        if len(token.strip()) >= 2
+    ]
+
+
+async def _search_points(request: Request, query: str, area_id: str | None, limit: int) -> list[SearchResult]:
+    normalized = query.casefold()
+    rows = await fetch_all(
+        request.app,
+        """
+        SELECT p.area_id,
+               p.dataset_id,
+               p.sensor,
+               p.code,
+               p.track,
+               p.los,
+               ST_X(p.geom) AS lon,
+               ST_Y(p.geom) AS lat
+        FROM insar_points p
+        WHERE lower(p.code) = $1
+           OR (char_length($1) >= 3 AND lower(p.code) LIKE $2)
+        ORDER BY
+          CASE WHEN lower(p.code) = $1 THEN 0 ELSE 1 END,
+          CASE WHEN $3::text IS NOT NULL AND p.area_id = $3 THEN 0 ELSE 1 END,
+          p.area_id,
+          p.dataset_id,
+          p.track
+        LIMIT $4
+        """,
+        normalized,
+        f"{normalized}%",
+        area_id,
+        limit,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        result = SearchResult(
+            result_type="point",
+            id=f"{row['area_id']}:{row['dataset_id']}:{row['track']}:{row['code']}",
+            label=f"Punkt {row['code']}",
+            subtitle=f"{row['area_id']} · {row['dataset_id']} · {row['sensor']} T{row['track']} ({row['los']})",
+            area_id=row["area_id"],
+            dataset_id=row["dataset_id"],
+            track=row["track"],
+            source=row["sensor"],
+            code=row["code"],
+            selection={
+                "type": "point",
+                "code": row["code"],
+                "track": row["track"],
+                "areaId": row["area_id"],
+                "datasetId": row["dataset_id"],
+                "sensor": row["sensor"],
+            },
+        )
+        results.append(_result_with_center(result, row["lon"], row["lat"]))
+    return results
+
+
+async def _search_gba_buildings(
+    request: Request,
+    query: str,
+    area_id: str | None,
+    limit: int,
+) -> list[SearchResult]:
+    normalized = query.casefold()
+    rows = await fetch_all(
+        request.app,
+        """
+        SELECT b.area_id,
+               b.gba_id AS id,
+               b.height,
+               ST_X(ST_PointOnSurface(b.geom)) AS lon,
+               ST_Y(ST_PointOnSurface(b.geom)) AS lat,
+               ARRAY[ST_XMin(b.geom), ST_YMin(b.geom), ST_XMax(b.geom), ST_YMax(b.geom)] AS bbox
+        FROM gba_buildings b
+        WHERE b.geom IS NOT NULL
+          AND (
+            lower(b.gba_id) = $1
+            OR (char_length($1) >= 3 AND lower(b.gba_id) LIKE $2)
+          )
+        ORDER BY
+          CASE WHEN lower(b.gba_id) = $1 THEN 0 ELSE 1 END,
+          CASE WHEN $3::text IS NOT NULL AND b.area_id = $3 THEN 0 ELSE 1 END,
+          b.area_id,
+          b.gba_id
+        LIMIT $4
+        """,
+        normalized,
+        f"{normalized}%",
+        area_id,
+        limit,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        height = row.get("height")
+        subtitle = f"{row['area_id']} · GBA"
+        if height is not None:
+            subtitle += f" · {float(height):.1f} m"
+        result = SearchResult(
+            result_type="building",
+            id=f"gba:{row['area_id']}:{row['id']}",
+            label=f"GBA-Gebäude {row['id']}",
+            subtitle=subtitle,
+            area_id=row["area_id"],
+            source="gba",
+            bbox=_safe_bbox(row["bbox"]),
+            selection={
+                "type": "building",
+                "source": "gba",
+                "id": str(row["id"]),
+                "areaId": row["area_id"],
+            },
+        )
+        results.append(_result_with_center(result, row["lon"], row["lat"]))
+    return results
+
+
+async def _search_osm_buildings(
+    request: Request,
+    query: str,
+    area_id: str | None,
+    limit: int,
+) -> list[SearchResult]:
+    normalized = query.casefold()
+    rows = await fetch_all(
+        request.app,
+        """
+        SELECT b.area_id,
+               b.osm_id AS id,
+               b.name,
+               b.building_type,
+               ST_X(ST_PointOnSurface(b.geom)) AS lon,
+               ST_Y(ST_PointOnSurface(b.geom)) AS lat,
+               ARRAY[ST_XMin(b.geom), ST_YMin(b.geom), ST_XMax(b.geom), ST_YMax(b.geom)] AS bbox
+        FROM osm_buildings b
+        WHERE b.geom IS NOT NULL
+          AND (
+            lower(b.osm_id::text) = $1
+            OR (char_length($1) >= 3 AND lower(b.osm_id::text) LIKE $2)
+          )
+        ORDER BY
+          CASE WHEN lower(b.osm_id::text) = $1 THEN 0 ELSE 1 END,
+          CASE WHEN $3::text IS NOT NULL AND b.area_id = $3 THEN 0 ELSE 1 END,
+          b.area_id,
+          b.osm_id
+        LIMIT $4
+        """,
+        normalized,
+        f"{normalized}%",
+        area_id,
+        limit,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        name = row.get("name") or ""
+        result = SearchResult(
+            result_type="building",
+            id=f"osm:{row['area_id']}:{row['id']}",
+            label=name or f"OSM-Gebäude {row['id']}",
+            subtitle=f"{row['area_id']} · OSM · {row.get('building_type') or 'Gebäude'}",
+            area_id=row["area_id"],
+            source="osm",
+            bbox=_safe_bbox(row["bbox"]),
+            selection={
+                "type": "building",
+                "source": "osm",
+                "id": str(row["id"]),
+                "areaId": row["area_id"],
+            },
+        )
+        results.append(_result_with_center(result, row["lon"], row["lat"]))
+    return results
+
+
+async def _search_local_addresses(
+    request: Request,
+    query: str,
+    area_id: str | None,
+    limit: int,
+) -> list[SearchResult]:
+    tokens = _address_tokens(query)
+    if not tokens:
+        return []
+    params: list[Any] = [area_id, query.casefold()]
+    token_filters: list[str] = []
+    for token in tokens:
+        params.append(f"%{token}%")
+        token_filters.append(f"address_text LIKE ${len(params)}")
+    params.append(limit)
+    limit_param = len(params)
+    where_clause = " AND ".join(token_filters)
+    rows = await fetch_all(
+        request.app,
+        f"""
+        WITH candidates AS (
+            SELECT b.area_id,
+                   b.osm_id AS id,
+                   b.name,
+                   b.building_type,
+                   b.tags,
+                   lower(concat_ws(
+                       ' ',
+                       b.name,
+                       b.tags->>'addr:street',
+                       b.tags->>'addr:housenumber',
+                       b.tags->>'addr:postcode',
+                       b.tags->>'addr:city'
+                   )) AS address_text,
+                   concat_ws(
+                       ' ',
+                       NULLIF(b.tags->>'addr:street', ''),
+                       NULLIF(b.tags->>'addr:housenumber', '')
+                   ) AS street_line,
+                   concat_ws(
+                       ' ',
+                       NULLIF(b.tags->>'addr:postcode', ''),
+                       NULLIF(b.tags->>'addr:city', '')
+                   ) AS city_line,
+                   ST_X(ST_PointOnSurface(b.geom)) AS lon,
+                   ST_Y(ST_PointOnSurface(b.geom)) AS lat,
+                   ARRAY[ST_XMin(b.geom), ST_YMin(b.geom), ST_XMax(b.geom), ST_YMax(b.geom)] AS bbox
+            FROM osm_buildings b
+            WHERE b.geom IS NOT NULL
+              AND (
+                b.name <> ''
+                OR b.tags ? 'addr:street'
+                OR b.tags ? 'addr:housenumber'
+                OR b.tags ? 'addr:postcode'
+                OR b.tags ? 'addr:city'
+              )
+        )
+        SELECT *
+        FROM candidates
+        WHERE {where_clause}
+        ORDER BY
+          CASE WHEN $1::text IS NOT NULL AND area_id = $1 THEN 0 ELSE 1 END,
+          CASE WHEN address_text = lower($2::text) THEN 0 ELSE 1 END,
+          area_id,
+          street_line,
+          city_line
+        LIMIT ${limit_param}
+        """,
+        *params,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        street_line = (row.get("street_line") or "").strip()
+        city_line = (row.get("city_line") or "").strip()
+        name = row.get("name") or ""
+        label = street_line or name or f"OSM-Adresse {row['id']}"
+        subtitle_parts = [row["area_id"], "OSM-Adresse"]
+        if city_line:
+            subtitle_parts.append(city_line)
+        if name and name != label:
+            subtitle_parts.append(name)
+        result = SearchResult(
+            result_type="address",
+            id=f"osm-address:{row['area_id']}:{row['id']}",
+            label=label,
+            subtitle=" · ".join(subtitle_parts),
+            area_id=row["area_id"],
+            source="osm",
+            bbox=_safe_bbox(row["bbox"]),
+            selection={
+                "type": "building",
+                "source": "osm",
+                "id": str(row["id"]),
+                "areaId": row["area_id"],
+            },
+        )
+        results.append(_result_with_center(result, row["lon"], row["lat"]))
+    return results
+
+
+async def _search_ml_runs(request: Request, query: str, area_id: str | None, limit: int) -> list[SearchResult]:
+    normalized = query.casefold()
+    rows = await fetch_all(
+        request.app,
+        """
+        SELECT run_id,
+               mlflow_run_id,
+               area_id,
+               dataset_id,
+               pipeline,
+               status,
+               source,
+               track,
+               bbox,
+               params,
+               created_at
+        FROM ml_runs
+        WHERE lower(run_id::text) = $1
+           OR (char_length($1) >= 4 AND lower(run_id::text) LIKE $2)
+           OR (mlflow_run_id IS NOT NULL AND lower(mlflow_run_id) = $1)
+           OR (mlflow_run_id IS NOT NULL AND char_length($1) >= 4 AND lower(mlflow_run_id) LIKE $2)
+           OR (params->>'experiment_id' IS NOT NULL AND lower(params->>'experiment_id') = $1)
+           OR (params->>'experiment_id' IS NOT NULL AND char_length($1) >= 4 AND lower(params->>'experiment_id') LIKE $2)
+        ORDER BY
+          CASE
+            WHEN lower(run_id::text) = $1 THEN 0
+            WHEN mlflow_run_id IS NOT NULL AND lower(mlflow_run_id) = $1 THEN 0
+            WHEN params->>'experiment_id' IS NOT NULL AND lower(params->>'experiment_id') = $1 THEN 0
+            ELSE 1
+          END,
+          CASE WHEN $3::text IS NOT NULL AND area_id = $3 THEN 0 ELSE 1 END,
+          created_at DESC
+        LIMIT $4
+        """,
+        normalized,
+        f"{normalized}%",
+        area_id,
+        limit,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        run_id = str(row["run_id"])
+        bbox = _safe_bbox(row.get("bbox"))
+        center = None
+        if bbox:
+            center = {
+                "lon": (bbox[0] + bbox[2]) / 2,
+                "lat": (bbox[1] + bbox[3]) / 2,
+            }
+        track = row.get("track")
+        subtitle = f"{row['area_id']} · {row['dataset_id']} · {row['pipeline']} · {row['status']}"
+        if track is not None:
+            subtitle += f" · T{track}"
+        results.append(
+            SearchResult(
+                result_type="ml_run",
+                id=run_id,
+                label=f"ML Run {run_id[:8]}",
+                subtitle=subtitle,
+                area_id=row["area_id"],
+                dataset_id=row["dataset_id"],
+                track=track,
+                source=row.get("source"),
+                run_id=run_id,
+                center=center,
+                bbox=bbox,
+            )
+        )
+    return results
+
+
+async def _search_external_addresses(
+    query: str,
+    *,
+    area_id: str | None,
+    limit: int,
+) -> list[SearchResult]:
+    rows = await _fetch_nominatim(query, area_id=area_id, limit=limit)
+    results: list[SearchResult] = []
+    for index, row in enumerate(rows):
+        lon = _safe_float(row.get("lon"))
+        lat = _safe_float(row.get("lat"))
+        if lon is None or lat is None:
+            continue
+        raw_bbox = row.get("boundingbox")
+        bbox = None
+        if isinstance(raw_bbox, list) and len(raw_bbox) == 4:
+            south, north, west, east = [_safe_float(value) for value in raw_bbox]
+            if None not in {south, north, west, east}:
+                bbox = [float(west), float(south), float(east), float(north)]
+        result_area_id = _area_id_for_point(lon, lat, area_id)
+        results.append(
+            SearchResult(
+                result_type="address",
+                id=f"nominatim:{row.get('osm_type', 'place')}:{row.get('osm_id', index)}",
+                label=row.get("name") or row.get("display_name") or query,
+                subtitle=row.get("display_name") or "Nominatim",
+                area_id=result_area_id,
+                source="nominatim",
+                center={"lon": lon, "lat": lat},
+                bbox=bbox,
+                external=True,
+            )
+        )
+    return results
 
 def _parse_json_value(value):
     if isinstance(value, str):
@@ -106,6 +622,44 @@ async def config() -> ConfigResponse:
         areas=area_contracts(),
         datasets=dataset_contracts(),
         tracks=_tracks_contract(),
+    )
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search(
+    request: Request,
+    q: str = Query(..., min_length=1, description="ID, address, or ML run query"),
+    area_id: str | None = Query(default=None, description="AOI used as ranking/geocoding bias"),
+    limit: int = Query(default=12, ge=1, le=25),
+    include_external: bool = Query(default=True),
+) -> SearchResponse:
+    query = q.strip()
+    if len(query) < 2:
+        raise HTTPException(status_code=400, detail="Search query must contain at least 2 characters")
+    if area_id is not None and area_id not in AREAS_BY_ID:
+        raise HTTPException(status_code=400, detail=f"Unknown area_id '{area_id}'")
+
+    per_kind_limit = max(limit, 8)
+    local_results: list[SearchResult] = []
+    local_results.extend(await _search_ml_runs(request, query, area_id, per_kind_limit))
+    local_results.extend(await _search_points(request, query, area_id, per_kind_limit))
+    local_results.extend(await _search_gba_buildings(request, query, area_id, per_kind_limit))
+    local_results.extend(await _search_osm_buildings(request, query, area_id, per_kind_limit))
+    local_results.extend(await _search_local_addresses(request, query, area_id, per_kind_limit))
+
+    external_fallback_used = False
+    results = local_results[:limit]
+    if not results and include_external:
+        external_results = await _search_external_addresses(query, area_id=area_id, limit=limit)
+        if external_results:
+            external_fallback_used = True
+            results = external_results[:limit]
+
+    return SearchResponse(
+        query=query,
+        count=len(results),
+        results=results,
+        external_fallback_used=external_fallback_used,
     )
 
 

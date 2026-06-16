@@ -29,6 +29,16 @@ export type Selection =
   | { type: "building"; source: "gba" | "osm"; id: string; areaId: string }
   | null;
 
+export type SearchFocus = {
+  requestId: number;
+  resultType: "point" | "building" | "ml_run" | "address";
+  label: string;
+  areaId?: string | null;
+  center?: { lon: number; lat: number } | null;
+  bbox?: [number, number, number, number] | null;
+  external?: boolean;
+} | null;
+
 export type Filters = {
   velocityMin: number;
   velocityMax: number;
@@ -60,6 +70,7 @@ export type AppState = {
     | "reliability";
   mlTileVersion: number;
   mapBBox: [number, number, number, number] | null;
+  searchFocus: SearchFocus;
   setLayer: (key: SimpleLayerVisibilityKey, value: boolean) => void;
   setSelectedAreaId: (areaId: string) => void;
   setInsarTrackVisibility: (
@@ -84,6 +95,7 @@ export type AppState = {
   setMlView: (view: AppState["mlView"]) => void;
   bumpMlTileVersion: () => void;
   setMapBBox: (bbox: [number, number, number, number] | null) => void;
+  setSearchFocus: (focus: SearchFocus) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -116,6 +128,7 @@ export const useAppStore = create<AppState>((set) => ({
   mlView: "cluster",
   mlTileVersion: 0,
   mapBBox: null,
+  searchFocus: null,
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
   setSelectedAreaId: (areaId) =>
@@ -158,4 +171,5 @@ export const useAppStore = create<AppState>((set) => ({
   setMlView: (view) => set(() => ({ mlView: view })),
   bumpMlTileVersion: () => set((state) => ({ mlTileVersion: state.mlTileVersion + 1 })),
   setMapBBox: (bbox) => set(() => ({ mapBBox: bbox })),
+  setSearchFocus: (focus) => set(() => ({ searchFocus: focus })),
 }));
