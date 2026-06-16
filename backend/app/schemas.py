@@ -155,6 +155,22 @@ class MLRunDetail(MLRunSummary):
     error: Optional[str] = None
 
 
+class MLBuildingRunSummary(MLRunSummary):
+    point_count: int = 0
+    kept_point_count: int = 0
+    excluded_point_count: int = 0
+    noise_point_count: int = 0
+    cluster_count: int = 0
+    reliable_cluster_count: int = 0
+    building_motion_mm_a: Optional[float] = None
+    building_reliability_score: Optional[float] = None
+    building_reliability_band: Optional[str] = None
+    building_status: Optional[str] = None
+    label_counts: dict[str, int] = Field(default_factory=dict)
+    track_counts: dict[str, int] = Field(default_factory=dict)
+    main_cluster_by_track: dict[str, Optional[str]] = Field(default_factory=dict)
+
+
 class MLRunDeleteResponse(BaseModel):
     run_id: str
     db_deleted: bool
@@ -227,6 +243,7 @@ class MLBuildingClusterSummary(BaseModel):
     cluster_role: str
     is_main_cluster: bool = False
     cluster_rank: Optional[int] = None
+    cluster_color_index: Optional[int] = None
     point_count: int
     median_velocity_mm_a: Optional[float] = None
     median_vertical_proxy_mm_a: Optional[float] = None

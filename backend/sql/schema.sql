@@ -178,6 +178,7 @@ CREATE TABLE ml_point_results (
 CREATE INDEX ml_point_results_run_idx ON ml_point_results (run_id);
 CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, dataset_id, cluster_id);
 CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, area_id, building_source, building_id);
+CREATE INDEX ml_point_results_building_history_idx ON ml_point_results (area_id, building_source, building_id, run_id);
 CREATE INDEX ml_point_results_label_idx ON ml_point_results (run_id, label);
 CREATE INDEX ml_point_results_quality_idx ON ml_point_results (run_id, quality_score);
 CREATE INDEX ml_point_results_anomaly_idx ON ml_point_results (run_id, anomaly_score);

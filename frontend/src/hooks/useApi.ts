@@ -144,6 +144,22 @@ export type MlRunDetail = MlRunSummary & {
   error?: string | null;
 };
 
+export type MlBuildingRunSummary = MlRunSummary & {
+  point_count: number;
+  kept_point_count: number;
+  excluded_point_count: number;
+  noise_point_count: number;
+  cluster_count: number;
+  reliable_cluster_count: number;
+  building_motion_mm_a: number | null;
+  building_reliability_score: number | null;
+  building_reliability_band: string | null;
+  building_status: string | null;
+  label_counts: Record<string, number>;
+  track_counts: Record<string, number>;
+  main_cluster_by_track: Record<string, string | null>;
+};
+
 export type MlRunCreatePayload = {
   pipeline: string;
   area_id?: string | null;
@@ -257,6 +273,7 @@ export type MlBuildingClusterSummary = {
   cluster_role: string;
   is_main_cluster: boolean;
   cluster_rank: number | null;
+  cluster_color_index: number | null;
   point_count: number;
   median_velocity_mm_a: number | null;
   median_vertical_proxy_mm_a: number | null;
@@ -468,6 +485,22 @@ export function getMlBuildingAnalysis(
   const query = areaId ? `?area_id=${encodeURIComponent(areaId)}` : "";
   return fetchJson<MlBuildingAnalysis>(
     `/api/ml/runs/${encodeURIComponent(runId)}/buildings/${source}/${encodeURIComponent(id)}${query}`
+  );
+}
+
+export function getMlBuildingRuns(
+  source: "gba" | "osm",
+  id: string,
+  areaId?: string | null,
+  limit = 10
+) {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (areaId) {
+    params.set("area_id", areaId);
+  }
+  return fetchJson<MlBuildingRunSummary[]>(
+    `/api/ml/buildings/${source}/${encodeURIComponent(id)}/runs?${params.toString()}`
   );
 }
 

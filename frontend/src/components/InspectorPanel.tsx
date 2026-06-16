@@ -1,16 +1,30 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAppStore, type MlBuildingTrackFilter } from "../lib/store";
+import { Eye, EyeOff, Play, RotateCcw, Star } from "lucide-react";
+import {
+  useAppStore,
+  type MlBuildingPointFocusMode,
+  type MlBuildingTrackFilter,
+  type Selection,
+} from "../lib/store";
 import {
   getBuildingDetail,
   getMlBuildingAnalysis,
+  getMlBuildingPoints,
+  getMlBuildingRuns,
   getMlPointAnalysis,
   getMlRunDetail,
   getPointDetail,
   useAppConfig,
+  type MlBuildingAnalysis,
+  type MlBuildingClusterSummary,
+  type MlBuildingRunSummary,
   type MlReliabilityPenalty,
 } from "../hooks/useApi";
 import {
+  Badge,
+  Button,
+  CollapsibleSection,
   HelpButton,
   SegmentedTabs,
   SummaryMetric,
@@ -50,6 +64,99 @@ const buildingTabs: InspectorTabConfig[] = [
   { id: "ml", label: "Diagnose" },
   { id: "raw", label: "Rohdaten" },
 ];
+
+const buildingPointFocusOptions: Array<{
+  id: MlBuildingPointFocusMode;
+  label: string;
+  title: string;
+}> = [
+  {
+    id: "run",
+    label: "Run",
+    title: "Alle Punkte des aktiven ML-Laufs anzeigen.",
+  },
+  {
+    id: "building",
+    label: "Gebaeude",
+    title: "Nur Punkte anzeigen, die diesem Gebaeude im aktiven Lauf zugeordnet wurden.",
+  },
+  {
+    id: "scored",
+    label: "Scoring",
+    title: "Nur nicht gate-ausgeschlossene Punkte dieses Gebaeudes anzeigen.",
+  },
+  {
+    id: "cluster",
+    label: "Cluster",
+    title: "Nur Core-Clusterpunkte dieses Gebaeudes anzeigen.",
+  },
+];
+
+function hslToHex(h: number, s: number, l: number) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = h / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hp >= 0 && hp < 1) {
+    r = c;
+    g = x;
+  } else if (hp >= 1 && hp < 2) {
+    r = x;
+    g = c;
+  } else if (hp >= 2 && hp < 3) {
+    g = c;
+    b = x;
+  } else if (hp >= 3 && hp < 4) {
+    g = x;
+    b = c;
+  } else if (hp >= 4 && hp < 5) {
+    r = x;
+    b = c;
+  } else if (hp >= 5 && hp < 6) {
+    r = c;
+    b = x;
+  }
+  const m = l - c / 2;
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+const mlPaletteSize = 60;
+const mlPalette = Array.from({ length: mlPaletteSize }, (_, i) =>
+  hslToHex((i * 360) / mlPaletteSize, 0.7, 0.5)
+);
+
+function clusterColor(cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role">) {
+  if (cluster.cluster_role === "excluded") return "#9aa0a6";
+  if (cluster.cluster_role === "noise") return "#c6372a";
+  if (cluster.cluster_role === "insufficient_support") return "#f2c14e";
+  const index = cluster.cluster_color_index ?? 0;
+  return mlPalette[((index % mlPalette.length) + mlPalette.length) % mlPalette.length];
+}
+
+type BuildingSelection = Extract<NonNullable<Selection>, { type: "building" }>;
+
+function matchesSelectedBuildingRunData(
+  data:
+    | {
+        run_id?: string | null;
+        building_source?: string | null;
+        building_id?: string | number | null;
+      }
+    | null
+    | undefined,
+  building: BuildingSelection | null,
+  runId: string | null
+) {
+  if (!data || !building || !runId) return false;
+  return (
+    data.run_id === runId &&
+    data.building_source === building.source &&
+    String(data.building_id) === building.id
+  );
+}
 
 type AttributeHint = {
   key: string;
@@ -132,12 +239,30 @@ const metricAttributeHints: Record<string, AttributeHint> = {
 export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
   const activeRunId = useAppStore((state) => state.activeRunId);
+  const setActiveRunId = useAppStore((state) => state.setActiveRunId);
   const mlBuildingTrackFilter = useAppStore((state) => state.mlBuildingTrackFilter);
   const setMlBuildingTrackFilter = useAppStore((state) => state.setMlBuildingTrackFilter);
   const mlBuildingShowExcluded = useAppStore((state) => state.mlBuildingShowExcluded);
   const setMlBuildingShowExcluded = useAppStore((state) => state.setMlBuildingShowExcluded);
   const mlBuildingShowHulls = useAppStore((state) => state.mlBuildingShowHulls);
   const setMlBuildingShowHulls = useAppStore((state) => state.setMlBuildingShowHulls);
+  const mlBuildingShowNoise = useAppStore((state) => state.mlBuildingShowNoise);
+  const setMlBuildingShowNoise = useAppStore((state) => state.setMlBuildingShowNoise);
+  const mlBuildingVisibleClusterIds = useAppStore((state) => state.mlBuildingVisibleClusterIds);
+  const setMlBuildingVisibleClusterIds = useAppStore(
+    (state) => state.setMlBuildingVisibleClusterIds
+  );
+  const mlBuildingPointFocusMode = useAppStore((state) => state.mlBuildingPointFocusMode);
+  const setMlBuildingPointFocusMode = useAppStore(
+    (state) => state.setMlBuildingPointFocusMode
+  );
+  const toggleMlBuildingClusterVisibility = useAppStore(
+    (state) => state.toggleMlBuildingClusterVisibility
+  );
+  const resetMlBuildingClusterVisibility = useAppStore(
+    (state) => state.resetMlBuildingClusterVisibility
+  );
+  const setMlView = useAppStore((state) => state.setMlView);
   const [pointAnalysisRunId, setPointAnalysisRunId] = useState<string | null>(null);
   const [activePointTab, setActivePointTab] = useState<InspectorTabId>("overview");
   const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("overview");
@@ -147,6 +272,7 @@ export default function InspectorPanel() {
       : selection?.type === "building"
         ? `building:${selection.areaId ?? "unknown"}:${selection.source}:${selection.id}`
         : "none";
+  const selectedBuilding = selection?.type === "building" ? selection : null;
 
   const activeRunQuery = useQuery({
     queryKey: ["ml-run-detail", activeRunId],
@@ -209,26 +335,97 @@ export default function InspectorPanel() {
   });
 
   const buildingDetailQuery = useQuery({
-    queryKey: ["building-detail", selection],
+    queryKey: [
+      "building-detail",
+      selectedBuilding?.source ?? null,
+      selectedBuilding?.id ?? null,
+      selectedBuilding?.areaId ?? null,
+    ],
     queryFn: () =>
-      selection && selection.type === "building"
-        ? getBuildingDetail(selection.source, selection.id, selection.areaId)
+      selectedBuilding
+        ? getBuildingDetail(selectedBuilding.source, selectedBuilding.id, selectedBuilding.areaId)
         : Promise.resolve(null),
-    enabled: selection?.type === "building",
+    enabled: Boolean(selectedBuilding),
+  });
+
+  const buildingRunsQuery = useQuery({
+    queryKey: [
+      "ml-building-runs",
+      selectedBuilding?.source ?? null,
+      selectedBuilding?.id ?? null,
+      selectedBuilding?.areaId ?? null,
+    ],
+    queryFn: () =>
+      selectedBuilding
+        ? getMlBuildingRuns(selectedBuilding.source, selectedBuilding.id, selectedBuilding.areaId)
+        : Promise.resolve([]),
+    enabled: Boolean(selectedBuilding),
+    refetchInterval: 10000,
+    retry: false,
   });
 
   const mlBuildingAnalysisQuery = useQuery({
-    queryKey: ["ml-building-analysis", activeRunId, activeRunStatus, selection],
+    queryKey: [
+      "ml-building-analysis",
+      activeRunId,
+      activeRunStatus,
+      selectedBuilding?.source ?? null,
+      selectedBuilding?.id ?? null,
+      selectedBuilding?.areaId ?? null,
+    ],
     queryFn: () =>
-      selection && selection.type === "building" && activeRunId
-        ? getMlBuildingAnalysis(activeRunId, selection.source, selection.id, selection.areaId)
+      selectedBuilding && activeRunId
+        ? getMlBuildingAnalysis(
+            activeRunId,
+            selectedBuilding.source,
+            selectedBuilding.id,
+            selectedBuilding.areaId
+          )
         : Promise.resolve(null),
     enabled:
       hasResolvedActiveRun &&
-      selection?.type === "building",
+      Boolean(selectedBuilding),
     refetchInterval: isActiveRunPending ? 5000 : false,
     retry: false,
   });
+
+  const mlBuildingPointsQuery = useQuery({
+    queryKey: [
+      "ml-building-points",
+      activeRunId,
+      selectedBuilding?.source ?? null,
+      selectedBuilding?.id ?? null,
+      selectedBuilding?.areaId ?? null,
+    ],
+    queryFn: () =>
+      selectedBuilding && activeRunId
+        ? getMlBuildingPoints(
+            activeRunId,
+            selectedBuilding.source,
+            selectedBuilding.id,
+            selectedBuilding.areaId
+          )
+        : Promise.resolve(null),
+    enabled:
+      Boolean(activeRunId) &&
+      isActiveLocalAnomalyRun &&
+      Boolean(selectedBuilding),
+    retry: false,
+  });
+  const mlBuildingAnalysis = matchesSelectedBuildingRunData(
+    mlBuildingAnalysisQuery.data,
+    selectedBuilding,
+    activeRunId
+  )
+    ? mlBuildingAnalysisQuery.data
+    : null;
+  const mlBuildingPointsData = matchesSelectedBuildingRunData(
+    mlBuildingPointsQuery.data,
+    selectedBuilding,
+    activeRunId
+  )
+    ? mlBuildingPointsQuery.data
+    : null;
 
   const mlPointAnalysisQuery = useQuery({
     queryKey: ["ml-point-analysis", pointAnalysisRunId, selection],
@@ -258,6 +455,21 @@ export default function InspectorPanel() {
     mlPointNeighbourhood?.neighbour_misassignment_flag ||
     mlPointNeighbourhood?.neighbour_event_flag
   );
+  const buildingPointsByCluster = useMemo(() => {
+    const groups = new Map<string, Array<Record<string, unknown>>>();
+    const features = mlBuildingPointsData?.feature_collection.features ?? [];
+    for (const feature of features) {
+      const properties = feature.properties ?? {};
+      const clusterId =
+        properties.cluster_id === null || properties.cluster_id === undefined
+          ? "unknown"
+          : String(properties.cluster_id);
+      const existing = groups.get(clusterId) ?? [];
+      existing.push(properties);
+      groups.set(clusterId, existing);
+    }
+    return groups;
+  }, [mlBuildingPointsData]);
 
   const fmtNum = (value?: number | null, digits = 2) =>
     value === null || value === undefined ? "—" : value.toFixed(digits);
@@ -325,6 +537,38 @@ export default function InspectorPanel() {
   };
   const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
     penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";
+
+  const formatRunTimestamp = (value?: string | null) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("de-AT", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(date);
+  };
+
+  const formatRunLine = (run: MlBuildingRunSummary) =>
+    `${fmtStr(run.dataset_id)} / ${run.track === null || run.track === undefined ? "alle Tracks" : `T${run.track}`}`;
+
+  const formatLabelCounts = (counts: Record<string, number>) => {
+    const orderedKeys = ["normal", "suspect", "outlier", "unlabeled"];
+    const entries = [
+      ...orderedKeys
+        .filter((key) => counts[key] !== undefined)
+        .map((key) => [key, counts[key]] as const),
+      ...Object.entries(counts).filter(([key]) => !orderedKeys.includes(key)),
+    ];
+    return entries.length
+      ? entries.map(([key, value]) => `${formatCountLabel(key)} ${value}`).join(" / ")
+      : "—";
+  };
+
+  const activateBuildingRun = (runId: string) => {
+    setActiveRunId(runId);
+    setMlView("cluster");
+    setActiveBuildingTab("ml");
+  };
 
   const formatRawValue = (value: unknown) => {
     if (value === null || value === undefined || value === "") return "—";
@@ -737,9 +981,143 @@ export default function InspectorPanel() {
     return renderPointOverview();
   };
 
+  const renderReliabilityBadge = (band?: string | null) => {
+    if (!band) {
+      return <Badge variant="secondary">ohne Band</Badge>;
+    }
+    const variant = band === "high" ? "default" : band === "medium" ? "warning" : "destructive";
+    return <Badge variant={variant}>{band}</Badge>;
+  };
+
+  const renderBuildingRunItem = (run: MlBuildingRunSummary, compact = false) => {
+    const isActive = run.run_id === activeRunId;
+    return (
+      <div
+        key={run.run_id}
+        className={`rounded-md border p-2.5 ${
+          isActive ? "border-primary bg-primary/10" : "border-border bg-secondary/50"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <button
+            type="button"
+            className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
+            onClick={() => activateBuildingRun(run.run_id)}
+          >
+            <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="min-w-0 truncate text-sm font-bold text-foreground">
+                Lokale Anomalieanalyse
+              </span>
+              {isActive && <Badge>aktiv</Badge>}
+              {run.experiment_id && <Badge variant="secondary">{run.experiment_id}</Badge>}
+            </span>
+            <span className="mt-1 block break-all font-mono text-[11px] text-muted-foreground">
+              {run.run_id}
+            </span>
+            <span className="mt-1 block text-xs text-muted-foreground">
+              {formatRunTimestamp(run.finished_at ?? run.created_at)} · {formatRunLine(run)}
+            </span>
+          </button>
+          {!isActive && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              onClick={() => activateBuildingRun(run.run_id)}
+              aria-label="ML-Lauf aktivieren"
+              title="ML-Lauf aktivieren"
+            >
+              <Play aria-hidden="true" className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+          <div className="rounded-md border border-border bg-card px-2 py-1">
+            <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+              Punkte
+            </span>
+            <span className="font-mono font-semibold">{run.point_count}</span>
+          </div>
+          <div className="rounded-md border border-border bg-card px-2 py-1">
+            <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+              Cluster
+            </span>
+            <span className="font-mono font-semibold">
+              {run.cluster_count} / {run.reliable_cluster_count}
+            </span>
+          </div>
+          <div className="rounded-md border border-border bg-card px-2 py-1">
+            <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+              Bewegung
+            </span>
+            <span className="font-mono font-semibold">{fmtNum(run.building_motion_mm_a)}</span>
+          </div>
+        </div>
+        {!compact && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            {renderReliabilityBadge(run.building_reliability_band)}
+            <span>Labels: {formatLabelCounts(run.label_counts)}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderBuildingRunsCompact = () => {
+    if (buildingRunsQuery.isLoading) {
+      return <div className="pill">Gebaeude-Runs werden geladen...</div>;
+    }
+    if (buildingRunsQuery.isError) {
+      return <div className="pill warning">Run-Historie konnte nicht geladen werden.</div>;
+    }
+    const runs = buildingRunsQuery.data ?? [];
+    if (!runs.length) {
+      return <div className="pill">Dieses Gebaeude ist in keinem abgeschlossenen ML-Lauf enthalten.</div>;
+    }
+    const preferredRun = runs.find((run) => run.run_id === activeRunId) ?? runs[0];
+    return (
+      <div className="grid gap-2">
+        {renderBuildingRunItem(preferredRun, true)}
+        {runs.length > 1 && (
+          <button
+            type="button"
+            className="text-left text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
+            onClick={() => setActiveBuildingTab("ml")}
+          >
+            {runs.length - 1} weitere ML-Runs in der Diagnose anzeigen
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  const renderBuildingRunsFull = () => {
+    if (buildingRunsQuery.isLoading) {
+      return <div className="pill">Gebaeude-Runs werden geladen...</div>;
+    }
+    if (buildingRunsQuery.isError) {
+      return <div className="pill warning">Run-Historie konnte nicht geladen werden.</div>;
+    }
+    const runs = buildingRunsQuery.data ?? [];
+    if (!runs.length) {
+      return <div className="pill">Dieses Gebaeude ist in keinem abgeschlossenen ML-Lauf enthalten.</div>;
+    }
+    return <div className="grid gap-2">{runs.map((run) => renderBuildingRunItem(run, true))}</div>;
+  };
+
+  const renderActiveBuildingRunCompact = () => {
+    const runs = buildingRunsQuery.data ?? [];
+    const run = runs.find((candidate) => candidate.run_id === activeRunId);
+    if (run) {
+      return renderBuildingRunItem(run, true);
+    }
+    return renderActiveRunSummary();
+  };
+
   const renderBuildingOverview = () => {
     const building = buildingDetailQuery.data;
-    const analysis = mlBuildingAnalysisQuery.data;
+    const analysis = mlBuildingAnalysis;
     if (!building) return null;
     return (
       <div>
@@ -749,6 +1127,8 @@ export default function InspectorPanel() {
         {renderMetric("Gebaeudehoehe", building.height === null ? "—" : `${building.height.toFixed(1)} m`)}
         {renderMetric("Name", fmtStr(building.name))}
         {renderMetric("Typ", fmtStr(building.building_type))}
+        <div className="section-title">ML-Runs fuer dieses Gebaeude</div>
+        {renderBuildingRunsCompact()}
         <div className="section-title">Aktiver ML-Befund</div>
         {analysis ? (
           <>
@@ -817,15 +1197,118 @@ export default function InspectorPanel() {
     );
   };
 
-  const renderBuildingClusterControls = () => {
-    if (!isActiveLocalAnomalyRun || !mlBuildingAnalysisQuery.data || selection?.type !== "building") {
+  const renderClusterPointList = (cluster: MlBuildingClusterSummary) => {
+    if (mlBuildingPointsQuery.isLoading) {
+      return <div className="mt-2 text-xs text-muted-foreground">Punktliste wird geladen...</div>;
+    }
+    const points = buildingPointsByCluster.get(cluster.cluster_id) ?? [];
+    if (!points.length) {
+      return <div className="mt-2 text-xs text-muted-foreground">Keine Punktliste fuer dieses Cluster geladen.</div>;
+    }
+    const labelCounts = points.reduce<Record<string, number>>((acc, point) => {
+      const label = typeof point.label === "string" && point.label ? point.label : "unlabeled";
+      acc[label] = (acc[label] ?? 0) + 1;
+      return acc;
+    }, {});
+    return (
+      <details className="mt-2 rounded-md border border-border bg-card px-2 py-1.5">
+        <summary className="cursor-pointer text-xs font-semibold text-foreground">
+          {points.length} Punkte anzeigen · {formatLabelCounts(labelCounts)}
+        </summary>
+        <div className="mt-2 grid max-h-48 gap-1 overflow-auto pr-1">
+          {points.map((point) => {
+            const code = fmtStr(point.code as string | number | null | undefined);
+            const track = fmtStr(point.track as string | number | null | undefined);
+            const quality = getNumber(point.quality_score);
+            const anomaly = getNumber(point.anomaly_score);
+            const label = fmtStr(point.label as string | number | null | undefined);
+            return (
+              <div
+                key={`${code}-${track}`}
+                className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-sm border border-border/70 bg-secondary px-2 py-1 text-xs"
+              >
+                <span className="min-w-0 break-all font-mono text-foreground">
+                  {code} · T{track}
+                </span>
+                <span className="font-mono text-muted-foreground">
+                  {label} · Q {fmtNum(quality)} · A {fmtNum(anomaly)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+    );
+  };
+
+  const renderBuildingClusterControls = (analysis: MlBuildingAnalysis) => {
+    if (!isActiveLocalAnomalyRun || !mlBuildingAnalysis || selection?.type !== "building") {
       return null;
     }
+    const clusters = analysis.clusters;
+    const clusterIds = clusters.map((cluster) => cluster.cluster_id);
+    const clusterPointCount = clusters
+      .filter((cluster) => cluster.cluster_role === "core")
+      .reduce((sum, cluster) => sum + cluster.point_count, 0);
+    const visibleSet =
+      mlBuildingVisibleClusterIds === null ? null : new Set(mlBuildingVisibleClusterIds);
+    const effectiveShowExcluded =
+      mlBuildingPointFocusMode === "scored" || mlBuildingPointFocusMode === "cluster"
+        ? false
+        : mlBuildingShowExcluded;
+    const effectiveShowNoise =
+      mlBuildingPointFocusMode === "cluster" ? false : mlBuildingShowNoise;
+    const isClusterVisible = (cluster: MlBuildingClusterSummary) =>
+      (mlBuildingPointFocusMode !== "cluster" || cluster.cluster_role === "core") &&
+      (visibleSet === null || visibleSet.has(cluster.cluster_id)) &&
+      (effectiveShowNoise || cluster.cluster_role !== "noise");
+    const visibleClusterCount = clusters.filter(isClusterVisible).length;
+    const mainClusterIds = new Set(
+      clusters.filter((cluster) => cluster.is_main_cluster).map((cluster) => cluster.cluster_id)
+    );
+    const isClusterFilterActive = mlBuildingVisibleClusterIds !== null;
+    const hasNoisePoints = analysis.noise_point_count > 0;
+    const focusOptions = buildingPointFocusOptions.map((option) => ({
+      ...option,
+      count:
+        option.id === "building"
+          ? analysis.point_count
+          : option.id === "scored"
+            ? analysis.kept_point_count
+            : option.id === "cluster"
+              ? clusterPointCount
+              : undefined,
+    }));
     return (
       <>
         <div className="section-title">Gebaeude-Clusteransicht</div>
-        <div className="pill">
-          Sensorseitige Kandidatenflaechen, Cluster-Huellen und Punktrollen.
+        <div className="flex flex-wrap gap-2">
+          <div className="pill">
+            {clusters.length
+              ? `${visibleClusterCount} von ${clusters.length} Clustern sichtbar`
+              : "Keine Cluster fuer diesen aktiven Lauf vorhanden."}
+          </div>
+          {mlBuildingPointFocusMode === "run" && (
+            <div className="pill">Alle Run-Punkte im Hintergrund sichtbar</div>
+          )}
+          {mlBuildingPointFocusMode !== "run" && (
+            <div className="pill">Nur fokussierte Gebaeudepunkte sichtbar</div>
+          )}
+          {!effectiveShowNoise && <div className="pill warning">Rauschen ausgeblendet</div>}
+          {!effectiveShowExcluded && (
+            <div className="pill warning">Gate-ausgeschlossene Punkte ausgeblendet</div>
+          )}
+        </div>
+        <div className="space-y-1.5 my-2">
+          <UiLabel>Kartenfokus</UiLabel>
+          <SegmentedTabs
+            options={focusOptions}
+            value={mlBuildingPointFocusMode}
+            onChange={setMlBuildingPointFocusMode}
+            ariaLabel="Kartenfokus fuer Gebaeude-ML-Punkte"
+            compact
+            layout="grid"
+          />
         </div>
         <div className="space-y-1.5 my-2">
           <UiLabel htmlFor="track-filter-select">Track-Filter</UiLabel>
@@ -853,8 +1336,9 @@ export default function InspectorPanel() {
             Gate-ausgeschlossene Punkte anzeigen
           </span>
           <Switch
-            checked={mlBuildingShowExcluded}
+            checked={effectiveShowExcluded}
             onCheckedChange={setMlBuildingShowExcluded}
+            disabled={mlBuildingPointFocusMode === "scored" || mlBuildingPointFocusMode === "cluster"}
           />
         </label>
         <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
@@ -866,16 +1350,171 @@ export default function InspectorPanel() {
             onCheckedChange={setMlBuildingShowHulls}
           />
         </label>
+        {clusters.length > 0 && (
+          <div className="mt-3 grid gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={resetMlBuildingClusterVisibility}
+                disabled={
+                  !isClusterFilterActive &&
+                  (mlBuildingPointFocusMode === "cluster" || effectiveShowNoise)
+                }
+              >
+                <RotateCcw aria-hidden="true" />
+                Alle anzeigen
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() =>
+                  setMlBuildingVisibleClusterIds(
+                    clusterIds.filter((clusterId) => mainClusterIds.has(clusterId))
+                  )
+                }
+                disabled={mainClusterIds.size === 0}
+              >
+                <Star aria-hidden="true" />
+                Nur Hauptcluster
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setMlBuildingShowNoise(!mlBuildingShowNoise)}
+                disabled={!hasNoisePoints || mlBuildingPointFocusMode === "cluster"}
+              >
+                {effectiveShowNoise ? (
+                  <EyeOff aria-hidden="true" />
+                ) : (
+                  <Eye aria-hidden="true" />
+                )}
+                {effectiveShowNoise ? "Rauschen ausblenden" : "Rauschen anzeigen"}
+              </Button>
+            </div>
+            <div className="grid gap-2">
+              {clusters.map((cluster) => {
+                const isVisible = isClusterVisible(cluster);
+                return (
+                  <div
+                    key={`${cluster.track}-${cluster.cluster_id}`}
+                    className={`rounded-md border p-2.5 ${
+                      isVisible ? "border-border bg-card" : "border-border bg-secondary/60 opacity-70"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
+                        <span
+                          className="mt-1 h-3.5 w-3.5 rounded-sm border border-white shadow-sm"
+                          style={{ backgroundColor: clusterColor(cluster) }}
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                            <span className="min-w-0 break-all font-mono text-xs font-bold text-foreground">
+                              {cluster.cluster_id}
+                            </span>
+                            {cluster.is_main_cluster && <Badge>Hauptcluster</Badge>}
+                            <Badge variant="secondary">T{cluster.track}</Badge>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {cluster.cluster_role} · Rang {fmtStr(cluster.cluster_rank)}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant={isVisible ? "outline" : "secondary"}
+                        className="h-8 w-8"
+                        onClick={() =>
+                          toggleMlBuildingClusterVisibility(cluster.cluster_id, clusterIds)
+                        }
+                        aria-label={isVisible ? "Cluster ausblenden" : "Cluster anzeigen"}
+                        title={isVisible ? "Cluster ausblenden" : "Cluster anzeigen"}
+                      >
+                        {isVisible ? (
+                          <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                    <div className="mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          setMlBuildingVisibleClusterIds([cluster.cluster_id]);
+                          if (cluster.cluster_role === "noise") {
+                            setMlBuildingShowNoise(true);
+                          }
+                        }}
+                      >
+                        <Star aria-hidden="true" />
+                        Nur dieses Cluster
+                      </Button>
+                    </div>
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                      <div className="rounded-sm bg-secondary px-2 py-1">
+                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+                          Punkte
+                        </span>
+                        <span className="font-mono font-semibold">{cluster.point_count}</span>
+                      </div>
+                      <div className="rounded-sm bg-secondary px-2 py-1">
+                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+                          Bewegung
+                        </span>
+                        <span className="font-mono font-semibold">
+                          {fmtNum(cluster.median_vertical_proxy_mm_a)}
+                        </span>
+                      </div>
+                      <div className="rounded-sm bg-secondary px-2 py-1">
+                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
+                          Rel.
+                        </span>
+                        <span className="font-mono font-semibold">
+                          {fmtNum(cluster.cluster_reliability_score)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
+                      <div>
+                        Delta zum Hauptcluster:{" "}
+                        <span className="font-mono text-foreground">
+                          {fmtNum(cluster.motion_delta_to_main_mm_a)} mm/Jahr
+                        </span>
+                      </div>
+                      <div>
+                        Nachbarstuetzung:{" "}
+                        <span className="font-mono text-foreground">
+                          {cluster.supporting_neighbour_building_count} Gebaeude
+                        </span>
+                      </div>
+                    </div>
+                    {renderClusterPointList(cluster)}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </>
     );
   };
 
   const renderBuildingMl = () => {
-    const analysis = mlBuildingAnalysisQuery.data;
+    const analysis = mlBuildingAnalysis;
+    const runHistoryCount = buildingRunsQuery.data?.length ?? 0;
     return (
       <div>
         <div className="section-title">Aktiver ML-Lauf</div>
-        {renderActiveRunSummary()}
+        {renderActiveBuildingRunCompact()}
         {activeRunId && mlBuildingAnalysisQuery.isLoading && (
           <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
         )}
@@ -884,62 +1523,7 @@ export default function InspectorPanel() {
         )}
         {analysis && (
           <>
-            <div className="section-title">Gebaeudeanalyse</div>
-            {renderMetric("Run-zugeordnete Punkte", analysis.point_count)}
-            {renderMetric(
-              "Behalten / ausgeschlossen / Rauschen",
-              `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
-            )}
-            {renderMetric(
-              "Bewegung / Status",
-              `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr / ${fmtStr(analysis.building_status)}`
-            )}
-            {renderMetric(
-              "Zuverlaessigkeit",
-              `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
-            )}
-            {renderMetric(
-              "Retuning-Flags",
-              formatRetuningFlags(analysis.weak_secondary_track_flag, analysis.agreement_tension_flag)
-            )}
-            {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
-            {renderMetric("Retuning-Anpassungen", formatPenaltySummary(analysis.reliability_penalties))}
-            {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
-            {renderMetric("Differenzielle Bewegung", analysis.differential_motion_flag ? "ja" : "nein")}
-            {renderMetric(
-              "Hauptcluster",
-              formatTrackStringMap(analysis.main_cluster_by_track)
-            )}
-            {renderMetric(
-              "Track-Bewegung",
-              formatTrackNumberMap(analysis.track_motion_mm_a)
-            )}
-            {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
-            <div className="section-title">Nachbarschaft</div>
-            {renderMetric(
-              "Kontext",
-              `${analysis.neighbour_context_available ? "ja" : "nein"} / ${
-                analysis.neighbour_candidate_building_count
-              } Kandidaten`
-            )}
-            {renderMetric(
-              "Fehlzuordnungspunkte",
-              `${analysis.neighbour_misassignment_point_count} / ${fmtPct(
-                analysis.neighbour_misassignment_share,
-                1
-              )}`
-            )}
-            {renderMetric(
-              "Nachbarereignis",
-              `${analysis.neighbour_event_flag ? "ja" : "nein"} / ${fmtNum(
-                analysis.neighbour_event_score
-              )}`
-            )}
-            {renderMetric(
-              "Konsistenz / Stuetzung",
-              `${fmtNum(analysis.neighbour_consistency_score)} / ${analysis.supporting_neighbour_count} Nachb. / T${analysis.supporting_track_count}`
-            )}
-            {renderBuildingClusterControls()}
+            {renderBuildingClusterControls(analysis)}
             {isActiveRunPending && (
               <div className="pill">Diese Zusammenfassung aktualisiert sich waehrend der aktive Lauf verarbeitet wird.</div>
             )}
@@ -947,12 +1531,74 @@ export default function InspectorPanel() {
               <div className="pill">Keine Punkte aus dem aktiven Lauf sind diesem Gebaeude zugeordnet.</div>
             ) : (
               <>
-                <div className="section-title">Diagnostik</div>
+                <div className="section-title">Gebaeudebefund</div>
+                {renderMetric("Run-zugeordnete Punkte", analysis.point_count)}
+                {renderMetric(
+                  "Behalten / ausgeschlossen / Rauschen",
+                  `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
+                )}
+                {renderMetric(
+                  "Bewegung / Status",
+                  `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr / ${fmtStr(analysis.building_status)}`
+                )}
+                {renderMetric(
+                  "Zuverlaessigkeit",
+                  `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
+                )}
+                {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
+                {renderMetric(
+                  "Hauptcluster",
+                  formatTrackStringMap(analysis.main_cluster_by_track)
+                )}
+                {renderMetric(
+                  "Track-Bewegung",
+                  formatTrackNumberMap(analysis.track_motion_mm_a)
+                )}
+                {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
                 {renderMetric("Mittlere Qualitaet", fmtNum(analysis.avg_quality_score))}
                 {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
                 {renderMetric("Mittlere Cross-Track-Konsistenz", fmtNum(analysis.avg_cross_track_consistency))}
-                <details className="attribute-details">
-                  <summary>Verteilungen anzeigen</summary>
+                <CollapsibleSection
+                  title="Nachbarschaft und Retuning"
+                  defaultOpen={false}
+                  key={`neighbour-${selectionKey}-${activeRunId ?? "none"}`}
+                >
+                  {renderMetric(
+                    "Retuning-Flags",
+                    formatRetuningFlags(analysis.weak_secondary_track_flag, analysis.agreement_tension_flag)
+                  )}
+                  {renderMetric("Retuning-Anpassungen", formatPenaltySummary(analysis.reliability_penalties))}
+                  {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
+                  {renderMetric("Differenzielle Bewegung", analysis.differential_motion_flag ? "ja" : "nein")}
+                  {renderMetric(
+                    "Kontext",
+                    `${analysis.neighbour_context_available ? "ja" : "nein"} / ${
+                      analysis.neighbour_candidate_building_count
+                    } Kandidaten`
+                  )}
+                  {renderMetric(
+                    "Fehlzuordnungspunkte",
+                    `${analysis.neighbour_misassignment_point_count} / ${fmtPct(
+                      analysis.neighbour_misassignment_share,
+                      1
+                    )}`
+                  )}
+                  {renderMetric(
+                    "Nachbarereignis",
+                    `${analysis.neighbour_event_flag ? "ja" : "nein"} / ${fmtNum(
+                      analysis.neighbour_event_score
+                    )}`
+                  )}
+                  {renderMetric(
+                    "Konsistenz / Stuetzung",
+                    `${fmtNum(analysis.neighbour_consistency_score)} / ${analysis.supporting_neighbour_count} Nachb. / T${analysis.supporting_track_count}`
+                  )}
+                </CollapsibleSection>
+                <CollapsibleSection
+                  title="Verteilungen"
+                  defaultOpen={false}
+                  key={`distributions-${selectionKey}-${activeRunId ?? "none"}`}
+                >
                   <div className="section-title">Track-Anzahlen</div>
                   {Object.entries(analysis.track_counts).map(([key, value]) =>
                     renderMetric(formatCountLabel(key), value, undefined, `track-${key}`)
@@ -965,26 +1611,12 @@ export default function InspectorPanel() {
                   {Object.entries(analysis.assignment_methods).map(([key, value]) =>
                     renderMetric(formatCountLabel(key), value, undefined, `assignment-${key}`)
                   )}
-                </details>
-                {analysis.clusters.length > 0 && (
-                  <details className="attribute-details">
-                    <summary>Cluster anzeigen ({analysis.clusters.length})</summary>
-                    {analysis.clusters.map((cluster) =>
-                      renderMetric(
-                        `${cluster.cluster_id} / T${cluster.track}${cluster.is_main_cluster ? " / Hauptcluster" : ""}`,
-                        `#${fmtStr(cluster.cluster_rank)} / ${cluster.cluster_role} / ${
-                          cluster.point_count
-                        } Pkt. / V ${fmtNum(cluster.median_vertical_proxy_mm_a)} / Rel ${fmtNum(
-                          cluster.cluster_reliability_score
-                        )}`,
-                        undefined,
-                        `cluster-${cluster.cluster_id}`
-                      )
-                    )}
-                  </details>
-                )}
-                <details className="attribute-details">
-                  <summary>Punkte mit niedrigster Qualitaet anzeigen ({analysis.top_points.length})</summary>
+                </CollapsibleSection>
+                <CollapsibleSection
+                  title={`Punkte mit niedrigster Qualitaet (${analysis.top_points.length})`}
+                  defaultOpen={false}
+                  key={`top-points-${selectionKey}-${activeRunId ?? "none"}`}
+                >
                   {analysis.top_points.map((point) =>
                     renderMetric(
                       `${point.code} / ${point.track} / ${fmtStr(point.cluster_role)}`,
@@ -993,18 +1625,26 @@ export default function InspectorPanel() {
                       `top-point-${point.code}-${point.track}`
                     )
                   )}
-                </details>
+                </CollapsibleSection>
               </>
             )}
           </>
         )}
+        <CollapsibleSection
+          title="Run-Historie dieses Gebaeudes"
+          defaultOpen={false}
+          key={`run-history-${selectionKey}`}
+          aside={runHistoryCount > 0 ? `${runHistoryCount}` : undefined}
+        >
+          {renderBuildingRunsFull()}
+        </CollapsibleSection>
       </div>
     );
   };
 
   const renderBuildingRaw = () => {
     const building = buildingDetailQuery.data;
-    const analysis = mlBuildingAnalysisQuery.data;
+    const analysis = mlBuildingAnalysis;
     if (!building) return null;
     return (
       <div>

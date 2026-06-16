@@ -16,6 +16,7 @@ export type LayerVisibility = {
 };
 export type SimpleLayerVisibilityKey = Exclude<keyof LayerVisibility, "insarTracks">;
 export type MlBuildingTrackFilter = "all" | `${string}:${number}`;
+export type MlBuildingPointFocusMode = "run" | "building" | "scored" | "cluster";
 
 export type Selection =
   | {
@@ -62,6 +63,9 @@ export type AppState = {
   mlBuildingTrackFilter: MlBuildingTrackFilter;
   mlBuildingShowExcluded: boolean;
   mlBuildingShowHulls: boolean;
+  mlBuildingShowNoise: boolean;
+  mlBuildingVisibleClusterIds: string[] | null;
+  mlBuildingPointFocusMode: MlBuildingPointFocusMode;
   mlView:
     | "cluster"
     | "quality"
@@ -92,6 +96,11 @@ export type AppState = {
   setMlBuildingTrackFilter: (value: AppState["mlBuildingTrackFilter"]) => void;
   setMlBuildingShowExcluded: (show: boolean) => void;
   setMlBuildingShowHulls: (show: boolean) => void;
+  setMlBuildingShowNoise: (show: boolean) => void;
+  setMlBuildingVisibleClusterIds: (clusterIds: string[] | null) => void;
+  setMlBuildingPointFocusMode: (mode: MlBuildingPointFocusMode) => void;
+  toggleMlBuildingClusterVisibility: (clusterId: string, allClusterIds: string[]) => void;
+  resetMlBuildingClusterVisibility: () => void;
   setMlView: (view: AppState["mlView"]) => void;
   bumpMlTileVersion: () => void;
   setMapBBox: (bbox: [number, number, number, number] | null) => void;
@@ -125,6 +134,9 @@ export const useAppStore = create<AppState>((set) => ({
   mlBuildingTrackFilter: "all",
   mlBuildingShowExcluded: true,
   mlBuildingShowHulls: true,
+  mlBuildingShowNoise: true,
+  mlBuildingVisibleClusterIds: null,
+  mlBuildingPointFocusMode: "building",
   mlView: "cluster",
   mlTileVersion: 0,
   mapBBox: null,
@@ -140,6 +152,10 @@ export const useAppStore = create<AppState>((set) => ({
             selection: null,
             cameraMode: "default",
             mlBuildingTrackFilter: "all",
+            mlBuildingShowHulls: true,
+            mlBuildingShowNoise: true,
+            mlBuildingVisibleClusterIds: null,
+            mlBuildingPointFocusMode: "building",
           }
     ),
   setInsarTrackVisibility: (datasetId, track, value) =>
@@ -156,18 +172,51 @@ export const useAppStore = create<AppState>((set) => ({
   setFilter: (key, value) =>
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
-  setSelection: (selection) => set(() => ({ selection })),
+  setSelection: (selection) =>
+    set(() => ({
+      selection,
+      mlBuildingShowHulls: true,
+      mlBuildingShowNoise: true,
+      mlBuildingVisibleClusterIds: null,
+      mlBuildingPointFocusMode: "building",
+    })),
   setBasemapId: (id) => set(() => ({ basemapId: id })),
   setCameraMode: (mode) => set(() => ({ cameraMode: mode })),
   setPointColorMode: (mode) => set(() => ({ pointColorMode: mode })),
   setHeightSensitivityM: (value) => set(() => ({ heightSensitivityM: value })),
   setShowTrackOutlines: (show) => set(() => ({ showTrackOutlines: show })),
-  setActiveRunId: (runId) => set(() => ({ activeRunId: runId })),
+  setActiveRunId: (runId) =>
+    set(() => ({
+      activeRunId: runId,
+      mlBuildingShowHulls: true,
+      mlBuildingShowNoise: true,
+      mlBuildingVisibleClusterIds: null,
+      mlBuildingPointFocusMode: "building",
+    })),
   setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
   setShowMlBuildings: (show) => set(() => ({ showMlBuildings: show })),
   setMlBuildingTrackFilter: (value) => set(() => ({ mlBuildingTrackFilter: value })),
   setMlBuildingShowExcluded: (show) => set(() => ({ mlBuildingShowExcluded: show })),
   setMlBuildingShowHulls: (show) => set(() => ({ mlBuildingShowHulls: show })),
+  setMlBuildingShowNoise: (show) => set(() => ({ mlBuildingShowNoise: show })),
+  setMlBuildingVisibleClusterIds: (clusterIds) =>
+    set(() => ({
+      mlBuildingVisibleClusterIds:
+        clusterIds === null ? null : Array.from(new Set(clusterIds)),
+    })),
+  setMlBuildingPointFocusMode: (mode) => set(() => ({ mlBuildingPointFocusMode: mode })),
+  toggleMlBuildingClusterVisibility: (clusterId, allClusterIds) =>
+    set((state) => {
+      const visible = new Set(state.mlBuildingVisibleClusterIds ?? allClusterIds);
+      if (visible.has(clusterId)) {
+        visible.delete(clusterId);
+      } else {
+        visible.add(clusterId);
+      }
+      return { mlBuildingVisibleClusterIds: Array.from(visible) };
+    }),
+  resetMlBuildingClusterVisibility: () =>
+    set(() => ({ mlBuildingShowNoise: true, mlBuildingVisibleClusterIds: null })),
   setMlView: (view) => set(() => ({ mlView: view })),
   bumpMlTileVersion: () => set((state) => ({ mlTileVersion: state.mlTileVersion + 1 })),
   setMapBBox: (bbox) => set(() => ({ mapBBox: bbox })),

@@ -20,6 +20,7 @@ from ..schemas import (
     MLBuildingAnalysis,
     MLBuildingClusterSummary,
     MLBuildingPointSummary,
+    MLBuildingRunSummary,
     MLBuildingVisualizationContextResponse,
     MLBuildingVisualizationPointsResponse,
     MLPointAnalysis,
@@ -93,6 +94,10 @@ def _rollup_int(rollup: dict[str, Any], key: str, default: int = 0) -> int:
 
 def _rollup_str(rollup: dict[str, Any], key: str) -> str | None:
     return _nested_str({"value": rollup.get(key)}, "value")
+
+
+def _run_sort_timestamp(row: dict[str, Any]) -> datetime:
+    return row.get("finished_at") or row.get("created_at") or datetime.min.replace(tzinfo=timezone.utc)
 
 
 @router.get("/pipelines")
@@ -215,6 +220,175 @@ async def run_detail(request: Request, run_id: str):
         error=run["error"],
         experiment_id=(run["params"] or {}).get("experiment_id"),
     )
+
+
+@router.get("/buildings/{source}/{building_id}/runs", response_model=list[MLBuildingRunSummary])
+async def building_run_history(
+    request: Request,
+    source: str,
+    building_id: str,
+    area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
+    limit: int = Query(default=10, ge=1, le=50),
+):
+    if source not in {"gba", "osm"}:
+        raise HTTPException(status_code=400, detail="Invalid source")
+
+    async with request.app.state.db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            WITH candidate_runs AS (
+                SELECT DISTINCT
+                    m.run_id,
+                    m.status,
+                    m.pipeline,
+                    m.run_type,
+                    m.created_at,
+                    m.started_at,
+                    m.finished_at,
+                    m.area_id,
+                    m.dataset_id,
+                    m.source,
+                    m.track,
+                    m.params
+                FROM ml_point_results r
+                JOIN ml_runs m ON m.run_id = r.run_id
+                WHERE r.building_source = $1
+                  AND r.building_id = $2
+                  AND ($3::text IS NULL OR r.area_id = $3)
+                  AND m.pipeline = 'anomaly_local_v1'
+                  AND m.status = 'succeeded'
+                ORDER BY m.finished_at DESC NULLS LAST, m.created_at DESC
+                LIMIT $4
+            )
+            SELECT
+                c.run_id,
+                c.status,
+                c.pipeline,
+                c.run_type,
+                c.created_at,
+                c.started_at,
+                c.finished_at,
+                c.area_id,
+                c.dataset_id,
+                c.source,
+                c.track,
+                c.params,
+                r.label,
+                r.cluster_id,
+                r.track AS result_track,
+                r.meta
+            FROM candidate_runs c
+            JOIN ml_point_results r
+              ON r.run_id = c.run_id
+             AND r.building_source = $1
+             AND r.building_id = $2
+             AND ($3::text IS NULL OR r.area_id = $3)
+            ORDER BY
+                c.finished_at DESC NULLS LAST,
+                c.created_at DESC,
+                COALESCE((r.meta->'cluster_rollup'->>'cluster_rank')::integer, 999),
+                r.track,
+                r.code
+            """,
+            source,
+            building_id,
+            area_id,
+            limit,
+        )
+
+    grouped: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        run_id = str(row["run_id"])
+        current = grouped.get(run_id)
+        if current is None:
+            current = {
+                "run_id": run_id,
+                "status": row["status"],
+                "pipeline": row["pipeline"],
+                "run_type": row["run_type"],
+                "created_at": row["created_at"],
+                "started_at": row["started_at"],
+                "finished_at": row["finished_at"],
+                "area_id": row["area_id"],
+                "dataset_id": row["dataset_id"],
+                "source": row["source"],
+                "track": row["track"],
+                "params": row["params"],
+                "point_count": 0,
+                "kept_point_count": 0,
+                "excluded_point_count": 0,
+                "noise_point_count": 0,
+                "cluster_ids": set(),
+                "label_counts": defaultdict(int),
+                "track_counts": defaultdict(int),
+                "building_rollup": {},
+            }
+            grouped[run_id] = current
+
+        meta = _parse_meta(row.get("meta"))
+        visual_meta = _nested_dict(meta, "visual_context")
+        cluster_meta = _nested_dict(meta, "cluster")
+        building_rollup = building_rollup_from_meta(meta)
+        cluster_id = row.get("cluster_id")
+        cluster_role = str(cluster_meta.get("cluster_role") or "unknown")
+        gate_excluded = bool(visual_meta.get("gate_excluded", False))
+
+        current["point_count"] += 1
+        current["label_counts"][str(row.get("label") or "unlabeled")] += 1
+        current["track_counts"][str(row.get("result_track") or "unknown")] += 1
+        if gate_excluded:
+            current["excluded_point_count"] += 1
+        else:
+            current["kept_point_count"] += 1
+        if cluster_role == "noise":
+            current["noise_point_count"] += 1
+        if cluster_id is not None:
+            current["cluster_ids"].add(str(cluster_id))
+        if not current["building_rollup"] and building_rollup:
+            current["building_rollup"] = building_rollup
+
+    summaries = []
+    for item in sorted(grouped.values(), key=_run_sort_timestamp, reverse=True):
+        params = _parse_meta(item.get("params"))
+        rollup = item["building_rollup"]
+        cluster_count = _rollup_int(rollup, "cluster_count", len(item["cluster_ids"]))
+        summaries.append(
+            MLBuildingRunSummary(
+                run_id=item["run_id"],
+                status=item["status"],
+                pipeline=item["pipeline"],
+                run_type=item["run_type"],
+                created_at=item["created_at"],
+                started_at=item["started_at"],
+                finished_at=item["finished_at"],
+                area_id=item["area_id"],
+                dataset_id=item["dataset_id"],
+                source=item["source"],
+                track=item["track"],
+                experiment_id=params.get("experiment_id"),
+                point_count=int(rollup.get("point_count", item["point_count"]) or 0),
+                kept_point_count=int(
+                    rollup.get("kept_point_count", item["kept_point_count"]) or 0
+                ),
+                excluded_point_count=int(
+                    rollup.get("excluded_point_count", item["excluded_point_count"]) or 0
+                ),
+                noise_point_count=int(
+                    rollup.get("noise_point_count", item["noise_point_count"]) or 0
+                ),
+                cluster_count=cluster_count,
+                reliable_cluster_count=_rollup_int(rollup, "reliable_cluster_count"),
+                building_motion_mm_a=_rollup_float(rollup, "building_motion_mm_a"),
+                building_reliability_score=_rollup_float(rollup, "building_reliability_score"),
+                building_reliability_band=_rollup_str(rollup, "building_reliability_band"),
+                building_status=_rollup_str(rollup, "building_status"),
+                label_counts=dict(item["label_counts"]),
+                track_counts=dict(item["track_counts"]),
+                main_cluster_by_track=track_string_map(rollup.get("main_cluster_by_track")),
+            )
+        )
+
+    return summaries
 
 
 @router.post("/runs/{run_id}/recolor")
@@ -374,7 +548,8 @@ async def ml_building_analysis(
                 r.anomaly_score,
                 r.cross_track_consistency,
                 r.distance_m,
-                r.meta
+                r.meta,
+                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index
             FROM ml_point_results r
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
@@ -440,6 +615,7 @@ async def ml_building_analysis(
         if not building_rollup and current_building_rollup:
             building_rollup = current_building_rollup
         if cluster_rollup and cluster_id is not None and cluster_rollup.get("cluster_id") is not None:
+            cluster_rollup["cluster_color_index"] = int(row["cluster_color_index"])
             cluster_rollups[(int(row["track"]), str(cluster_id))] = cluster_rollup
 
     if not building_rollup:
@@ -538,6 +714,10 @@ async def ml_building_analysis(
                 cluster_role=str(values.get("cluster_role") or "unknown"),
                 is_main_cluster=bool(values.get("is_main_cluster", False)),
                 cluster_rank=_nested_int({"value": values.get("cluster_rank")}, "value"),
+                cluster_color_index=_nested_int(
+                    {"value": values.get("cluster_color_index")},
+                    "value",
+                ),
                 point_count=int(values["point_count"]),
                 median_velocity_mm_a=_nested_float(
                     {"value": values.get("median_velocity_mm_a")},
