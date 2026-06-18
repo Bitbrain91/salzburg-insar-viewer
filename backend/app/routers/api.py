@@ -17,6 +17,7 @@ from ..config import settings
 from ..db import fetch_all, fetch_one
 from ..ml.track_geometry import track_geometries_contract
 from ..schemas import (
+    BuildingAddress,
     BuildingDetail,
     BuildingTerrainContext,
     ConfigResponse,
@@ -39,6 +40,7 @@ VELOCITY_THRESHOLDS = {
     "moderate_uplift": 2.0,
     "strong_uplift": 5.0,
 }
+GBA_ADDRESS_NEAREST_MAX_DISTANCE_M = 25.0
 
 _NOMINATIM_CACHE: dict[tuple[str, str | None, int], list[dict[str, Any]]] = {}
 _NOMINATIM_LOCK = asyncio.Lock()
@@ -558,6 +560,135 @@ def _ensure_dict(value) -> dict:
     return parsed if isinstance(parsed, dict) else {"value": parsed}
 
 
+def _clean_address_part(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _building_address_from_osm_tags(
+    tags: dict,
+    *,
+    match_type: str,
+    matched_osm_id: str | int | None,
+    distance_m: float | None = None,
+) -> BuildingAddress | None:
+    street = _clean_address_part(tags.get("addr:street")) or _clean_address_part(
+        tags.get("addr:place")
+    )
+    housenumber = _clean_address_part(tags.get("addr:housenumber"))
+    if not street or not housenumber:
+        return None
+
+    postcode = _clean_address_part(tags.get("addr:postcode"))
+    city = _clean_address_part(tags.get("addr:city"))
+    street_line = f"{street} {housenumber}"
+    city_line = " ".join(part for part in [postcode, city] if part)
+    label = ", ".join(part for part in [street_line, city_line] if part)
+
+    return BuildingAddress(
+        label=label,
+        street=street,
+        housenumber=housenumber,
+        postcode=postcode,
+        city=city,
+        source="osm",
+        match_type=match_type,
+        matched_osm_id=str(matched_osm_id) if matched_osm_id is not None else None,
+        distance_m=round(distance_m, 1) if distance_m is not None else None,
+    )
+
+
+async def _find_gba_local_address(
+    app,
+    *,
+    area_id: str,
+    building_id: str,
+) -> BuildingAddress | None:
+    rows = await fetch_all(
+        app,
+        """
+        WITH selected_raw AS (
+            SELECT geom
+            FROM gba_buildings
+            WHERE area_id = $1
+              AND gba_id = $2
+        ),
+        candidate_raw AS (
+            SELECT b.osm_id,
+                   b.tags,
+                   b.geom
+            FROM osm_buildings b
+            JOIN selected_raw s
+              ON b.geom && ST_Expand(s.geom, 0.0005)
+            WHERE b.area_id = $1
+              AND s.geom IS NOT NULL
+              AND b.geom IS NOT NULL
+              AND (
+                NULLIF(b.tags->>'addr:street', '') IS NOT NULL
+                OR NULLIF(b.tags->>'addr:place', '') IS NOT NULL
+              )
+              AND NULLIF(b.tags->>'addr:housenumber', '') IS NOT NULL
+        ),
+        selected AS (
+            SELECT ST_CollectionExtract(ST_MakeValid(geom), 3) AS geom
+            FROM selected_raw
+        ),
+        address_osm AS (
+            SELECT osm_id,
+                   tags,
+                   ST_CollectionExtract(ST_MakeValid(geom), 3) AS geom
+            FROM candidate_raw
+        ),
+        candidates AS (
+            SELECT b.osm_id,
+                   b.tags,
+                   ST_Intersects(s.geom, b.geom) AS intersects,
+                   ST_Covers(s.geom, ST_PointOnSurface(b.geom)) AS osm_point_inside_gba,
+                   ST_Distance(s.geom::geography, b.geom::geography) AS distance_m
+            FROM selected s
+            JOIN address_osm b
+              ON TRUE
+            WHERE s.geom IS NOT NULL
+              AND b.geom IS NOT NULL
+              AND NOT ST_IsEmpty(s.geom)
+              AND NOT ST_IsEmpty(b.geom)
+              AND (
+                ST_Intersects(s.geom, b.geom)
+                OR ST_DWithin(
+                    s.geom::geography,
+                    b.geom::geography,
+                    $3::double precision
+                )
+              )
+        )
+        SELECT *
+        FROM candidates
+        ORDER BY
+          CASE WHEN intersects THEN 0 ELSE 1 END,
+          CASE WHEN osm_point_inside_gba THEN 0 ELSE 1 END,
+          distance_m ASC,
+          osm_id ASC
+        LIMIT 8
+        """,
+        area_id,
+        building_id,
+        GBA_ADDRESS_NEAREST_MAX_DISTANCE_M,
+    )
+    for row in rows:
+        match_type = "osm_intersection" if row.get("intersects") else "osm_nearest"
+        address = _building_address_from_osm_tags(
+            _ensure_dict(row.get("tags") or {}),
+            match_type=match_type,
+            matched_osm_id=row.get("osm_id"),
+            distance_m=row.get("distance_m") if match_type == "osm_nearest" else None,
+        )
+        if address:
+            return address
+    return None
+
+
 def _build_point_terrain(row) -> PointTerrainContext | None:
     source = row.get("terrain_source")
     if source is None:
@@ -880,6 +1011,11 @@ async def gba_building_detail(
         geometry=geometry,
         attributes=attributes,
         terrain=_build_building_terrain(row),
+        address=await _find_gba_local_address(
+            app,
+            area_id=row["area_id"],
+            building_id=str(row["id"]),
+        ),
     )
 
 
@@ -935,6 +1071,11 @@ async def osm_building_detail(
         geometry=geometry,
         attributes=attributes,
         terrain=_build_building_terrain(row),
+        address=_building_address_from_osm_tags(
+            attributes,
+            match_type="osm_self",
+            matched_osm_id=row["id"],
+        ),
     )
 
 

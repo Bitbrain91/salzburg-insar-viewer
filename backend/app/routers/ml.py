@@ -54,6 +54,10 @@ from ..ml.types import RunConfig
 router = APIRouter(prefix="/api/ml", tags=["ml"])
 logger = logging.getLogger(__name__)
 
+CLUSTER_COLOR_PALETTE_SIZE = 60
+CLUSTER_COLOR_OFFSET = 34
+CLUSTER_COLOR_STEP = 17
+
 
 def _log_task_result(task: asyncio.Task) -> None:
     try:
@@ -94,6 +98,45 @@ def _rollup_int(rollup: dict[str, Any], key: str, default: int = 0) -> int:
 
 def _rollup_str(rollup: dict[str, Any], key: str) -> str | None:
     return _nested_str({"value": rollup.get(key)}, "value")
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if np.isfinite(parsed) else None
+
+
+def _point_clustering_features(
+    row: dict[str, Any],
+    building_meta: dict[str, Any],
+) -> dict[str, float | None]:
+    coherence = _optional_float(row.get("coherence"))
+    return {
+        "along_look_offset_m": _optional_float(building_meta.get("along_look_offset_m")),
+        "cross_look_offset_m": _optional_float(building_meta.get("cross_look_offset_m")),
+        "height_rank_in_building": _optional_float(building_meta.get("height_rank_in_building")),
+        "velocity": _optional_float(row.get("velocity")),
+        "acceleration": _optional_float(row.get("acceleration")),
+        "coherence_penalty": 1.0 - float(np.clip(coherence, 0.0, 1.0))
+        if coherence is not None
+        else 1.0,
+    }
+
+
+def _explain_top_features(meta: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "key": item.get("key", "unknown"),
+            "severity": float(item.get("severity", 0.0) or 0.0),
+            "summary": item.get("summary", ""),
+        }
+        for item in meta.get("explain_top_features", [])
+        if isinstance(item, dict)
+    ]
 
 
 def _run_sort_timestamp(row: dict[str, Any]) -> datetime:
@@ -419,6 +462,13 @@ async def ml_point_analysis(
             r.dataset_id,
             r.code,
             r.track,
+            p.sensor,
+            p.velocity,
+            p.velocity_std,
+            p.height,
+            p.height_std,
+            p.acceleration,
+            p.coherence,
             r.quality_score,
             r.anomaly_score,
             r.cross_track_consistency,
@@ -431,6 +481,11 @@ async def ml_point_analysis(
             r.meta
         FROM ml_point_results r
         JOIN ml_runs m ON m.run_id = r.run_id
+        JOIN insar_points p
+          ON p.area_id = r.area_id
+         AND p.dataset_id = r.dataset_id
+         AND p.code = r.code
+         AND p.track = r.track
         WHERE r.run_id = $1::uuid
           AND r.code = $2
           AND r.track = $3
@@ -463,15 +518,8 @@ async def ml_point_analysis(
     meta = _parse_meta(row.get("meta"))
     cluster_meta = _nested_dict(meta, "cluster")
     visual_meta = _nested_dict(meta, "visual_context")
-    explain = [
-        {
-            "key": item.get("key", "unknown"),
-            "severity": float(item.get("severity", 0.0) or 0.0),
-            "summary": item.get("summary", ""),
-        }
-        for item in meta.get("explain_top_features", [])
-        if isinstance(item, dict)
-    ]
+    building_meta = _nested_dict(meta, "building_context")
+    explain = _explain_top_features(meta)
 
     return MLPointAnalysisResponse(
         status="ready",
@@ -481,20 +529,28 @@ async def ml_point_analysis(
             run_type=row["run_type"],
             area_id=row["area_id"],
             dataset_id=row["dataset_id"],
+            sensor=row.get("sensor"),
             code=row["code"],
             track=row["track"],
             quality_score=row.get("quality_score"),
             anomaly_score=row.get("anomaly_score"),
             cross_track_consistency=row.get("cross_track_consistency"),
             label=row.get("label"),
+            velocity=row.get("velocity"),
+            velocity_std=row.get("velocity_std"),
+            height=row.get("height"),
+            height_std=row.get("height_std"),
+            acceleration=row.get("acceleration"),
+            coherence=row.get("coherence"),
             building_source=row.get("building_source"),
             building_id=row.get("building_id"),
             distance_m=row.get("distance_m"),
             feature_set_version=row.get("feature_set_version"),
             model_set_version=row.get("model_set_version"),
             detector_scores=meta.get("detector_scores") or {},
+            clustering_features=_point_clustering_features(row, building_meta),
             feature_flags=meta.get("feature_flags") or {},
-            building_context=meta.get("building_context") or {},
+            building_context=building_meta,
             cross_track_summary=meta.get("cross_track_summary") or {},
             neighbour_context=_nested_dict(meta, "neighbour_context"),
             cluster_role=cluster_meta.get("cluster_role"),
@@ -506,6 +562,7 @@ async def ml_point_analysis(
                 for item in _nested_list(meta, "visual_context", "gate_reasons")
             ],
             kept_for_scoring=_nested_bool(meta, "visual_context", "kept_for_scoring"),
+            degraded_reason=_nested_str(meta, "feature_flags", "degraded_reason"),
             explain_top_features=explain,
         ),
     )
@@ -536,7 +593,45 @@ async def ml_building_analysis(
         selected_area_id = area_id or run["area_id"]
 
         rows = await conn.fetch(
-            """
+            f"""
+            WITH cluster_color_keys AS (
+                SELECT
+                    r.run_id,
+                    r.area_id,
+                    r.building_source,
+                    r.building_id,
+                    r.dataset_id,
+                    r.track,
+                    COALESCE(r.cluster_id, r.code) AS cluster_key,
+                    BOOL_OR(
+                        COALESCE((r.meta->'cluster_rollup'->>'is_main_cluster')::boolean, false)
+                    ) AS is_main_cluster,
+                    MIN(COALESCE((r.meta->'cluster_rollup'->>'cluster_rank')::integer, 999))
+                        AS cluster_rank
+                FROM ml_point_results r
+                WHERE r.run_id = $1::uuid
+                  AND r.building_source = $2
+                  AND r.building_id = $3
+                  AND r.area_id = $4
+                GROUP BY
+                    r.run_id, r.area_id, r.building_source, r.building_id,
+                    r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
+            ),
+            cluster_colors AS (
+                SELECT
+                    *,
+                    (
+                        (
+                            (
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY run_id, area_id, building_source, building_id
+                                    ORDER BY is_main_cluster DESC, cluster_rank, dataset_id, track, cluster_key
+                                ) - 1
+                            ) * {CLUSTER_COLOR_STEP} + {CLUSTER_COLOR_OFFSET}
+                        ) % {CLUSTER_COLOR_PALETTE_SIZE}
+                    )::integer AS cluster_color_index
+                FROM cluster_color_keys
+            )
             SELECT
                 r.area_id,
                 r.dataset_id,
@@ -549,8 +644,16 @@ async def ml_building_analysis(
                 r.cross_track_consistency,
                 r.distance_m,
                 r.meta,
-                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index
+                COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index
             FROM ml_point_results r
+            LEFT JOIN cluster_colors cc
+              ON cc.run_id = r.run_id
+             AND cc.area_id = r.area_id
+             AND cc.building_source = r.building_source
+             AND cc.building_id = r.building_id
+             AND cc.dataset_id = r.dataset_id
+             AND cc.track = r.track
+             AND cc.cluster_key = COALESCE(r.cluster_id, r.code)
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
               AND r.building_id = $3
@@ -818,12 +921,57 @@ async def ml_building_points_visualization(
         selected_area_id = area_id or run["area_id"]
 
         rows = await conn.fetch(
-            """
+            f"""
+            WITH cluster_color_keys AS (
+                SELECT
+                    r.run_id,
+                    r.area_id,
+                    r.building_source,
+                    r.building_id,
+                    r.dataset_id,
+                    r.track,
+                    COALESCE(r.cluster_id, r.code) AS cluster_key,
+                    BOOL_OR(
+                        COALESCE((r.meta->'cluster_rollup'->>'is_main_cluster')::boolean, false)
+                    ) AS is_main_cluster,
+                    MIN(COALESCE((r.meta->'cluster_rollup'->>'cluster_rank')::integer, 999))
+                        AS cluster_rank
+                FROM ml_point_results r
+                WHERE r.run_id = $1::uuid
+                  AND r.building_source = $2
+                  AND r.building_id = $3
+                  AND r.area_id = $4
+                GROUP BY
+                    r.run_id, r.area_id, r.building_source, r.building_id,
+                    r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
+            ),
+            cluster_colors AS (
+                SELECT
+                    *,
+                    (
+                        (
+                            (
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY run_id, area_id, building_source, building_id
+                                    ORDER BY is_main_cluster DESC, cluster_rank, dataset_id, track, cluster_key
+                                ) - 1
+                            ) * {CLUSTER_COLOR_STEP} + {CLUSTER_COLOR_OFFSET}
+                        ) % {CLUSTER_COLOR_PALETTE_SIZE}
+                    )::integer AS cluster_color_index
+                FROM cluster_color_keys
+            )
             SELECT
                 r.area_id,
                 r.dataset_id,
                 r.code,
                 r.track,
+                p.sensor,
+                p.velocity,
+                p.velocity_std,
+                p.height,
+                p.height_std,
+                p.acceleration,
+                p.coherence,
                 r.cluster_id,
                 r.label,
                 r.anomaly_score,
@@ -831,7 +979,7 @@ async def ml_building_points_visualization(
                 r.cross_track_consistency,
                 r.distance_m,
                 r.meta,
-                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
+                COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index,
                 ST_AsGeoJSON(p.geom)::jsonb AS geometry
             FROM ml_point_results r
             JOIN insar_points p
@@ -839,6 +987,14 @@ async def ml_building_points_visualization(
              AND p.dataset_id = r.dataset_id
              AND p.code = r.code
              AND p.track = r.track
+            LEFT JOIN cluster_colors cc
+              ON cc.run_id = r.run_id
+             AND cc.area_id = r.area_id
+             AND cc.building_source = r.building_source
+             AND cc.building_id = r.building_id
+             AND cc.dataset_id = r.dataset_id
+             AND cc.track = r.track
+             AND cc.cluster_key = COALESCE(r.cluster_id, r.code)
             WHERE r.run_id = $1::uuid
               AND r.building_source = $2
               AND r.building_id = $3
@@ -867,8 +1023,15 @@ async def ml_building_points_visualization(
                 properties={
                     "area_id": row["area_id"],
                     "dataset_id": row["dataset_id"],
+                    "sensor": row.get("sensor"),
                     "code": row["code"],
                     "track": row["track"],
+                    "velocity": row.get("velocity"),
+                    "velocity_std": row.get("velocity_std"),
+                    "height": row.get("height"),
+                    "height_std": row.get("height_std"),
+                    "acceleration": row.get("acceleration"),
+                    "coherence": row.get("coherence"),
                     "cluster_id": row.get("cluster_id"),
                     "cluster_role": cluster_meta.get("cluster_role"),
                     "cluster_probability": _nested_float(meta, "cluster", "cluster_probability"),
@@ -882,11 +1045,15 @@ async def ml_building_points_visualization(
                     "cross_track_consistency": row.get("cross_track_consistency"),
                     "assignment_method": building_meta.get("assignment_method") or visual_meta.get("assignment_method"),
                     "distance_m": row.get("distance_m"),
+                    "clustering_features": _point_clustering_features(row, building_meta),
+                    "detector_scores": meta.get("detector_scores") or {},
                     "kept_for_scoring": bool(visual_meta.get("kept_for_scoring", False)),
                     "gate_excluded": bool(visual_meta.get("gate_excluded", False)),
                     "gate_reasons": [
                         str(item) for item in _nested_list(meta, "visual_context", "gate_reasons")
                     ],
+                    "degraded_reason": _nested_str(meta, "feature_flags", "degraded_reason"),
+                    "explain_top_features": _explain_top_features(meta),
                     "small_n_fallback": bool(cluster_meta.get("small_n_fallback", False)),
                     "range_offset_m": building_meta.get("range_offset_m"),
                     "look_bearing_deg": building_meta.get("look_bearing_deg"),
@@ -1180,13 +1347,51 @@ async def ml_building_context_visualization(
             )
 
         hull_rows = await conn.fetch(
-            """
+            f"""
+            WITH cluster_color_keys AS (
+                SELECT
+                    r.run_id,
+                    r.area_id,
+                    r.building_source,
+                    r.building_id,
+                    r.dataset_id,
+                    r.track,
+                    COALESCE(r.cluster_id, r.code) AS cluster_key,
+                    BOOL_OR(
+                        COALESCE((r.meta->'cluster_rollup'->>'is_main_cluster')::boolean, false)
+                    ) AS is_main_cluster,
+                    MIN(COALESCE((r.meta->'cluster_rollup'->>'cluster_rank')::integer, 999))
+                        AS cluster_rank
+                FROM ml_point_results r
+                WHERE r.run_id = $1::uuid
+                  AND r.area_id = $4
+                  AND r.building_source = $2
+                  AND r.building_id = $3
+                GROUP BY
+                    r.run_id, r.area_id, r.building_source, r.building_id,
+                    r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
+            ),
+            cluster_colors AS (
+                SELECT
+                    *,
+                    (
+                        (
+                            (
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY run_id, area_id, building_source, building_id
+                                    ORDER BY is_main_cluster DESC, cluster_rank, dataset_id, track, cluster_key
+                                ) - 1
+                            ) * {CLUSTER_COLOR_STEP} + {CLUSTER_COLOR_OFFSET}
+                        ) % {CLUSTER_COLOR_PALETTE_SIZE}
+                    )::integer AS cluster_color_index
+                FROM cluster_color_keys
+            )
             SELECT
                 r.cluster_id,
                 r.dataset_id,
                 r.track,
                 COUNT(*)::integer AS point_count,
-                abs(hashtext(r.cluster_id)) % 60 AS cluster_color_index,
+                COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index,
                 ST_AsGeoJSON(ST_ConvexHull(ST_Collect(p.geom)))::jsonb AS geometry
             FROM ml_point_results r
             JOIN insar_points p
@@ -1194,13 +1399,21 @@ async def ml_building_context_visualization(
              AND p.dataset_id = r.dataset_id
              AND p.code = r.code
              AND p.track = r.track
+            LEFT JOIN cluster_colors cc
+              ON cc.run_id = r.run_id
+             AND cc.area_id = r.area_id
+             AND cc.building_source = r.building_source
+             AND cc.building_id = r.building_id
+             AND cc.dataset_id = r.dataset_id
+             AND cc.track = r.track
+             AND cc.cluster_key = COALESCE(r.cluster_id, r.code)
             WHERE r.run_id = $1::uuid
               AND r.area_id = $4
               AND r.building_source = $2
               AND r.building_id = $3
               AND COALESCE(r.meta->'cluster'->>'cluster_role', '') = 'core'
               AND COALESCE(r.meta->'visual_context'->>'gate_excluded', 'false') = 'false'
-            GROUP BY r.cluster_id, r.dataset_id, r.track
+            GROUP BY r.cluster_id, r.dataset_id, r.track, cc.cluster_color_index
             ORDER BY point_count DESC, r.cluster_id
             """,
             run_id,
@@ -1336,9 +1549,44 @@ async def ml_building_context_visualization(
 
 @router.get("/runs/{run_id}/tiles/{z}/{x}/{y}.pbf")
 async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Response:
-    query = """
+    query = f"""
         WITH bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
+        ),
+        cluster_color_keys AS (
+            SELECT
+                r.run_id,
+                r.area_id,
+                r.building_source,
+                r.building_id,
+                r.dataset_id,
+                r.track,
+                COALESCE(r.cluster_id, r.code) AS cluster_key,
+                BOOL_OR(
+                    COALESCE((r.meta->'cluster_rollup'->>'is_main_cluster')::boolean, false)
+                ) AS is_main_cluster,
+                MIN(COALESCE((r.meta->'cluster_rollup'->>'cluster_rank')::integer, 999))
+                    AS cluster_rank
+            FROM ml_point_results r
+            WHERE r.run_id = $4::uuid
+            GROUP BY
+                r.run_id, r.area_id, r.building_source, r.building_id,
+                r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
+        ),
+        cluster_colors AS (
+            SELECT
+                *,
+                (
+                    (
+                        (
+                            ROW_NUMBER() OVER (
+                                PARTITION BY run_id, area_id, building_source, building_id
+                                ORDER BY is_main_cluster DESC, cluster_rank, dataset_id, track, cluster_key
+                            ) - 1
+                        ) * {CLUSTER_COLOR_STEP} + {CLUSTER_COLOR_OFFSET}
+                    ) % {CLUSTER_COLOR_PALETTE_SIZE}
+                )::integer AS cluster_color_index
+            FROM cluster_color_keys
         ),
         mvtgeom AS (
             SELECT
@@ -1400,7 +1648,7 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                     AS supporting_neighbour_count,
                 (r.meta->'explain_top_features'->0->>'summary') AS top_reason,
                 (r.building_id IS NOT NULL) AS assigned,
-                abs(hashtext(coalesce(r.cluster_id, r.code))) % 60 AS cluster_color_index,
+                COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index,
                 COALESCE(c.color_index, abs(hashtext(coalesce(r.building_id, r.code))) % 60) AS building_color_index,
                 ST_AsMVTGeom(ST_Transform(p.geom, 3857), bounds.geom, 4096, 64, true) AS geom
             FROM ml_point_results r
@@ -1414,6 +1662,14 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
              AND c.area_id = r.area_id
              AND c.building_source = r.building_source
              AND c.building_id = r.building_id
+            LEFT JOIN cluster_colors cc
+              ON cc.run_id = r.run_id
+             AND cc.area_id = r.area_id
+             AND cc.building_source IS NOT DISTINCT FROM r.building_source
+             AND cc.building_id IS NOT DISTINCT FROM r.building_id
+             AND cc.dataset_id = r.dataset_id
+             AND cc.track = r.track
+             AND cc.cluster_key = COALESCE(r.cluster_id, r.code)
             JOIN bounds ON ST_Intersects(ST_Transform(p.geom, 3857), bounds.geom)
             WHERE r.run_id = $4::uuid
         )

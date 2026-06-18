@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import ClusteringMeetingDashboard from "./explainers/clusteringMeeting/ClusteringMeetingDashboard";
 import HdbscanExplainer from "./explainers/hdbscan/HdbscanExplainer";
+import MlLogicExplainer from "./explainers/mlLogic/MlLogicExplainer";
 import SmallNExplainer from "./explainers/smallN/SmallNExplainer";
 import { Button, Card } from "./components/ui";
 
-type ExplainerId = "overview" | "hdbscan" | "clustering-meeting" | "small-n";
+type ExplainerId = "overview" | "hdbscan" | "clustering-meeting" | "small-n" | "ml-logic";
 
 export default function App() {
   const initialExplainer = useMemo<ExplainerId>(() => {
@@ -13,7 +14,8 @@ export default function App() {
     if (
       requestedExplainer === "hdbscan" ||
       requestedExplainer === "clustering-meeting" ||
-      requestedExplainer === "small-n"
+      requestedExplainer === "small-n" ||
+      requestedExplainer === "ml-logic"
     ) {
       return requestedExplainer;
     }
@@ -31,6 +33,10 @@ export default function App() {
 
   if (activeExplainer === "small-n") {
     return <SmallNExplainer onBack={() => setActiveExplainer("overview")} />;
+  }
+
+  if (activeExplainer === "ml-logic") {
+    return <MlLogicExplainer onBack={() => setActiveExplainer("overview")} />;
   }
 
   return (
@@ -85,6 +91,20 @@ export default function App() {
             </div>
             <Button onClick={() => setActiveExplainer("small-n")} className="mt-auto self-start">
               Small-N öffnen
+            </Button>
+          </Card>
+
+          <Card className="flex flex-col gap-4 p-5">
+            <div>
+              <p className="section-title">Pipeline-Logik</p>
+              <h2 className="text-xl font-bold">ML-Vertrauen</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Klickbares Entscheidungsdiagramm fuer Punktlabels, Cluster-Verlaesslichkeit und
+                Gebaeude-Reliability inklusive Live-Score-Rechner.
+              </p>
+            </div>
+            <Button onClick={() => setActiveExplainer("ml-logic")} className="mt-auto self-start">
+              ML-Logik öffnen
             </Button>
           </Card>
         </section>

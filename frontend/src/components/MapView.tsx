@@ -28,8 +28,10 @@ import {
 } from "../hooks/useApi";
 import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
 import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
+import { mlPalette } from "../lib/mlPalette";
 import { useAppStore } from "../lib/store";
 import type {
+  MlBuildingFocusPoint,
   MlBuildingPointFocusMode,
   MlBuildingTrackFilter,
   SearchFocus,
@@ -68,6 +70,8 @@ const EMPTY_GEOJSON: { type: "FeatureCollection"; features: any[] } = {
   type: "FeatureCollection",
   features: [],
 };
+const TOOLTIP_OFFSET = 12;
+const TOOLTIP_MARGIN = 10;
 
 function getReliefOpacity(basemap: BasemapId) {
   return basemap === "satellite" ? 0.22 : 0.35;
@@ -140,43 +144,6 @@ function applyCameraMode(
     essential: true,
   });
 }
-
-function hslToHex(h: number, s: number, l: number) {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const hp = h / 60;
-  const x = c * (1 - Math.abs((hp % 2) - 1));
-  let r = 0;
-  let g = 0;
-  let b = 0;
-  if (hp >= 0 && hp < 1) {
-    r = c;
-    g = x;
-  } else if (hp >= 1 && hp < 2) {
-    r = x;
-    g = c;
-  } else if (hp >= 2 && hp < 3) {
-    g = c;
-    b = x;
-  } else if (hp >= 3 && hp < 4) {
-    g = x;
-    b = c;
-  } else if (hp >= 4 && hp < 5) {
-    r = x;
-    b = c;
-  } else if (hp >= 5 && hp < 6) {
-    r = c;
-    b = x;
-  }
-  const m = l - c / 2;
-  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-const mlPaletteSize = 60;
-const mlPalette = Array.from({ length: mlPaletteSize }, (_, i) => {
-  const hue = (i * 360) / mlPaletteSize;
-  return hslToHex(hue, 0.7, 0.5);
-});
 
 const clusterPaletteExpression: any[] = [
   "match",
@@ -435,6 +402,119 @@ function readStringFeatureProperty(
   return undefined;
 }
 
+function readStringArrayFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): string[] {
+  const value = readFeatureProperty(properties, ...keys);
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => String(entry).trim())
+      .filter((entry) => entry.length > 0);
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((entry) => String(entry).trim())
+          .filter((entry) => entry.length > 0);
+      }
+    } catch {
+      // Fall back to comma-separated values below.
+    }
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  }
+  return [];
+}
+
+function readObjectFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): Record<string, unknown> {
+  const value = readFeatureProperty(properties, ...keys);
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function readNumberMapFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): Record<string, number | null> {
+  const object = readObjectFeatureProperty(properties, ...keys);
+  return Object.fromEntries(
+    Object.entries(object).map(([key, value]) => {
+      const parsed =
+        typeof value === "number"
+          ? value
+          : typeof value === "string" && value.trim() !== ""
+            ? Number(value)
+            : null;
+      return [key, parsed !== null && Number.isFinite(parsed) ? parsed : null];
+    })
+  );
+}
+
+function readDetectorScoreFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(readNumberMapFeatureProperty(properties, ...keys)).filter(
+      (entry): entry is [string, number] => entry[1] !== null
+    )
+  );
+}
+
+function readExplainFeatureProperty(
+  properties: Record<string, unknown>,
+  ...keys: string[]
+): MlBuildingFocusPoint["explainTopFeatures"] {
+  const value = readFeatureProperty(properties, ...keys);
+  const parsed =
+    typeof value === "string" && value.trim() !== ""
+      ? (() => {
+          try {
+            return JSON.parse(value);
+          } catch {
+            return [];
+          }
+        })()
+      : value;
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+  return parsed
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
+      const key = readStringFeatureProperty(item, "key") ?? "unknown";
+      const severity = readNumberFeatureProperty(item, "severity") ?? 0;
+      const summary = readStringFeatureProperty(item, "summary") ?? "";
+      return { key, severity, summary };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
+function isMlFocusPointLayer(layerId: string) {
+  return layerId === "ml_focus_selected_point" || layerId.startsWith("ml_focus_points");
+}
+
 function formatTooltipNumber(value: number | null, digits = 2) {
   return value === null ? "—" : value.toFixed(digits);
 }
@@ -445,44 +525,6 @@ function formatTooltipPercent(value: number | null, digits = 0) {
 
 function formatTooltipYesNo(value: boolean | null) {
   return value === null ? "—" : value ? "yes" : "no";
-}
-
-function formatNeighbourPointTooltipLines(properties: Record<string, unknown>) {
-  const hasNeighbourFields =
-    hasFeatureProperty(properties, "neighbour_context_available") ||
-    hasFeatureProperty(properties, "context_available") ||
-    hasFeatureProperty(properties, "neighbour_misassignment_flag") ||
-    hasFeatureProperty(properties, "neighbour_event_flag") ||
-    hasFeatureProperty(properties, "supporting_neighbour_count");
-  if (!hasNeighbourFields) {
-    return "";
-  }
-
-  const contextAvailable = readBooleanFeatureProperty(
-    properties,
-    "neighbour_context_available",
-    "context_available"
-  );
-  const misassignmentFlag = readBooleanFeatureProperty(
-    properties,
-    "neighbour_misassignment_flag"
-  );
-  const eventFlag = readBooleanFeatureProperty(properties, "neighbour_event_flag");
-  const eventScore = readNumberFeatureProperty(properties, "neighbour_event_score");
-  const supportingCount = readNumberFeatureProperty(properties, "supporting_neighbour_count");
-  const eventParts = [formatTooltipYesNo(eventFlag)];
-  if (eventScore !== null) {
-    eventParts.push(formatTooltipNumber(eventScore));
-  }
-  if (supportingCount !== null) {
-    eventParts.push(`${supportingCount.toFixed(0)} support`);
-  }
-
-  return `
-        <br/>Neighbour context: ${formatTooltipYesNo(contextAvailable)}
-        <br/>Neighbour misassignment: ${formatTooltipYesNo(misassignmentFlag)}
-        <br/>Neighbour event: ${eventParts.join(" / ")}
-      `;
 }
 
 function formatNeighbourBuildingTooltipLines(properties: Record<string, unknown>) {
@@ -629,6 +671,7 @@ function applyTrackOutlineColors(map: MapLibreMap, tracks: TrackMetadata[]) {
 export default function MapView() {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
   const basemapRef = useRef<BasemapId | null>(null);
   const cameraModeRef = useRef<CameraMode>("default");
   const previousCameraModeRef = useRef<CameraMode>("default");
@@ -638,7 +681,7 @@ export default function MapView() {
   });
   const pointColorModeRef = useRef<"velocity" | "height">("velocity");
   const [tooltip, setTooltip] = useState<
-    { x: number; y: number; html: string } | null
+    { sourceX: number; sourceY: number; x: number; y: number; html: string } | null
   >(null);
   const [styleVersion, setStyleVersion] = useState(0);
 
@@ -653,6 +696,16 @@ export default function MapView() {
   const heightSensitivityM = useAppStore((state) => state.heightSensitivityM);
   const showTrackOutlines = useAppStore((state) => state.showTrackOutlines);
   const setSelection = useAppStore((state) => state.setSelection);
+  const mlBuildingFocusSelection = useAppStore((state) => state.mlBuildingFocusSelection);
+  const selectedMlBuildingFocusPoint = useAppStore(
+    (state) => state.selectedMlBuildingFocusPoint
+  );
+  const selectMlBuildingFocusPoint = useAppStore(
+    (state) => state.selectMlBuildingFocusPoint
+  );
+  const clearSelectedMlBuildingFocusPoint = useAppStore(
+    (state) => state.clearSelectedMlBuildingFocusPoint
+  );
   const activeRunId = useAppStore((state) => state.activeRunId);
   const showMlLayer = useAppStore((state) => state.showMlLayer);
   const showMlBuildings = useAppStore((state) => state.showMlBuildings);
@@ -673,7 +726,7 @@ export default function MapView() {
   const previousFitAreaIdRef = useRef(selectedAreaId);
   const searchAreaFitSkipRequestRef = useRef<number | null>(null);
   const activeSatellitePreset = cameraPresetForMode(cameraMode, appConfig.tracks);
-  const focusBuildingSelection = selection?.type === "building" ? selection : null;
+  const focusBuildingSelection = mlBuildingFocusSelection;
 
   const activeRunQuery = useQuery({
     queryKey: ["map-ml-run-detail", activeRunId],
@@ -755,7 +808,39 @@ export default function MapView() {
 
   useEffect(() => {
     setTooltip(null);
-  }, [selection]);
+  }, [selection, selectedMlBuildingFocusPoint]);
+
+  useEffect(() => {
+    if (!tooltip || !tooltipRef.current || !mapContainer.current) return;
+    const containerRect = mapContainer.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    let nextX = tooltip.sourceX + TOOLTIP_OFFSET;
+    let nextY = tooltip.sourceY + TOOLTIP_OFFSET;
+
+    if (nextX + tooltipRect.width + TOOLTIP_MARGIN > containerRect.width) {
+      nextX = tooltip.sourceX - tooltipRect.width - TOOLTIP_OFFSET;
+    }
+    if (nextY + tooltipRect.height + TOOLTIP_MARGIN > containerRect.height) {
+      nextY = tooltip.sourceY - tooltipRect.height - TOOLTIP_OFFSET;
+    }
+
+    nextX = Math.max(
+      TOOLTIP_MARGIN,
+      Math.min(nextX, containerRect.width - tooltipRect.width - TOOLTIP_MARGIN)
+    );
+    nextY = Math.max(
+      TOOLTIP_MARGIN,
+      Math.min(nextY, containerRect.height - tooltipRect.height - TOOLTIP_MARGIN)
+    );
+
+    if (Math.abs(nextX - tooltip.x) > 0.5 || Math.abs(nextY - tooltip.y) > 0.5) {
+      setTooltip((current) =>
+        current && current.html === tooltip.html
+          ? { ...current, x: nextX, y: nextY }
+          : current
+      );
+    }
+  }, [tooltip]);
 
   useEffect(() => {
     appConfigRef.current = appConfig;
@@ -1216,6 +1301,7 @@ export default function MapView() {
         focusMlPointSuppressionSelection,
         mlBuildingPointFocusMode
       );
+      applySelectedMlBuildingFocusPointFilter(map, selectedMlBuildingFocusPoint);
     };
 
     restack();
@@ -1237,6 +1323,7 @@ export default function MapView() {
     focusMlPointSuppressionSelection,
     focusHullClusterIds,
     focusCandidateTrackKeys,
+    selectedMlBuildingFocusPoint,
     activeRunId,
   ]);
 
@@ -1256,6 +1343,7 @@ export default function MapView() {
         focusMlPointSuppressionSelection,
         mlBuildingPointFocusMode
       );
+      applySelectedMlBuildingFocusPointFilter(map, null);
       ensureLayerOrder(map);
       map.triggerRepaint();
       return;
@@ -1285,6 +1373,7 @@ export default function MapView() {
       focusMlPointSuppressionSelection,
       mlBuildingPointFocusMode
     );
+    applySelectedMlBuildingFocusPointFilter(map, selectedMlBuildingFocusPoint);
     ensureLayerOrder(map);
     map.triggerRepaint();
   }, [
@@ -1302,6 +1391,7 @@ export default function MapView() {
     focusMlPointSuppressionSelection,
     focusHullClusterIds,
     focusCandidateTrackKeys,
+    selectedMlBuildingFocusPoint,
     styleVersion,
   ]);
 
@@ -1412,6 +1502,10 @@ export default function MapView() {
       focusMlPointSuppressionSelection,
       mlBuildingPointFocusMode
     );
+    applySelectedMlBuildingFocusPointFilter(
+      mapRef.current,
+      selectedMlBuildingFocusPoint
+    );
   }, [
     mlBuildingTrackFilter,
     mlBuildingShowExcluded,
@@ -1422,6 +1516,7 @@ export default function MapView() {
     focusMlPointSuppressionSelection,
     focusHullClusterIds,
     focusCandidateTrackKeys,
+    selectedMlBuildingFocusPoint,
   ]);
 
   // Interaktiver Gebaeude-Fokus-Flug. Beim Deep-Link-Boot MIT Kamera-Hash
@@ -1620,6 +1715,7 @@ export default function MapView() {
       "ml_focus_points_excluded",
       "ml_focus_points_noise",
       "ml_focus_points_core",
+      "ml_focus_selected_point",
       GENERIC_INSAR_SELECTED_LAYER_ID,
       "gba_highlight",
       "osm_highlight",
@@ -1736,10 +1832,36 @@ export default function MapView() {
         "circle-stroke-color": "#f9fafb",
       },
     });
+
+    addLayerIfMissing(map, {
+      id: "ml_focus_selected_point",
+      type: "circle",
+      source: "ml_focus_points",
+      filter: EMPTY_POINT_FILTER,
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          12,
+          10,
+          18,
+          14,
+          22,
+          18,
+        ],
+        "circle-color": "#fef3c7",
+        "circle-opacity": 0.28,
+        "circle-stroke-width": 3,
+        "circle-stroke-color": "#111827",
+        "circle-stroke-opacity": 0.95,
+      },
+    });
   }
 
   function removeMlBuildingFocusLayersAndSources(map: MapLibreMap) {
     const layerIds = [
+      "ml_focus_selected_point",
       "ml_focus_points_excluded",
       "ml_focus_points_noise",
       "ml_focus_points_core",
@@ -1779,6 +1901,7 @@ export default function MapView() {
       "ml_focus_points_excluded",
       "ml_focus_points_noise",
       "ml_focus_points_core",
+      "ml_focus_selected_point",
       "ml_focus_hulls_point",
       "ml_focus_hulls_line",
       "ml_focus_hulls_fill",
@@ -1933,6 +2056,33 @@ export default function MapView() {
       map.setFilter(
         "ml_points",
         globalMlPointFilterForBuildingFocus(buildingSelection, pointFocusMode)
+      );
+    }
+  }
+
+  function selectedMlBuildingFocusPointFilterExpression(point: MlBuildingFocusPoint | null) {
+    if (!point) {
+      return EMPTY_POINT_FILTER;
+    }
+    const clauses: any[] = [
+      ["==", ["get", "code"], point.code],
+      ["==", ["get", "area_id"], point.areaId],
+      ["==", ["get", "dataset_id"], point.datasetId],
+    ];
+    if (point.track !== undefined) {
+      clauses.push(["==", ["to-string", ["get", "track"]], String(point.track)]);
+    }
+    return ["all", ...clauses] as any;
+  }
+
+  function applySelectedMlBuildingFocusPointFilter(
+    map: MapLibreMap,
+    point: MlBuildingFocusPoint | null
+  ) {
+    if (map.getLayer("ml_focus_selected_point")) {
+      map.setFilter(
+        "ml_focus_selected_point",
+        selectedMlBuildingFocusPointFilterExpression(point)
       );
     }
   }
@@ -2439,6 +2589,7 @@ export default function MapView() {
 
   function handleHover(event: MapMouseEvent, map: MapLibreMap) {
     const queryLayers = [
+      "ml_focus_selected_point",
       "ml_focus_points_core",
       "ml_focus_points_noise",
       "ml_focus_points_excluded",
@@ -2471,11 +2622,21 @@ export default function MapView() {
 
     if (feature.layer.id === "ml_buildings_outline") {
       html = formatMlBuildingTooltip(props, "Assigned Building");
-    } else if (feature.layer.id.startsWith("ml_focus_points")) {
+    } else if (isMlFocusPointLayer(feature.layer.id)) {
+      const heightValue =
+        props.height !== undefined && props.height !== null
+          ? `${formatHeightLegendValue(Number(props.height))} m`
+          : "—";
+      const velocityValue =
+        props.velocity !== undefined && props.velocity !== null
+          ? `${Number(props.velocity).toFixed(2)} mm/Jahr`
+          : "—";
       html = `
         <strong>Building Focus Point</strong><br/>
         Code: ${props.code || "—"}<br/>
         Track: ${props.track || "—"}<br/>
+        Height: ${heightValue}<br/>
+        Velocity: ${velocityValue}<br/>
         Cluster: ${props.cluster_id || props.cluster_role || "—"}${
           props.is_main_cluster ? " (main)" : ""
         }<br/>
@@ -2496,7 +2657,7 @@ export default function MapView() {
             : props.gate_excluded
               ? "excluded"
               : "kept"
-        }${formatNeighbourPointTooltipLines(props)}
+        }
       `;
     } else if (feature.layer.id === "ml_focus_building_outline") {
       html = `
@@ -2525,7 +2686,7 @@ export default function MapView() {
           props.cross_track_consistency !== undefined && props.cross_track_consistency !== null
             ? Number(props.cross_track_consistency).toFixed(2)
             : "—"
-        }${formatNeighbourPointTooltipLines(props)}<br/>
+        }<br/>
         Reason: ${props.top_reason || props.degraded_reason || props.method || "—"}
       `;
     } else if (feature.layer.id === GENERIC_INSAR_LAYER_ID) {
@@ -2578,11 +2739,68 @@ export default function MapView() {
       `;
     }
 
-    setTooltip({ x: event.point.x + 12, y: event.point.y + 12, html });
+    setTooltip({
+      sourceX: event.point.x,
+      sourceY: event.point.y,
+      x: event.point.x + TOOLTIP_OFFSET,
+      y: event.point.y + TOOLTIP_OFFSET,
+      html,
+    });
+  }
+
+  function buildMlBuildingFocusPointFromProperties(
+    props: Record<string, unknown>
+  ): MlBuildingFocusPoint | null {
+    const currentState = useAppStore.getState();
+    const currentActiveRunId = currentState.activeRunId;
+    const currentFocusBuildingSelection = currentState.mlBuildingFocusSelection;
+    if (!currentActiveRunId || !currentFocusBuildingSelection) {
+      return null;
+    }
+    const code = readStringFeatureProperty(props, "code");
+    const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+    const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
+    if (!code || !areaId || !datasetId) {
+      return null;
+    }
+    const track = readNumberFeatureProperty(props, "track", "track_id", "trackId");
+    return {
+      code,
+      track: track === null ? undefined : track,
+      areaId,
+      datasetId,
+      sensor: readStringFeatureProperty(props, "sensor", "platform"),
+      runId: currentActiveRunId,
+      buildingSource: currentFocusBuildingSelection.source,
+      buildingId: currentFocusBuildingSelection.id,
+      velocity: readNumberFeatureProperty(props, "velocity"),
+      velocityStd: readNumberFeatureProperty(props, "velocity_std", "velocityStd"),
+      height: readNumberFeatureProperty(props, "height"),
+      heightStd: readNumberFeatureProperty(props, "height_std", "heightStd"),
+      acceleration: readNumberFeatureProperty(props, "acceleration"),
+      coherence: readNumberFeatureProperty(props, "coherence"),
+      clusterId: readStringFeatureProperty(props, "cluster_id"),
+      clusterRole: readStringFeatureProperty(props, "cluster_role"),
+      clusterRank: readNumberFeatureProperty(props, "cluster_rank"),
+      isMainCluster: readBooleanFeatureProperty(props, "is_main_cluster"),
+      label: readStringFeatureProperty(props, "label"),
+      qualityScore: readNumberFeatureProperty(props, "quality_score"),
+      anomalyScore: readNumberFeatureProperty(props, "anomaly_score"),
+      crossTrackConsistency: readNumberFeatureProperty(props, "cross_track_consistency"),
+      distanceM: readNumberFeatureProperty(props, "distance_m"),
+      gateExcluded: readBooleanFeatureProperty(props, "gate_excluded"),
+      gateReasons: readStringArrayFeatureProperty(props, "gate_reasons"),
+      keptForScoring: readBooleanFeatureProperty(props, "kept_for_scoring"),
+      degradedReason: readStringFeatureProperty(props, "degraded_reason"),
+      clusteringFeatures: readNumberMapFeatureProperty(props, "clustering_features"),
+      detectorScores: readDetectorScoreFeatureProperty(props, "detector_scores"),
+      explainTopFeatures: readExplainFeatureProperty(props, "explain_top_features"),
+    };
   }
 
   function handleClick(event: MapMouseEvent, map: MapLibreMap) {
     const queryLayers = [
+      "ml_focus_selected_point",
       "ml_focus_points_core",
       "ml_focus_points_noise",
       "ml_focus_points_excluded",
@@ -2599,25 +2817,21 @@ export default function MapView() {
       layers: queryLayers,
     });
     if (!features.length) {
-      setSelection(null);
+      if (useAppStore.getState().mlBuildingFocusSelection) {
+        clearSelectedMlBuildingFocusPoint();
+      } else {
+        setSelection(null);
+      }
       return;
     }
 
     const feature = features[0];
     const props = feature.properties as any;
 
-    if (feature.layer.id.startsWith("ml_focus_points")) {
-      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
-      const datasetId = readStringFeatureProperty(props, "dataset_id", "datasetId");
-      if (props.code && areaId && datasetId) {
-        setSelection({
-          type: "point",
-          code: String(props.code),
-          track: props.track === undefined || props.track === null ? undefined : Number(props.track),
-          areaId,
-          datasetId,
-          sensor: readStringFeatureProperty(props, "sensor", "platform"),
-        });
+    if (isMlFocusPointLayer(feature.layer.id)) {
+      const point = buildMlBuildingFocusPointFromProperties(props);
+      if (point) {
+        selectMlBuildingFocusPoint(point);
       }
     } else if (feature.layer.id.startsWith("ml_buildings")) {
       const areaId = readStringFeatureProperty(props, "area_id", "areaId");
@@ -2689,6 +2903,7 @@ export default function MapView() {
       )}
       {tooltip && (
         <div
+          ref={tooltipRef}
           className="tooltip"
           style={{ left: tooltip.x, top: tooltip.y }}
           dangerouslySetInnerHTML={{ __html: tooltip.html }}

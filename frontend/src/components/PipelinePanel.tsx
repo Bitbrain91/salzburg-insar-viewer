@@ -123,7 +123,9 @@ export default function PipelinePanel() {
   const mapBBox = useAppStore((state) => state.mapBBox);
   const selectedAreaId = useAppStore((state) => state.selectedAreaId);
   const activeRunId = useAppStore((state) => state.activeRunId);
-  const setActiveRunId = useAppStore((state) => state.setActiveRunId);
+  const setActiveRunIdClearingFocus = useAppStore(
+    (state) => state.setActiveRunIdClearingFocus
+  );
   const showMlLayer = useAppStore((state) => state.showMlLayer);
   const setShowMlLayer = useAppStore((state) => state.setShowMlLayer);
   const showMlBuildings = useAppStore((state) => state.showMlBuildings);
@@ -240,7 +242,7 @@ export default function PipelinePanel() {
     };
     const result = await createMlRun(payload);
     if (result?.run_id) {
-      setActiveRunId(result.run_id);
+      setActiveRunIdClearingFocus(result.run_id);
       setMlView("cluster");
     }
   }
@@ -248,7 +250,7 @@ export default function PipelinePanel() {
   async function handleDelete(runId: string) {
     await deleteMlRun(runId, true);
     if (activeRunId === runId) {
-      setActiveRunId(null);
+      setActiveRunIdClearingFocus(null);
     }
     runsQuery.refetch();
   }
@@ -566,7 +568,7 @@ export default function PipelinePanel() {
                     type="button"
                     className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
                     onClick={() => {
-                      setActiveRunId(run.run_id);
+                      setActiveRunIdClearingFocus(run.run_id);
                       setMlView("cluster");
                     }}
                   >

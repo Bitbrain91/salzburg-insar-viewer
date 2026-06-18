@@ -252,7 +252,7 @@ unveraendert), 113309836 zeigt einen Vorzeichenwechsel (+1.00 ->
 Scorecard zaehlt solche Aufwertungen jetzt maschinell
 (status_upgrades_vs_baseline) - bei kuenftigen Kandidaten Pflichtblick.
 
-## P7-N5: Assignment-Hygiene 2 - along-look, Hoehe, unkartierte Strukturen (erweitert 2026-06-12)
+## P7-N5: Assignment-Hygiene 2 - along-look, Hoehe, unkartierte Strukturen (erweitert 2026-06-16)
 
 **Neue Fehlerklasse (User-Befund 2026-06-11, Fall 96959851): Fremdpunkte
 unkartierter Strukturen.** Ein Nebengebaeude mit Blechdach, das weder in
@@ -287,6 +287,41 @@ Survivors-Scan-Tooling und sind dort am Fall validiert):
    unter Dach-Anker als staerkster Beweger). Das nie getestete Komposit
    **k2xh = a5_crosslook + a3_height + smalln_strict** ist der natuerliche
    naechste Harness-Kandidat, erweitert um Checks 1-2 als eigene Varianten.
+
+**Ergaenzung (User-Befund 2026-06-16): Polygon-aware cross-look fuer
+nearest-Punkte.** Die produktive `nearest_crosslook`-Logik ist aktuell
+zentroidbasiert: `along_look_offset_m` und `cross_look_offset_m` werden
+aus dem Vektor Gebaeude-Zentroid -> InSAR-Punkt berechnet. Das ist als
+grobe, selbstkalibrierende Heuristik nuetzlich, kann bei langen, breiten
+oder unregelmaessigen Gebaeuden aber falsche Demotions erzeugen. Ein
+Punkt kann quer zum Zentroid weit versetzt sein und trotzdem geometrisch
+plausibel vom Gebaeude stammen, wenn seine Projektion noch innerhalb der
+tatsaechlichen Gebaeudeausdehnung quer zur Blickrichtung liegt. Kritisch
+ist nicht der rohe Querabstand zum Mittelpunkt, sondern der Querueberstand
+ueber die Polygonkante bzw. ueber die cross-look-Spanne des Footprints.
+
+Forschungskandidat: die centroidbasierte `nearest_crosslook`-Pruefung
+durch einen polygonbewussten Cross-Look-Excess ergaenzen oder ersetzen:
+
+1. Gebaeudepolygon im lokalen metrischen CRS auf die cross-look-Achse des
+   jeweiligen Tracks projizieren (nicht nur den Zentroid).
+2. InSAR-Punkt auf dieselbe Achse projizieren.
+3. `cross_excess_m` als Abstand ausserhalb der Polygon-Projektionsspanne
+   berechnen (`0`, wenn der Punkt innerhalb dieser Spanne liegt).
+4. `nearest_crosslook_outlier` nur auf Basis dieses Excess-Werts und der
+   bestehenden Anker-/MAD-Toleranz setzen; der rohe Zentroid-Offset bleibt
+   Diagnosefeature, aber kein alleiniger harter Demotion-Grund.
+5. Optional zusaetzlich: beobachteten InSAR-Punkt entlang der Look-Richtung
+   rueckprojizieren und pruefen, ob ein plausibler Original-Reflektor auf
+   oder nahe dem Gebaeude-Footprint liegen koennte (ggf. mit Hoehenlimit).
+
+Validierung: Testfaelle mit langen/breiten Footprints gezielt aufnehmen.
+Erwartetes Verhalten: legitime Punkte am Gebaeuderand duerfen trotz hohem
+Zentroid-Cross-Offset nicht demotiert werden; echte Fremd-/Nachbarpunkte
+ausserhalb der Polygon-Cross-Spanne muessen weiterhin auffallen. Die
+bestehende `max_distance_m`-Nearest-Grenze bleibt davon getrennt: sie misst
+weiterhin den kuerzesten Abstand vom Punkt zum Gebaeudepolygon und ist nur
+das Eintrittskriterium fuer den nearest-Fallback.
 
 **Pruefstein fuer jeden Kandidaten:** Fall 96959851 - NTC3CYZ01 und
 NTDA86J01 muessen demotiert werden, OHNE NTF2IZV01/NTG9E7F01 zu verlieren;

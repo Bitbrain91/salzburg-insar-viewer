@@ -27,6 +27,7 @@ export type TrackMetadata = {
   label: string;
   los?: string;
   lookBearingDeg?: number;
+  defaultIncidenceDeg?: number;
   geometryStatus?: string;
   directionDependentMl?: boolean;
 };
@@ -138,6 +139,13 @@ function normalizeTrack(
   if (!areaId || !datasetId || !sensor) return null;
   const los = readString(record, "los", "direction");
   const lookBearingDeg = readNumber(record, "look_bearing_deg", "lookBearingDeg");
+  const defaultIncidenceDeg = readNumber(
+    record,
+    "default_incidence_deg",
+    "defaultIncidenceDeg",
+    "incidence_angle",
+    "incidenceAngle"
+  );
   const geometryStatus = readString(record, "geometry_status", "geometryStatus");
   const directionDependentMl = readBoolean(
     record,
@@ -154,6 +162,7 @@ function normalizeTrack(
       `Track ${track}`,
     los,
     lookBearingDeg,
+    defaultIncidenceDeg,
     geometryStatus,
     directionDependentMl,
   };

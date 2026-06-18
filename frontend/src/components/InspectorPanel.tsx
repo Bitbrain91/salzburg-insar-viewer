@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Eye, EyeOff, Play, RotateCcw, Star } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Play, RotateCcw, Star, X } from "lucide-react";
 import {
   useAppStore,
+  type MlBuildingFocusPoint,
   type MlBuildingPointFocusMode,
   type MlBuildingTrackFilter,
   type Selection,
@@ -16,6 +17,7 @@ import {
   getMlRunDetail,
   getPointDetail,
   useAppConfig,
+  type BuildingAddress,
   type MlBuildingAnalysis,
   type MlBuildingClusterSummary,
   type MlBuildingRunSummary,
@@ -42,7 +44,12 @@ import {
   type AttributeContext,
   type AttributeMetadata,
 } from "../lib/attributeMetadata";
-import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
+import {
+  getTrackVisibilityKey,
+  normalizeAppConfig,
+} from "../lib/configMetadata";
+import { buildGoogleEarthUrlForGeometry } from "../lib/googleEarth";
+import { mlPalette } from "../lib/mlPalette";
 
 type InspectorTabId = "overview" | "metrics" | "ml" | "raw";
 
@@ -92,41 +99,47 @@ const buildingPointFocusOptions: Array<{
   },
 ];
 
-function hslToHex(h: number, s: number, l: number) {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const hp = h / 60;
-  const x = c * (1 - Math.abs((hp % 2) - 1));
-  let r = 0;
-  let g = 0;
-  let b = 0;
-  if (hp >= 0 && hp < 1) {
-    r = c;
-    g = x;
-  } else if (hp >= 1 && hp < 2) {
-    r = x;
-    g = c;
-  } else if (hp >= 2 && hp < 3) {
-    g = c;
-    b = x;
-  } else if (hp >= 3 && hp < 4) {
-    g = x;
-    b = c;
-  } else if (hp >= 4 && hp < 5) {
-    r = x;
-    b = c;
-  } else if (hp >= 5 && hp < 6) {
-    r = c;
-    b = x;
-  }
-  const m = l - c / 2;
-  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string; digits?: number }> = [
+  { key: "along_look_offset_m", label: "Look-Laengsversatz", unit: "m", digits: 1 },
+  { key: "cross_look_offset_m", label: "Look-Querversatz", unit: "m", digits: 1 },
+  { key: "height_rank_in_building", label: "Hoehenrang im Gebaeude", digits: 2 },
+  { key: "velocity", label: "Geschwindigkeit", unit: "mm/Jahr", digits: 2 },
+  { key: "acceleration", label: "Beschleunigung", unit: "mm/Jahr²", digits: 2 },
+  { key: "coherence_penalty", label: "Kohaerenz-Penalty", digits: 2 },
+];
+
+const focusReasonLabels: Record<string, string> = {
+  local_motion_deviation: "Bewegung weicht lokal ab",
+  noise_cluster: "Kein stabiler Cluster",
+  nearest_assignment: "Unsichere Gebaeudezuordnung",
+};
+
+const focusDetectorLabels: Record<string, string> = {
+  rule_penalty: "Regel-Penalty",
+  cluster_outlier: "Cluster-Ausreisser",
+  local_deviation: "Lokale Abweichung",
+};
+
+const focusAssignmentReasonKeys = new Set(["nearest_assignment"]);
+
+function formatFocusReasonKey(key: string | null | undefined) {
+  if (!key) return "Unbekannter Hinweis";
+  return focusReasonLabels[key] ?? key.split("_").join(" ");
 }
 
-const mlPaletteSize = 60;
-const mlPalette = Array.from({ length: mlPaletteSize }, (_, i) =>
-  hslToHex((i * 360) / mlPaletteSize, 0.7, 0.5)
-);
+function formatFocusDetectorKey(key: string) {
+  return focusDetectorLabels[key] ?? key.split("_").join(" ");
+}
+
+function formatAssignmentMethod(method: string | null | undefined) {
+  if (!method) return "—";
+  const labels: Record<string, string> = {
+    within: "within - innerhalb des Gebaeudes",
+    nearest: "nearest - naechstes Gebaeude",
+    directional_buffer: "directional_buffer - Blickrichtungs-Puffer",
+  };
+  return labels[method] ?? method.split("_").join(" ");
+}
 
 function clusterColor(cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role">) {
   if (cluster.cluster_role === "excluded") return "#9aa0a6";
@@ -137,6 +150,18 @@ function clusterColor(cluster: Pick<MlBuildingClusterSummary, "cluster_color_ind
 }
 
 type BuildingSelection = Extract<NonNullable<Selection>, { type: "building" }>;
+type EarthLosTrackOption = {
+  key: string;
+  label: string;
+  lookBearingDeg: number;
+  incidenceDeg: number;
+};
+
+const EARTH_LOS_FALLBACK_INCIDENCE_DEG = 45;
+const EARTH_LOS_MIN_DISTANCE_M = 120;
+const EARTH_LOS_MAX_DISTANCE_M = 360;
+const EARTH_LOS_DISTANCE_MULTIPLIER = 2.8;
+const EARTH_TOP_VIEW_KEY = "top";
 
 function matchesSelectedBuildingRunData(
   data:
@@ -240,6 +265,17 @@ export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
   const activeRunId = useAppStore((state) => state.activeRunId);
   const setActiveRunId = useAppStore((state) => state.setActiveRunId);
+  const setSelection = useAppStore((state) => state.setSelection);
+  const selectedMlBuildingFocusPoint = useAppStore(
+    (state) => state.selectedMlBuildingFocusPoint
+  );
+  const selectMlBuildingFocusPoint = useAppStore(
+    (state) => state.selectMlBuildingFocusPoint
+  );
+  const clearSelectedMlBuildingFocusPoint = useAppStore(
+    (state) => state.clearSelectedMlBuildingFocusPoint
+  );
+  const clearMlBuildingFocus = useAppStore((state) => state.clearMlBuildingFocus);
   const mlBuildingTrackFilter = useAppStore((state) => state.mlBuildingTrackFilter);
   const setMlBuildingTrackFilter = useAppStore((state) => state.setMlBuildingTrackFilter);
   const mlBuildingShowExcluded = useAppStore((state) => state.mlBuildingShowExcluded);
@@ -266,6 +302,7 @@ export default function InspectorPanel() {
   const [pointAnalysisRunId, setPointAnalysisRunId] = useState<string | null>(null);
   const [activePointTab, setActivePointTab] = useState<InspectorTabId>("overview");
   const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("overview");
+  const [earthViewKey, setEarthViewKey] = useState<string>(EARTH_TOP_VIEW_KEY);
   const selectionKey =
     selection?.type === "point"
       ? `point:${selection.areaId ?? "unknown"}:${selection.datasetId ?? "unknown"}:${selection.code}:${selection.track ?? "all"}`
@@ -281,7 +318,7 @@ export default function InspectorPanel() {
     refetchInterval: activeRunId ? 5000 : false,
   });
   const configQuery = useAppConfig();
-  const appConfig = normalizeAppConfig(configQuery.data);
+  const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
   const hasResolvedActiveRun =
     Boolean(activeRunId) && activeRunQuery.data?.run_id === activeRunId;
   const activeRunStatus = hasResolvedActiveRun ? activeRunQuery.data?.status : undefined;
@@ -289,11 +326,11 @@ export default function InspectorPanel() {
   const isActiveLocalAnomalyRun =
     hasResolvedActiveRun && activeRunQuery.data?.pipeline === "anomaly_local_v1";
   const mlBuildingTrackOptions =
-    selection?.type === "building"
+    selectedBuilding
       ? appConfig.datasets
           .filter(
             (dataset) =>
-              dataset.areaId === selection.areaId &&
+              dataset.areaId === selectedBuilding.areaId &&
               dataset.id === activeRunQuery.data?.dataset_id
           )
           .flatMap((dataset) =>
@@ -303,6 +340,44 @@ export default function InspectorPanel() {
             }))
           )
       : [];
+  const earthLosTrackOptions = useMemo<EarthLosTrackOption[]>(() => {
+    if (!selectedBuilding) return [];
+    const datasetLabels = new Map(
+      appConfig.datasets.map((dataset) => [dataset.id, dataset.label])
+    );
+    return appConfig.tracks
+      .filter(
+        (track) =>
+          track.areaId === selectedBuilding.areaId &&
+          typeof track.lookBearingDeg === "number"
+      )
+      .map((track) => ({
+        key: getTrackVisibilityKey(track.datasetId, track.track),
+        label: `${track.sensor} Track ${track.track}${track.los ? ` ${track.los}` : ""} · ${
+          datasetLabels.get(track.datasetId) ?? track.datasetId
+        }`,
+        lookBearingDeg: track.lookBearingDeg as number,
+        incidenceDeg: track.defaultIncidenceDeg ?? EARTH_LOS_FALLBACK_INCIDENCE_DEG,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "de"));
+  }, [appConfig.datasets, appConfig.tracks, selectedBuilding?.areaId]);
+  const selectedEarthLosTrack =
+    earthViewKey === EARTH_TOP_VIEW_KEY
+      ? null
+      : earthLosTrackOptions.find((option) => option.key === earthViewKey) ?? null;
+  const selectedEarthViewKey =
+    earthViewKey === EARTH_TOP_VIEW_KEY || selectedEarthLosTrack
+      ? earthViewKey
+      : EARTH_TOP_VIEW_KEY;
+  const selectedBuildingFocusPoint =
+    selectedMlBuildingFocusPoint &&
+    selectedBuilding &&
+    selectedMlBuildingFocusPoint.runId === activeRunId &&
+    selectedMlBuildingFocusPoint.buildingSource === selectedBuilding.source &&
+    selectedMlBuildingFocusPoint.buildingId === selectedBuilding.id &&
+    selectedMlBuildingFocusPoint.areaId === selectedBuilding.areaId
+      ? selectedMlBuildingFocusPoint
+      : null;
 
   useEffect(() => {
     setActivePointTab("overview");
@@ -320,6 +395,35 @@ export default function InspectorPanel() {
     }
     setPointAnalysisRunId(null);
   }, [activeRunId, activeRunQuery.data?.run_id, activeRunQuery.data?.status]);
+
+  useEffect(() => {
+    if (selectedBuildingFocusPoint && selectedBuildingFocusPoint === selectedMlBuildingFocusPoint) {
+      setActiveBuildingTab("ml");
+    }
+  }, [selectedBuildingFocusPoint, selectedMlBuildingFocusPoint]);
+
+  useEffect(() => {
+    if (!selectedMlBuildingFocusPoint) return;
+    if (activeRunId && selectedMlBuildingFocusPoint.runId !== activeRunId) {
+      clearSelectedMlBuildingFocusPoint();
+      return;
+    }
+    if (
+      selectedBuilding &&
+      (selectedMlBuildingFocusPoint.buildingSource !== selectedBuilding.source ||
+        selectedMlBuildingFocusPoint.buildingId !== selectedBuilding.id ||
+        selectedMlBuildingFocusPoint.areaId !== selectedBuilding.areaId)
+    ) {
+      clearSelectedMlBuildingFocusPoint();
+    }
+  }, [
+    activeRunId,
+    clearSelectedMlBuildingFocusPoint,
+    selectedBuilding?.areaId,
+    selectedBuilding?.id,
+    selectedBuilding?.source,
+    selectedMlBuildingFocusPoint,
+  ]);
 
   const pointQuery = useQuery({
     queryKey: ["point-detail", selection],
@@ -347,6 +451,33 @@ export default function InspectorPanel() {
         : Promise.resolve(null),
     enabled: Boolean(selectedBuilding),
   });
+  const buildingGoogleEarthUrl = useMemo(() => {
+    const building = buildingDetailQuery.data;
+    if (!building) return null;
+    return buildGoogleEarthUrlForGeometry(
+      building.geometry,
+      building.terrain?.elevation_mean_m ?? null
+    );
+  }, [buildingDetailQuery.data]);
+  const buildingGoogleEarthLosUrl = useMemo(() => {
+    const building = buildingDetailQuery.data;
+    if (!building || !selectedEarthLosTrack) return null;
+    return buildGoogleEarthUrlForGeometry(
+      building.geometry,
+      building.terrain?.elevation_mean_m ?? null,
+      {
+        headingDeg: selectedEarthLosTrack.lookBearingDeg,
+        tiltDeg: selectedEarthLosTrack.incidenceDeg,
+        minDistanceM: EARTH_LOS_MIN_DISTANCE_M,
+        maxDistanceM: EARTH_LOS_MAX_DISTANCE_M,
+        distanceMultiplier: EARTH_LOS_DISTANCE_MULTIPLIER,
+      }
+    );
+  }, [buildingDetailQuery.data, selectedEarthLosTrack]);
+  const selectedBuildingGoogleEarthUrl =
+    selectedEarthViewKey === EARTH_TOP_VIEW_KEY
+      ? buildingGoogleEarthUrl
+      : buildingGoogleEarthLosUrl;
 
   const buildingRunsQuery = useQuery({
     queryKey: [
@@ -449,6 +580,34 @@ export default function InspectorPanel() {
   const mlPointAnalysis = mlPointAnalysisQuery.data?.analysis ?? null;
   const mlPointAnalysisStatus = mlPointAnalysisQuery.data?.status;
   const mlPointAnalysisMessage = mlPointAnalysisQuery.data?.message;
+  const selectedBuildingFocusPointAnalysisQuery = useQuery({
+    queryKey: [
+      "ml-building-focus-point-analysis",
+      selectedBuildingFocusPoint?.runId ?? null,
+      selectedBuildingFocusPoint?.code ?? null,
+      selectedBuildingFocusPoint?.track ?? null,
+      selectedBuildingFocusPoint?.areaId ?? null,
+      selectedBuildingFocusPoint?.datasetId ?? null,
+    ],
+    queryFn: () =>
+      selectedBuildingFocusPoint && typeof selectedBuildingFocusPoint.track === "number"
+        ? getMlPointAnalysis(selectedBuildingFocusPoint.runId, selectedBuildingFocusPoint.code, {
+            track: selectedBuildingFocusPoint.track,
+            areaId: selectedBuildingFocusPoint.areaId,
+            datasetId: selectedBuildingFocusPoint.datasetId,
+          })
+        : Promise.resolve(null),
+    enabled:
+      Boolean(selectedBuildingFocusPoint) &&
+      typeof selectedBuildingFocusPoint?.track === "number",
+    retry: false,
+  });
+  const selectedBuildingFocusPointAnalysis =
+    selectedBuildingFocusPointAnalysisQuery.data?.analysis ?? null;
+  const selectedBuildingFocusPointStatus =
+    selectedBuildingFocusPointAnalysisQuery.data?.status;
+  const selectedBuildingFocusPointMessage =
+    selectedBuildingFocusPointAnalysisQuery.data?.message;
   const mlPointNeighbourhood = mlPointAnalysis?.neighbour_context;
   const showPointNeighbourhood = Boolean(
     mlPointNeighbourhood?.context_available ||
@@ -477,12 +636,181 @@ export default function InspectorPanel() {
     value === null || value === undefined ? "—" : `${(value * 100).toFixed(digits)}%`;
   const fmtStr = (value?: string | number | null) =>
     value === null || value === undefined || value === "" ? "—" : String(value);
+  const fmtBuildingAddress = (address?: BuildingAddress | null) => {
+    if (!address) return "Keine lokale Adresse gefunden";
+    if (address.match_type === "osm_nearest" && address.distance_m !== null) {
+      return `${address.label} (${fmtNum(address.distance_m, 1)} m entfernt)`;
+    }
+    return address.label;
+  };
+  const getBuildingAddressHelp = (address?: BuildingAddress | null) => {
+    if (!address) return "Keine passende lokale Adresse in den OSM-Gebaeudedaten gefunden.";
+    if (address.match_type === "osm_nearest") {
+      return "Naechstgelegene lokale OSM-Adresse innerhalb von 25 m; sie ist als Naeherung zum GBA-Gebaeude zu lesen.";
+    }
+    if (address.match_type === "osm_intersection") {
+      return "Adresse aus einem lokalen OSM-Gebaeude, dessen Footprint das ausgewaehlte GBA-Gebaeude schneidet.";
+    }
+    return "Adresse aus lokalen OSM-Tags des ausgewaehlten Gebaeudes.";
+  };
   const fmtBool = (value?: boolean | null) =>
     value === null || value === undefined ? "—" : value ? "ja" : "nein";
   const getNumber = (value: unknown) => {
     const parsed =
       typeof value === "number" ? value : typeof value === "string" ? Number(value) : null;
     return parsed === null || Number.isNaN(parsed) ? null : parsed;
+  };
+  const getString = (value: unknown) => {
+    if (typeof value === "string" && value.trim() !== "") return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) return String(value);
+    return undefined;
+  };
+  const getBoolean = (value: unknown) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true") return true;
+      if (normalized === "false") return false;
+    }
+    return null;
+  };
+  const getStringArray = (value: unknown) => {
+    if (Array.isArray(value)) {
+      return value.map((entry) => String(entry).trim()).filter(Boolean);
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          return parsed.map((entry) => String(entry).trim()).filter(Boolean);
+        }
+      } catch {
+        // Fall back to comma-separated values below.
+      }
+      return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+    }
+    return [];
+  };
+  const getObject = (value: unknown): Record<string, unknown> => {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return value as Record<string, unknown>;
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+      try {
+        const parsed = JSON.parse(value);
+        return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? (parsed as Record<string, unknown>)
+          : {};
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+  const getNumberMap = (value: unknown): Record<string, number | null> =>
+    Object.fromEntries(
+      Object.entries(getObject(value)).map(([key, entry]) => [key, getNumber(entry)])
+    );
+  const getDetectorScores = (value: unknown): Record<string, number> =>
+    Object.fromEntries(
+      Object.entries(getNumberMap(value)).filter(
+        (entry): entry is [string, number] => entry[1] !== null
+      )
+    );
+  const getExplainTopFeatures = (value: unknown): NonNullable<MlBuildingFocusPoint["explainTopFeatures"]> => {
+    const parsed =
+      typeof value === "string" && value.trim() !== ""
+        ? (() => {
+            try {
+              return JSON.parse(value);
+            } catch {
+              return [];
+            }
+          })()
+        : value;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") return null;
+        const item = entry as Record<string, unknown>;
+        return {
+          key: getString(item.key) ?? "unknown",
+          severity: getNumber(item.severity) ?? 0,
+          summary: getString(item.summary) ?? "",
+        };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  };
+
+  const buildFocusPointFromRecord = (
+    point: Record<string, unknown>,
+    cluster?: MlBuildingClusterSummary
+  ): MlBuildingFocusPoint | null => {
+    if (!selectedBuilding || !activeRunId) return null;
+    const code = getString(point.code);
+    const datasetId =
+      getString(point.dataset_id) ??
+      getString(cluster?.dataset_id) ??
+      activeRunQuery.data?.dataset_id ??
+      undefined;
+    const areaId = getString(point.area_id) ?? getString(cluster?.area_id) ?? selectedBuilding.areaId;
+    const track = getNumber(point.track) ?? cluster?.track;
+    if (!code || !datasetId || !areaId) return null;
+    return {
+      code,
+      track: track ?? undefined,
+      areaId,
+      datasetId,
+      sensor: getString(point.sensor) ?? getString(cluster?.sensor),
+      runId: activeRunId,
+      buildingSource: selectedBuilding.source,
+      buildingId: selectedBuilding.id,
+      velocity: getNumber(point.velocity),
+      velocityStd: getNumber(point.velocity_std),
+      height: getNumber(point.height),
+      heightStd: getNumber(point.height_std),
+      acceleration: getNumber(point.acceleration),
+      coherence: getNumber(point.coherence),
+      clusterId: getString(point.cluster_id) ?? cluster?.cluster_id ?? null,
+      clusterRole: getString(point.cluster_role) ?? cluster?.cluster_role ?? null,
+      clusterRank: getNumber(point.cluster_rank) ?? cluster?.cluster_rank ?? null,
+      isMainCluster: getBoolean(point.is_main_cluster) ?? cluster?.is_main_cluster ?? null,
+      label: getString(point.label) ?? null,
+      qualityScore: getNumber(point.quality_score),
+      anomalyScore: getNumber(point.anomaly_score),
+      crossTrackConsistency: getNumber(point.cross_track_consistency),
+      distanceM: getNumber(point.distance_m),
+      gateExcluded: getBoolean(point.gate_excluded),
+      gateReasons: getStringArray(point.gate_reasons),
+      keptForScoring: getBoolean(point.kept_for_scoring),
+      degradedReason: getString(point.degraded_reason) ?? null,
+      clusteringFeatures: getNumberMap(point.clustering_features),
+      detectorScores: getDetectorScores(point.detector_scores),
+      explainTopFeatures: getExplainTopFeatures(point.explain_top_features),
+    };
+  };
+
+  const selectFocusPointFromRecord = (
+    point: Record<string, unknown>,
+    cluster?: MlBuildingClusterSummary
+  ) => {
+    const focusPoint = buildFocusPointFromRecord(point, cluster);
+    if (focusPoint) {
+      selectMlBuildingFocusPoint(focusPoint);
+      setActiveBuildingTab("ml");
+    }
+  };
+
+  const isSelectedFocusPointRecord = (point: Record<string, unknown>) => {
+    if (!selectedBuildingFocusPoint) return false;
+    const code = getString(point.code);
+    const track = getNumber(point.track);
+    const datasetId = getString(point.dataset_id);
+    return (
+      code === selectedBuildingFocusPoint.code &&
+      (track === null || selectedBuildingFocusPoint.track === undefined || track === selectedBuildingFocusPoint.track) &&
+      (!datasetId || datasetId === selectedBuildingFocusPoint.datasetId)
+    );
   };
   const formatCountLabel = (key: string) => {
     if (/^\d+$/.test(key)) return `Track ${key}`;
@@ -1124,6 +1452,7 @@ export default function InspectorPanel() {
         <div className="section-title">Gebaeude-Kurzueberblick</div>
         {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebaeudeobjekts.")}
         {renderMetric("Gebaeude-ID", building.id)}
+        {renderMetric("Adresse", fmtBuildingAddress(building.address), getBuildingAddressHelp(building.address))}
         {renderMetric("Gebaeudehoehe", building.height === null ? "—" : `${building.height.toFixed(1)} m`)}
         {renderMetric("Name", fmtStr(building.name))}
         {renderMetric("Typ", fmtStr(building.building_type))}
@@ -1197,6 +1526,325 @@ export default function InspectorPanel() {
     );
   };
 
+  const openFocusPointAsRegularPoint = (point: MlBuildingFocusPoint) => {
+    setSelection(
+      {
+        type: "point",
+        code: point.code,
+        track: point.track,
+        areaId: point.areaId,
+        datasetId: point.datasetId,
+        sensor: point.sensor,
+      },
+      { preserveMlBuildingFocus: true }
+    );
+    setActivePointTab("ml");
+  };
+
+  const endBuildingFocus = () => {
+    clearMlBuildingFocus();
+    setSelection(null);
+  };
+
+  const renderSelectedBuildingFocusPoint = () => {
+    const point = selectedBuildingFocusPoint;
+    if (!point) return null;
+    const analysis = selectedBuildingFocusPointAnalysis;
+    const gateReasons =
+      point.gateReasons && point.gateReasons.length > 0
+        ? point.gateReasons
+        : analysis?.gate_reasons ?? [];
+    const clusterRole = point.clusterRole ?? analysis?.cluster_role ?? null;
+    const clusterProbability = analysis?.cluster_probability ?? null;
+    const pointLabel = point.label ?? analysis?.label ?? null;
+    const qualityScore = point.qualityScore ?? analysis?.quality_score ?? null;
+    const anomalyScore = point.anomalyScore ?? analysis?.anomaly_score ?? null;
+    const crossTrackConsistency =
+      point.crossTrackConsistency ?? analysis?.cross_track_consistency ?? null;
+    const distanceM = point.distanceM ?? analysis?.distance_m ?? null;
+    const gateExcluded = point.gateExcluded ?? analysis?.gate_excluded ?? null;
+    const keptForScoring = point.keptForScoring ?? analysis?.kept_for_scoring ?? null;
+    const velocity = point.velocity ?? analysis?.velocity ?? null;
+    const velocityStd = point.velocityStd ?? analysis?.velocity_std ?? null;
+    const height = point.height ?? analysis?.height ?? null;
+    const heightStd = point.heightStd ?? analysis?.height_std ?? null;
+    const acceleration = point.acceleration ?? analysis?.acceleration ?? null;
+    const coherence = point.coherence ?? analysis?.coherence ?? null;
+    const degradedReason =
+      point.degradedReason ??
+      analysis?.degraded_reason ??
+      getString(analysis?.feature_flags?.degraded_reason) ??
+      null;
+    const explainTopFeatures =
+      point.explainTopFeatures && point.explainTopFeatures.length > 0
+        ? point.explainTopFeatures
+        : analysis?.explain_top_features ?? [];
+    const detectorScores =
+      point.detectorScores && Object.keys(point.detectorScores).length > 0
+        ? point.detectorScores
+        : analysis?.detector_scores ?? {};
+    const buildingContext = analysis?.building_context ?? {};
+    const assignmentMethod = getString(buildingContext.assignment_method);
+    const anomalyExplainFeatures = explainTopFeatures.filter(
+      (item) => !focusAssignmentReasonKeys.has(item.key)
+    );
+    const assignmentWarnings = explainTopFeatures.filter((item) =>
+      focusAssignmentReasonKeys.has(item.key)
+    );
+    const degradedReasonIsAssignment = degradedReason
+      ? focusAssignmentReasonKeys.has(degradedReason)
+      : false;
+    const hasNearestAssignmentWarning = assignmentWarnings.some(
+      (item) => item.key === "nearest_assignment"
+    );
+    const showNearestAssignmentFallback =
+      assignmentMethod === "nearest" && !hasNearestAssignmentWarning;
+    const showAssignmentWarnings =
+      assignmentWarnings.length > 0 ||
+      showNearestAssignmentFallback ||
+      degradedReasonIsAssignment;
+    const showGateScoring =
+      gateExcluded === true ||
+      keptForScoring === false ||
+      gateReasons.length > 0 ||
+      Boolean(degradedReason && !degradedReasonIsAssignment);
+    const clusteringFeatureValue = (key: string) =>
+      point.clusteringFeatures?.[key] ?? analysis?.clustering_features?.[key] ?? null;
+    const formatFeature = (key: string, digits = 2, unit?: string) => {
+      const value = clusteringFeatureValue(key);
+      return value === null || value === undefined
+        ? "—"
+        : `${fmtNum(value, digits)}${unit ? ` ${unit}` : ""}`;
+    };
+    return (
+      <div className="sticky top-0 z-20 my-3 max-h-[48vh] overflow-auto rounded-md border border-primary/40 bg-card/95 p-3 shadow-sm backdrop-blur">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-[0.9px] text-primary">
+              Ausgewaehlter Punkt
+            </div>
+            <div className="mt-1 break-all font-mono text-sm font-bold text-foreground">
+              {point.code} · T{fmtStr(point.track)}
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {fmtStr(point.datasetId)} · {fmtStr(pointLabel)} · Cluster {fmtStr(point.clusterId)}
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-8 w-8 shrink-0"
+            onClick={clearSelectedMlBuildingFocusPoint}
+            aria-label="Punktdetail schliessen"
+            title="Punktdetail schliessen"
+          >
+            <X aria-hidden="true" className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+            Kurzbefund
+          </div>
+          <div className="mt-1 grid gap-1">
+            {renderMetric("Label", fmtStr(pointLabel))}
+            {renderMetric("Anomaliewert", fmtNum(anomalyScore))}
+            {renderMetric("Qualitaetswert", fmtNum(qualityScore))}
+            {renderMetric(
+              "Clusterrolle / Wahrscheinlichkeit",
+              `${fmtStr(clusterRole)} / ${fmtNum(clusterProbability)}`
+            )}
+            {renderMetric("Cross-Track-Konsistenz", fmtNum(crossTrackConsistency))}
+            {renderMetric("Fuer Scoring genutzt", fmtBool(keptForScoring))}
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+            Messwerte
+          </div>
+          <div className="mt-1 grid gap-1">
+            {renderMetric("InSAR-Hoehe", `${fmtNum(height, 1)} m`)}
+            {renderMetric("Hoehe Std.", `${fmtNum(heightStd, 1)} m`)}
+            {renderMetric("Geschwindigkeit", `${fmtNum(velocity)} mm/Jahr`)}
+            {renderMetric("Geschwindigkeit Std.", `${fmtNum(velocityStd)} mm/Jahr`)}
+            {renderMetric("Beschleunigung", `${fmtNum(acceleration)} mm/Jahr²`)}
+            {renderMetric("Kohaerenz", fmtNum(coherence))}
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+            Warum diese Punktbewertung?
+          </div>
+          <p className="mt-1 text-xs leading-snug text-muted-foreground">
+            Diese Faktoren erklaeren den Punkt-Score und die Outlier-Einstufung.
+          </p>
+          {anomalyExplainFeatures.length > 0 ? (
+            <div className="mt-2 grid gap-1.5">
+              {anomalyExplainFeatures.map((item) => (
+                <div
+                  key={`${item.key}-${item.severity}-${item.summary}`}
+                  className="rounded-sm border border-border bg-card px-2 py-1.5 text-xs"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <span className="min-w-0 font-semibold text-foreground">
+                      {formatFocusReasonKey(item.key)}
+                    </span>
+                    <span className="shrink-0 font-mono text-muted-foreground">
+                      {fmtNum(item.severity)}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 break-words text-muted-foreground">
+                    {fmtStr(item.summary)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="pill mt-2">Keine Bewertungsgruende fuer diesen Punkt gespeichert.</div>
+          )}
+        </div>
+
+        <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+            Zuordnung zum Gebaeude
+          </div>
+          <div className="mt-1 grid gap-1">
+            {renderMetric(
+              "Gebaeude",
+              `${fmtStr(point.buildingSource).toUpperCase()} / ${fmtStr(point.buildingId)}`
+            )}
+            {renderMetric("Abstand zum Gebaeude", `${fmtNum(distanceM, 1)} m`)}
+            {renderMetric("Zuordnung", formatAssignmentMethod(assignmentMethod))}
+          </div>
+          {showAssignmentWarnings && (
+            <div className="mt-2 rounded-sm border border-warning/30 bg-warning/10 px-2 py-1.5 text-xs text-warning">
+              <div className="font-semibold">Zuordnungswarnung</div>
+              <p className="mt-0.5 leading-snug">
+                Diese Hinweise betreffen die Zuordnung zum Gebaeude, nicht zwingend die Bewegung
+                selbst.
+              </p>
+              <div className="mt-1.5 grid gap-1 text-warning">
+                {assignmentWarnings.map((item) => (
+                  <div key={`${item.key}-${item.severity}-${item.summary}`}>
+                    <span className="font-semibold">{formatFocusReasonKey(item.key)}</span>
+                    <span className="font-mono"> · {fmtNum(item.severity)}</span>
+                    <span className="block break-words opacity-90">{fmtStr(item.summary)}</span>
+                  </div>
+                ))}
+                {showNearestAssignmentFallback && (
+                  <div>
+                    <span className="font-semibold">
+                      {formatFocusReasonKey("nearest_assignment")}
+                    </span>
+                    <span className="block break-words opacity-90">
+                      Punkt wurde nur ueber das naechstgelegene Gebaeude zugeordnet.
+                    </span>
+                  </div>
+                )}
+                {degradedReasonIsAssignment && !hasNearestAssignmentWarning && (
+                  <div>
+                    <span className="font-semibold">{formatFocusReasonKey(degradedReason)}</span>
+                    <span className="block break-words opacity-90">
+                      Die Punktbewertung wurde wegen dieser Zuordnungsunsicherheit herabgestuft.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {showGateScoring && (
+          <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+            <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+              Gate & Scoring
+            </div>
+            <div className="mt-1 grid gap-1">
+              {renderMetric("Gate-ausgeschlossen", fmtBool(gateExcluded))}
+              {renderMetric("Fuer Scoring genutzt", fmtBool(keptForScoring))}
+              {renderMetric(
+                "Gate-Gruende",
+                gateReasons.length > 0
+                  ? gateReasons.map((reason) => formatFocusReasonKey(reason)).join(", ")
+                  : "—"
+              )}
+              {renderMetric(
+                "Degradierungsgrund",
+                degradedReason ? formatFocusReasonKey(degradedReason) : "—"
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
+            Technische Modellwerte
+          </div>
+          <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.7px] text-muted-foreground">
+            Clustering-Features
+          </div>
+          <div className="mt-1 grid gap-1">
+            {clusteringFeatureLabels.map((feature) =>
+              renderMetric(
+                feature.label,
+                formatFeature(feature.key, feature.digits ?? 2, feature.unit),
+                undefined,
+                `focus-feature-${feature.key}`
+              )
+            )}
+          </div>
+          {Object.keys(detectorScores).length > 0 && (
+            <>
+              <div className="mt-3 text-[11px] font-bold uppercase tracking-[0.7px] text-muted-foreground">
+                Bewertungstreiber
+              </div>
+              <div className="mt-1 grid gap-1">
+                {Object.entries(detectorScores).map(([key, value]) =>
+                  renderMetric(
+                    formatFocusDetectorKey(key),
+                    fmtNum(value),
+                    undefined,
+                    `focus-detector-${key}`
+                  )
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {selectedBuildingFocusPointAnalysisQuery.isLoading && (
+          <div className="pill mt-2">Punktanalyse wird geladen...</div>
+        )}
+        {selectedBuildingFocusPointStatus === "missing" && (
+          <div className="pill warning mt-2">
+            {selectedBuildingFocusPointMessage || "Keine Punktanalyse fuer diesen Lauf gefunden."}
+          </div>
+        )}
+        {selectedBuildingFocusPointAnalysisQuery.isError && (
+          <div className="pill warning mt-2">Punktanalyse konnte nicht geladen werden.</div>
+        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => openFocusPointAsRegularPoint(point)}
+          >
+            <ExternalLink aria-hidden="true" />
+            Als Punkt oeffnen
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={endBuildingFocus}>
+            <X aria-hidden="true" />
+            Gebaeude-Fokus beenden
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const renderClusterPointList = (cluster: MlBuildingClusterSummary) => {
     if (mlBuildingPointsQuery.isLoading) {
       return <div className="mt-2 text-xs text-muted-foreground">Punktliste wird geladen...</div>;
@@ -1222,10 +1870,17 @@ export default function InspectorPanel() {
             const quality = getNumber(point.quality_score);
             const anomaly = getNumber(point.anomaly_score);
             const label = fmtStr(point.label as string | number | null | undefined);
+            const isSelected = isSelectedFocusPointRecord(point);
             return (
-              <div
+              <button
                 key={`${code}-${track}`}
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-sm border border-border/70 bg-secondary px-2 py-1 text-xs"
+                type="button"
+                className={`grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-sm border px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  isSelected
+                    ? "border-primary bg-primary/10"
+                    : "border-border/70 bg-secondary hover:border-primary/50"
+                }`}
+                onClick={() => selectFocusPointFromRecord(point, cluster)}
               >
                 <span className="min-w-0 break-all font-mono text-foreground">
                   {code} · T{track}
@@ -1233,7 +1888,7 @@ export default function InspectorPanel() {
                 <span className="font-mono text-muted-foreground">
                   {label} · Q {fmtNum(quality)} · A {fmtNum(anomaly)}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -1394,6 +2049,10 @@ export default function InspectorPanel() {
                 )}
                 {effectiveShowNoise ? "Rauschen ausblenden" : "Rauschen anzeigen"}
               </Button>
+              <Button type="button" size="sm" variant="outline" onClick={endBuildingFocus}>
+                <X aria-hidden="true" />
+                Fokus beenden
+              </Button>
             </div>
             <div className="grid gap-2">
               {clusters.map((cluster) => {
@@ -1515,6 +2174,7 @@ export default function InspectorPanel() {
       <div>
         <div className="section-title">Aktiver ML-Lauf</div>
         {renderActiveBuildingRunCompact()}
+        {renderSelectedBuildingFocusPoint()}
         {activeRunId && mlBuildingAnalysisQuery.isLoading && (
           <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
         )}
@@ -1663,6 +2323,63 @@ export default function InspectorPanel() {
     return renderBuildingOverview();
   };
 
+  const renderBuildingExternalActions = () => {
+    if (!buildingDetailQuery.data) return null;
+    if (!buildingGoogleEarthUrl) {
+      return (
+        <div className="pill warning mb-3">
+          Google-Earth-Link nicht verfuegbar.
+        </div>
+      );
+    }
+    return (
+      <div className="mb-3 grid gap-2">
+        <div className="space-y-1.5">
+          <UiLabel htmlFor="google-earth-view-select">Blickrichtung</UiLabel>
+          <Select value={selectedEarthViewKey} onValueChange={setEarthViewKey}>
+            <SelectTrigger id="google-earth-view-select">
+              <SelectValue placeholder="Blickrichtung" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={EARTH_TOP_VIEW_KEY}>
+                Von oben, geringe Neigung
+              </SelectItem>
+              {earthLosTrackOptions.map((option) => (
+                <SelectItem key={option.key} value={option.key}>
+                  Satellitenblick: {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedBuildingGoogleEarthUrl ? (
+          <Button asChild size="sm" variant="outline" className="w-full justify-start">
+            <a
+              href={selectedBuildingGoogleEarthUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Ausgewaehltes Gebaeude in Google Earth oeffnen"
+            >
+              <ExternalLink aria-hidden="true" />
+              In Google Earth öffnen
+            </a>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="w-full justify-start"
+            disabled
+          >
+            <ExternalLink aria-hidden="true" />
+            In Google Earth öffnen
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="panel panel-right">
       <div>
@@ -1761,6 +2478,7 @@ export default function InspectorPanel() {
           {buildingDetailQuery.data && (
             <>
               {renderTabs(buildingTabs, activeBuildingTab, setActiveBuildingTab, "Gebaeude-Inspektor")}
+              {renderBuildingExternalActions()}
               {renderBuildingContent()}
             </>
           )}

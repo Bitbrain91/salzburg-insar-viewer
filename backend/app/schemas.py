@@ -72,6 +72,18 @@ class TimeseriesResponse(BaseModel):
     measurements: List[TimeseriesPoint]
 
 
+class BuildingAddress(BaseModel):
+    label: str
+    street: Optional[str] = None
+    housenumber: Optional[str] = None
+    postcode: Optional[str] = None
+    city: Optional[str] = None
+    source: str
+    match_type: str
+    matched_osm_id: Optional[str] = None
+    distance_m: Optional[float] = None
+
+
 class BuildingDetail(BaseModel):
     area_id: str
     id: str
@@ -82,6 +94,7 @@ class BuildingDetail(BaseModel):
     geometry: dict
     attributes: dict = {}
     terrain: Optional[BuildingTerrainContext] = None
+    address: Optional[BuildingAddress] = None
 
 
 class HealthResponse(BaseModel):
@@ -197,12 +210,19 @@ class MLPointAnalysis(BaseModel):
     anomaly_score: Optional[float] = None
     cross_track_consistency: Optional[float] = None
     label: Optional[str] = None
+    velocity: Optional[float] = None
+    velocity_std: Optional[float] = None
+    height: Optional[float] = None
+    height_std: Optional[float] = None
+    acceleration: Optional[float] = None
+    coherence: Optional[float] = None
     building_source: Optional[str] = None
     building_id: Optional[str] = None
     distance_m: Optional[float] = None
     feature_set_version: Optional[str] = None
     model_set_version: Optional[str] = None
     detector_scores: dict[str, float] = Field(default_factory=dict)
+    clustering_features: dict[str, Optional[float]] = Field(default_factory=dict)
     feature_flags: dict[str, Any] = Field(default_factory=dict)
     building_context: dict[str, Any] = Field(default_factory=dict)
     cross_track_summary: dict[str, Any] = Field(default_factory=dict)
@@ -213,6 +233,7 @@ class MLPointAnalysis(BaseModel):
     gate_excluded: Optional[bool] = None
     gate_reasons: List[str] = Field(default_factory=list)
     kept_for_scoring: Optional[bool] = None
+    degraded_reason: Optional[str] = None
     explain_top_features: List[MLExplainReason] = Field(default_factory=list)
 
 
@@ -228,8 +249,16 @@ class MLBuildingPointSummary(BaseModel):
     quality_score: Optional[float] = None
     anomaly_score: Optional[float] = None
     cross_track_consistency: Optional[float] = None
+    velocity: Optional[float] = None
+    velocity_std: Optional[float] = None
+    height: Optional[float] = None
+    height_std: Optional[float] = None
+    acceleration: Optional[float] = None
+    coherence: Optional[float] = None
+    clustering_features: dict[str, Optional[float]] = Field(default_factory=dict)
     distance_m: Optional[float] = None
     gate_excluded: Optional[bool] = None
+    degraded_reason: Optional[str] = None
 
 
 class MLBuildingClusterSummary(BaseModel):

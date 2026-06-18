@@ -17,6 +17,52 @@ export type LayerVisibility = {
 export type SimpleLayerVisibilityKey = Exclude<keyof LayerVisibility, "insarTracks">;
 export type MlBuildingTrackFilter = "all" | `${string}:${number}`;
 export type MlBuildingPointFocusMode = "run" | "building" | "scored" | "cluster";
+export type MlBuildingFocusSelection = {
+  source: "gba" | "osm";
+  id: string;
+  areaId: string;
+};
+export type MlClusteringFeatures = Record<string, number | null | undefined>;
+export type MlFocusExplainReason = {
+  key: string;
+  severity: number;
+  summary: string;
+};
+export type MlBuildingFocusPoint = {
+  code: string;
+  track?: number;
+  areaId: string;
+  datasetId: string;
+  sensor?: string;
+  runId: string;
+  buildingSource: "gba" | "osm";
+  buildingId: string;
+  velocity?: number | null;
+  velocityStd?: number | null;
+  height?: number | null;
+  heightStd?: number | null;
+  acceleration?: number | null;
+  coherence?: number | null;
+  clusterId?: string | null;
+  clusterRole?: string | null;
+  clusterRank?: number | null;
+  isMainCluster?: boolean | null;
+  label?: string | null;
+  qualityScore?: number | null;
+  anomalyScore?: number | null;
+  crossTrackConsistency?: number | null;
+  distanceM?: number | null;
+  gateExcluded?: boolean | null;
+  gateReasons?: string[];
+  keptForScoring?: boolean | null;
+  degradedReason?: string | null;
+  clusteringFeatures?: MlClusteringFeatures;
+  detectorScores?: Record<string, number>;
+  explainTopFeatures?: MlFocusExplainReason[];
+};
+export type SetSelectionOptions = {
+  preserveMlBuildingFocus?: boolean;
+};
 
 export type Selection =
   | {
@@ -66,6 +112,8 @@ export type AppState = {
   mlBuildingShowNoise: boolean;
   mlBuildingVisibleClusterIds: string[] | null;
   mlBuildingPointFocusMode: MlBuildingPointFocusMode;
+  mlBuildingFocusSelection: MlBuildingFocusSelection | null;
+  selectedMlBuildingFocusPoint: MlBuildingFocusPoint | null;
   mlView:
     | "cluster"
     | "quality"
@@ -84,13 +132,14 @@ export type AppState = {
   ) => void;
   setFilter: (key: keyof Filters, value: number) => void;
   setFiltersEnabled: (enabled: boolean) => void;
-  setSelection: (selection: Selection) => void;
+  setSelection: (selection: Selection, options?: SetSelectionOptions) => void;
   setBasemapId: (id: BasemapId) => void;
   setCameraMode: (mode: CameraMode) => void;
   setPointColorMode: (mode: PointColorMode) => void;
   setHeightSensitivityM: (value: number) => void;
   setShowTrackOutlines: (show: boolean) => void;
   setActiveRunId: (runId: string | null) => void;
+  setActiveRunIdClearingFocus: (runId: string | null) => void;
   setShowMlLayer: (show: boolean) => void;
   setShowMlBuildings: (show: boolean) => void;
   setMlBuildingTrackFilter: (value: AppState["mlBuildingTrackFilter"]) => void;
@@ -99,6 +148,11 @@ export type AppState = {
   setMlBuildingShowNoise: (show: boolean) => void;
   setMlBuildingVisibleClusterIds: (clusterIds: string[] | null) => void;
   setMlBuildingPointFocusMode: (mode: MlBuildingPointFocusMode) => void;
+  setMlBuildingFocusSelection: (selection: MlBuildingFocusSelection | null) => void;
+  clearMlBuildingFocus: () => void;
+  setSelectedMlBuildingFocusPoint: (point: MlBuildingFocusPoint | null) => void;
+  selectMlBuildingFocusPoint: (point: MlBuildingFocusPoint) => void;
+  clearSelectedMlBuildingFocusPoint: () => void;
   toggleMlBuildingClusterVisibility: (clusterId: string, allClusterIds: string[]) => void;
   resetMlBuildingClusterVisibility: () => void;
   setMlView: (view: AppState["mlView"]) => void;
@@ -137,6 +191,8 @@ export const useAppStore = create<AppState>((set) => ({
   mlBuildingShowNoise: true,
   mlBuildingVisibleClusterIds: null,
   mlBuildingPointFocusMode: "building",
+  mlBuildingFocusSelection: null,
+  selectedMlBuildingFocusPoint: null,
   mlView: "cluster",
   mlTileVersion: 0,
   mapBBox: null,
@@ -156,6 +212,8 @@ export const useAppStore = create<AppState>((set) => ({
             mlBuildingShowNoise: true,
             mlBuildingVisibleClusterIds: null,
             mlBuildingPointFocusMode: "building",
+            mlBuildingFocusSelection: null,
+            selectedMlBuildingFocusPoint: null,
           }
     ),
   setInsarTrackVisibility: (datasetId, track, value) =>
@@ -172,14 +230,33 @@ export const useAppStore = create<AppState>((set) => ({
   setFilter: (key, value) =>
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
-  setSelection: (selection) =>
-    set(() => ({
-      selection,
-      mlBuildingShowHulls: true,
-      mlBuildingShowNoise: true,
-      mlBuildingVisibleClusterIds: null,
-      mlBuildingPointFocusMode: "building",
-    })),
+  setSelection: (selection, options) =>
+    set(() => {
+      const keepFocus = options?.preserveMlBuildingFocus ?? false;
+      if (selection?.type === "building") {
+        return {
+          selection,
+          mlBuildingFocusSelection: selection,
+          selectedMlBuildingFocusPoint: null,
+          mlBuildingShowHulls: true,
+          mlBuildingShowNoise: true,
+          mlBuildingVisibleClusterIds: null,
+          mlBuildingPointFocusMode: "building",
+        };
+      }
+      if (keepFocus) {
+        return { selection };
+      }
+      return {
+        selection,
+        mlBuildingFocusSelection: null,
+        selectedMlBuildingFocusPoint: null,
+        mlBuildingShowHulls: true,
+        mlBuildingShowNoise: true,
+        mlBuildingVisibleClusterIds: null,
+        mlBuildingPointFocusMode: "building",
+      };
+    }),
   setBasemapId: (id) => set(() => ({ basemapId: id })),
   setCameraMode: (mode) => set(() => ({ cameraMode: mode })),
   setPointColorMode: (mode) => set(() => ({ pointColorMode: mode })),
@@ -188,10 +265,24 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveRunId: (runId) =>
     set(() => ({
       activeRunId: runId,
+      selectedMlBuildingFocusPoint: null,
       mlBuildingShowHulls: true,
       mlBuildingShowNoise: true,
       mlBuildingVisibleClusterIds: null,
       mlBuildingPointFocusMode: "building",
+    })),
+  setActiveRunIdClearingFocus: (runId) =>
+    set(() => ({
+      activeRunId: runId,
+      selection: null,
+      mlBuildingTrackFilter: "all",
+      mlBuildingShowExcluded: true,
+      mlBuildingShowHulls: true,
+      mlBuildingShowNoise: true,
+      mlBuildingVisibleClusterIds: null,
+      mlBuildingPointFocusMode: "building",
+      mlBuildingFocusSelection: null,
+      selectedMlBuildingFocusPoint: null,
     })),
   setShowMlLayer: (show) => set(() => ({ showMlLayer: show })),
   setShowMlBuildings: (show) => set(() => ({ showMlBuildings: show })),
@@ -205,6 +296,44 @@ export const useAppStore = create<AppState>((set) => ({
         clusterIds === null ? null : Array.from(new Set(clusterIds)),
     })),
   setMlBuildingPointFocusMode: (mode) => set(() => ({ mlBuildingPointFocusMode: mode })),
+  setMlBuildingFocusSelection: (selection) =>
+    set(() => ({
+      mlBuildingFocusSelection: selection,
+      selectedMlBuildingFocusPoint: null,
+      mlBuildingShowHulls: true,
+      mlBuildingShowNoise: true,
+      mlBuildingVisibleClusterIds: null,
+      mlBuildingPointFocusMode: "building",
+    })),
+  clearMlBuildingFocus: () =>
+    set(() => ({
+      mlBuildingFocusSelection: null,
+      selectedMlBuildingFocusPoint: null,
+    })),
+  setSelectedMlBuildingFocusPoint: (point) =>
+    set(() => ({ selectedMlBuildingFocusPoint: point })),
+  selectMlBuildingFocusPoint: (point) =>
+    set((state) => {
+      const focusSelection =
+        state.mlBuildingFocusSelection ??
+        ({
+          source: point.buildingSource,
+          id: point.buildingId,
+          areaId: point.areaId,
+        } satisfies MlBuildingFocusSelection);
+      return {
+        mlBuildingFocusSelection: focusSelection,
+        selectedMlBuildingFocusPoint: point,
+        selection: {
+          type: "building",
+          source: focusSelection.source,
+          id: focusSelection.id,
+          areaId: focusSelection.areaId,
+        },
+      };
+    }),
+  clearSelectedMlBuildingFocusPoint: () =>
+    set(() => ({ selectedMlBuildingFocusPoint: null })),
   toggleMlBuildingClusterVisibility: (clusterId, allClusterIds) =>
     set((state) => {
       const visible = new Set(state.mlBuildingVisibleClusterIds ?? allClusterIds);

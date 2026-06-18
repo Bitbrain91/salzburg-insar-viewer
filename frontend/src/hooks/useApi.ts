@@ -36,6 +36,18 @@ export type BuildingTerrainContext = {
   relief_range_m: number | null;
 };
 
+export type BuildingAddress = {
+  label: string;
+  street: string | null;
+  housenumber: string | null;
+  postcode: string | null;
+  city: string | null;
+  source: string;
+  match_type: string;
+  matched_osm_id: string | null;
+  distance_m: number | null;
+};
+
 export type PointDetail = {
   area_id?: string | null;
   dataset_id?: string | null;
@@ -74,6 +86,7 @@ export type BuildingDetail = {
   geometry: Record<string, unknown>;
   attributes: Record<string, unknown>;
   terrain: BuildingTerrainContext | null;
+  address: BuildingAddress | null;
 };
 
 export type SearchResultType = "point" | "building" | "ml_run" | "address";
@@ -192,6 +205,8 @@ export type MlPointExplainReason = {
   summary: string;
 };
 
+export type MlClusteringFeatures = Record<string, number | null | undefined>;
+
 export type MlPointNeighbourContext = {
   context_available?: boolean;
   candidate_neighbour_count?: number;
@@ -221,12 +236,19 @@ export type MlPointAnalysis = {
   anomaly_score: number | null;
   cross_track_consistency: number | null;
   label: string | null;
+  velocity: number | null;
+  velocity_std: number | null;
+  height: number | null;
+  height_std: number | null;
+  acceleration: number | null;
+  coherence: number | null;
   building_source: string | null;
   building_id: string | null;
   distance_m: number | null;
   feature_set_version: string | null;
   model_set_version: string | null;
   detector_scores: Record<string, number>;
+  clustering_features: MlClusteringFeatures;
   feature_flags: Record<string, unknown>;
   building_context: Record<string, unknown>;
   cross_track_summary: Record<string, unknown>;
@@ -237,6 +259,7 @@ export type MlPointAnalysis = {
   gate_excluded: boolean | null;
   gate_reasons: string[];
   kept_for_scoring: boolean | null;
+  degraded_reason: string | null;
   explain_top_features: MlPointExplainReason[];
 };
 
@@ -258,8 +281,16 @@ export type MlBuildingPointSummary = {
   quality_score: number | null;
   anomaly_score: number | null;
   cross_track_consistency: number | null;
+  velocity: number | null;
+  velocity_std: number | null;
+  height: number | null;
+  height_std: number | null;
+  acceleration: number | null;
+  coherence: number | null;
+  clustering_features: MlClusteringFeatures;
   distance_m: number | null;
   gate_excluded: boolean | null;
+  degraded_reason: string | null;
 };
 
 export type MlBuildingClusterSummary = {
