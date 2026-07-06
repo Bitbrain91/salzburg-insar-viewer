@@ -6,37 +6,37 @@ Fokus: InSAR Viewer, `anomaly_local_v1`, Clustering-Qualitaet, Gebaeude-Scoring 
 
 ## Inhaltsverzeichnis
 
-- [Ziel fuer das Meeting](#ziel-fuer-das-meeting)
-- [Kurzfassung fuer den Einstieg](#kurzfassung-fuer-den-einstieg)
-- [Vorschlag fuer die Agenda](#vorschlag-fuer-die-agenda)
-- [Pipeline in groben Schritten](#pipeline-in-groben-schritten)
-  - [Datenbasis](#1-datenbasis)
-  - [Punkt-zu-Gebaeude-Zuordnung](#2-punkt-zu-gebaeude-zuordnung)
-  - [Gate-Regeln](#3-gate-regeln)
-  - [k2x: aktuelle Directional-/Nearest-Hygiene](#4-k2x-aktuelle-directional-nearest-hygiene)
-  - [Features fuer das Clustering](#5-features-fuer-das-clustering)
-  - [Weitere Features fuer Scoring und Diagnose](#6-weitere-features-fuer-scoring-und-diagnose)
-- [Clustering-Logik](#clustering-logik)
-- [Vom Cluster zum Gebaeudescore](#vom-cluster-zum-gebaeudescore)
-- [Punkt-Level-Score](#punkt-level-score)
-- [Was wurde zuletzt umgesetzt?](#was-wurde-zuletzt-umgesetzt)
-- [Zentrale Zahlen fuer das Meeting](#zentrale-zahlen-fuer-das-meeting)
-  - [k2x gegenueber Baseline auf 7 Pflicht-AOIs](#k2x-gegenueber-baseline-auf-7-pflicht-aois)
-  - [Cross-Track-Median nach AOI](#cross-track-median-nach-aoi)
-  - [Bad Gastein: flach vs. Hang](#bad-gastein-flach-vs-hang)
-  - [SNT vs. hochaufloesende TSX/PAZ in Bad Gastein](#snt-vs-hochaufloesende-tsx-paz-in-bad-gastein)
-- [GBA-Hoehen und bessere Gebaeudequellen](#gba-hoehen-und-bessere-gebaeudequellen)
-- [Wie messen wir Clusterqualitaet?](#wie-messen-wir-clusterqualitaet)
-- [Wichtigste bekannte Grenzen](#wichtigste-bekannte-grenzen)
-- [Konkrete Verbesserungsoptionen](#konkrete-verbesserungsoptionen)
-- [Gute Diskussionsfragen](#gute-diskussionsfragen)
-- [Praesentationsfolie: moegliche Kernaussagen](#praesentationsfolie-moegliche-kernaussagen)
-- [Quellen im Repo](#quellen-im-repo)
-- [Externe Quelle fuer BEV-Daten](#externe-quelle-fuer-bev-daten)
+- [1. Ziel fuer das Meeting](#ziel-fuer-das-meeting)
+- [2. Kurzfassung fuer den Einstieg](#kurzfassung-fuer-den-einstieg)
+- [3. Vorschlag fuer die Agenda](#vorschlag-fuer-die-agenda)
+- [4. Pipeline in groben Schritten](#pipeline-in-groben-schritten)
+  - [4.1 Datenbasis](#1-datenbasis)
+  - [4.2 Punkt-zu-Gebaeude-Zuordnung](#2-punkt-zu-gebaeude-zuordnung)
+  - [4.3 Gate-Regeln](#3-gate-regeln)
+  - [4.4 k2x: aktuelle Directional-/Nearest-Hygiene](#4-k2x-aktuelle-directional-nearest-hygiene)
+  - [4.5 Features fuer das Clustering](#5-features-fuer-das-clustering)
+  - [4.6 Weitere Features fuer Scoring und Diagnose](#6-weitere-features-fuer-scoring-und-diagnose)
+- [5. Clustering-Logik](#clustering-logik)
+- [6. Vom Cluster zum Gebaeudescore](#vom-cluster-zum-gebaeudescore)
+- [7. Punkt-Level-Score](#punkt-level-score)
+- [8. Was wurde zuletzt umgesetzt?](#was-wurde-zuletzt-umgesetzt)
+- [9. Zentrale Zahlen fuer das Meeting](#zentrale-zahlen-fuer-das-meeting)
+  - [9.1 k2x gegenueber Baseline auf 7 Pflicht-AOIs](#k2x-gegenueber-baseline-auf-7-pflicht-aois)
+  - [9.2 Cross-Track-Median nach AOI](#cross-track-median-nach-aoi)
+  - [9.3 Bad Gastein: flach vs. Hang](#bad-gastein-flach-vs-hang)
+  - [9.4 SNT vs. hochaufloesende TSX/PAZ in Bad Gastein](#snt-vs-hochaufloesende-tsx-paz-in-bad-gastein)
+- [10. GBA-Hoehen und bessere Gebaeudequellen](#gba-hoehen-und-bessere-gebaeudequellen)
+- [11. Wie messen wir Clusterqualitaet?](#wie-messen-wir-clusterqualitaet)
+- [12. Wichtigste bekannte Grenzen](#wichtigste-bekannte-grenzen)
+- [13. Konkrete Verbesserungsoptionen](#konkrete-verbesserungsoptionen)
+- [14. Gute Diskussionsfragen](#gute-diskussionsfragen)
+- [15. Praesentationsfolie: moegliche Kernaussagen](#praesentationsfolie-moegliche-kernaussagen)
+- [16. Quellen im Repo](#quellen-im-repo)
+- [17. Externe Quelle fuer BEV-Daten](#externe-quelle-fuer-bev-daten)
 
 <a id="ziel-fuer-das-meeting"></a>
 
-## Ziel fuer das Meeting
+## 1. Ziel fuer das Meeting
 
 Die Pipeline soll nicht als Blackbox vorgestellt werden, sondern als nachvollziehbarer Workflow:
 
@@ -50,7 +50,7 @@ Die wichtigste Botschaft: Der aktuelle Stand ist nicht "fertig", aber methodisch
 
 <a id="kurzfassung-fuer-den-einstieg"></a>
 
-## Kurzfassung fuer den Einstieg
+## 2. Kurzfassung fuer den Einstieg
 
 - Aktuelle Pipeline: `anomaly_local_v1`, produktiver Modellstand `local_hdbscan_rulegate_v2_k2x`.
 - Analyseebene: lokal pro `Gebaeude x Track`, nicht global ueber die ganze Stadt.
@@ -63,7 +63,7 @@ Die wichtigste Botschaft: Der aktuelle Stand ist nicht "fertig", aber methodisch
 
 <a id="vorschlag-fuer-die-agenda"></a>
 
-## Vorschlag fuer die Agenda
+## 3. Vorschlag fuer die Agenda
 
 | Block | Inhalt | Ziel |
 | --- | --- | --- |
@@ -76,11 +76,11 @@ Die wichtigste Botschaft: Der aktuelle Stand ist nicht "fertig", aber methodisch
 
 <a id="pipeline-in-groben-schritten"></a>
 
-## Pipeline in groben Schritten
+## 4. Pipeline in groben Schritten
 
 <a id="1-datenbasis"></a>
 
-### 1. Datenbasis
+### 4.1 Datenbasis
 
 Die Pipeline arbeitet aktuell auf:
 
@@ -102,7 +102,7 @@ Relevante Datenmengen:
 
 <a id="2-punkt-zu-gebaeude-zuordnung"></a>
 
-### 2. Punkt-zu-Gebaeude-Zuordnung
+### 4.2 Punkt-zu-Gebaeude-Zuordnung
 
 Pro Punkt wird das beste Gebaeude in dieser Reihenfolge gesucht:
 
@@ -133,7 +133,7 @@ Interpretation: Ein Dachreflektor kann wegen Layover entlang der Blickrichtung v
 
 <a id="3-gate-regeln"></a>
 
-### 3. Gate-Regeln
+### 4.3 Gate-Regeln
 
 Bevor geclustert wird, werden harte Ausschluesse gesetzt:
 
@@ -147,7 +147,7 @@ Wichtig: Demotierte Punkte bleiben sichtbar, tragen aber nicht zu Cluster oder S
 
 <a id="4-k2x-aktuelle-directional-nearest-hygiene"></a>
 
-### 4. k2x: aktuelle Directional-/Nearest-Hygiene
+### 4.4 k2x: aktuelle Directional-/Nearest-Hygiene
 
 Seit Phase 7 ist k2x produktiv. Kernidee: `nearest` ist nur ein Fallback und darf nicht ungeprueft den Main-Cluster bestimmen.
 
@@ -167,7 +167,7 @@ Warum nur Cross-Look? Layover erklaert Versatz laengs der Blickrichtung, aber ni
 
 <a id="5-features-fuer-das-clustering"></a>
 
-### 5. Features fuer das Clustering
+### 4.5 Features fuer das Clustering
 
 Die HDBSCAN-Matrix enthaelt aktuell sechs Features. Vor dem Clustering werden sie robust skaliert und gewichtet:
 
@@ -184,7 +184,7 @@ Die Gewichtung zeigt die Modellannahme: Bewegung und Geometrie sind primaer, Sig
 
 <a id="6-weitere-features-fuer-scoring-und-diagnose"></a>
 
-### 6. Weitere Features fuer Scoring und Diagnose
+### 4.6 Weitere Features fuer Scoring und Diagnose
 
 Diese Features sind nicht alle Teil der Cluster-Matrix, wirken aber in Gates, Scores, Rollups oder Diagnose:
 
@@ -196,24 +196,26 @@ Diese Features sind nicht alle Teil der Cluster-Matrix, wirken aber in Gates, Sc
 
 Vorstellbare naechste Features:
 
-- `height_above_ground_m`: Punkt-Hoehe minus hochwertiges DTM, geoid-/datumskorrigiert.
-- Polygon-aware Cross-Look-Excess statt Centroid-Cross-Offset.
-- Anti-Layover-Check: Punkte auf der physikalisch falschen Seite der Range-Verschiebung.
-- Layover-Reichweiten-Check: implizite Reflektorhoehe gegen plausible Gebaeudehoehe.
-- Aspect/Look-vs-Slope: Sichtbarkeit und erwartete Track-Differenz in Hanglagen.
-- `h_stdev`, `v_stdev`, `a_stdev`, `s_amp_std`, `s_phs_std`, `eff_area` aus SqueeSAR als Qualitaets-/Unsicherheitsfeatures.
-- Amplituden-Konsistenz innerhalb eines Clusters, aber nicht als einfache harte Regel.
-- Bessere Gebaeudequelle: USM High oder BEV-DLM statt GBA-Hoehe, GBA nur Fallback.
+| Feature / Pruefung | Kurze Erklaerung |
+| --- | --- |
+| `height_above_ground_m` | Punkt-Hoehe minus hochwertiges DTM, geoid-/datumskorrigiert. Hilft zu unterscheiden, ob ein Punkt eher vom Dach, vom Boden, von einem Anbau oder von Vegetation stammen koennte. Ohne gutes DTM und sauberen Hoehenbezug ist dieses Feature aber riskant. |
+| Polygon-aware Cross-Look-Excess | Ersetzt den groben Querabstand zum Gebaeudezentrum durch den Querueberstand zur tatsaechlichen Polygonkante. Dadurch werden lange oder unregelmaessige Gebaeude fairer behandelt: Ein Punkt am echten Gebaeuderand wird nicht nur deshalb demotiert, weil er weit vom Zentroid entfernt ist. |
+| Anti-Layover-Check | Prueft, ob ein Punkt auf der physikalisch falschen Seite der erwarteten Radarverschiebung liegt. Wenn ein Off-Footprint-Punkt entgegen der Range-/Layover-Richtung liegt, ist er als Dachreflektor kaum plausibel und sollte stark als Fremdpunkt gewertet werden. |
+| Layover-Reichweiten-Check | Rechnet aus dem Abstand zum Footprint zurueck, welche Reflektorhoehe noetig waere, damit der Punkt noch vom Gebaeude stammen kann. Wenn dafuer z. B. 16 m Hoehe noetig sind, das Gebaeude aber nur 8-10 m plausibel hat, spricht das fuer Anbau, Nebengebaeude oder Fremdstruktur. |
+| Aspect/Look-vs-Slope | Kombiniert Hangrichtung mit Satellitenblickrichtung. Damit kann die Pipeline besser einschaetzen, ob ein Track am Hang gute Sicht haben sollte, ob Abschattung/Foreshortening wahrscheinlich ist und ob ASC/DSC-Unterschiede eher erwartbar sind. Besonders relevant fuer Bad Gastein. |
+| `h_stdev`, `v_stdev`, `a_stdev`, `s_amp_std`, `s_phs_std`, `eff_area` | Unsicherheits- und Patch-Informationen aus SqueeSAR. Hohe Standardabweichungen oder grosse `eff_area` bedeuten: der Punkt bzw. die Flaeche ist weniger exakt lokalisiert oder weniger stabil. Das kann als Gewicht, Unsicherheitsband oder Gate-Signal genutzt werden. |
+| Amplituden-Konsistenz innerhalb eines Clusters | Prueft, ob Punkte in einem Cluster aehnliche und stabile Rueckstreu-Signaturen haben. Das kann Cluster zusaetzlich plausibilisieren, sollte aber keine harte Regel sein, weil Material, Blickwinkel und Dachgeometrie die Amplitude stark beeinflussen koennen. |
+| Bessere Gebaeudequelle: USM High oder BEV-DLM | Bessere Footprints und Hoehen reduzieren Fehler schon vor dem Clustering. GBA bleibt als globaler Fallback wertvoll, aber wenn lokale hochwertige Quellen vorhanden sind, sollten deren Gebaeudehoehen und Geometrien die Candidate Area und Hoehenpruefungen steuern. |
 
 <a id="clustering-logik"></a>
 
-## Clustering-Logik
+## 5. Clustering-Logik
 
-### Fall A: weniger als 3 behaltene Punkte
+### 5.1 Fall A: weniger als 3 behaltene Punkte
 
 Kein Clustering. Status: `insufficient_support`.
 
-### Fall B: 3-5 behaltene Punkte
+### 5.2 Fall B: 3-5 behaltene Punkte
 
 Small-N-Fallback. Seit k2x wird nur dann ein Pseudo-Core gebildet, wenn mindestens zwei Punkte velocity-konsistent sind:
 
@@ -223,7 +225,7 @@ abs(v - median(v)) <= max(1 mm/a, 2 * velocity_std)
 
 Ohne diese Konsistenz bekommt die Gruppe `weak_support` statt eines kuenstlichen Clusters.
 
-### Fall C: ab 6 behaltenen Punkten
+### 5.3 Fall C: ab 6 behaltenen Punkten
 
 HDBSCAN:
 
@@ -236,9 +238,9 @@ Danach gibt es ein vorsichtiges Borderline-Noise-Reassignment, aber nur bei hinr
 
 <a id="vom-cluster-zum-gebaeudescore"></a>
 
-## Vom Cluster zum Gebaeudescore
+## 6. Vom Cluster zum Gebaeudescore
 
-### 1. Cluster-Rollup
+### 6.1 Cluster-Rollup
 
 Pro Cluster werden unter anderem berechnet:
 
@@ -259,7 +261,7 @@ vertical_proxy = velocity / cos(incidence_angle)
 
 Das ist keine echte 3D-Dekomposition, sondern eine robuste Naeherung fuer Faelle, in denen vertikale Bewegung dominiert.
 
-### 2. Main-Cluster pro Track
+### 6.2 Main-Cluster pro Track
 
 Unter den verlaesslichen Core-Clustern wird je Track ein Main-Cluster gewaehlt:
 
@@ -268,11 +270,11 @@ Unter den verlaesslichen Core-Clustern wird je Track ein Main-Cluster gewaehlt:
 3. Hoeherer Median-Hoehenrang
 4. Stabile Cluster-ID als Tie-Breaker
 
-### 3. Track-Motion
+### 6.3 Track-Motion
 
 Die Track-Bewegung ist der Median-`vertical_proxy` des Main-Clusters.
 
-### 4. Cross-Track-Agreement
+### 6.4 Cross-Track-Agreement
 
 Fuer 44/95 im produktiven Rollup:
 
@@ -283,7 +285,7 @@ track_agreement_score = exp(-abs(motion_44 - motion_95) / allowed_diff)
 
 Wichtig: In Phase 7 berechnet das Experiment-Harness Cross-Track dataset-agnostisch, also auch fuer TSX/PAZ 93/70. Der produktive Rollup ist historisch noch 44/95-zentriert.
 
-### 5. Building-Motion und Reliability
+### 6.5 Building-Motion und Reliability
 
 `building_motion_mm_a` ist aktuell der Mittelwert der vorhandenen Track-Motions. Die Reliability kombiniert:
 
@@ -309,7 +311,7 @@ Building-Status:
 
 <a id="punkt-level-score"></a>
 
-## Punkt-Level-Score
+## 7. Punkt-Level-Score
 
 Der Punkt-Score setzt sich aus Anomalie und Qualitaet zusammen:
 
@@ -336,7 +338,7 @@ Labels:
 
 <a id="was-wurde-zuletzt-umgesetzt"></a>
 
-## Was wurde zuletzt umgesetzt?
+## 8. Was wurde zuletzt umgesetzt?
 
 | Thema | Stand | Bedeutung |
 | --- | --- | --- |
@@ -350,11 +352,11 @@ Labels:
 
 <a id="zentrale-zahlen-fuer-das-meeting"></a>
 
-## Zentrale Zahlen fuer das Meeting
+## 9. Zentrale Zahlen fuer das Meeting
 
 <a id="k2x-gegenueber-baseline-auf-7-pflicht-aois"></a>
 
-### k2x gegenueber Baseline auf 7 Pflicht-AOIs
+### 9.1 k2x gegenueber Baseline auf 7 Pflicht-AOIs
 
 | Kennzahl | Baseline | k2x | Interpretation |
 | --- | ---: | ---: | --- |
@@ -371,7 +373,7 @@ Praesentationssatz: k2x macht die Pipeline nicht einfach "optimistischer", sonde
 
 <a id="cross-track-median-nach-aoi"></a>
 
-### Cross-Track-Median nach AOI
+### 9.2 Cross-Track-Median nach AOI
 
 | AOI | Rolle | Baseline | k2x | Lesart |
 | --- | --- | ---: | ---: | --- |
@@ -385,7 +387,7 @@ Praesentationssatz: k2x macht die Pipeline nicht einfach "optimistischer", sonde
 
 <a id="bad-gastein-flach-vs-hang"></a>
 
-### Bad Gastein: flach vs. Hang
+### 9.3 Bad Gastein: flach vs. Hang
 
 | Kennzahl | bg_flat_01 | bg_slope_01 |
 | --- | ---: | ---: |
@@ -400,7 +402,7 @@ Interpretation: Im flachen Bad-Gastein-AOI passt die Struktur deutlich besser zu
 
 <a id="snt-vs-hochaufloesende-tsx-paz-in-bad-gastein"></a>
 
-### SNT vs. hochaufloesende TSX/PAZ in Bad Gastein
+### 9.4 SNT vs. hochaufloesende TSX/PAZ in Bad Gastein
 
 Auf `bg_flat_01` wurde TSX/PAZ als High-Resolution-Pseudo-Referenz genutzt:
 
@@ -413,9 +415,9 @@ Wichtig fuer die Diskussion: Die HR-Metrik auf Gebaeudeebene saettigt inzwischen
 
 <a id="gba-hoehen-und-bessere-gebaeudequellen"></a>
 
-## GBA-Hoehen und bessere Gebaeudequellen
+## 10. GBA-Hoehen und bessere Gebaeudequellen
 
-### Aktueller Stand
+### 10.1 Aktueller Stand
 
 GBA wird aktuell fuer die Pipeline genutzt, weil es global verfuegbar ist und fuer Bad Gastein bereits automatisiert geladen wurde. Es ist aber bei der Hoehe problematisch.
 
@@ -435,7 +437,7 @@ Vergleich Salzburg mit oeffentlichen OSM-Hoehen:
 
 Aber: Hoehenkorrektur allein loest die Assignment-Probleme nicht. Im Mirabell-Test wuerde `height / 0.735` nur 10/210 `nearest`-Punkte in Track 44 und 14/207 in Track 95 in die Candidate Area holen, also nur ca. 5-7 Prozent. Dominant sind Quer-Versatz, Geokodierungsstreuung und Fremdobjekte.
 
-### Vorgeschlagene Datenstrategie
+### 10.2 Vorgeschlagene Datenstrategie
 
 Prioritaet der Gebaeudequellen:
 
@@ -463,21 +465,23 @@ Damit kann die Pipeline nicht nur eine Hoehe verwenden, sondern auch wissen, wie
 
 <a id="wie-messen-wir-clusterqualitaet"></a>
 
-## Wie messen wir Clusterqualitaet?
+## 11. Wie messen wir Clusterqualitaet?
 
 Es gibt keine echte Ground Truth fuer alle Gebaeude. Deshalb sollte Qualitaet mehrschichtig gemessen werden.
 
-### Aktuelle Evaluationsschichten
+### 11.1 Aktuelle Evaluationsschichten
 
-1. Cross-Track-Konsistenz: ASC/DSC sollten in flachen, vertikal dominierten Situationen aehnlich sein.
-2. HR-Pseudo-Referenz: Bad Gastein SNT gegen TSX/PAZ, primaer raeumlich-strukturell.
-3. Referenzfaelle: dokumentierte schwierige Gebaeude mit erwarteten Status-/Rollenmustern.
-4. Visual-Audit: Nadir-Luftbild, Footprints, Punktcodes, Kandidat vs. Baseline.
-5. Survivors-Pass: nicht nur entfernte Punkte pruefen, sondern auch alle ueberlebenden score-relevanten Off-Footprint-Punkte.
-6. Konfidenz/Stabilitaet: Jitter, Leave-one-out, Bootstrap fuer groessere Gruppen.
-7. Guardrails: weniger Noise allein zaehlt nicht als Verbesserung, wenn Cross-Track oder Referenzfaelle schlechter werden.
+| Evaluationsschicht | Kurze Erklaerung |
+| --- | --- |
+| Cross-Track-Konsistenz | ASC und DSC sollten in flachen, vertikal dominierten Situationen aehnliche Bewegungswerte liefern. Wenn sie nach dem lokalen Filtern besser zusammenpassen, ist das ein starkes Plausibilitaetssignal. In Hanglagen ist ein schlechtes Agreement aber nicht automatisch ein Fehler, weil horizontale Bewegung und Blickrichtung stark wirken. |
+| HR-Pseudo-Referenz | In Bad Gastein vergleichen wir SNT mit den hoeher aufgeloesten TSX/PAZ-Daten. Der Vergleich ist primaer raeumlich-strukturell: Liegt der SNT-Hauptcluster dort, wo auch TSX/PAZ stabile Punkte sieht? Bewegungswerte werden nur vorsichtig interpretiert, weil Zeitraum, Sensor und Referenzpunkt verschieden sind. |
+| Referenzfaelle | Das sind dokumentierte schwierige Gebaeude mit erwarteten Status- oder Rollenmustern, z. B. `nearest`-Kontamination, Small-N, Differential Motion oder Hangstress. Neue Varianten muessen diese Faelle bestehen, damit sie keine bekannten Fehler wieder einfuehren. |
+| Visual-Audit | Manuelle Pruefung im Viewer oder Screenshot: Nadir-Luftbild, Footprints, Punktcodes, Cluster-Huellen und Kandidat-vs.-Baseline. Damit sieht man, ob Punkte wirklich auf dem Gebaeude, auf Nachbarstrukturen oder auf unkartierten Objekten liegen. |
+| Survivors-Pass | Prueft nicht nur, welche Punkte entfernt wurden, sondern auch, welche Punkte nach der neuen Logik noch score-relevant ueberleben. Das ist wichtig, weil eine Variante bekannte Fremdpunkte entfernen kann, aber andere Fremdpunkte weiterhin im Main-Cluster laesst. |
+| Konfidenz/Stabilitaet | Jitter, Leave-one-out und Bootstrap testen, ob ein Cluster stabil bleibt, wenn Messwerte leicht rauschen oder einzelne Punkte fehlen. Stabile Cluster sind glaubwuerdiger; stark wechselnde Cluster sollten eher als `monitor` oder `unstable` gelesen werden. |
+| Guardrails | Regeln, die kosmetische Verbesserungen verhindern. Weniger Noise allein gilt nicht als Verbesserung, wenn dadurch Cross-Track, Referenzfaelle, HR-Struktur oder bekannte Diagnoseklassen schlechter werden. |
 
-### Was man nicht ueberbewerten sollte
+### 11.2 Was man nicht ueberbewerten sollte
 
 - Silhouette, Davies-Bouldin und aehnliche interne Cluster-Metriken messen Form im Feature-Raum, aber nicht fachliche Wahrheit.
 - Cross-Track ist kein Ground Truth in Hanglagen, weil horizontale Bewegungsanteile und LOS-Geometrie stark wirken koennen.
@@ -485,9 +489,9 @@ Es gibt keine echte Ground Truth fuer alle Gebaeude. Deshalb sollte Qualitaet me
 
 <a id="wichtigste-bekannte-grenzen"></a>
 
-## Wichtigste bekannte Grenzen
+## 12. Wichtigste bekannte Grenzen
 
-### 1. Unkartierte Strukturen
+### 12.1 Unkartierte Strukturen
 
 Fall 96959851 zeigt die wichtigste neue Fehlerklasse: Ein unkartiertes Nebengebaeude mit Blechdach fehlt in GBA und OSM. Einige Punkte ueberleben unter k2x, weil die Struktur entlang der Blickrichtung liegt. Die Cross-Look-Regel ist dort blind.
 
@@ -497,7 +501,7 @@ Konsequenz:
 - Naechste Checks muessen kartierungsfrei sein: Anti-Layover, Layover-Reichweite, Hoehenprofil.
 - Visual-Audit muss immer einen Survivors-Pass enthalten.
 
-### 2. Centroid-basierter Cross-Look
+### 12.2 Centroid-basierter Cross-Look
 
 Aktuell wird der Quer-Versatz zum Gebaeudezentroid verwendet. Bei langen oder unregelmaessigen Gebaeuden kann das zu falschen Demotions fuehren.
 
@@ -508,7 +512,7 @@ Verbesserung: polygon-aware Cross-Look-Excess:
 3. Nur den Abstand ausserhalb der Polygonspanne als `cross_excess_m` werten.
 4. Rohes Centroid-Offset nur noch als Diagnosefeature.
 
-### 3. Hoehen und Terrain
+### 12.3 Hoehen und Terrain
 
 GBA-Hoehen sind als absolute Gebaeudehoehen zu ungenau. SRTM ist fuer gebaeudescharfe Hoeheninterpretation zu grob und als DSM nicht ideal fuer Dach-vs.-Boden-Fragen.
 
@@ -519,7 +523,7 @@ Naechste Richtung:
 - Vertikaldatum sauber harmonisieren.
 - `height_above_ground_m` nicht als harte Wahrheit, sondern als Plausibilitaetsfeature nutzen.
 
-### 4. Ground Truth fehlt
+### 12.4 Ground Truth fehlt
 
 Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Expertenlabels:
 
@@ -531,9 +535,9 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 
 <a id="konkrete-verbesserungsoptionen"></a>
 
-## Konkrete Verbesserungsoptionen
+## 13. Konkrete Verbesserungsoptionen
 
-### Kurzfristig
+### 13.1 Kurzfristig
 
 - Bad-Gastein-AOIs nach Amplitudenintegration neu baselinen.
 - k2x-Zahlen im Viewer mit aktuellen Runs demonstrieren.
@@ -541,7 +545,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 - Survivors-Scan fuer weitere Referenzfaelle ausfuehren.
 - 96959851 und 96637447 als Pflicht-Gegenbeispiele fuer jede neue Assignment-Politik verwenden.
 
-### Naechste Mini-Phase
+### 13.2 Naechste Mini-Phase
 
 - Polygon-aware Cross-Look-Excess implementieren.
 - Anti-Layover-Check testen.
@@ -549,7 +553,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 - Komposit `k2xh = k2x + Hoehenprofil` im Harness pruefen.
 - HR-Pseudo-Referenz auf Cluster-/Patch-Ebene verfeinern.
 
-### Phase 2
+### 13.3 Phase 2
 
 - Gebaeude-Score formal definieren: "Gebaeude X bewegt sich mit Y mm/a, Konfidenz Z".
 - Robuste Track-Aggregation: Median, gewichteter Mittelwert, Bootstrap-Konfidenzintervall.
@@ -557,7 +561,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 - Differential Motion als eigenes Gebaeudesignal ausbauen.
 - Experten-Ground-Truth einholen und Precision/Recall/F1 fuer Outlier/Assignment berechnen.
 
-### Datenquellen
+### 13.4 Datenquellen
 
 - GBA nur noch als globaler Fallback.
 - BEV DLM-Bauwerke fuer Oesterreich technisch evaluieren.
@@ -567,7 +571,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 
 <a id="gute-diskussionsfragen"></a>
 
-## Gute Diskussionsfragen
+## 14. Gute Diskussionsfragen
 
 - Welche Aussage soll ein Gebaeude-Score genau liefern: Bewegung des Hauptdachs, schlechtester Gebaeudeteil oder differenzielle Bewegung?
 - Wann ist ein Single-Track-Ergebnis fuer Nutzer noch hilfreich?
@@ -579,7 +583,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 
 <a id="praesentationsfolie-moegliche-kernaussagen"></a>
 
-## Praesentationsfolie: moegliche Kernaussagen
+## 15. Praesentationsfolie: moegliche Kernaussagen
 
 1. Wir sind von einer globalen Punkt-Anomalie zu einer lokalen Gebaeude-x-Track-Analyse gegangen.
 2. Directional Buffer bildet SAR-Geometrie besser ab als ein Kreisbuffer.
@@ -590,7 +594,7 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 
 <a id="quellen-im-repo"></a>
 
-## Quellen im Repo
+## 16. Quellen im Repo
 
 - Methodik: `docs/pipelines/anomaly_local_v1/methodik.md`
 - Runbook: `docs/pipelines/anomaly_local_v1/runbook.md`
@@ -609,6 +613,6 @@ Die Pipeline ist unsupervised. Fuer eine belastbare Bewertung brauchen wir Exper
 
 <a id="externe-quelle-fuer-bev-daten"></a>
 
-## Externe Quelle fuer BEV-Daten
+## 17. Externe Quelle fuer BEV-Daten
 
 - BEV DLM-Bauwerke: https://www.bev.gv.at/Services/Produkte/Digitales-Landschaftsmodell/Bauwerke.html
