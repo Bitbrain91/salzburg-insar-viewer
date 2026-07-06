@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "updated": "2026-07-06",
+  "labeled_by": "team_internal",
+  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md",
+  "label_values": ["roof", "foreign", "unclear"],
+  "labels": [
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTC3CYZ01", "label": "foreign",
+      "evidence": "Unkartiertes Blechdach-Nebengebaeude entlang der Blickrichtung; implied_height_excess (10.2 m noetig, 3.6 m GBA-Haus); User-Befund 2026-06-11, Survivors-Scan S6; Pruefstein P7-N5 (muss demotiert werden). BEV-Recheck: 1.2 m an BEV-Footprint A9A7E442.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTDA86J01", "label": "foreign",
+      "evidence": "Geometrisch unentscheidbar, aber Hoehenprofil -3.6 m unter Dach-Anker als staerkster Beweger (P7-N5); Pruefstein: muss demotiert werden. BEV-Recheck: within BEV-Footprint A9A7E442 (Nebengebaeude-Bereich).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2HC2XV01", "label": "foreign",
+      "evidence": "Anti-Layover: Versatz entgegen Range-Richtung (range_dot -0.95), als Dachpunkt physikalisch unplausibel; Survivors-Scan S6; Pruefstein P7-N5 (darf nicht zugeordnet bleiben).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTF2IZV01", "label": "roof",
+      "evidence": "within-Punkt, covered_within im Survivors-Scan; Pruefstein P7-N5 Keep-Set (darf nicht verloren werden).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTG9E7F01", "label": "roof",
+      "evidence": "Pruefstein P7-N5 Keep-Set (darf nicht verloren werden); Hoehenrang-Auffaelligkeit im Scan als falsch-positiv bewertet (User-Entscheidung 2026-06-12).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2CKM3N01", "label": "roof",
+      "evidence": "within-Zuordnung, covered_within im Survivors-Scan S6; t44-Main-Cluster-Kern.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2FJS4J01", "label": "roof",
+      "evidence": "within-Zuordnung, covered_within im Survivors-Scan S6; t44-Main-Cluster-Kern.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTEH3E401", "label": "unclear",
+      "evidence": "Noise, covered_geometry im Survivors-Scan; keine Bestaetigung.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTFNYLN01", "label": "unclear",
+      "evidence": "within, aber Noise (v 2.7 mm/a Ausreisser); keine Bestaetigung der Ursache.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O37J5KI01", "label": "foreign",
+      "evidence": "Anti-Layover-t44-Core am Differential-Anker (Survivors-Scan S6, Beifang P7-N5: anti-layover-Cores muessen raus).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O384L6A01", "label": "foreign",
+      "evidence": "Anti-Layover-t44-Core am Differential-Anker (Survivors-Scan S6, P7-N5).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O355F5A01", "label": "foreign",
+      "evidence": "Anti-Layover-t44-Core am Differential-Anker (Survivors-Scan S6, P7-N5).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O36XPYO01", "label": "foreign",
+      "evidence": "Anti-Layover-t44-Core am Differential-Anker (Survivors-Scan S6, P7-N5).",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NSZL99801", "label": "foreign",
+      "evidence": "Anti-Layover + implied_height_excess (Survivors-Scan S6); als Dachpunkt physikalisch unplausibel; bereits Noise.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NSZL99701", "label": "foreign",
+      "evidence": "Anti-Layover (Survivors-Scan S6); bereits Noise.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NT06OUX01", "label": "foreign",
+      "evidence": "Anti-Layover (Survivors-Scan S6); bereits Noise.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NSVF80S01", "label": "roof",
+      "evidence": "t95-Main-Cluster-Kern (directional_buffer, covered_geometry); Differential-Semantik und echte Dachkerne laut P7-N5 unveraendert zu erhalten.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NSXSYFW01", "label": "roof",
+      "evidence": "t95-Main-Cluster-Kern (covered_geometry im Survivors-Scan); Keep-Set analog P7-N5.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O33D4C101", "label": "unclear",
+      "evidence": "implied_height_excess im Survivors-Scan (suspicious), aber kein bestaetigter Fremdstruktur-Befund; Kandidat fuer Layover-Reichweiten-Check.",
+      "date": "2026-07-06"
+    },
+    {
+      "building_id": "96637447", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O32ROQ901", "label": "unclear",
+      "evidence": "implied_height_excess im Survivors-Scan (suspicious), aber kein bestaetigter Fremdstruktur-Befund.",
+      "date": "2026-07-06"
+    }
+  ]
+}
