@@ -480,13 +480,18 @@ async def fetch_aoi_inputs(aoi: str, params_overrides: dict[str, Any] | None = N
         pipeline="anomaly_local_v1",
         area_id=spec["area_id"],
         dataset_id=spec["dataset_id"],
-        source="gba",
+        source=str(spec.get("source", "gba")),
         track=None,
         bbox=spec["bbox"],
         params={},
     )
     pipeline = AnomalyLocalV1Pipeline()
     params = pipeline.default_params()
+    # Quelle aus der AOI-Spec pinnen (Default gba): alle persistierten
+    # Baselines und Referenzfaelle sind gba-basiert; _fetch_inputs liest nur
+    # params["source"], dessen produktiver Default seit der BEV-Integration
+    # bev ist und den Offline-Pfad sonst stillschweigend umstellen wuerde.
+    params["source"] = str(spec.get("source", "gba"))
     if params_overrides:
         params.update(params_overrides)
     pool = await asyncpg.create_pool(dsn=settings.db_dsn, min_size=1, max_size=2)
@@ -1282,11 +1287,12 @@ async def persist_experiment_run(aoi: str, exp_id: str) -> dict[str, Any]:
         pipeline=AnomalyLocalV1Pipeline.name,
         area_id=spec["area_id"],
         dataset_id=spec["dataset_id"],
-        source="gba",
+        source=str(spec.get("source", "gba")),
         track=None,
         bbox=tuple(spec["bbox"]),
         params={
             **overrides,
+            "source": str(spec.get("source", "gba")),
             "experiment_id": exp_id,
             "experiment_config": exp.to_jsonable(),
             "phase7_aoi": aoi,

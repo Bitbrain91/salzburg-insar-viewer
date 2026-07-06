@@ -241,9 +241,22 @@ def _load_many(label: str, paths: list[Path], loader) -> None:
 
 
 def _ensure_multipolygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    from shapely.validation import make_valid
+
     def to_multi(geom):
         if geom is None:
             return None
+        # Invalide Polygone (Self-Intersection, Nested Shells; v.a. aus OSM)
+        # brechen sonst spaeter GEOS-Praedikate in PostGIS-Queries.
+        if not geom.is_valid:
+            geom = make_valid(geom)
+            if geom.geom_type == "GeometryCollection":
+                polys = [g for g in geom.geoms if g.geom_type in ("Polygon", "MultiPolygon")]
+                if not polys:
+                    return None
+                geom = polys[0] if len(polys) == 1 else MultiPolygon(
+                    [p for g in polys for p in (g.geoms if g.geom_type == "MultiPolygon" else [g])]
+                )
         if geom.geom_type == "MultiPolygon":
             return geom
         if geom.geom_type == "Polygon":
