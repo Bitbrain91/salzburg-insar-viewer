@@ -43,6 +43,11 @@ CLUSTER_FIT_SCALE_FLOORS = {
     "height": 0.10,
     "step": 0.75,
 }
+BUILDING_SOURCE_SPECS = {
+    "bev": ("bev_buildings", "bev_id", "height_m"),
+    "gba": ("gba_buildings", "gba_id", "height"),
+    "osm": ("osm_buildings", "osm_id", "NULL::double precision"),
+}
 
 
 @dataclass
@@ -66,6 +71,7 @@ class LocalPointRecord:
     height: float | None
     amp_mean: float | None
     amp_std: float | None
+    building_source: str | None
     building_id: str | None
     building_height: float | None
     building_centroid_x_m: float | None
@@ -126,7 +132,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
     def default_params(self) -> dict[str, Any]:
         return {
-            "source": "gba",
+            "source": "bev",
             "buffer_multiplier": 1.0,
             "min_buffer_m": 3.0,
             "max_buffer_m": 30.0,
@@ -146,11 +152,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         if not config.bbox:
             raise ValueError("bbox is required for anomaly_local_v1 pipeline")
 
-        requested_source = (config.source or config.params.get("source") or "gba").lower()
-        if requested_source != "gba":
-            raise ValueError("anomaly_local_v1 currently requires source='gba'")
-
         params = {**self.default_params(), **(config.params or {})}
+        requested_source = str(config.source or params.get("source") or "bev").lower()
+        if requested_source not in BUILDING_SOURCE_SPECS:
+            raise ValueError("anomaly_local_v1 source must be one of: bev, gba, osm")
+        params["source"] = requested_source
         base_rows, ts_rows, amp_rows = await self._fetch_inputs(pool, config, params)
 
         if not base_rows:
@@ -187,6 +193,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             raise ValueError("area_id is required for anomaly_local_v1")
         if not dataset_id:
             raise ValueError("dataset_id is required for anomaly_local_v1")
+        source = str(params.get("source") or "bev").lower()
+        source_spec = BUILDING_SOURCE_SPECS.get(source)
+        if source_spec is None:
+            raise ValueError("anomaly_local_v1 source must be one of: bev, gba, osm")
+        building_table, building_id_column, building_height_expression = source_spec
 
         points_query = f"""
             WITH envelope AS (
@@ -235,8 +246,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             ),
             buildings AS (
                 SELECT
-                    b.gba_id::text AS building_id,
-                    b.height AS building_height,
+                    '{source}'::text AS building_source,
+                    b.{building_id_column}::text AS building_id,
+                    {building_height_expression} AS building_height,
                     b.geom,
                     ST_Transform(b.geom, 32633) AS geom_utm,
                     ST_X(ST_Centroid(ST_Transform(b.geom, 32633))) AS centroid_x_m,
@@ -244,11 +256,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     terrain.slope_mean_deg,
                     terrain.slope_max_deg,
                     terrain.relief_range_m
-                FROM gba_buildings b
+                FROM {building_table} b
                 LEFT JOIN building_terrain_context terrain
                   ON terrain.area_id = b.area_id
-                 AND terrain.building_source = 'gba'
-                 AND terrain.building_id = b.gba_id::text
+                 AND terrain.building_source = '{source}'
+                 AND terrain.building_id = b.{building_id_column}::text
                 CROSS JOIN envelope
                 WHERE b.area_id = $12
                   AND ST_DWithin(
@@ -278,6 +290,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 p.lat,
                 p.x_m,
                 p.y_m,
+                cand.building_source,
                 cand.building_id,
                 cand.building_height,
                 cand.centroid_x_m,
@@ -303,6 +316,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 FROM (
                     SELECT
                         b.building_id,
+                        b.building_source,
                         b.building_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
@@ -324,6 +338,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
                     SELECT
                         b.building_id,
+                        b.building_source,
                         b.building_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
@@ -371,6 +386,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
                     SELECT
                         b.building_id,
+                        b.building_source,
                         b.building_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
@@ -508,6 +524,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 amp_mean=self._float_or_none(row["amp_mean"]),
                 amp_std=self._float_or_none(row["amp_std"]),
                 eff_area=self._float_or_none(row["eff_area"]),
+                building_source=row["building_source"],
                 building_id=row["building_id"],
                 building_height=self._float_or_none(row["building_height"]),
                 building_centroid_x_m=self._float_or_none(row["centroid_x_m"]),
@@ -1107,6 +1124,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         building_id: str,
         records: list[LocalPointRecord],
     ) -> tuple[dict[str, Any], dict[tuple[int, str | None], dict[str, Any]], dict[str, Any]]:
+        building_source = next((record.building_source for record in records if record.building_source), None)
         kept_records = [record for record in records if not record.gate_excluded]
         excluded_point_count = len(records) - len(kept_records)
         noise_point_count = sum(1 for record in kept_records if record.cluster_role == "noise")
@@ -1171,7 +1189,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 track_cluster_rollups.append(
                     {
                         "cluster_id": cluster_id,
-                        "building_source": "gba",
+                        "building_source": building_source,
                         "building_id": building_id,
                         "track": track,
                         "cluster_role": cluster_role,
@@ -1439,7 +1457,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 building_reliability_band = self._cap_reliability_band(building_reliability_band, "low")
 
         building_rollup = {
-            "building_source": "gba",
+            "building_source": building_source,
             "building_id": building_id,
             "building_status": building_status,
             "building_motion_mm_a": building_motion_mm_a,
@@ -2004,7 +2022,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     record.code,
                     record.track,
                     record.cluster_id,
-                    "gba" if record.building_id else None,
+                    record.building_source if record.building_id else None,
                     record.building_id,
                     record.distance_m,
                     record.quality_score,

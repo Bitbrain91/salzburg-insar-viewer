@@ -61,7 +61,7 @@ def main() -> None:
     parser.add_argument("--pipeline", required=True, choices=list_pipelines())
     parser.add_argument("--area-id")
     parser.add_argument("--dataset-id", choices=sorted(DATASETS_BY_ID))
-    parser.add_argument("--source", choices=["gba", "osm"])
+    parser.add_argument("--source", choices=["bev", "gba", "osm"])
     parser.add_argument("--track", type=int, choices=[22, 44, 70, 93, 95])
     parser.add_argument("--bbox", help="min_lon,min_lat,max_lon,max_lat")
     parser.add_argument("--params", default="{}", help="JSON string with pipeline params")

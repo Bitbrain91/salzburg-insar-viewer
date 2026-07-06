@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS insar_point_terrain;
 DROP TABLE IF EXISTS insar_amplitude_timeseries;
 DROP TABLE IF EXISTS insar_timeseries;
 DROP TABLE IF EXISTS insar_points;
+DROP TABLE IF EXISTS bev_buildings;
 DROP TABLE IF EXISTS gba_buildings;
 DROP TABLE IF EXISTS osm_buildings;
 DROP TABLE IF EXISTS ml_building_colors;
@@ -22,6 +23,7 @@ CREATE TABLE insar_points (
     velocity DOUBLE PRECISION NOT NULL,
     velocity_std DOUBLE PRECISION,
     coherence DOUBLE PRECISION,
+    std_def DOUBLE PRECISION,
     height DOUBLE PRECISION,
     height_std DOUBLE PRECISION,
     acceleration DOUBLE PRECISION,
@@ -67,6 +69,39 @@ CREATE TABLE insar_amplitude_timeseries (
 );
 
 CREATE INDEX insar_amplitude_timeseries_code_idx ON insar_amplitude_timeseries (area_id, dataset_id, code, track);
+
+CREATE TABLE bev_buildings (
+    area_id TEXT NOT NULL,
+    bev_id TEXT NOT NULL,
+    height DOUBLE PRECISION,
+    height_m DOUBLE PRECISION,
+    height_median_m DOUBLE PRECISION,
+    height_max_m DOUBLE PRECISION,
+    height_eaves_m DOUBLE PRECISION,
+    ground_min_m DOUBLE PRECISION,
+    ground_median_m DOUBLE PRECISION,
+    ground_max_m DOUBLE PRECISION,
+    footprint_area_m2 DOUBLE PRECISION,
+    relief_range_m DOUBLE PRECISION,
+    agwr_object_number TEXT,
+    agwr_type TEXT,
+    building_function TEXT,
+    verification_lb TEXT,
+    flight_year INTEGER,
+    als_date TEXT,
+    capture_method TEXT,
+    height_source TEXT,
+    height_quality TEXT,
+    properties JSONB,
+    geom GEOMETRY(MultiPolygon, 4326),
+    PRIMARY KEY (area_id, bev_id)
+);
+
+CREATE INDEX bev_buildings_geom_idx ON bev_buildings USING GIST (geom);
+CREATE INDEX bev_buildings_area_idx ON bev_buildings (area_id);
+CREATE INDEX bev_buildings_bev_id_lower_prefix_idx ON bev_buildings (lower(bev_id) text_pattern_ops);
+CREATE INDEX bev_buildings_agwr_lower_prefix_idx ON bev_buildings (lower(agwr_object_number) text_pattern_ops);
+CREATE INDEX bev_buildings_properties_gin_idx ON bev_buildings USING GIN (properties);
 
 CREATE TABLE gba_buildings (
     area_id TEXT NOT NULL,

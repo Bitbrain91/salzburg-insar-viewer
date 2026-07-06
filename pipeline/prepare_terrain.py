@@ -435,12 +435,16 @@ def build_derived_rasters(image: str, overwrite: bool, area_id: str) -> tuple[Pa
     return elevation_25833, slope_25833, aspect_25833
 
 
-def _masked_value(sample) -> float | None:
+def _masked_value(sample, nodata: float | None = None) -> float | None:
     value = sample[0]
     if np.ma.is_masked(value):
         return None
     value = float(value)
     if np.isnan(value):
+        return None
+    if nodata is not None and value == nodata:
+        return None
+    if value <= -9990:
         return None
     return value
 
@@ -495,9 +499,18 @@ def _sample_points(
     ) as aspect:
         coords = [(geom.x, geom.y) for geom in points.geometry]
         resolution_m = round(abs(elevation.transform.a), 2)
-        terrain_elevation = [_masked_value(sample) for sample in elevation.sample(coords, masked=True)]
-        terrain_slope = [_masked_value(sample) for sample in slope.sample(coords, masked=True)]
-        terrain_aspect = [_masked_value(sample) for sample in aspect.sample(coords, masked=True)]
+        terrain_elevation = [
+            _masked_value(sample, elevation.nodata)
+            for sample in elevation.sample(coords, masked=True)
+        ]
+        terrain_slope = [
+            _masked_value(sample, slope.nodata)
+            for sample in slope.sample(coords, masked=True)
+        ]
+        terrain_aspect = [
+            _masked_value(sample, aspect.nodata)
+            for sample in aspect.sample(coords, masked=True)
+        ]
 
     result = pd.DataFrame(
         {
@@ -568,7 +581,15 @@ def _building_context_for_source(
             all_touched=True,
         )
 
-        valid_mask = (~np.ma.getmaskarray(elevation_array)) & (zone_array > 0)
+        valid_mask = (
+            (~np.ma.getmaskarray(elevation_array))
+            & (~np.ma.getmaskarray(slope_array))
+            & (zone_array > 0)
+        )
+        if elevation.nodata is not None:
+            valid_mask &= elevation_array.data != elevation.nodata
+        if slope.nodata is not None:
+            valid_mask &= slope_array.data != slope.nodata
         zone_ids = zone_array[valid_mask]
         if zone_ids.size == 0:
             stats_df = pd.DataFrame(columns=["zone_id"])
@@ -596,8 +617,14 @@ def _building_context_for_source(
             )
 
         point_coords = [(geom.representative_point().x, geom.representative_point().y) for geom in buildings.geometry]
-        point_elevation = [_masked_value(sample) for sample in elevation.sample(point_coords, masked=True)]
-        point_slope = [_masked_value(sample) for sample in slope.sample(point_coords, masked=True)]
+        point_elevation = [
+            _masked_value(sample, elevation.nodata)
+            for sample in elevation.sample(point_coords, masked=True)
+        ]
+        point_slope = [
+            _masked_value(sample, slope.nodata)
+            for sample in slope.sample(point_coords, masked=True)
+        ]
 
     buildings = buildings.reset_index(drop=True).copy()
     buildings["zone_id"] = np.arange(1, len(buildings) + 1, dtype=np.int32)
@@ -632,6 +659,14 @@ def _building_context_for_source(
 
 
 def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> pd.DataFrame:
+    bev = _building_context_for_source(
+        "bev",
+        PARQUET_DIR / "bev_buildings.parquet",
+        "bev_id",
+        elevation_path,
+        slope_path,
+        area_id,
+    )
     gba = _building_context_for_source(
         "gba",
         PARQUET_DIR / "gba_buildings.parquet",
@@ -648,7 +683,7 @@ def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> p
         slope_path,
         area_id,
     )
-    return pd.concat([gba, osm], ignore_index=True)[BUILDING_TERRAIN_COLUMNS]
+    return pd.concat([bev, gba, osm], ignore_index=True)[BUILDING_TERRAIN_COLUMNS]
 
 
 def main() -> None:

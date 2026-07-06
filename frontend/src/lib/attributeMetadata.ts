@@ -5,6 +5,7 @@ export type AttributeContext =
   | "ml-point"
   | "ml-building"
   | "ml-run"
+  | "bev"
   | "gba"
   | "osm"
   | "building"
@@ -31,6 +32,7 @@ const SOURCE_TERRAIN = "Terrain-Kontext, SRTM-abgeleitete Tabellen";
 const SOURCE_ML_POINT = "ML-Punktanalyse `anomaly_local_v1`, `ml_point_results`";
 const SOURCE_ML_BUILDING = "ML-Gebaeude-Rollup `anomaly_local_v1`";
 const SOURCE_ML_RUN = "ML-Run-Metriken und Run-Parameter";
+const SOURCE_BEV = "BEV DLM-Bauwerke / `bev_buildings`";
 const SOURCE_GBA = "Global Building Atlas / `gba_buildings.properties`";
 const SOURCE_OSM = "OpenStreetMap / `osm_buildings.tags`";
 
@@ -87,8 +89,17 @@ const definitions: AttributeMetadataDefinition[] = [
     contexts: ["insar-point", "ml-point", "raw"],
   },
   {
+    key: "std_def",
+    aliases: ["STD_DEF"],
+    label: "Deformations-Standardabweichung",
+    description: "Streuung der modellierten LOS-Deformation ueber die Zeitreihe. Hohe Werte weisen auf unruhigere oder weniger stabile Punktzeitreihen hin.",
+    unit: "mm",
+    source: SOURCE_INSAR,
+    contexts: ["insar-point", "raw"],
+  },
+  {
     key: "height",
-    aliases: ["H"],
+    aliases: ["H", "HEIGHT"],
     label: "InSAR-Hoehe",
     description: "SAR-abgeleitete ellipsoidische Punkt-Hoehe. Sie ist kein direktes Gebaeude- oder Terrainhoehenmass.",
     unit: "m",
@@ -552,7 +563,7 @@ const definitions: AttributeMetadataDefinition[] = [
   {
     key: "anomaly_score",
     label: "Anomaliewert",
-    description: "Auffaelligkeit des Punkts im Bereich 0-1. Hoehere Werte bedeuten staerkere Abweichung vom lokalen Kontext.",
+    description: "Auffaelligkeit des Punkts im Bereich 0-1. Hoeher bedeutet auffaelliger; der Wert kombiniert Cluster-Ausreisser, lokale Abweichung und fachliche Regel-Penalties.",
     unit: "0-1",
     source: SOURCE_ML_POINT,
     contexts: ["ml-point", "ml-building"],
@@ -604,7 +615,7 @@ const definitions: AttributeMetadataDefinition[] = [
   {
     key: "local_deviation",
     label: "Lokale Abweichung",
-    description: "Teilscore fuer Abweichung von Nachbarpunkten desselben Gebaeudes und Tracks.",
+    description: "Lokaler Ausreisserwert im Bereich 0-1. Er vergleicht den Punkt mit Punkten desselben Gebaeudes und Tracks anhand von Bewegung, Beschleunigung, Zeitreihensprung, Lage zur Radar-Blickrichtung, Hoehenrang und Kohaerenz. 1 bedeutet: mindestens eine dieser Dimensionen ist maximal auffaellig.",
     unit: "0-1",
     source: SOURCE_ML_POINT,
     contexts: ["ml-point"],
@@ -691,16 +702,16 @@ const definitions: AttributeMetadataDefinition[] = [
   {
     key: "building_source",
     label: "Gebaeudequelle",
-    description: "Quelle des zugeordneten Gebaeudes, aktuell GBA oder OSM.",
+    description: "Quelle des zugeordneten Gebaeudes, aktuell BEV, GBA oder OSM.",
     source: "Gebaeude-API / ML-Zuordnung",
-    contexts: ["ml-point", "ml-building", "building", "gba", "osm"],
+    contexts: ["ml-point", "ml-building", "building", "bev", "gba", "osm"],
   },
   {
     key: "building_id",
     label: "Gebaeude-ID",
     description: "Kennung des zugeordneten oder ausgewaehlten Gebaeudes in seiner Quelle.",
     source: "Gebaeude-API / ML-Zuordnung",
-    contexts: ["ml-point", "ml-building", "building", "gba", "osm"],
+    contexts: ["ml-point", "ml-building", "building", "bev", "gba", "osm"],
   },
   {
     key: "distance_m",
@@ -1601,7 +1612,68 @@ const definitions: AttributeMetadataDefinition[] = [
     label: "ID",
     description: "Quell-ID eines Objekts. Im Fachkontext sollte nach Quelle unterschieden werden.",
     source: "Gebaeude- oder Rohdatenquelle",
-    contexts: ["building", "gba", "osm", "raw"],
+    contexts: ["building", "bev", "gba", "osm", "raw"],
+  },
+  {
+    key: "bev_id",
+    label: "BEV-ID",
+    description: "Eindeutige Objektkennung aus dem BEV DLM-Bauwerke Import.",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "height_m",
+    aliases: ["height_median_m"],
+    label: "BEV-Gebaeudehoehe",
+    description: "Normalisierte BEV-Objekthoehe. Bevorzugt wird die Medianhoehe, ersatzweise die Maximalhoehe.",
+    unit: "m",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building", "ml-building"],
+  },
+  {
+    key: "height_max_m",
+    label: "BEV-Maximalhoehe",
+    description: "Maximale BEV-Objekthoehe des Bauwerks.",
+    unit: "m",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "height_eaves_m",
+    label: "BEV-Traufhoehe",
+    description: "BEV-Traufhoehe des Bauwerks, falls vorhanden.",
+    unit: "m",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "ground_median_m",
+    label: "BEV-Bodenhoehe Median",
+    description: "Median der BEV-Bodenhoehe am Bauwerk.",
+    unit: "m",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "height_quality",
+    label: "Hoehenqualitaet",
+    description: "Aus der BEV-Erfassungsart abgeleitete Hoehenqualitaet, zum Beispiel measured, default oder unknown.",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "agwr_object_number",
+    label: "AGWR-Objektnummer",
+    description: "AGWR-Objektnummer, falls das BEV-Bauwerk damit verknuepft ist.",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
+  },
+  {
+    key: "building_function",
+    label: "Bauwerksfunktion",
+    description: "BEV-Funktions-/Nutzungsklasse des Bauwerks.",
+    source: SOURCE_BEV,
+    contexts: ["bev", "building"],
   },
   {
     key: "gba_id",
@@ -1623,15 +1695,15 @@ const definitions: AttributeMetadataDefinition[] = [
     label: "Gebaeudehoehe",
     description: "Gebaeudehoehe aus der Gebaeudequelle oder normalisiertem Import.",
     unit: "m",
-    source: SOURCE_GBA,
-    contexts: ["gba", "building"],
+    source: `${SOURCE_BEV} / ${SOURCE_GBA}`,
+    contexts: ["bev", "gba", "building"],
   },
   {
     key: "properties",
-    label: "GBA-Rohattribute",
-    description: "JSON-Objekt mit beim Import erhaltenen GBA-Attributen.",
-    source: SOURCE_GBA,
-    contexts: ["gba", "building", "raw"],
+    label: "Gebaeude-Rohattribute",
+    description: "JSON-Objekt mit beim Import erhaltenen BEV- oder GBA-Attributen.",
+    source: `${SOURCE_BEV} / ${SOURCE_GBA}`,
+    contexts: ["bev", "gba", "building", "raw"],
   },
   {
     key: "tags",
@@ -1837,9 +1909,10 @@ const contextFallbacks: Record<AttributeContext, AttributeContext[]> = {
   "ml-point": ["ml-point", "insar-point", "timeseries", "terrain", "raw"],
   "ml-building": ["ml-building", "building", "terrain", "raw"],
   "ml-run": ["ml-run", "raw"],
+  bev: ["bev", "building", "raw"],
   gba: ["gba", "building", "raw"],
   osm: ["osm", "building", "raw"],
-  building: ["building", "gba", "osm", "terrain", "raw"],
+  building: ["building", "bev", "gba", "osm", "terrain", "raw"],
   raw: ["raw"],
 };
 
@@ -1913,6 +1986,9 @@ function fallbackSource(context: AttributeContext | undefined, key: string) {
   if (context === "osm" || key.includes(":")) {
     return SOURCE_OSM;
   }
+  if (context === "bev") {
+    return SOURCE_BEV;
+  }
   if (context === "gba") {
     return SOURCE_GBA;
   }
@@ -1940,6 +2016,9 @@ function fallbackSource(context: AttributeContext | undefined, key: string) {
 function fallbackDescription(context: AttributeContext | undefined, key: string) {
   if (context === "osm" || key.includes(":")) {
     return "OSM-Roh-Tag ohne spezifische Fachbeschreibung im Registry. Wert direkt aus den importierten OSM-Tags pruefen.";
+  }
+  if (context === "bev") {
+    return "BEV-Rohattribut ohne spezifische Fachbeschreibung im Registry. Wert direkt aus den importierten BEV-DLM-Bauwerksattributen pruefen.";
   }
   if (context === "gba") {
     return "GBA-Rohattribut ohne spezifische Fachbeschreibung im Registry. Wert direkt aus den importierten GBA-Properties pruefen.";
@@ -1979,8 +2058,11 @@ function formatWord(word: string) {
   const lower = word.toLowerCase();
   const acronyms = new Set([
     "id",
+    "bev",
     "osm",
     "gba",
+    "agwr",
+    "als",
     "los",
     "ml",
     "ps",

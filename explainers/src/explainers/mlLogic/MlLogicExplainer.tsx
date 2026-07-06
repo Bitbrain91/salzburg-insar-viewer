@@ -287,6 +287,49 @@ const flowNodes: FlowNode[] = [
     uiFields: ["gate_excluded", "gate_reasons", "kept_for_scoring"],
     trust: ["Kept Punkte haben Mindestdatenqualitaet und duerfen die naechsten Schritte stuetzen."],
     caution: ["Gate-excluded Punkte bleiben sichtbar, praegen aber weder Cluster noch Motion-Score."],
+    formula: "gate_excluded = any(gate_reasons); kept_for_scoring = !gate_excluded",
+    definitions: [
+      {
+        label: "Was ist ein Hard Gate?",
+        text: "Ein Hard Gate ist eine harte Ja/Nein-Pruefung vor dem Clustering: Schon ein echter Gate-Grund reicht, damit der Punkt nicht weiter als Stuetzpunkt verwendet wird.",
+        formula:
+          "wenn gate_reasons leer: kept_for_scoring = true\nwenn gate_reasons nicht leer: gate_excluded = true",
+        detail:
+          "Die Hard Gates pruefen nicht, ob ein Punkt inhaltlich spannend ist, sondern ob seine Datenbasis ueberhaupt tragfaehig genug fuer Cluster, Hauptcluster und Gebaeudebewegung ist. Ein ausgeschlossener Punkt bleibt im Tool sichtbar, wird aber nicht geclustert und zaehlt nicht als kept Punkt.",
+      },
+      {
+        label: "Allgemeine Ausschlussgruende",
+        text: "Zuerst prueft die Pipeline fuer jeden zugeordneten Punkt Mindestdatenqualitaet und Gebaeudezuordnung.",
+        formula:
+          "no_building_assignment wenn building_id fehlt\n\ntoo_few_valid_epochs wenn valid_epoch_count < 24\n\ntoo_sparse_timeseries wenn valid_epoch_ratio < 0.50\n\nlow_coherence wenn coherence < max(0.45, coherence_p05_track)",
+        detail:
+          "no_building_assignment bedeutet: Der Punkt konnte keinem Gebaeude zugeordnet werden. too_few_valid_epochs bedeutet: Es gibt zu wenige gueltige Zeitpunkte in der Zeitreihe. too_sparse_timeseries bedeutet: Der Anteil gueltiger Messzeitpunkte ist zu niedrig. low_coherence bedeutet: Das InSAR-Signal ist zu schwach im Vergleich zur festen Untergrenze 0.45 oder zum unteren Track-Niveau.",
+      },
+      {
+        label: "nearest-Sonderpruefung",
+        text: "Nearest-Punkte bekommen nach den Basis-Gates eine Zusatzpruefung, weil sie nur ueber den Naechste-Gebaeude-Fallback zugeordnet wurden.",
+        formula:
+          "nearest_no_geometric_anchor wenn keine within/directional-Anker existieren\n\nnearest_crosslook_unknown wenn cross_look_offset_m fehlt\n\nnearest_crosslook_outlier wenn abs(cross_look_offset_m) > limit",
+        detail:
+          "Die Pipeline sucht in derselben Gebaeude+Track-Gruppe zuerst gute Ankerpunkte, also kept Punkte mit within oder directional_buffer. Aus deren Quer-Versatz zur Radar-Blickrichtung wird eine lokale Toleranz gelernt. Ein nearest-Punkt darf stark entlang der Blickrichtung versetzt sein, weil das Radarprojektion sein kann. Quer zur Blickrichtung ist ein grosser Versatz aber fachlich kritischer.",
+      },
+      {
+        label: "nearest-Toleranz",
+        text: "Die Toleranz fuer nearest-Punkte wird lokal aus den guten Ankerpunkten desselben Gebaeudes und Tracks abgeleitet.",
+        formula:
+          "limit = median(abs(cross_anchor))\n  + 3 * 1.4826 * MAD(abs(cross_anchor))\n  + 3 m\n  + sqrt(eff_area)",
+        detail:
+          "median und MAD machen die Toleranz robust gegen einzelne Ausreisser. Die zusaetzlichen 3 m sind eine Geocoding-Marge. sqrt(eff_area) macht die Toleranz fuer groessere Punktflaechen etwas breiter. Wenn kein Anker existiert, fehlt die geometrische Referenz und der nearest-Punkt wird ausgeschlossen.",
+      },
+      {
+        label: "Folge fuer die Pipeline",
+        text: "Gate-excluded Punkte bleiben lesbar, aber sie duerfen die nachfolgenden aggregierten Ergebnisse nicht stuetzen.",
+        formula:
+          "gate_excluded -> kein Clustering\n\ngate_excluded -> nicht im kept_count\n\ngate_excluded -> cluster_role = excluded\n\ngate_excluded -> anomaly_score mindestens 0.90",
+        detail:
+          "Das ist der wichtigste Unterschied zu rule_penalty: Hard Gates passieren vor dem Clustering und nehmen Punkte aus der Stuetzmenge heraus. Rule-Penalties kommen spaeter und bewerten kept Punkte nur vorsichtiger.",
+      },
+    ],
   },
   {
     id: "cluster-branch",

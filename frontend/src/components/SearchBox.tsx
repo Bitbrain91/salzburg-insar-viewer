@@ -14,6 +14,7 @@ import { Button, Input } from "./ui";
 
 function resultTypeLabel(result: SearchResult) {
   if (result.result_type === "point") return "Punkt";
+  if (result.result_type === "building" && result.source === "bev") return "BEV";
   if (result.result_type === "building") return result.source === "gba" ? "GBA" : "Gebäude";
   if (result.result_type === "ml_run") return "ML Run";
   return result.external ? "Adresse" : "OSM";
@@ -64,7 +65,7 @@ function normalizeSelection(selection: SearchResultSelection | null | undefined)
   }
   if (
     selection.type === "building" &&
-    (selection.source === "gba" || selection.source === "osm") &&
+    (selection.source === "bev" || selection.source === "gba" || selection.source === "osm") &&
     selection.id &&
     selection.areaId
   ) {

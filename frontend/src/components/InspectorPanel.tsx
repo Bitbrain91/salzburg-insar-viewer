@@ -109,7 +109,7 @@ const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string
 ];
 
 const focusReasonLabels: Record<string, string> = {
-  local_motion_deviation: "Bewegung weicht lokal ab",
+  local_motion_deviation: "Lokaler Punktkontext weicht ab",
   noise_cluster: "Kein stabiler Cluster",
   nearest_assignment: "Unsichere Gebaeudezuordnung",
 };
@@ -157,6 +157,34 @@ type EarthLosTrackOption = {
   incidenceDeg: number;
 };
 
+type LocalDeviationBreakdownItem = {
+  key: string;
+  label: string;
+  value: number | null;
+  unit?: string;
+  median?: number | null;
+  scale?: number | null;
+  z?: number | null;
+  component: number;
+  detail: string;
+};
+
+type LocalDeviationBreakdown = {
+  items: LocalDeviationBreakdownItem[];
+  topItem: LocalDeviationBreakdownItem | null;
+  note?: string;
+};
+
+type ReliabilityReasonTone = "neutral" | "warning" | "bad";
+
+type ReliabilityReason = {
+  key: string;
+  label: string;
+  detail: string;
+  tone: ReliabilityReasonTone;
+  priority: number;
+};
+
 const EARTH_LOS_FALLBACK_INCIDENCE_DEG = 45;
 const EARTH_LOS_MIN_DISTANCE_M = 120;
 const EARTH_LOS_MAX_DISTANCE_M = 360;
@@ -194,6 +222,7 @@ const metricAttributeHints: Record<string, AttributeHint> = {
   "Geschwindigkeit": { key: "velocity", context: "insar-point" },
   "Geschwindigkeit Std.": { key: "velocity_std", context: "insar-point" },
   "Kohaerenz": { key: "coherence", context: "insar-point" },
+  "Deformations-Std.": { key: "std_def", context: "insar-point" },
   "InSAR-Hoehe": { key: "height", context: "insar-point" },
   "Hoehe Std.": { key: "height_std", context: "insar-point" },
   "Beschleunigung": { key: "acceleration", context: "insar-point" },
@@ -228,6 +257,9 @@ const metricAttributeHints: Record<string, AttributeHint> = {
   "Abstand zum Gebaeude": { key: "distance_m", context: "ml-point" },
   "Clusterrolle / Wahrscheinlichkeit": { key: "cluster_role", context: "ml-point" },
   "Cluster-Ausreisserwert": { key: "cluster_outlier_score", context: "ml-point" },
+  "Cluster-Ausreisser": { key: "cluster_outlier", context: "ml-point" },
+  "Lokale Abweichung": { key: "local_deviation", context: "ml-point" },
+  "Regel-Penalty": { key: "rule_penalty", context: "ml-point" },
   "Fuer Scoring genutzt": { key: "kept_for_scoring", context: "ml-point" },
   "Gate-Gruende": { key: "gate_reasons", context: "ml-point" },
   "Zuordnung": { key: "assignment_method", context: "ml-point" },
@@ -711,6 +743,20 @@ export default function InspectorPanel() {
     Object.fromEntries(
       Object.entries(getObject(value)).map(([key, entry]) => [key, getNumber(entry)])
     );
+  const median = (values: number[]) => {
+    if (!values.length) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+  };
+  const robustScale = (values: number[], center: number, minimum: number) => {
+    const deviations = values.map((value) => Math.abs(value - center));
+    return Math.max(1.4826 * median(deviations), minimum);
+  };
+  const getClusteringFeature = (point: Record<string, unknown>, key: string) =>
+    getNumberMap(point.clustering_features)[key];
+  const finiteOrFallback = (value: number | null | undefined, fallback = 0) =>
+    value !== null && value !== undefined && Number.isFinite(value) ? value : fallback;
   const getDetectorScores = (value: unknown): Record<string, number> =>
     Object.fromEntries(
       Object.entries(getNumberMap(value)).filter(
@@ -790,6 +836,152 @@ export default function InspectorPanel() {
     };
   };
 
+  const buildLocalDeviationBreakdown = (
+    point: MlBuildingFocusPoint,
+    analysis: typeof selectedBuildingFocusPointAnalysis
+  ): LocalDeviationBreakdown | null => {
+    if (typeof point.track !== "number") return null;
+    const features = mlBuildingPointsData?.feature_collection.features ?? [];
+    const group = features
+      .map((feature) => feature.properties ?? {})
+      .filter((properties) => {
+        const track = getNumber(properties.track);
+        const datasetId = getString(properties.dataset_id);
+        return (
+          track === point.track &&
+          (!datasetId || datasetId === point.datasetId)
+        );
+      });
+    if (!group.length) return null;
+
+    const selected =
+      group.find((properties) => {
+        const code = getString(properties.code);
+        const track = getNumber(properties.track);
+        const datasetId = getString(properties.dataset_id);
+        return (
+          code === point.code &&
+          track === point.track &&
+          (!datasetId || datasetId === point.datasetId)
+        );
+      }) ?? null;
+
+    const selectedValues = {
+      velocity: point.velocity ?? analysis?.velocity ?? null,
+      acceleration: point.acceleration ?? analysis?.acceleration ?? null,
+      along:
+        point.clusteringFeatures?.along_look_offset_m ??
+        analysis?.clustering_features?.along_look_offset_m ??
+        (selected ? getClusteringFeature(selected, "along_look_offset_m") : null),
+      cross:
+        point.clusteringFeatures?.cross_look_offset_m ??
+        analysis?.clustering_features?.cross_look_offset_m ??
+        (selected ? getClusteringFeature(selected, "cross_look_offset_m") : null),
+      heightRank:
+        point.clusteringFeatures?.height_rank_in_building ??
+        analysis?.clustering_features?.height_rank_in_building ??
+        (selected ? getClusteringFeature(selected, "height_rank_in_building") : null),
+      coherence: point.coherence ?? analysis?.coherence ?? null,
+    };
+
+    const robustItems: Array<{
+      key: string;
+      label: string;
+      selectedValue: number | null | undefined;
+      values: number[];
+      divisor: number;
+      unit?: string;
+      minimumScale?: number;
+    }> = [
+      {
+        key: "velocity",
+        label: "Geschwindigkeit",
+        selectedValue: selectedValues.velocity,
+        values: group.map((properties) => finiteOrFallback(getNumber(properties.velocity))),
+        divisor: 3.5,
+        unit: "mm/Jahr",
+      },
+      {
+        key: "acceleration",
+        label: "Beschleunigung",
+        selectedValue: selectedValues.acceleration,
+        values: group.map((properties) => finiteOrFallback(getNumber(properties.acceleration))),
+        divisor: 3.5,
+        unit: "mm/Jahr²",
+      },
+      {
+        key: "along_look_offset_m",
+        label: "Look-Laengsversatz",
+        selectedValue: selectedValues.along,
+        values: group.map((properties) =>
+          finiteOrFallback(getClusteringFeature(properties, "along_look_offset_m"))
+        ),
+        divisor: 4.0,
+        unit: "m",
+      },
+      {
+        key: "cross_look_offset_m",
+        label: "Look-Querversatz",
+        selectedValue: selectedValues.cross,
+        values: group.map((properties) =>
+          finiteOrFallback(getClusteringFeature(properties, "cross_look_offset_m"))
+        ),
+        divisor: 4.0,
+        unit: "m",
+      },
+    ];
+
+    const items: LocalDeviationBreakdownItem[] = robustItems.map((item) => {
+      const value = finiteOrFallback(item.selectedValue);
+      const center = median(item.values);
+      const scale = robustScale(item.values, center, item.minimumScale ?? 0.5);
+      const z = Math.abs(value - center) / scale;
+      const component = z / item.divisor;
+      return {
+        key: item.key,
+        label: item.label,
+        value,
+        unit: item.unit,
+        median: center,
+        scale,
+        z,
+        component,
+        detail: `Wert ${fmtNum(value)}${item.unit ? ` ${item.unit}` : ""}, Gruppenmedian ${fmtNum(center)}${item.unit ? ` ${item.unit}` : ""}`,
+      };
+    });
+
+    const heightRank = selectedValues.heightRank;
+    if (heightRank !== null && heightRank !== undefined) {
+      const value = finiteOrFallback(heightRank, 0.5);
+      const component = Math.abs(value - 0.5) * 1.4;
+      items.push({
+        key: "height_edge",
+        label: "Hoehenrand",
+        value,
+        component,
+        detail: `Hoehenrang ${fmtNum(value)}; 0.5 ist mittig, 0 oder 1 sind Randlagen.`,
+      });
+    }
+
+    const coherence = finiteOrFallback(selectedValues.coherence, 0.65);
+    const coherenceGap = Math.max(0, (0.65 - coherence) / 0.65);
+    items.push({
+      key: "coherence_gap",
+      label: "Kohaerenzluecke",
+      value: coherence,
+      component: coherenceGap,
+      detail: `Kohaerenz ${fmtNum(coherence)}; erst unter 0.65 entsteht ein Gap.`,
+    });
+
+    const sorted = items.sort((a, b) => b.component - a.component);
+    return {
+      items: sorted,
+      topItem: sorted[0] ?? null,
+      note:
+        "Zeitreihensprung ist in bestehenden API-Antworten nicht als Einzelwert enthalten; die Anzeige zerlegt die sichtbaren Teilwerte.",
+    };
+  };
+
   const selectFocusPointFromRecord = (
     point: Record<string, unknown>,
     cluster?: MlBuildingClusterSummary
@@ -865,6 +1057,217 @@ export default function InspectorPanel() {
   };
   const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
     penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";
+
+  const formatSignedTrackMotion = (value: number | null) => {
+    if (value === null || value === undefined) return "—";
+    return `${value > 0 ? "+" : ""}${fmtNum(value)} mm/Jahr`;
+  };
+
+  const formatTrackMotionDetail = (values: Record<string, number | null>) => {
+    const entries = sortTrackEntries(values);
+    if (!entries.length) return "";
+    return entries
+      .map(([track, value]) => `T${track} ${formatSignedTrackMotion(value)}`)
+      .join(" / ");
+  };
+
+  const reliabilityReasonVariant = (tone: ReliabilityReasonTone) =>
+    tone === "bad" ? "destructive" : tone === "warning" ? "warning" : "secondary";
+
+  const trackSuffix = (tracks: string[]) =>
+    tracks.length ? ` T${tracks.join("/T")}` : "";
+
+  const buildReliabilityReasons = (analysis: MlBuildingAnalysis): ReliabilityReason[] => {
+    const reasons: ReliabilityReason[] = [];
+    const isLow = analysis.building_reliability_band === "low";
+    const motionDetail = formatTrackMotionDetail(analysis.track_motion_mm_a);
+
+    if (analysis.agreement_tension_flag) {
+      reasons.push({
+        key: "agreement_tension",
+        label: "Track-Spannung",
+        detail: motionDetail
+          ? `Tracks widersprechen sich deutlich: ${motionDetail}.`
+          : "Die Haupttracks passen nur schwach zueinander.",
+        tone: isLow ? "bad" : "warning",
+        priority: 100,
+      });
+    }
+
+    if (analysis.weak_secondary_track_flag) {
+      const tracks = analysis.reliability_penalties.flatMap((penalty) =>
+        penalty.key === "weak_secondary_track_band_cap" ||
+        penalty.key === "weak_main_cluster_support"
+          ? penalty.tracks
+          : []
+      );
+      reasons.push({
+        key: "weak_secondary_track",
+        label: `Schwacher Sekundaertrack${trackSuffix([...new Set(tracks)])}`,
+        detail: "Ein Track hat zu wenig belastbare Hauptcluster-Stuetzung.",
+        tone: "warning",
+        priority: 85,
+      });
+    }
+
+    for (const penalty of analysis.reliability_penalties) {
+      if (penalty.key === "very_low_track_agreement_band_cap") {
+        reasons.push({
+          key: penalty.key,
+          label: `Bandgrenze ${penalty.cap_band || "low"}`,
+          detail: "Die Zuverlaessigkeit wurde wegen sehr niedriger Track-Uebereinstimmung gedeckelt.",
+          tone: "bad",
+          priority: 95,
+        });
+        continue;
+      }
+      if (penalty.key === "low_track_agreement") {
+        const observed = penalty.observed_score ?? analysis.track_agreement_score;
+        const threshold = penalty.threshold_max_score ?? 0.25;
+        reasons.push({
+          key: penalty.key,
+          label: "Niedrige Track-Uebereinstimmung",
+          detail: `Track-Agreement ${fmtNum(observed)}, Grenzwert ${fmtNum(threshold)}${
+            penalty.score_delta === null ? "" : `, Score ${penalty.score_delta.toFixed(2)}`
+          }.`,
+          tone: isLow ? "bad" : "warning",
+          priority: 90,
+        });
+        continue;
+      }
+      if (penalty.key === "weak_secondary_track_band_cap") {
+        reasons.push({
+          key: penalty.key,
+          label: `Bandgrenze ${penalty.cap_band || "medium"}${trackSuffix(penalty.tracks)}`,
+          detail: "Ein schwacher Sekundaertrack begrenzt das Zuverlaessigkeitsband.",
+          tone: "warning",
+          priority: 82,
+        });
+        continue;
+      }
+      if (penalty.key === "weak_main_cluster_support") {
+        reasons.push({
+          key: penalty.key,
+          label: `Schwache Hauptcluster-Stuetzung${trackSuffix(penalty.tracks)}`,
+          detail: `Zu wenig belastbare Punkte im Hauptcluster${
+            penalty.threshold_min_points === null
+              ? "."
+              : `; erwartet mindestens ${penalty.threshold_min_points}.`
+          }`,
+          tone: "warning",
+          priority: 80,
+        });
+        continue;
+      }
+      reasons.push({
+        key: penalty.key,
+        label: formatPenalty(penalty),
+        detail: "Pipeline-Anpassung beeinflusst den Zuverlaessigkeitswert.",
+        tone: "warning",
+        priority: 50,
+      });
+    }
+
+    if (analysis.differential_motion_flag) {
+      reasons.push({
+        key: "differential_motion",
+        label: "Differenzielle Bewegung",
+        detail: "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor.",
+        tone: "warning",
+        priority: 88,
+      });
+    }
+
+    if (
+      analysis.building_status &&
+      !["ok", "—"].includes(analysis.building_status)
+    ) {
+      const statusDetails: Record<string, string> = {
+        insufficient_support: "Zu wenige nutzbare Punkte fuer einen belastbaren Gebaeuderollup.",
+        noise_dominated: "Mehr als die Haelfte der behaltenen Punkte ist Rauschen.",
+        small_n: "Der Hauptcluster hat nur eine kleine Punktstuetzung.",
+        single_track_only: "Es gibt nur einen belastbaren Track fuer dieses Gebaeude.",
+      };
+      reasons.push({
+        key: `status_${analysis.building_status}`,
+        label: `Status: ${analysis.building_status}`,
+        detail:
+          statusDetails[analysis.building_status] ||
+          "Der Gebaeudestatus reduziert die Aussagekraft der Zusammenfassung.",
+        tone: analysis.building_reliability_band === "high" ? "neutral" : "warning",
+        priority: 75,
+      });
+    }
+
+    const seen = new Set<string>();
+    return reasons
+      .sort((a, b) => b.priority - a.priority)
+      .filter((reason) => {
+        if (seen.has(reason.key)) return false;
+        seen.add(reason.key);
+        return true;
+      });
+  };
+
+  const reliabilityReasonSummary = (analysis: MlBuildingAnalysis) => {
+    const reasons = buildReliabilityReasons(analysis);
+    return reasons.length ? reasons.slice(0, 2).map((reason) => reason.label).join(" / ") : "—";
+  };
+
+  const renderReliabilityReasons = (analysis: MlBuildingAnalysis) => {
+    const reasons = buildReliabilityReasons(analysis);
+    const trackMotion = sortTrackEntries(analysis.track_motion_mm_a);
+    return (
+      <div className="grid gap-2">
+        {reasons.length ? (
+          <div className="grid gap-2">
+            {reasons.map((reason) => (
+              <div
+                key={reason.key}
+                className="rounded-md border border-border bg-card px-3 py-2 text-xs"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={reliabilityReasonVariant(reason.tone)}>
+                    {reason.label}
+                  </Badge>
+                </div>
+                <div className="mt-1.5 leading-relaxed text-muted-foreground">
+                  {reason.detail}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="pill">Keine Reliability-Abwertung gespeichert.</div>
+        )}
+
+        {trackMotion.length > 0 && (
+          <div className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs">
+            <div className="section-title !mt-0">Trackvergleich</div>
+            <div className="grid gap-1">
+              {trackMotion.map(([track, value]) => (
+                <div
+                  key={track}
+                  className="grid grid-cols-[auto_minmax(0,1fr)] gap-2"
+                >
+                  <span className="font-mono text-muted-foreground">T{track}</span>
+                  <span className="font-semibold text-foreground">
+                    {formatSignedTrackMotion(value)}
+                  </span>
+                </div>
+              ))}
+              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <span className="font-mono text-muted-foreground">Score</span>
+                <span className="font-semibold text-foreground">
+                  Track-Uebereinstimmung {fmtNum(analysis.track_agreement_score)}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const formatRunTimestamp = (value?: string | null) => {
     if (!value) return "—";
@@ -1122,6 +1525,7 @@ export default function InspectorPanel() {
         {renderMetric("Effektive Flaeche", fmtNum(point.eff_area, 1))}
         {renderMetric("Einfallswinkel", `${fmtNum(point.incidence_angle)} °`)}
         {renderMetric("Kohaerenz", fmtNum(point.coherence))}
+        {renderMetric("Deformations-Std.", `${fmtNum(point.std_def)} mm`)}
         {renderMetric("InSAR-Hoehe", `${fmtNum(point.height, 1)} m`)}
         {renderMetric("Hoehe Std.", `${fmtNum(point.height_std, 1)} m`)}
         {renderMetric("Laengengrad", lon === null || lon === undefined ? "—" : lon.toFixed(6))}
@@ -1446,6 +1850,7 @@ export default function InspectorPanel() {
   const renderBuildingOverview = () => {
     const building = buildingDetailQuery.data;
     const analysis = mlBuildingAnalysis;
+    const reliabilityReasons = analysis ? buildReliabilityReasons(analysis) : [];
     if (!building) return null;
     return (
       <div>
@@ -1454,6 +1859,18 @@ export default function InspectorPanel() {
         {renderMetric("Gebaeude-ID", building.id)}
         {renderMetric("Adresse", fmtBuildingAddress(building.address), getBuildingAddressHelp(building.address))}
         {renderMetric("Gebaeudehoehe", building.height === null ? "—" : `${building.height.toFixed(1)} m`)}
+        {building.source === "bev" && (
+          <>
+            {renderMetric(
+              "Hoehe Median / Max",
+              `${fmtNum(building.height_median_m, 1)} / ${fmtNum(building.height_max_m, 1)} m`
+            )}
+            {renderMetric("Traufhoehe", `${fmtNum(building.height_eaves_m, 1)} m`)}
+            {renderMetric("Hoehenqualitaet", fmtStr(building.height_quality))}
+            {renderMetric("Bauwerksfunktion", fmtStr(building.building_function))}
+            {renderMetric("AGWR-Objekt", fmtStr(building.agwr_object_number))}
+          </>
+        )}
         {renderMetric("Name", fmtStr(building.name))}
         {renderMetric("Typ", fmtStr(building.building_type))}
         <div className="section-title">ML-Runs fuer dieses Gebaeude</div>
@@ -1466,6 +1883,7 @@ export default function InspectorPanel() {
               "Zuverlaessigkeit",
               `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
             )}
+            {reliabilityReasons.length > 0 && renderMetric("Hauptgrund", reliabilityReasonSummary(analysis))}
             {renderMetric("Status", fmtStr(analysis.building_status))}
             {renderMetric(
               "Punkte behalten / ausgeschlossen / Rauschen",
@@ -1495,6 +1913,33 @@ export default function InspectorPanel() {
     if (!building) return null;
     return (
       <div>
+        {building.source === "bev" && (
+          <>
+            <div className="section-title">BEV-Hoehenattribute</div>
+            {renderMetric("Gebaeudehoehe", `${fmtNum(building.height_m, 1)} m`)}
+            {renderMetric(
+              "Objekthoehe Median / Max / Traufe",
+              `${fmtNum(building.height_median_m, 1)} / ${fmtNum(building.height_max_m, 1)} / ${fmtNum(
+                building.height_eaves_m,
+                1
+              )} m`
+            )}
+            {renderMetric(
+              "Bodenhoehe Min / Median / Max",
+              `${fmtNum(building.ground_min_m, 1)} / ${fmtNum(building.ground_median_m, 1)} / ${fmtNum(
+                building.ground_max_m,
+                1
+              )} m`
+            )}
+            {renderMetric("Footprint-Flaeche", `${fmtNum(building.footprint_area_m2, 1)} m2`)}
+            {renderMetric("BEV-Reliefspanne", `${fmtNum(building.relief_range_m, 1)} m`)}
+            {renderMetric("Hoehenquelle", fmtStr(building.height_source))}
+            {renderMetric("Erfassungsart", fmtStr(building.capture_method))}
+            {renderMetric("ALS-Datum / Befliegungsjahr", `${fmtStr(building.als_date)} / ${fmtNum(building.flight_year, 0)}`)}
+            {renderMetric("AGWR-Typ", fmtStr(building.agwr_type))}
+            {renderMetric("Verifikation LB", fmtStr(building.verification_lb))}
+          </>
+        )}
         <div className="section-title">Terrain-Kontext</div>
         {building.terrain ? (
           <>
@@ -1616,6 +2061,7 @@ export default function InspectorPanel() {
         ? "—"
         : `${fmtNum(value, digits)}${unit ? ` ${unit}` : ""}`;
     };
+    const localDeviationBreakdown = buildLocalDeviationBreakdown(point, analysis);
     return (
       <div className="sticky top-0 z-20 my-3 max-h-[48vh] overflow-auto rounded-md border border-primary/40 bg-card/95 p-3 shadow-sm backdrop-blur">
         <div className="flex items-start justify-between gap-2">
@@ -1699,6 +2145,45 @@ export default function InspectorPanel() {
                   <div className="mt-0.5 break-words text-muted-foreground">
                     {fmtStr(item.summary)}
                   </div>
+                  {item.key === "local_motion_deviation" && localDeviationBreakdown?.topItem && (
+                    <div className="mt-2 rounded-sm border border-border bg-secondary/60 p-2 text-[11px] text-muted-foreground">
+                      <div className="font-semibold text-foreground">
+                        Haupttreiber: {localDeviationBreakdown.topItem.label}
+                      </div>
+                      <div className="mt-1">
+                        Teilwert {fmtNum(localDeviationBreakdown.topItem.component)}
+                        {localDeviationBreakdown.topItem.component > 1
+                          ? " (local_deviation wird bei 1.00 gedeckelt)"
+                          : ""}
+                      </div>
+                      <div>{localDeviationBreakdown.topItem.detail}</div>
+                      <div className="mt-2 grid gap-1">
+                        {localDeviationBreakdown.items.map((breakdownItem) => (
+                          <div
+                            key={breakdownItem.key}
+                            className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"
+                          >
+                            <span className="min-w-0">
+                              {breakdownItem.label}
+                              {breakdownItem.unit && breakdownItem.value !== null
+                                ? ` (${fmtNum(breakdownItem.value)} ${breakdownItem.unit})`
+                                : breakdownItem.value !== null
+                                  ? ` (${fmtNum(breakdownItem.value)})`
+                                  : ""}
+                            </span>
+                            <span className="font-mono text-foreground">
+                              {fmtNum(breakdownItem.component)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {localDeviationBreakdown.note && (
+                        <div className="mt-2 text-[10px] leading-snug">
+                          {localDeviationBreakdown.note}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -2169,6 +2654,13 @@ export default function InspectorPanel() {
 
   const renderBuildingMl = () => {
     const analysis = mlBuildingAnalysis;
+    const reliabilityReasons = analysis ? buildReliabilityReasons(analysis) : [];
+    const openReliabilityExplanation = Boolean(
+      analysis &&
+        (analysis.building_reliability_band === "low" ||
+          analysis.building_reliability_band === "medium" ||
+          reliabilityReasons.length > 0)
+    );
     const runHistoryCount = buildingRunsQuery.data?.length ?? 0;
     return (
       <div>
@@ -2219,10 +2711,12 @@ export default function InspectorPanel() {
                 {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
                 {renderMetric("Mittlere Cross-Track-Konsistenz", fmtNum(analysis.avg_cross_track_consistency))}
                 <CollapsibleSection
-                  title="Nachbarschaft und Retuning"
-                  defaultOpen={false}
-                  key={`neighbour-${selectionKey}-${activeRunId ?? "none"}`}
+                  title="Warum diese Zuverlaessigkeit?"
+                  defaultOpen={openReliabilityExplanation}
+                  key={`reliability-${selectionKey}-${activeRunId ?? "none"}`}
                 >
+                  {renderReliabilityReasons(analysis)}
+                  <div className="section-title">Detailmetriken</div>
                   {renderMetric(
                     "Retuning-Flags",
                     formatRetuningFlags(analysis.weak_secondary_track_flag, analysis.agreement_tension_flag)

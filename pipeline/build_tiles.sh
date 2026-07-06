@@ -45,6 +45,16 @@ run_export \
   --kind insar_points \
   --id-fields area_id,dataset_id,track,code
 
+if [ -f "$PARQUET_DIR/bev_buildings.parquet" ] || has_nested_buildings "bev_buildings.parquet"; then
+  run_export \
+    "$(py_path "$PARQUET_DIR")" \
+    "$(py_path "$GEOJSON_DIR/bev.geojsonl")" \
+    --kind bev \
+    --id-fields area_id,bev_id
+else
+  printf "Skipping BEV GeoJSONL (source parquet not found)\n"
+fi
+
 if [ -f "$PARQUET_DIR/gba_buildings.parquet" ] || has_nested_buildings "gba_buildings.parquet"; then
   run_export \
     "$(py_path "$PARQUET_DIR")" \
@@ -106,6 +116,9 @@ run_tippecanoe insar_points.mbtiles insar_points insar_points.geojsonl \
   --drop-fraction-as-needed \
   --extend-zooms-if-still-dropping \
   --buffer=32
+
+run_tippecanoe bev.mbtiles bev bev.geojsonl \
+  --maximum-zoom=15 --no-feature-limit --no-tile-size-limit
 
 run_tippecanoe gba.mbtiles gba gba.geojsonl \
   --maximum-zoom=15 --no-feature-limit --no-tile-size-limit

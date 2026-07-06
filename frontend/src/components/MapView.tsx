@@ -31,6 +31,7 @@ import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { mlPalette } from "../lib/mlPalette";
 import { useAppStore } from "../lib/store";
 import type {
+  BuildingSource,
   MlBuildingFocusPoint,
   MlBuildingPointFocusMode,
   MlBuildingTrackFilter,
@@ -64,6 +65,7 @@ const SEARCH_FOCUS_LAYER_ID = "search_focus_marker";
 const EMPTY_POINT_FILTER = ["==", ["get", "code"], ""] as any;
 const EMPTY_CLUSTER_HULL_FILTER = ["==", ["get", "cluster_id"], ""] as any;
 const EMPTY_FOCUS_FEATURE_FILTER = ["==", ["get", "__empty__"], "__match_none__"] as any;
+const EMPTY_BEV_FILTER = ["==", "bev_id", ""] as any;
 const EMPTY_GBA_FILTER = ["==", "gba_id", ""] as any;
 const EMPTY_OSM_FILTER = ["==", "osm_id", ""] as any;
 const EMPTY_GEOJSON: { type: "FeatureCollection"; features: any[] } = {
@@ -1699,6 +1701,7 @@ export default function MapView() {
       "relief_hillshade",
       "relief_slope",
       "osm",
+      "bev",
       "gba",
       "ml_buildings_flat",
       "ml_buildings_fill",
@@ -1717,6 +1720,7 @@ export default function MapView() {
       "ml_focus_points_core",
       "ml_focus_selected_point",
       GENERIC_INSAR_SELECTED_LAYER_ID,
+      "bev_highlight",
       "gba_highlight",
       "osm_highlight",
       SEARCH_FOCUS_LAYER_ID,
@@ -2242,11 +2246,11 @@ export default function MapView() {
   }
 
   function buildBuildingSelectionFilter(
-    source: "gba" | "osm",
+    source: BuildingSource,
     id: string,
     areaId: string
   ) {
-    const idField = source === "gba" ? "gba_id" : "osm_id";
+    const idField = source === "bev" ? "bev_id" : source === "gba" ? "gba_id" : "osm_id";
     const idValue = source === "osm" ? Number(id) : id;
     const clauses: any[] = [["==", idField, idValue]];
     clauses.push(buildAreaFeatureFilter(areaId));
@@ -2279,6 +2283,13 @@ export default function MapView() {
       tileSize: 512,
       minzoom: 0,
       maxzoom: 16,
+    });
+    addSourceIfMissing(map, "bev", {
+      type: "vector",
+      tiles: [`${tilesBase}/mbtiles/bev/{z}/{x}/{y}.pbf`],
+      tileSize: 512,
+      minzoom: 0,
+      maxzoom: 15,
     });
     addSourceIfMissing(map, "gba", {
       type: "vector",
@@ -2382,6 +2393,22 @@ export default function MapView() {
     });
 
     addLayerIfMissing(map, {
+      id: "bev",
+      type: "fill-extrusion",
+      source: "bev",
+      "source-layer": "bev",
+      paint: {
+        "fill-extrusion-height": ["coalesce", ["get", "height_m"], ["get", "height"], 0],
+        "fill-extrusion-color": "#5f8f63",
+        "fill-extrusion-opacity": 0.64,
+      },
+      filter: buildAreaFeatureFilter(currentSelectedAreaId),
+      layout: {
+        visibility: currentLayers.bev ? "visible" : "none",
+      },
+    });
+
+    addLayerIfMissing(map, {
       id: "gba",
       type: "fill-extrusion",
       source: "gba",
@@ -2421,6 +2448,18 @@ export default function MapView() {
         visibility: genericInsarVisible ? "visible" : "none",
       },
       filter: buildGenericSelectionFilter(currentSelection),
+    });
+
+    addLayerIfMissing(map, {
+      id: "bev_highlight",
+      type: "line",
+      source: "bev",
+      "source-layer": "bev",
+      paint: {
+        "line-color": "#e27d3f",
+        "line-width": 2,
+      },
+      filter: EMPTY_BEV_FILTER,
     });
 
     addLayerIfMissing(map, {
@@ -2464,6 +2503,9 @@ export default function MapView() {
       if (map.getLayer(GENERIC_INSAR_SELECTED_LAYER_ID)) {
         map.setFilter(GENERIC_INSAR_SELECTED_LAYER_ID, EMPTY_POINT_FILTER);
       }
+      if (map.getLayer("bev_highlight")) {
+        map.setFilter("bev_highlight", EMPTY_BEV_FILTER);
+      }
       if (map.getLayer("gba_highlight")) {
         map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
       }
@@ -2480,6 +2522,9 @@ export default function MapView() {
           buildGenericSelectionFilter(currentSelection)
         );
       }
+      if (map.getLayer("bev_highlight")) {
+        map.setFilter("bev_highlight", EMPTY_BEV_FILTER);
+      }
       if (map.getLayer("gba_highlight")) {
         map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
       }
@@ -2487,12 +2532,28 @@ export default function MapView() {
         map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
       }
     } else {
-      if (currentSelection.source === "gba") {
+      if (currentSelection.source === "bev") {
+        if (map.getLayer("bev_highlight")) {
+          map.setFilter(
+            "bev_highlight",
+            buildBuildingSelectionFilter("bev", currentSelection.id, currentSelection.areaId)
+          );
+        }
+        if (map.getLayer("gba_highlight")) {
+          map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
+        }
+        if (map.getLayer("osm_highlight")) {
+          map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
+        }
+      } else if (currentSelection.source === "gba") {
         if (map.getLayer("gba_highlight")) {
           map.setFilter(
             "gba_highlight",
             buildBuildingSelectionFilter("gba", currentSelection.id, currentSelection.areaId)
           );
+        }
+        if (map.getLayer("bev_highlight")) {
+          map.setFilter("bev_highlight", EMPTY_BEV_FILTER);
         }
         if (map.getLayer("osm_highlight")) {
           map.setFilter("osm_highlight", EMPTY_OSM_FILTER);
@@ -2503,6 +2564,9 @@ export default function MapView() {
             "osm_highlight",
             buildBuildingSelectionFilter("osm", currentSelection.id, currentSelection.areaId)
           );
+        }
+        if (map.getLayer("bev_highlight")) {
+          map.setFilter("bev_highlight", EMPTY_BEV_FILTER);
         }
         if (map.getLayer("gba_highlight")) {
           map.setFilter("gba_highlight", EMPTY_GBA_FILTER);
@@ -2552,6 +2616,9 @@ export default function MapView() {
     if (map.getLayer("relief_slope")) {
       map.setLayoutProperty("relief_slope", "visibility", vis.reliefSlope ? "visible" : "none");
     }
+    if (map.getLayer("bev")) {
+      map.setLayoutProperty("bev", "visibility", vis.bev ? "visible" : "none");
+    }
     if (map.getLayer("gba")) {
       map.setLayoutProperty("gba", "visibility", vis.gba ? "visible" : "none");
     }
@@ -2579,6 +2646,9 @@ export default function MapView() {
         buildGenericInsarFilter(vis, areaId, filterState, enabled)
       );
     }
+    if (map.getLayer("bev")) {
+      map.setFilter("bev", buildAreaFeatureFilter(areaId));
+    }
     if (map.getLayer("gba")) {
       map.setFilter("gba", buildAreaFeatureFilter(areaId));
     }
@@ -2599,6 +2669,7 @@ export default function MapView() {
       "ml_buildings_flat",
       "ml_points",
       GENERIC_INSAR_LAYER_ID,
+      "bev",
       "gba",
       "osm",
     ].filter((layerId) => map.getLayer(layerId));
@@ -2726,6 +2797,19 @@ export default function MapView() {
             : `Height: ${heightValue}`
         }
       `;
+    } else if (feature.layer.id === "bev") {
+      const heightValue =
+        props.height_m !== undefined && props.height_m !== null
+          ? `${Number(props.height_m).toFixed(1)} m`
+          : props.height !== undefined && props.height !== null
+            ? `${Number(props.height).toFixed(1)} m`
+            : "-";
+      html = `
+        <strong>BEV Building</strong><br/>
+        ID: ${props.bev_id || "-"}<br/>
+        Height: ${heightValue}<br/>
+        Quality: ${props.height_quality || "-"}
+      `;
     } else if (feature.layer.id === "gba") {
       html = `
         <strong>GBA Building</strong><br/>
@@ -2810,6 +2894,7 @@ export default function MapView() {
       "ml_buildings_flat",
       "ml_points",
       GENERIC_INSAR_LAYER_ID,
+      "bev",
       "gba",
       "osm",
     ].filter((layerId) => map.getLayer(layerId));
@@ -2868,6 +2953,16 @@ export default function MapView() {
           areaId,
           datasetId,
           sensor: readStringFeatureProperty(props, "sensor", "platform"),
+        });
+      }
+    } else if (feature.layer.id === "bev") {
+      const areaId = readStringFeatureProperty(props, "area_id", "areaId");
+      if (props.bev_id && areaId) {
+        setSelection({
+          type: "building",
+          source: "bev",
+          id: String(props.bev_id),
+          areaId,
         });
       }
     } else if (feature.layer.id === "gba") {

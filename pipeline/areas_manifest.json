@@ -3,9 +3,22 @@
   "areas": {
     "salzburg": {
       "name": "Salzburg",
-      "bbox": [12.95, 47.75, 13.15, 47.85],
+      "bbox": [12.935252, 47.649018, 13.150468, 47.869998],
+      "bev": {
+        "path": "data/Daten/BEV/DLM_8000_BAUWERK_20260323.gpkg",
+        "url": "https://data.bev.gv.at/download/DLM/DLM_20260323/DLM_8000_BAUWERK_20260323.gpkg",
+        "layer": "BWK_8100_BAUWERK_F"
+      },
       "gba": {
-        "path": "data/gba/salzburg_gba.geojson"
+        "path": "data/gba/salzburg_gba.geojson",
+        "wfs": {
+          "endpoint": "https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows",
+          "type_names": "global3D:lod1_global",
+          "srs_name": "EPSG:4326",
+          "sort_by": "ogc_fid",
+          "page_size": 1000,
+          "expected_columns": ["source", "id", "height", "var", "region", "geometry"]
+        }
       },
       "osm": {
         "enabled": true
@@ -14,6 +27,11 @@
     "bad_gastein": {
       "name": "Bad Gastein",
       "bbox": [13.000531, 47.013449, 13.277222, 47.159603],
+      "bev": {
+        "path": "data/Daten/BEV/DLM_8000_BAUWERK_20260323.gpkg",
+        "url": "https://data.bev.gv.at/download/DLM/DLM_20260323/DLM_8000_BAUWERK_20260323.gpkg",
+        "layer": "BWK_8100_BAUWERK_F"
+      },
       "gba": {
         "path": "data/gba/bad_gastein_gba.geojson",
         "wfs": {
@@ -49,6 +67,24 @@
           "layer": "95",
           "los": "D",
           "amplitude_path": "data/Daten/ASC_T95_AMP.gpkg"
+        }
+      ]
+    },
+    "salzburg_tsx_t93_d": {
+      "area_id": "salzburg",
+      "sensor": "TSX",
+      "movement": {
+        "path": "data/Daten/SALZBURG_EXTENDED_TSX_T93_D_APR2020_ES2830A2S/SALZBURG_EXTENDED_TSX_T93_D_APR2020_ES2830A2S.shp"
+      },
+      "tracks": [
+        {
+          "track_id": 93,
+          "layer": "SALZBURG_EXTENDED_TSX_T93_D_APR2020_ES2830A2S",
+          "los": "D",
+          "defaults": {
+            "look_angle": 280.9781713901927,
+            "incidence_angle": 42.67
+          }
         }
       ]
     },

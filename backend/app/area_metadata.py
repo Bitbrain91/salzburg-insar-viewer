@@ -37,12 +37,23 @@ class DatasetTrackMetadata:
     displayable: bool = True
 
 
+@dataclass(frozen=True)
+class BuildingSourceMetadata:
+    source_id: str
+    name: str
+    label: str
+    description: str
+    has_height: bool
+    default_visible: bool
+    default_ml: bool
+
+
 AREAS: tuple[AreaMetadata, ...] = (
     AreaMetadata(
         area_id="salzburg",
         name="Salzburg",
         default_dataset_id="salzburg_snt",
-        bounds=(12.95, 47.75, 13.15, 47.85),
+        bounds=(12.935252, 47.649018, 13.150468, 47.869998),
     ),
     AreaMetadata(
         area_id="bad_gastein",
@@ -59,6 +70,12 @@ DATASETS: tuple[DatasetMetadata, ...] = (
         name="Salzburg SNT",
         sensor="SNT",
         default=True,
+    ),
+    DatasetMetadata(
+        dataset_id="salzburg_tsx_t93_d",
+        area_id="salzburg",
+        name="Salzburg TSX Track 93 D",
+        sensor="TSX",
     ),
     DatasetMetadata(
         dataset_id="bad_gastein_snt",
@@ -93,6 +110,16 @@ DATASET_TRACKS: tuple[DatasetTrackMetadata, ...] = (
         los="D",
         sensor="SNT",
         name="Salzburg SNT Track 95 (Descending)",
+        geometry_status="verified",
+        direction_dependent_ml=True,
+    ),
+    DatasetTrackMetadata(
+        area_id="salzburg",
+        dataset_id="salzburg_tsx_t93_d",
+        track=93,
+        los="D",
+        sensor="TSX",
+        name="Salzburg TSX Track 93 (Descending)",
         geometry_status="verified",
         direction_dependent_ml=True,
     ),
@@ -154,6 +181,39 @@ DATASET_DIRECTIONAL_TRACK_PAIRS: dict[str, tuple[int, int]] = {
     "bad_gastein_tsx_paz": (93, 70),
 }
 
+BUILDING_SOURCES: tuple[BuildingSourceMetadata, ...] = (
+    BuildingSourceMetadata(
+        source_id="bev",
+        name="BEV DLM-Bauwerke",
+        label="BEV Bauwerke",
+        description=(
+            "Amtliche DLM-Bauwerke mit ALS/AGWR-Hoehenattributen; "
+            "primaere Gebaeudequelle fuer Salzburg und Bad Gastein."
+        ),
+        has_height=True,
+        default_visible=True,
+        default_ml=True,
+    ),
+    BuildingSourceMetadata(
+        source_id="gba",
+        name="Global Building Atlas",
+        label="Global Building Atlas",
+        description="Lokale Vergleichsquelle mit ungenaueren Hoehenangaben.",
+        has_height=True,
+        default_visible=False,
+        default_ml=False,
+    ),
+    BuildingSourceMetadata(
+        source_id="osm",
+        name="OpenStreetMap buildings",
+        label="OSM Gebaeudegrundrisse",
+        description="Frische OSM-Footprints und Adress-Tags; Fallback fuer Adresse und Abdeckung.",
+        has_height=False,
+        default_visible=False,
+        default_ml=False,
+    ),
+)
+
 AREAS_BY_ID = {area.area_id: area for area in AREAS}
 DATASETS_BY_ID = {dataset.dataset_id: dataset for dataset in DATASETS}
 DATASET_TRACKS_BY_ID: dict[str, tuple[DatasetTrackMetadata, ...]] = {
@@ -174,6 +234,10 @@ def dataset_contracts() -> list[dict]:
         }
         for dataset in DATASETS
     ]
+
+
+def building_source_contracts() -> list[dict]:
+    return [{"id": source.source_id, **asdict(source)} for source in BUILDING_SOURCES]
 
 
 def dataset_track_contracts(

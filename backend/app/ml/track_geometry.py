@@ -99,6 +99,17 @@ TRACK_GEOMETRIES_BY_DATASET_TRACK = {
         dataset_id="salzburg_snt",
         sensor="SNT",
     ),
+    ("salzburg_tsx_t93_d", 93): _track_geometry(
+        track=93,
+        los="D",
+        name="Salzburg TSX Track 93 (Descending)",
+        look_bearing_deg=280.9781713901927,
+        sensor_bearing_deg=100.9781713901927,
+        default_incidence_deg=42.67,
+        area_id="salzburg",
+        dataset_id="salzburg_tsx_t93_d",
+        sensor="TSX",
+    ),
     ("bad_gastein_snt", 22): _track_geometry(
         track=22,
         los="D",

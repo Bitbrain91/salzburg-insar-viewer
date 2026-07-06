@@ -71,7 +71,7 @@ function parseBuildingSelection(
   if (separator <= 0 || separator === value.length - 1) return undefined;
   const source = value.slice(0, separator);
   const id = value.slice(separator + 1);
-  if (source !== "gba" && source !== "osm") return undefined;
+  if (source !== "bev" && source !== "gba" && source !== "osm") return undefined;
   return { type: "building", source, id, areaId };
 }
 
@@ -135,6 +135,7 @@ export function applyUrlStateToStore(
     next.cameraMode = camera as AppState["cameraMode"];
   }
 
+  const bev = parseBoolean(params.get("bev"));
   const gba = parseBoolean(params.get("gba"));
   const osm = parseBoolean(params.get("osm"));
   // `rawtracks=0` blendet alle rohen InSAR-Track-Layer aus (Audit-Ansicht):
@@ -142,9 +143,10 @@ export function applyUrlStateToStore(
   // dataset:track-Kombinationen explizit setzen (statisches Track-Register,
   // vgl. backend/app/ml/track_geometry.py).
   const rawTracks = parseBoolean(params.get("rawtracks"));
-  if (gba !== undefined || osm !== undefined || rawTracks !== undefined) {
+  if (bev !== undefined || gba !== undefined || osm !== undefined || rawTracks !== undefined) {
     next.layers = {
       ...current.layers,
+      ...(bev !== undefined ? { bev } : {}),
       ...(gba !== undefined ? { gba } : {}),
       ...(osm !== undefined ? { osm } : {}),
       ...(rawTracks !== undefined
@@ -153,6 +155,7 @@ export function applyUrlStateToStore(
               [
                 "salzburg_snt:44",
                 "salzburg_snt:95",
+                "salzburg_tsx_t93_d:93",
                 "bad_gastein_snt:22",
                 "bad_gastein_snt:44",
                 "bad_gastein_snt:95",

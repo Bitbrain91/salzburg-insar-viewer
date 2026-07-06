@@ -7,10 +7,13 @@ import {
 } from "./configMetadata";
 import type { PointColorMode } from "./pointStyling";
 
+export type BuildingSource = "bev" | "gba" | "osm";
+
 export type LayerVisibility = {
   insarTracks: Record<string, boolean>;
   reliefHillshade: boolean;
   reliefSlope: boolean;
+  bev: boolean;
   gba: boolean;
   osm: boolean;
 };
@@ -18,7 +21,7 @@ export type SimpleLayerVisibilityKey = Exclude<keyof LayerVisibility, "insarTrac
 export type MlBuildingTrackFilter = "all" | `${string}:${number}`;
 export type MlBuildingPointFocusMode = "run" | "building" | "scored" | "cluster";
 export type MlBuildingFocusSelection = {
-  source: "gba" | "osm";
+  source: BuildingSource;
   id: string;
   areaId: string;
 };
@@ -35,7 +38,7 @@ export type MlBuildingFocusPoint = {
   datasetId: string;
   sensor?: string;
   runId: string;
-  buildingSource: "gba" | "osm";
+  buildingSource: BuildingSource;
   buildingId: string;
   velocity?: number | null;
   velocityStd?: number | null;
@@ -73,7 +76,7 @@ export type Selection =
       datasetId: string;
       sensor?: string;
     }
-  | { type: "building"; source: "gba" | "osm"; id: string; areaId: string }
+  | { type: "building"; source: BuildingSource; id: string; areaId: string }
   | null;
 
 export type SearchFocus = {
@@ -166,6 +169,7 @@ export const useAppStore = create<AppState>((set) => ({
     insarTracks: {},
     reliefHillshade: false,
     reliefSlope: false,
+    bev: true,
     gba: false,
     osm: false,
   },

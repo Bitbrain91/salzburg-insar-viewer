@@ -202,6 +202,11 @@ export default function LayerPanel() {
 
       <Section title="Gebäude und Kontext">
         <ToggleRow
+          label="BEV Bauwerke (amtliche Hoehen)"
+          checked={layers.bev}
+          onChange={(checked) => setLayer("bev", checked)}
+        />
+        <ToggleRow
           label="Global Building Atlas (3D)"
           checked={layers.gba}
           onChange={(checked) => setLayer("gba", checked)}

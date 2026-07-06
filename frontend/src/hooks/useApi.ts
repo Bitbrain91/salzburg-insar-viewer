@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AppConfigResponse } from "../lib/configMetadata";
+import type { BuildingSource } from "../lib/store";
 
 export const apiBase =
   import.meta.env.VITE_API_URL ||
@@ -60,6 +61,7 @@ export type PointDetail = {
   velocity: number;
   velocity_std: number | null;
   coherence: number | null;
+  std_def: number | null;
   height: number | null;
   height_std: number | null;
   acceleration: number | null;
@@ -79,8 +81,26 @@ export type PointDetail = {
 export type BuildingDetail = {
   area_id?: string | null;
   id: string;
-  source: "gba" | "osm";
+  source: BuildingSource;
   height: number | null;
+  height_m?: number | null;
+  height_median_m?: number | null;
+  height_max_m?: number | null;
+  height_eaves_m?: number | null;
+  ground_min_m?: number | null;
+  ground_median_m?: number | null;
+  ground_max_m?: number | null;
+  footprint_area_m2?: number | null;
+  relief_range_m?: number | null;
+  agwr_object_number?: string | null;
+  agwr_type?: string | null;
+  building_function?: string | null;
+  verification_lb?: string | null;
+  flight_year?: number | null;
+  als_date?: string | null;
+  capture_method?: string | null;
+  height_source?: string | null;
+  height_quality?: string | null;
   name?: string | null;
   building_type?: string | null;
   geometry: Record<string, unknown>;
@@ -102,7 +122,7 @@ export type SearchResultSelection =
     }
   | {
       type: "building";
-      source: "gba" | "osm";
+      source: BuildingSource;
       id: string;
       areaId: string;
     };
@@ -478,14 +498,13 @@ export function getPointTimeseries(code: string, identity: PointIdentityQuery = 
   return fetchJson(`/api/points/${encodeURIComponent(code)}/timeseries${query}`);
 }
 
-export function getBuildingDetail(source: "gba" | "osm", id: string, areaId: string) {
+export function getBuildingDetail(source: BuildingSource, id: string, areaId: string) {
   if (!areaId) {
     throw new Error("areaId is required for building API requests");
   }
-  const suffix = source === "gba" ? "gba" : "osm";
   const query = `?area_id=${encodeURIComponent(areaId)}`;
   return fetchJson<BuildingDetail>(
-    `/api/buildings/${suffix}/${encodeURIComponent(id)}${query}`
+    `/api/buildings/${source}/${encodeURIComponent(id)}${query}`
   );
 }
 
@@ -509,7 +528,7 @@ export function searchTargets(
 
 export function getMlBuildingAnalysis(
   runId: string,
-  source: "gba" | "osm",
+  source: BuildingSource,
   id: string,
   areaId?: string | null
 ) {
@@ -520,7 +539,7 @@ export function getMlBuildingAnalysis(
 }
 
 export function getMlBuildingRuns(
-  source: "gba" | "osm",
+  source: BuildingSource,
   id: string,
   areaId?: string | null,
   limit = 10
@@ -537,7 +556,7 @@ export function getMlBuildingRuns(
 
 export function getMlBuildingPoints(
   runId: string,
-  source: "gba" | "osm",
+  source: BuildingSource,
   id: string,
   areaId?: string | null
 ) {
@@ -549,7 +568,7 @@ export function getMlBuildingPoints(
 
 export function getMlBuildingContext(
   runId: string,
-  source: "gba" | "osm",
+  source: BuildingSource,
   id: string,
   areaId?: string | null
 ) {

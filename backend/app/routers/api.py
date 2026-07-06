@@ -12,7 +12,13 @@ from urllib.request import Request as UrlRequest, urlopen
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from ..area_metadata import AREAS_BY_ID, area_contracts, dataset_contracts, resolve_area_dataset
+from ..area_metadata import (
+    AREAS_BY_ID,
+    area_contracts,
+    building_source_contracts,
+    dataset_contracts,
+    resolve_area_dataset,
+)
 from ..config import settings
 from ..db import fetch_all, fetch_one
 from ..ml.track_geometry import track_geometries_contract
@@ -21,6 +27,7 @@ from ..schemas import (
     BuildingDetail,
     BuildingTerrainContext,
     ConfigResponse,
+    GeometryPoint,
     HealthResponse,
     InSARPointDetail,
     PointTerrainContext,
@@ -41,6 +48,10 @@ VELOCITY_THRESHOLDS = {
     "strong_uplift": 5.0,
 }
 GBA_ADDRESS_NEAREST_MAX_DISTANCE_M = 25.0
+ADDRESS_BUILDING_SOURCES = {
+    "bev": ("bev_buildings", "bev_id"),
+    "gba": ("gba_buildings", "gba_id"),
+}
 
 _NOMINATIM_CACHE: dict[tuple[str, str | None, int], list[dict[str, Any]]] = {}
 _NOMINATIM_LOCK = asyncio.Lock()
@@ -98,9 +109,10 @@ def _result_with_center(result: SearchResult, lon, lat) -> SearchResult:
     center = _point_center(lon, lat)
     if not center:
         return result
+    center_model = GeometryPoint(**center)
     if hasattr(result, "model_copy"):
-        return result.model_copy(update={"center": center})
-    return result.copy(update={"center": center})
+        return result.model_copy(update={"center": center_model})
+    return result.copy(update={"center": center_model})
 
 
 def _nominatim_request(url: str) -> list[dict[str, Any]]:
@@ -218,6 +230,82 @@ async def _search_points(request: Request, query: str, area_id: str | None, limi
                 "areaId": row["area_id"],
                 "datasetId": row["dataset_id"],
                 "sensor": row["sensor"],
+            },
+        )
+        results.append(_result_with_center(result, row["lon"], row["lat"]))
+    return results
+
+
+async def _search_bev_buildings(
+    request: Request,
+    query: str,
+    area_id: str | None,
+    limit: int,
+) -> list[SearchResult]:
+    normalized = query.casefold()
+    rows = await fetch_all(
+        request.app,
+        """
+        SELECT b.area_id,
+               b.bev_id AS id,
+               b.agwr_object_number,
+               b.height_m,
+               b.height_quality,
+               ST_X(ST_PointOnSurface(b.geom)) AS lon,
+               ST_Y(ST_PointOnSurface(b.geom)) AS lat,
+               ARRAY[ST_XMin(b.geom), ST_YMin(b.geom), ST_XMax(b.geom), ST_YMax(b.geom)] AS bbox
+        FROM bev_buildings b
+        WHERE b.geom IS NOT NULL
+          AND (
+            lower(b.bev_id) = $1
+            OR (char_length($1) >= 3 AND lower(b.bev_id) LIKE $2)
+            OR (
+                b.agwr_object_number IS NOT NULL
+                AND (
+                    lower(b.agwr_object_number) = $1
+                    OR (char_length($1) >= 3 AND lower(b.agwr_object_number) LIKE $2)
+                )
+            )
+          )
+        ORDER BY
+          CASE
+            WHEN lower(b.bev_id) = $1 THEN 0
+            WHEN b.agwr_object_number IS NOT NULL AND lower(b.agwr_object_number) = $1 THEN 0
+            ELSE 1
+          END,
+          CASE WHEN $3::text IS NOT NULL AND b.area_id = $3 THEN 0 ELSE 1 END,
+          b.area_id,
+          b.bev_id
+        LIMIT $4
+        """,
+        normalized,
+        f"{normalized}%",
+        area_id,
+        limit,
+    )
+    results: list[SearchResult] = []
+    for row in rows:
+        subtitle_parts = [row["area_id"], "BEV DLM-Bauwerk"]
+        height = row.get("height_m")
+        if height is not None:
+            subtitle_parts.append(f"{float(height):.1f} m")
+        if row.get("height_quality"):
+            subtitle_parts.append(str(row["height_quality"]))
+        if row.get("agwr_object_number"):
+            subtitle_parts.append(f"AGWR {row['agwr_object_number']}")
+        result = SearchResult(
+            result_type="building",
+            id=f"bev:{row['area_id']}:{row['id']}",
+            label=f"BEV-Bauwerk {row['id']}",
+            subtitle=" Â· ".join(subtitle_parts),
+            area_id=row["area_id"],
+            source="bev",
+            bbox=_safe_bbox(row["bbox"]),
+            selection={
+                "type": "building",
+                "source": "bev",
+                "id": str(row["id"]),
+                "areaId": row["area_id"],
             },
         )
         results.append(_result_with_center(result, row["lon"], row["lat"]))
@@ -600,20 +688,25 @@ def _building_address_from_osm_tags(
     )
 
 
-async def _find_gba_local_address(
+async def _find_local_building_address(
     app,
     *,
     area_id: str,
+    source: str,
     building_id: str,
 ) -> BuildingAddress | None:
+    source_sql = ADDRESS_BUILDING_SOURCES.get(source)
+    if source_sql is None:
+        return None
+    table_name, id_column = source_sql
     rows = await fetch_all(
         app,
-        """
+        f"""
         WITH selected_raw AS (
             SELECT geom
-            FROM gba_buildings
+            FROM {table_name}
             WHERE area_id = $1
-              AND gba_id = $2
+              AND {id_column}::text = $2
         ),
         candidate_raw AS (
             SELECT b.osm_id,
@@ -752,6 +845,7 @@ async def config() -> ConfigResponse:
         velocity_thresholds=VELOCITY_THRESHOLDS,
         areas=area_contracts(),
         datasets=dataset_contracts(),
+        building_sources=building_source_contracts(),
         tracks=_tracks_contract(),
     )
 
@@ -774,6 +868,7 @@ async def search(
     local_results: list[SearchResult] = []
     local_results.extend(await _search_ml_runs(request, query, area_id, per_kind_limit))
     local_results.extend(await _search_points(request, query, area_id, per_kind_limit))
+    local_results.extend(await _search_bev_buildings(request, query, area_id, per_kind_limit))
     local_results.extend(await _search_gba_buildings(request, query, area_id, per_kind_limit))
     local_results.extend(await _search_osm_buildings(request, query, area_id, per_kind_limit))
     local_results.extend(await _search_local_addresses(request, query, area_id, per_kind_limit))
@@ -811,7 +906,7 @@ async def point_detail(
     base_query = """
         SELECT p.area_id, p.dataset_id, p.sensor,
                p.code, p.track, p.los, p.velocity, p.velocity_std, p.coherence,
-               p.height, p.height_std, p.acceleration, p.acceleration_std,
+               p.std_def, p.height, p.height_std, p.acceleration, p.acceleration_std,
                p.season_amp, p.season_phs, p.s_amp_std, p.s_phs_std,
                p.incidence_angle, p.look_angle, p.eff_area,
                p.amp_mean, p.amp_std,
@@ -857,6 +952,7 @@ async def point_detail(
         velocity=row["velocity"],
         velocity_std=row.get("velocity_std"),
         coherence=row.get("coherence"),
+        std_def=row.get("std_def"),
         height=row.get("height"),
         height_std=row.get("height_std"),
         acceleration=row.get("acceleration"),
@@ -961,6 +1057,102 @@ async def point_timeseries(
     )
 
 
+@router.get("/buildings/bev/{building_id}", response_model=BuildingDetail)
+async def bev_building_detail(
+    request: Request,
+    building_id: str,
+    area_id: str = Query(...),
+):
+    app = request.app
+    resolved_area_id, _ = _resolve_area_dataset_or_404(
+        area_id,
+        None,
+        default_dataset_when_omitted=False,
+    )
+    query = """
+        SELECT bev_buildings.area_id AS area_id,
+               bev_buildings.bev_id AS id,
+               bev_buildings.height,
+               bev_buildings.height_m,
+               bev_buildings.height_median_m,
+               bev_buildings.height_max_m,
+               bev_buildings.height_eaves_m,
+               bev_buildings.ground_min_m,
+               bev_buildings.ground_median_m,
+               bev_buildings.ground_max_m,
+               bev_buildings.footprint_area_m2,
+               bev_buildings.relief_range_m,
+               bev_buildings.agwr_object_number,
+               bev_buildings.agwr_type,
+               bev_buildings.building_function,
+               bev_buildings.verification_lb,
+               bev_buildings.flight_year,
+               bev_buildings.als_date,
+               bev_buildings.capture_method,
+               bev_buildings.height_source,
+               bev_buildings.height_quality,
+               bev_buildings.properties,
+               terrain.terrain_source,
+               terrain.terrain_resolution_m,
+               terrain.terrain_elevation_mean_m,
+               terrain.terrain_elevation_min_m,
+               terrain.terrain_elevation_max_m,
+               terrain.slope_mean_deg AS terrain_slope_mean_deg,
+               terrain.slope_max_deg AS terrain_slope_max_deg,
+               terrain.relief_range_m AS terrain_relief_range_m,
+               ST_AsGeoJSON(bev_buildings.geom)::jsonb AS geometry
+        FROM bev_buildings
+        LEFT JOIN building_terrain_context terrain
+          ON terrain.area_id = bev_buildings.area_id
+         AND terrain.building_source = 'bev'
+         AND terrain.building_id = bev_buildings.bev_id::text
+        WHERE bev_buildings.area_id = $1
+          AND bev_buildings.bev_id = $2
+    """
+    row = await fetch_one(app, query, resolved_area_id, building_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="BEV building not found")
+
+    record = dict(row)
+    geometry = _ensure_dict(record.pop("geometry"))
+    attributes = _ensure_dict(record.get("properties") or {})
+
+    return BuildingDetail(
+        area_id=row["area_id"],
+        id=str(row["id"]),
+        source="bev",
+        height=row.get("height"),
+        height_m=row.get("height_m"),
+        height_median_m=row.get("height_median_m"),
+        height_max_m=row.get("height_max_m"),
+        height_eaves_m=row.get("height_eaves_m"),
+        ground_min_m=row.get("ground_min_m"),
+        ground_median_m=row.get("ground_median_m"),
+        ground_max_m=row.get("ground_max_m"),
+        footprint_area_m2=row.get("footprint_area_m2"),
+        relief_range_m=row.get("relief_range_m"),
+        agwr_object_number=row.get("agwr_object_number"),
+        agwr_type=row.get("agwr_type"),
+        building_function=row.get("building_function"),
+        verification_lb=row.get("verification_lb"),
+        flight_year=row.get("flight_year"),
+        als_date=row.get("als_date"),
+        capture_method=row.get("capture_method"),
+        height_source=row.get("height_source"),
+        height_quality=row.get("height_quality"),
+        building_type=row.get("building_function") or None,
+        geometry=geometry,
+        attributes=attributes,
+        terrain=_build_building_terrain(row),
+        address=await _find_local_building_address(
+            app,
+            area_id=row["area_id"],
+            source="bev",
+            building_id=str(row["id"]),
+        ),
+    )
+
+
 @router.get("/buildings/gba/{building_id}", response_model=BuildingDetail)
 async def gba_building_detail(
     request: Request,
@@ -1008,12 +1200,14 @@ async def gba_building_detail(
         id=str(row["id"]),
         source="gba",
         height=row.get("height"),
+        height_m=row.get("height"),
         geometry=geometry,
         attributes=attributes,
         terrain=_build_building_terrain(row),
-        address=await _find_gba_local_address(
+        address=await _find_local_building_address(
             app,
             area_id=row["area_id"],
+            source="gba",
             building_id=str(row["id"]),
         ),
     )

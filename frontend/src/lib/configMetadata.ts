@@ -2,6 +2,7 @@ export type AppConfigResponse = {
   velocity_thresholds?: Record<string, number>;
   areas?: unknown;
   datasets?: unknown;
+  building_sources?: unknown;
   tracks?: unknown;
 };
 

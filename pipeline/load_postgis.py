@@ -266,7 +266,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--only",
-        choices=["all", "points", "timeseries", "buildings", "osm", "gba"],
+        choices=["all", "points", "timeseries", "buildings", "bev", "osm", "gba"],
         default="all",
         help="Load only a specific dataset group",
     )
@@ -331,6 +331,13 @@ def main() -> None:
             lambda path: _load_amplitude_timeseries(engine, path, args.area_id, args.dataset_id),
         )
 
+    if args.only in {"all", "buildings", "bev"}:
+        print("\nLoading BEV buildings...")
+        _load_many(
+            "BEV building",
+            _discover_building_files("bev_buildings.parquet"),
+            lambda path: _load_buildings(engine, path, "bev_buildings", "bev_id", args.area_id),
+        )
     if args.only in {"all", "buildings", "gba"}:
         print("\nLoading GBA buildings...")
         _load_many(

@@ -57,6 +57,22 @@ logger = logging.getLogger(__name__)
 CLUSTER_COLOR_PALETTE_SIZE = 60
 CLUSTER_COLOR_OFFSET = 34
 CLUSTER_COLOR_STEP = 17
+BUILDING_SOURCES = {"bev", "gba", "osm"}
+BUILDING_SOURCE_TABLES = {
+    "bev": ("bev_buildings", "bev_id", "height_m"),
+    "gba": ("gba_buildings", "gba_id", "height"),
+    "osm": ("osm_buildings", "osm_id", "NULL::double precision"),
+}
+
+
+def _validate_building_source(source: str) -> None:
+    if source not in BUILDING_SOURCES:
+        raise HTTPException(status_code=400, detail="Invalid source")
+
+
+def _building_table_spec(source: str) -> tuple[str, str, str]:
+    _validate_building_source(source)
+    return BUILDING_SOURCE_TABLES[source]
 
 
 def _log_task_result(task: asyncio.Task) -> None:
@@ -273,8 +289,7 @@ async def building_run_history(
     area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
     limit: int = Query(default=10, ge=1, le=50),
 ):
-    if source not in {"gba", "osm"}:
-        raise HTTPException(status_code=400, detail="Invalid source")
+    _validate_building_source(source)
 
     async with request.app.state.db_pool.acquire() as conn:
         rows = await conn.fetch(
@@ -576,8 +591,7 @@ async def ml_building_analysis(
     building_id: str,
     area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
-    if source not in {"gba", "osm"}:
-        raise HTTPException(status_code=400, detail="Invalid source")
+    _validate_building_source(source)
 
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
@@ -904,8 +918,7 @@ async def ml_building_points_visualization(
     building_id: str,
     area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
-    if source not in {"gba", "osm"}:
-        raise HTTPException(status_code=400, detail="Invalid source")
+    _validate_building_source(source)
 
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
@@ -1157,8 +1170,7 @@ async def ml_building_context_visualization(
     building_id: str,
     area_id: str | None = Query(default=None, description="AOI identifier for the selected building"),
 ):
-    if source not in {"gba", "osm"}:
-        raise HTTPException(status_code=400, detail="Invalid source")
+    _validate_building_source(source)
 
     async with request.app.state.db_pool.acquire() as conn:
         run = await conn.fetchrow(
@@ -1180,51 +1192,36 @@ async def ml_building_context_visualization(
         default_height_m = float(params.get("default_height_m", 12.0) or 12.0)
         buffer_multiplier = float(params.get("buffer_multiplier", 1.0) or 1.0)
         lateral_slack_m = float(params.get("lateral_slack_m", 2.0) or 2.0)
+        table_name, id_column, height_expression = _building_table_spec(source)
 
-        if source == "gba":
-            building_row = await conn.fetchrow(
-                """
-                SELECT
-                    gba_id::text AS building_id,
-                    height,
-                    ST_AsGeoJSON(geom)::jsonb AS geometry,
-                    ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
-                FROM gba_buildings
-                WHERE gba_id::text = $1
-                  AND area_id = $2
-                """,
-                building_id,
-                selected_area_id,
-            )
-        else:
-            building_row = await conn.fetchrow(
-                """
-                SELECT
-                    osm_id::text AS building_id,
-                    NULL::double precision AS height,
-                    ST_AsGeoJSON(geom)::jsonb AS geometry,
-                    ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
-                FROM osm_buildings
-                WHERE osm_id::text = $1
-                  AND area_id = $2
-                """,
-                building_id,
-                selected_area_id,
-            )
+        building_row = await conn.fetchrow(
+            f"""
+            SELECT
+                {id_column}::text AS building_id,
+                {height_expression} AS height,
+                ST_AsGeoJSON(geom)::jsonb AS geometry,
+                ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
+            FROM {table_name}
+            WHERE {id_column}::text = $1
+              AND area_id = $2
+            """,
+            building_id,
+            selected_area_id,
+        )
         if building_row is None:
             raise HTTPException(status_code=404, detail="Building not found")
 
         candidate_rows = []
-        if source == "gba":
+        if source in {"bev", "gba"}:
             candidate_rows = await conn.fetch(
                 f"""
                 WITH building AS (
                     SELECT
-                        gba_id::text AS building_id,
-                        height AS building_height,
+                        {id_column}::text AS building_id,
+                        {height_expression} AS building_height,
                         ST_Transform(geom, 32633) AS geom_utm
-                    FROM gba_buildings
-                    WHERE gba_id::text = $1
+                    FROM {table_name}
+                    WHERE {id_column}::text = $1
                       AND area_id = $10
                 ),
                 {track_geometry_values_cte(
@@ -1754,6 +1751,18 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
             FROM ml_point_results
             WHERE run_id = $4::uuid AND building_id IS NOT NULL
         ),
+        bev AS (
+            SELECT b.area_id,
+                   b.bev_id::text AS building_id,
+                   'bev'::text AS building_source,
+                   b.geom,
+                   b.height_m AS height_m
+            FROM bev_buildings b
+            JOIN assigned_buildings ab
+              ON ab.area_id = b.area_id
+             AND ab.building_source = 'bev'
+             AND ab.building_id = b.bev_id::text
+        ),
         gba AS (
             SELECT b.area_id,
                    b.gba_id::text AS building_id,
@@ -1779,6 +1788,8 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
              AND ab.building_id = b.osm_id::text
         ),
         all_buildings AS (
+            SELECT * FROM bev
+            UNION ALL
             SELECT * FROM gba
             UNION ALL
             SELECT * FROM osm
@@ -1816,7 +1827,11 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.supporting_track_count,
                 COALESCE(
                     c.color_index,
-                    abs(hashtext(all_buildings.area_id || ':' || all_buildings.building_id)) % 60
+                    abs(hashtext(
+                        all_buildings.area_id || ':' ||
+                        all_buildings.building_source || ':' ||
+                        all_buildings.building_id
+                    )) % 60
                 ) AS building_color_index,
                 ST_AsMVTGeom(
                     ST_Transform(all_buildings.geom, 3857),

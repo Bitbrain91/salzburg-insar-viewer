@@ -8,6 +8,23 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import mapping
 
+TILE_PROPERTY_ALLOWLISTS = {
+    "bev": {
+        "area_id",
+        "bev_id",
+        "height",
+        "height_m",
+        "height_median_m",
+        "height_max_m",
+        "height_quality",
+        "height_source",
+        "agwr_object_number",
+    },
+    "gba": {"area_id", "gba_id", "height"},
+    "osm": {"area_id", "osm_id", "name", "building_type"},
+}
+
+
 def _guess_parquet_root(path: Path) -> Path:
     if len(path.parents) >= 3 and path.parents[2].name == "parquet":
         return path.parents[2]
@@ -41,6 +58,8 @@ def _infer_kind(input_path: Path) -> str:
         return "auto"
     if name.startswith("insar_points_t"):
         return "insar_points"
+    if name == "bev_buildings.parquet":
+        return "bev"
     if name == "gba_buildings.parquet":
         return "gba"
     if name == "osm_buildings.parquet":
@@ -60,6 +79,8 @@ def _resolve_inputs(input_path: Path, kind: str) -> tuple[list[Path], Path, str]
         raise ValueError("--kind is required when input is a directory")
     if kind == "insar_points":
         paths = _discover_insar_points(input_path)
+    elif kind == "bev":
+        paths = _discover_buildings(input_path, "bev_buildings.parquet")
     elif kind == "gba":
         paths = _discover_buildings(input_path, "gba_buildings.parquet")
     elif kind == "osm":
@@ -100,7 +121,7 @@ def _apply_context(gdf: gpd.GeoDataFrame, path: Path, parquet_root: Path, kind: 
             raise ValueError(f"InSAR point parquet area_id does not match its path: {path}")
         if not (gdf["dataset_id"].astype(str) == dataset_id).all():
             raise ValueError(f"InSAR point parquet dataset_id does not match its path: {path}")
-    elif kind in {"gba", "osm"}:
+    elif kind in {"bev", "gba", "osm"}:
         if "area_id" not in gdf.columns:
             raise ValueError(f"{kind} parquet must contain area_id: {path}")
         if gdf["area_id"].isna().any():
@@ -121,6 +142,13 @@ def _feature_id(
     if id_field and id_field in props and props[id_field] is not None:
         return str(props[id_field])
     return str(idx)
+
+
+def _filter_tile_properties(props: dict, kind: str) -> dict:
+    allowlist = TILE_PROPERTY_ALLOWLISTS.get(kind)
+    if not allowlist:
+        return props
+    return {key: value for key, value in props.items() if key in allowlist}
 
 
 def to_geojsonl(
@@ -156,6 +184,7 @@ def to_geojsonl(
                     key: _clean_value(value)
                     for key, value in row.drop(labels=["geometry"]).to_dict().items()
                 }
+                props = _filter_tile_properties(props, resolved_kind)
                 feature = {
                     "type": "Feature",
                     "id": _feature_id(props, idx, id_field, id_fields),
@@ -179,7 +208,7 @@ if __name__ == "__main__":
         default=None,
         help="Comma-separated fields to join into a stable feature id.",
     )
-    parser.add_argument("--kind", choices=["auto", "insar_points", "gba", "osm"], default="auto")
+    parser.add_argument("--kind", choices=["auto", "insar_points", "bev", "gba", "osm"], default="auto")
     parser.add_argument("--track", type=int, default=None)
     args = parser.parse_args()
 

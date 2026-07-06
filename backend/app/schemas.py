@@ -40,6 +40,7 @@ class InSARPointDetail(BaseModel):
     velocity: float
     velocity_std: Optional[float] = None
     coherence: Optional[float] = None
+    std_def: Optional[float] = None
     height: Optional[float] = None
     height_std: Optional[float] = None
     acceleration: Optional[float] = None
@@ -89,6 +90,24 @@ class BuildingDetail(BaseModel):
     id: str
     source: str
     height: Optional[float] = None
+    height_m: Optional[float] = None
+    height_median_m: Optional[float] = None
+    height_max_m: Optional[float] = None
+    height_eaves_m: Optional[float] = None
+    ground_min_m: Optional[float] = None
+    ground_median_m: Optional[float] = None
+    ground_max_m: Optional[float] = None
+    footprint_area_m2: Optional[float] = None
+    relief_range_m: Optional[float] = None
+    agwr_object_number: Optional[str] = None
+    agwr_type: Optional[str] = None
+    building_function: Optional[str] = None
+    verification_lb: Optional[str] = None
+    flight_year: Optional[int] = None
+    als_date: Optional[str] = None
+    capture_method: Optional[str] = None
+    height_source: Optional[str] = None
+    height_quality: Optional[str] = None
     name: Optional[str] = None
     building_type: Optional[str] = None
     geometry: dict
@@ -105,6 +124,7 @@ class ConfigResponse(BaseModel):
     velocity_thresholds: dict
     areas: List[dict] = Field(default_factory=list)
     datasets: List[dict] = Field(default_factory=list)
+    building_sources: List[dict] = Field(default_factory=list)
     tracks: List[dict]
 
 

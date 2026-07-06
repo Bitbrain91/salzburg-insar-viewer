@@ -66,6 +66,14 @@ async def assign_building_colors(pool, run_id: str) -> int:
                 FROM ml_point_results
                 WHERE run_id = $1 AND building_id IS NOT NULL
             ),
+            bev AS (
+                SELECT b.area_id, 'bev'::text AS building_source, b.bev_id::text AS building_id, b.geom
+                FROM bev_buildings b
+                JOIN assigned a
+                  ON a.area_id = b.area_id
+                 AND a.building_source = 'bev'
+                 AND a.building_id = b.bev_id::text
+            ),
             gba AS (
                 SELECT b.area_id, 'gba'::text AS building_source, b.gba_id::text AS building_id, b.geom
                 FROM gba_buildings b
@@ -83,6 +91,8 @@ async def assign_building_colors(pool, run_id: str) -> int:
                  AND a.building_id = b.osm_id::text
             ),
             all_buildings AS (
+                SELECT * FROM bev
+                UNION ALL
                 SELECT * FROM gba
                 UNION ALL
                 SELECT * FROM osm
@@ -103,6 +113,14 @@ async def assign_building_colors(pool, run_id: str) -> int:
                 FROM ml_point_results
                 WHERE run_id = $1 AND building_id IS NOT NULL
             ),
+            bev AS (
+                SELECT b.area_id, 'bev'::text AS building_source, b.bev_id::text AS building_id, b.geom
+                FROM bev_buildings b
+                JOIN assigned a
+                  ON a.area_id = b.area_id
+                 AND a.building_source = 'bev'
+                 AND a.building_id = b.bev_id::text
+            ),
             gba AS (
                 SELECT b.area_id, 'gba'::text AS building_source, b.gba_id::text AS building_id, b.geom
                 FROM gba_buildings b
@@ -120,6 +138,8 @@ async def assign_building_colors(pool, run_id: str) -> int:
                  AND a.building_id = b.osm_id::text
             ),
             all_buildings AS (
+                SELECT * FROM bev
+                UNION ALL
                 SELECT * FROM gba
                 UNION ALL
                 SELECT * FROM osm

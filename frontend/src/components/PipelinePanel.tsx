@@ -235,7 +235,7 @@ export default function PipelinePanel() {
       pipeline,
       area_id: selectedAreaId,
       dataset_id: selectedDataset.id,
-      source: "gba",
+      source: "bev",
       track: track === "all" ? null : Number(track),
       bbox: mapBBox,
       params,
