@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 3,
   "updated": "2026-07-07",
   "labeled_by": "team_internal",
-  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md. v2: Kategorie annex ergaenzt; NTC3CYZ01/NTDA86J01 von foreign auf annex umgelabelt (Google-Earth-3D-Befund 2026-07-07: baulich verbundener Anbau).",
+  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md. v2: Kategorie annex ergaenzt; NTC3CYZ01/NTDA86J01 von foreign auf annex umgelabelt (Google-Earth-3D-Befund 2026-07-07: baulich verbundener Anbau). v3 (2026-07-07, N1 Label-Korpus-Ausbau): +8 Gebaeude / +24 Punkte. 4 Roof-Gebaeude (within+core+main-Kerne aus persistierten Runs, stratifiziert: flach/Hang, SNT/TSX, Salzburg fehlte zuvor -> jetzt Bad-Gastein-Abdeckung): 105022686 (bg_flat, Zwei-Track), 113309843 (Hang, TSX t70), 227901743 (Hang, SNT), 227901749 (Hang, SNT). 4 Verdachts-Gebaeude als unclear mit GE-3D-Pflichtcheck 2026-07-07 (KEINE neuen foreign/annex, da keiner der Kandidaten die Regel-2-Schwelle 'bestaetigte Freistehend-Lage ODER anti-layover' erreichte): 96856632, 203343478, 96637488 (salzburg_snt), 113309836 (bad_gastein_tsx_paz). GE-Screenshots: artifacts/label_evidence/ge_<building_id>.png. Ausgelassen ggue. Seed: 238100070 (nur 1 within+core+main, noise_dominated -> zu schwach), 548205 (nicht in persistierten 2026-07-06-Runs).",
   "label_values": ["roof", "annex", "foreign", "unclear"],
   "labels": [
     {
@@ -124,6 +124,152 @@
       "track": 44, "point_code": "O32ROQ901", "label": "unclear",
       "evidence": "implied_height_excess im Survivors-Scan (suspicious), aber kein bestaetigter Fremdstruktur-Befund.",
       "date": "2026-07-06"
+    },
+
+    {
+      "building_id": "105022686", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 95, "point_code": "L4B171Q01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m (auf dem Dach), quality 0.79; persistierter Run f2c4a59e (2026-07-06, status ok). Fall bg_flat/HR-Kopplungsanker, Visual-Audit 'plausible_main_roof_cluster' (t44/t95-Kerne klar auf dem Dach). Roof-Retention-Referenz (flach, Zwei-Track).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "105022686", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 95, "point_code": "L498W8F01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.78; persistierter Run f2c4a59e (status ok). Zwei-Track-Dachcluster bg_flat (Visual-Audit clean); cross-Versatz innerhalb des grossen Footprints (dist 0).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "105022686", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCI03HM01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.75; persistierter Run f2c4a59e (status ok). t44-Seite des Zwei-Track-Dachclusters bg_flat.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "105022686", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCKDTWQ01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.63; persistierter Run f2c4a59e (status ok). t44-Dachkern bg_flat.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309843", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQTI1RF", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.83; persistierter Run 51f54484 (2026-07-06, status ok). TSX-Hangfall, Visual-Audit 'plausible_main_roof_cluster' (Dachkern traegt allein, visuell sauber). Roof-Retention-Referenz (Hang, TSX-Sensor).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309843", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQU3HD7", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.83; persistierter Run 51f54484 (status ok). TSX-Dachkern am Hang (Visual-Audit clean).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309843", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQUOWZ0", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.82; persistierter Run 51f54484 (status ok). TSX-Dachkern am Hang (Visual-Audit clean).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901743", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCF0XGY01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.87; persistierter Run f2c4a59e (status ok). Visual-Audit 'plausible_main_roof_cluster' (dichter t44-Dachkern; nach Demotion der suedlichen off-Footprint-Gruppe echte Dekontamination, Motion unveraendert).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901743", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCEFHV601", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.82; persistierter Run f2c4a59e (status ok). t44-Dachkern (Hang, SNT).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901743", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 95, "point_code": "L4L5KBR01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.76; persistierter Run f2c4a59e (status ok). t95-Seite des Dachclusters (Zwei-Track-Stuetzung, Hang).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901749", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCMRKC201", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.77; persistierter Run f2c4a59e (2026-07-06, status ok - im Juni-Audit noch noise_dominated, Pipeline seither bereinigt). Gelabelt werden die within-Footprint-Dachkerne, nicht der historische Gebaeude-Status. Hang, SNT, High-N.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901749", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 44, "point_code": "NCNCZXU01", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.77; persistierter Run f2c4a59e (status ok). t44-Dachkern (Hang, SNT).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "227901749", "building_source": "gba", "dataset_id": "bad_gastein_snt",
+      "track": 95, "point_code": "L4C829201", "label": "roof",
+      "evidence": "within+core+main-Kern, dist 0.0 m, quality 0.78; persistierter Run f2c4a59e (status ok). t95-Seite des Dachclusters (Zwei-Track-Stuetzung, Hang).",
+      "date": "2026-07-07"
+    },
+
+    {
+      "building_id": "96856632", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O36XPYJ01", "label": "unclear",
+      "evidence": "t44-core-main (nearest, d_fp 13.3 m, cross_look -7.0 m, along_look -21.2 m), Survivors-Scan S6: implied_height_excess (16.6 m > Plausibilitaet 10.6 m), no_height_anchor; Nebenstruktur-Hypothese B (audit_s6_96856632). GE-3D-PFLICHTCHECK 2026-07-07 (ge_96856632.png): hohes Villengebaeude mit steilem Walmdach (Layover einer echten Struktur plausibel) UND kleine flache SW-Nebenstruktur (Carport); freistehend-vs-baulich-verbunden nicht aufloesbar. dot_range +0.94 (layover-konform, KEIN Anti-Layover) -> Regel 2 nicht erfuellt -> unclear (Kandidat fuer Experten-Gegenlabeling + Layover-Reichweiten-Check).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "96856632", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O355F5701", "label": "unclear",
+      "evidence": "t44-core-main (nearest, d_fp 10.1 m, cross_look -7.0 m, along_look -17.7 m), Survivors-Scan S6: implied_height_excess (12.5 m > 10.6 m), no_height_anchor. GE-3D 2026-07-07 (ge_96856632.png): siehe O36XPYJ01 - Villa-Layover vs. SW-Carport nicht aufloesbar, dot_range +0.89 (kein Anti-Layover) -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "203343478", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NT946XL01", "label": "unclear",
+      "evidence": "Teil der 6-7-Punkt-nearest-Reihe (t95, cross_look +8.2 m, along_look -1.0 m, d_fp 3.6 m), die im Visual-Audit v2 (audit_s6_203343478) den KOMPLETTEN Baseline-Main-Cluster bildete - kein Punkt auf dem Dach, unter k2x korrekt zu insufficient_support demotiert. cross-Versatz +8.2 m ist azimutal, radargeometrisch nicht dach­erklaerbar (wie 96959851 'Versatz quer zur Blickrichtung'). GE-3D-PFLICHTCHECK 2026-07-07 (ge_203343478.png): dichter Gruenderzeit-Block, Zentralgebaeude mit separaten Nachbargebaeuden ringsum; die Quell-Struktur der versetzten Reihe (Nachbargebaeude vs. angebauter Fluegel) ist im dichten Block nicht eindeutig, kein Anti-Layover -> Regel 2 nicht erfuellt -> unclear (definitiv nicht Dach, aber foreign nicht bestaetigbar).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "203343478", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTC3CYH01", "label": "unclear",
+      "evidence": "Nachbar-Punkt derselben cross+8.2-m-Reihe (t95, along_look +1.7 m, d_fp 3.8 m); Visual-Audit v2 + GE-3D 2026-07-07 (ge_203343478.png) wie NT946XL01: off-Dach, aber Quell-Struktur im dichten Block nicht eindeutig -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "203343478", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 95, "point_code": "NTAWHQX01", "label": "unclear",
+      "evidence": "Nachbar-Punkt derselben cross+8.2-m-Reihe (t95, along_look +6.9 m, d_fp 5.7 m); Visual-Audit v2 + GE-3D 2026-07-07 (ge_203343478.png): off-Dach, foreign nicht bestaetigbar -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "96637488", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2RGG8R01", "label": "unclear",
+      "evidence": "Teil der 4-5-Punkt-nearest-Reihe (t44, cross_look -10.2 m, along_look +1.4 m, d_fp 2.8 m), die im Visual-Audit v2 (audit_s6_96637488) den kompletten Baseline-Main-Cluster im GARTEN suedlich des Footprints bildete - kein Dachpunkt, unter k2x korrekt zu insufficient_support demotiert. cross-Versatz -10.2 m ist azimutal, nicht dach­erklaerbar. GE-3D-PFLICHTCHECK 2026-07-07 (ge_96637488.png): dunkeldachige Villa mit Gaerten suedlich; die versetzte Reihe liegt im Garten ohne erkennbare eigenstaendige Struktur, kein Anti-Layover -> Regel 2 nicht erfuellt -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "96637488", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2QV0MZ01", "label": "unclear",
+      "evidence": "Nachbar-Punkt derselben cross-10.2-m-Reihe (t44, along_look -4.7 m, d_fp 3.5 m); Visual-Audit v2 + GE-3D 2026-07-07 (ge_96637488.png): Gartenlage suedlich, keine bestaetigte Fremdstruktur -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "96637488", "building_source": "gba", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2Q9L1701", "label": "unclear",
+      "evidence": "Nachbar-Punkt derselben cross-10.2-m-Reihe (t44, along_look -13.9 m, d_fp 9.0 m); Visual-Audit v2 + GE-3D 2026-07-07 (ge_96637488.png): Gartenlage suedlich, keine bestaetigte Fremdstruktur -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309836", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQU3HDL", "label": "unclear",
+      "evidence": "t70-core-main (directional_buffer, d_fp 2.2 m, along_look -10.4 m, v -3.0 mm/a), Survivors-Scan S6: height_outlier, 15.0 m UEBER den within-Dachankern; einer der 3 staerksten negativen Beweger, die den Vorzeichenwechsel +1.00->-0.27 mm/a treiben (Watch-Item audit_s6_113309836). GE-3D-PFLICHTCHECK 2026-07-07 (ge_113309836.png): Steilhang (Kurtherme/Badehospiz-Komplex, terrassiert), Wald und Strukturen oberhalb -> ueber-Dach/Hang-Verdacht physikalisch bestaetigt. Aber dot_range +0.56 (Layover-Korridor, geometrisch unentscheidbar - vgl. 96959851 t95), kein Anti-Layover -> Regel 2 nicht erfuellt -> unclear (Experten-Gegenlabeling vor jeder Verwendung des -0.27-Werts).",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309836", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQUOWZC", "label": "unclear",
+      "evidence": "t70-core-main (directional_buffer, d_fp 1.7 m, along_look -9.7 m, v -2.6 mm/a), Survivors-Scan S6: height_outlier, 13.7 m ueber Dachankern. GE-3D 2026-07-07 (ge_113309836.png): Steilhang mit Strukturen oberhalb, Layover-Korridor (dot +0.99), kein Anti-Layover -> unclear.",
+      "date": "2026-07-07"
+    },
+    {
+      "building_id": "113309836", "building_source": "gba", "dataset_id": "bad_gastein_tsx_paz",
+      "track": 70, "point_code": "DQUOWZD", "label": "unclear",
+      "evidence": "t70-core-main (directional_buffer, d_fp 1.3 m, along_look -9.2 m, v -3.4 mm/a), Survivors-Scan S6: height_outlier, 14.3 m ueber Dachankern. GE-3D 2026-07-07 (ge_113309836.png): Steilhang mit Strukturen oberhalb, Layover-Korridor (dot +0.14), kein Anti-Layover -> unclear.",
+      "date": "2026-07-07"
     }
   ]
 }

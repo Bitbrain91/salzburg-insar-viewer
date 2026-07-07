@@ -19,8 +19,8 @@ Eine Zeile pro gelabeltem Punkt in `artifacts/reference_labels.json`:
 | `dataset_id` | z. B. `salzburg_snt` |
 | `track` | Track-Nummer |
 | `point_code` | InSAR-Punktcode |
-| `label` | `roof` \| `foreign` \| `unclear` |
-| `evidence` | Kurzbegruendung + Quelle (Artefakt/Befund) |
+| `label` | `roof` \| `annex` \| `foreign` \| `unclear` |
+| `evidence` | Kurzbegruendung + Quelle (Artefakt/Befund; bei foreign/annex/unclear-aus-Verdacht mit GE-3D-Datum + Screenshot `artifacts/label_evidence/ge_<building_id>.png`) |
 | `labeled_by` | `team_internal` (nicht expertenvalidiert!) |
 | `date` | Label-Datum |
 
@@ -106,3 +106,33 @@ Nebengebaeude; BEV-Recheck `artifacts/bev_footprint_recheck_96959851.md`)
 und 96637447 (Moosstrasse, Differential-Anker mit Anti-Layover-Cores).
 Quellen: `artifacts/phase7_survivors_scan_s6.{md,json}`, Visual-Audit v2,
 User-Befunde 2026-06-10/11/12, P7-N5 (`next_steps.md`).
+
+## Stand nach Korpus-Ausbau v3 (2026-07-07, N1)
+
+10 Gebaeude, 44 gelabelte Punkte (19 roof, 2 annex, 8 foreign, 15 unclear).
++8 Gebaeude / +24 Punkte gegenueber v2. GE-Screenshots aller Verdachtsfaelle
+unter `artifacts/label_evidence/ge_<building_id>.png` (GE-3D-Pflichtcheck
+2026-07-07). Stratifikation bewusst um Bad Gastein / Hang / TSX erweitert
+(v2 war reines Salzburg-SNT):
+
+- **4 Roof-Gebaeude** (within+core+main-Kerne aus persistierten 2026-07-06-Runs,
+  dist 0 m auf dem Dach): `105022686` (bg_flat, Zwei-Track SNT, Run f2c4a59e),
+  `113309843` (Hang, TSX t70, Run 51f54484), `227901743` (Hang, SNT, Run
+  f2c4a59e), `227901749` (Hang, SNT, High-N, Run f2c4a59e). Zweck:
+  Roof-Retention-Referenz (v2 war foreign-lastig; k2x-Risiko ist Ueber-Demotion
+  echter Dachpunkte).
+- **4 Verdachts-Gebaeude als `unclear`** mit GE-3D-Pflichtcheck: `96856632`,
+  `203343478`, `96637488` (salzburg_snt), `113309836` (bad_gastein_tsx_paz).
+  KEINE neuen `foreign`/`annex`: kein Kandidat erreichte die Regel-2-Schwelle
+  (bestaetigte Freistehend-Lage ODER Anti-Layover). Alle vier haben
+  layover-konforme oder undecidable Geometrie (kein Anti-Layover); die
+  versetzten nearest-Reihen (203343478 cross +8.2 m; 96637488 cross -10.2 m im
+  Garten) sind definitiv off-Dach, aber die Quell-Struktur ist im dichten Block
+  / Garten nicht als eigenstaendig bestaetigbar. 96856632: Villa-Layover vs.
+  SW-Carport nicht aufloesbar. 113309836: Steilhang-ueber-Dach-Verdacht in GE-3D
+  physikalisch bestaetigt, aber Layover-Korridor (unentscheidbar) -> Watch-Item
+  bleibt `unclear`. Alle vier gehen auf die Experten-Gegenlabeling-Liste.
+
+Ausgelassen ggue. Seed-Vorschlag: `238100070` (nur 1 within+core+main,
+noise_dominated -> zu schwach als Roof-Quelle), `548205` (nicht in den
+persistierten 2026-07-06-Runs vorhanden).
