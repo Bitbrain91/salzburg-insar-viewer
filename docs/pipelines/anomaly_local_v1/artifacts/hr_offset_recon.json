@@ -1,0 +1,2525 @@
+{
+  "generated": "2026-07-07T10:15:05.850547+00:00",
+  "experiment": "noop",
+  "source": "gba",
+  "tolerances_m": {
+    "snt": 12.0,
+    "tsx": 3.0
+  },
+  "pairs": {
+    "bg_flat_01": {
+      "snt_aoi": "bg_flat_01_snt",
+      "tsx_aoi": "bg_flat_01_tsx",
+      "summary": {
+        "buildings_coupled": 54,
+        "min_offset": {
+          "n": 54,
+          "median": 0.0,
+          "p75": 1.08,
+          "p90": 2.56,
+          "share_le_15m": 1.0,
+          "hist": {
+            "0-3m": 51,
+            "3-6m": 3,
+            "6-9m": 0,
+            "9-12m": 0,
+            "12-15m": 0,
+            "15-20m": 0,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "median_offset": {
+          "n": 54,
+          "median": 7.97,
+          "p75": 10.5,
+          "p90": 12.84,
+          "share_le_15m": 0.944,
+          "hist": {
+            "0-3m": 1,
+            "3-6m": 9,
+            "6-9m": 22,
+            "9-12m": 14,
+            "12-15m": 5,
+            "15-20m": 3,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "main_centroid_dist": {
+          "n": 54,
+          "median": 5.41,
+          "p75": 8.53,
+          "p90": 11.74,
+          "share_le_15m": 0.981,
+          "hist": {
+            "0-3m": 11,
+            "3-6m": 18,
+            "6-9m": 12,
+            "9-12m": 8,
+            "12-15m": 4,
+            "15-20m": 1,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        }
+      },
+      "rows": [
+        {
+          "building_id": "105022685",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 184,
+          "min_offset_m": 0.0,
+          "median_offset_m": 13.49,
+          "p90_offset_m": 26.18,
+          "main_centroid_dist_m": 12.26
+        },
+        {
+          "building_id": "105022686",
+          "n_snt_main_cores": 27,
+          "n_tsx_cores": 166,
+          "min_offset_m": 0.0,
+          "median_offset_m": 12.87,
+          "p90_offset_m": 24.32,
+          "main_centroid_dist_m": 9.18
+        },
+        {
+          "building_id": "143823099",
+          "n_snt_main_cores": 27,
+          "n_tsx_cores": 66,
+          "min_offset_m": 0.0,
+          "median_offset_m": 9.26,
+          "p90_offset_m": 15.01,
+          "main_centroid_dist_m": 1.17
+        },
+        {
+          "building_id": "143823101",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 59,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.96,
+          "p90_offset_m": 12.29,
+          "main_centroid_dist_m": 4.54
+        },
+        {
+          "building_id": "193882807",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 64,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.46,
+          "p90_offset_m": 10.19,
+          "main_centroid_dist_m": 4.04
+        },
+        {
+          "building_id": "227901740",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 89,
+          "min_offset_m": 0.78,
+          "median_offset_m": 6.36,
+          "p90_offset_m": 11.35,
+          "main_centroid_dist_m": 3.27
+        },
+        {
+          "building_id": "227901742",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 40,
+          "min_offset_m": 0.97,
+          "median_offset_m": 7.29,
+          "p90_offset_m": 11.87,
+          "main_centroid_dist_m": 7.16
+        },
+        {
+          "building_id": "227901743",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 49,
+          "min_offset_m": 0.0,
+          "median_offset_m": 5.45,
+          "p90_offset_m": 12.51,
+          "main_centroid_dist_m": 4.83
+        },
+        {
+          "building_id": "227901745",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 49,
+          "min_offset_m": 0.0,
+          "median_offset_m": 5.77,
+          "p90_offset_m": 7.99,
+          "main_centroid_dist_m": 2.93
+        },
+        {
+          "building_id": "227901748",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 28,
+          "min_offset_m": 2.52,
+          "median_offset_m": 7.34,
+          "p90_offset_m": 12.96,
+          "main_centroid_dist_m": 6.62
+        },
+        {
+          "building_id": "227901749",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 82,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.46,
+          "p90_offset_m": 16.46,
+          "main_centroid_dist_m": 6.67
+        },
+        {
+          "building_id": "227901750",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 84,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.6,
+          "p90_offset_m": 15.5,
+          "main_centroid_dist_m": 5.24
+        },
+        {
+          "building_id": "227901751",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 48,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.35,
+          "p90_offset_m": 11.12,
+          "main_centroid_dist_m": 3.45
+        },
+        {
+          "building_id": "227901753",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 39,
+          "min_offset_m": 2.42,
+          "median_offset_m": 12.92,
+          "p90_offset_m": 18.15,
+          "main_centroid_dist_m": 12.82
+        },
+        {
+          "building_id": "227901757",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 36,
+          "min_offset_m": 0.0,
+          "median_offset_m": 12.18,
+          "p90_offset_m": 25.23,
+          "main_centroid_dist_m": 13.01
+        },
+        {
+          "building_id": "238088267",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 79,
+          "min_offset_m": 0.0,
+          "median_offset_m": 11.14,
+          "p90_offset_m": 16.21,
+          "main_centroid_dist_m": 9.12
+        },
+        {
+          "building_id": "238088268",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 37,
+          "min_offset_m": 0.0,
+          "median_offset_m": 15.59,
+          "p90_offset_m": 27.26,
+          "main_centroid_dist_m": 15.49
+        },
+        {
+          "building_id": "238099964",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 122,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.15,
+          "p90_offset_m": 18.9,
+          "main_centroid_dist_m": 3.84
+        },
+        {
+          "building_id": "238099965",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 57,
+          "min_offset_m": 0.29,
+          "median_offset_m": 10.36,
+          "p90_offset_m": 24.52,
+          "main_centroid_dist_m": 9.79
+        },
+        {
+          "building_id": "238099968",
+          "n_snt_main_cores": 18,
+          "n_tsx_cores": 63,
+          "min_offset_m": 0.0,
+          "median_offset_m": 7.89,
+          "p90_offset_m": 13.29,
+          "main_centroid_dist_m": 5.17
+        },
+        {
+          "building_id": "238099970",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 46,
+          "min_offset_m": 1.43,
+          "median_offset_m": 11.57,
+          "p90_offset_m": 24.19,
+          "main_centroid_dist_m": 11.75
+        },
+        {
+          "building_id": "238099979",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 18,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.71,
+          "p90_offset_m": 20.94,
+          "main_centroid_dist_m": 6.34
+        },
+        {
+          "building_id": "238099987",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 40,
+          "min_offset_m": 0.0,
+          "median_offset_m": 11.01,
+          "p90_offset_m": 15.3,
+          "main_centroid_dist_m": 10.89
+        },
+        {
+          "building_id": "238099991",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 61,
+          "min_offset_m": 0.0,
+          "median_offset_m": 7.54,
+          "p90_offset_m": 11.64,
+          "main_centroid_dist_m": 0.54
+        },
+        {
+          "building_id": "238099993",
+          "n_snt_main_cores": 23,
+          "n_tsx_cores": 57,
+          "min_offset_m": 0.0,
+          "median_offset_m": 7.37,
+          "p90_offset_m": 14.3,
+          "main_centroid_dist_m": 7.31
+        },
+        {
+          "building_id": "238099999",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 110,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.44,
+          "p90_offset_m": 12.91,
+          "main_centroid_dist_m": 2.78
+        },
+        {
+          "building_id": "238100000",
+          "n_snt_main_cores": 21,
+          "n_tsx_cores": 79,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.99,
+          "p90_offset_m": 12.99,
+          "main_centroid_dist_m": 3.15
+        },
+        {
+          "building_id": "238100006",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 7,
+          "min_offset_m": 3.64,
+          "median_offset_m": 17.24,
+          "p90_offset_m": 21.08,
+          "main_centroid_dist_m": 14.81
+        },
+        {
+          "building_id": "238100016",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 19,
+          "min_offset_m": 0.0,
+          "median_offset_m": 4.18,
+          "p90_offset_m": 6.23,
+          "main_centroid_dist_m": 2.24
+        },
+        {
+          "building_id": "238100024",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 53,
+          "min_offset_m": 4.02,
+          "median_offset_m": 11.84,
+          "p90_offset_m": 17.75,
+          "main_centroid_dist_m": 11.73
+        },
+        {
+          "building_id": "238100030",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 20,
+          "min_offset_m": 2.86,
+          "median_offset_m": 10.51,
+          "p90_offset_m": 13.47,
+          "main_centroid_dist_m": 6.49
+        },
+        {
+          "building_id": "238100032",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 29,
+          "min_offset_m": 1.12,
+          "median_offset_m": 5.99,
+          "p90_offset_m": 10.12,
+          "main_centroid_dist_m": 3.09
+        },
+        {
+          "building_id": "238100041",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 70,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.34,
+          "p90_offset_m": 15.39,
+          "main_centroid_dist_m": 8.64
+        },
+        {
+          "building_id": "238100042",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 50,
+          "min_offset_m": 0.0,
+          "median_offset_m": 4.24,
+          "p90_offset_m": 7.52,
+          "main_centroid_dist_m": 1.51
+        },
+        {
+          "building_id": "238100050",
+          "n_snt_main_cores": 20,
+          "n_tsx_cores": 69,
+          "min_offset_m": 0.0,
+          "median_offset_m": 16.0,
+          "p90_offset_m": 27.45,
+          "main_centroid_dist_m": 11.35
+        },
+        {
+          "building_id": "238100051",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 46,
+          "min_offset_m": 0.0,
+          "median_offset_m": 4.17,
+          "p90_offset_m": 7.45,
+          "main_centroid_dist_m": 0.53
+        },
+        {
+          "building_id": "238100063",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 3,
+          "min_offset_m": 4.12,
+          "median_offset_m": 7.29,
+          "p90_offset_m": 8.89,
+          "main_centroid_dist_m": 7.29
+        },
+        {
+          "building_id": "238100066",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 66,
+          "min_offset_m": 2.69,
+          "median_offset_m": 7.67,
+          "p90_offset_m": 15.06,
+          "main_centroid_dist_m": 5.83
+        },
+        {
+          "building_id": "238100070",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 41,
+          "min_offset_m": 0.0,
+          "median_offset_m": 7.03,
+          "p90_offset_m": 16.3,
+          "main_centroid_dist_m": 3.47
+        },
+        {
+          "building_id": "238100082",
+          "n_snt_main_cores": 16,
+          "n_tsx_cores": 114,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.99,
+          "p90_offset_m": 19.92,
+          "main_centroid_dist_m": 3.97
+        },
+        {
+          "building_id": "238100083",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 71,
+          "min_offset_m": 2.19,
+          "median_offset_m": 8.47,
+          "p90_offset_m": 11.28,
+          "main_centroid_dist_m": 4.35
+        },
+        {
+          "building_id": "34031762",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 77,
+          "min_offset_m": 0.17,
+          "median_offset_m": 7.49,
+          "p90_offset_m": 12.16,
+          "main_centroid_dist_m": 1.75
+        },
+        {
+          "building_id": "367694477",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 34,
+          "min_offset_m": 1.3,
+          "median_offset_m": 7.95,
+          "p90_offset_m": 15.28,
+          "main_centroid_dist_m": 5.58
+        },
+        {
+          "building_id": "367694478",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 61,
+          "min_offset_m": 0.0,
+          "median_offset_m": 9.09,
+          "p90_offset_m": 15.25,
+          "main_centroid_dist_m": 4.51
+        },
+        {
+          "building_id": "367694489",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 64,
+          "min_offset_m": 1.18,
+          "median_offset_m": 9.44,
+          "p90_offset_m": 20.15,
+          "main_centroid_dist_m": 10.03
+        },
+        {
+          "building_id": "367828513",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 6,
+          "min_offset_m": 2.57,
+          "median_offset_m": 8.11,
+          "p90_offset_m": 9.83,
+          "main_centroid_dist_m": 8.2
+        },
+        {
+          "building_id": "367834834",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 110,
+          "min_offset_m": 0.0,
+          "median_offset_m": 12.77,
+          "p90_offset_m": 21.79,
+          "main_centroid_dist_m": 8.05
+        },
+        {
+          "building_id": "656292755",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 28,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.0,
+          "p90_offset_m": 11.53,
+          "main_centroid_dist_m": 6.35
+        },
+        {
+          "building_id": "656473446",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 57,
+          "min_offset_m": 1.33,
+          "median_offset_m": 9.33,
+          "p90_offset_m": 13.07,
+          "main_centroid_dist_m": 4.11
+        },
+        {
+          "building_id": "656473448",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 85,
+          "min_offset_m": 0.48,
+          "median_offset_m": 7.01,
+          "p90_offset_m": 11.62,
+          "main_centroid_dist_m": 1.64
+        },
+        {
+          "building_id": "656473453",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 59,
+          "min_offset_m": 0.0,
+          "median_offset_m": 5.13,
+          "p90_offset_m": 8.87,
+          "main_centroid_dist_m": 1.01
+        },
+        {
+          "building_id": "656482123",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 7,
+          "min_offset_m": 0.0,
+          "median_offset_m": 1.74,
+          "p90_offset_m": 8.12,
+          "main_centroid_dist_m": 7.84
+        },
+        {
+          "building_id": "656482125",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 23,
+          "min_offset_m": 0.81,
+          "median_offset_m": 4.6,
+          "p90_offset_m": 8.32,
+          "main_centroid_dist_m": 4.18
+        },
+        {
+          "building_id": "659097270",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 6,
+          "min_offset_m": 0.0,
+          "median_offset_m": 4.05,
+          "p90_offset_m": 6.6,
+          "main_centroid_dist_m": 2.36
+        }
+      ]
+    },
+    "bg_slope_01": {
+      "snt_aoi": "bg_slope_01_snt",
+      "tsx_aoi": "bg_slope_01_tsx",
+      "summary": {
+        "buildings_coupled": 34,
+        "min_offset": {
+          "n": 34,
+          "median": 0.0,
+          "p75": 0.68,
+          "p90": 2.59,
+          "share_le_15m": 1.0,
+          "hist": {
+            "0-3m": 31,
+            "3-6m": 2,
+            "6-9m": 1,
+            "9-12m": 0,
+            "12-15m": 0,
+            "15-20m": 0,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "median_offset": {
+          "n": 34,
+          "median": 9.37,
+          "p75": 11.42,
+          "p90": 15.69,
+          "share_le_15m": 0.824,
+          "hist": {
+            "0-3m": 0,
+            "3-6m": 5,
+            "6-9m": 9,
+            "9-12m": 12,
+            "12-15m": 2,
+            "15-20m": 6,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "main_centroid_dist": {
+          "n": 34,
+          "median": 6.25,
+          "p75": 8.6,
+          "p90": 11.03,
+          "share_le_15m": 0.971,
+          "hist": {
+            "0-3m": 6,
+            "3-6m": 10,
+            "6-9m": 10,
+            "9-12m": 5,
+            "12-15m": 2,
+            "15-20m": 1,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        }
+      },
+      "rows": [
+        {
+          "building_id": "113309835",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 60,
+          "min_offset_m": 0.74,
+          "median_offset_m": 10.28,
+          "p90_offset_m": 14.79,
+          "main_centroid_dist_m": 7.5
+        },
+        {
+          "building_id": "113309836",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 40,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.49,
+          "p90_offset_m": 9.13,
+          "main_centroid_dist_m": 3.7
+        },
+        {
+          "building_id": "113309837",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 42,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.68,
+          "p90_offset_m": 13.88,
+          "main_centroid_dist_m": 6.78
+        },
+        {
+          "building_id": "113309838",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 11,
+          "min_offset_m": 0.0,
+          "median_offset_m": 5.44,
+          "p90_offset_m": 7.21,
+          "main_centroid_dist_m": 4.85
+        },
+        {
+          "building_id": "113309840",
+          "n_snt_main_cores": 16,
+          "n_tsx_cores": 101,
+          "min_offset_m": 0.0,
+          "median_offset_m": 11.42,
+          "p90_offset_m": 18.24,
+          "main_centroid_dist_m": 5.83
+        },
+        {
+          "building_id": "113309842",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 61,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.41,
+          "p90_offset_m": 19.8,
+          "main_centroid_dist_m": 6.69
+        },
+        {
+          "building_id": "113309843",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 28,
+          "min_offset_m": 0.0,
+          "median_offset_m": 6.54,
+          "p90_offset_m": 11.63,
+          "main_centroid_dist_m": 6.06
+        },
+        {
+          "building_id": "113309846",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 90,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.43,
+          "p90_offset_m": 12.37,
+          "main_centroid_dist_m": 3.46
+        },
+        {
+          "building_id": "113309849",
+          "n_snt_main_cores": 15,
+          "n_tsx_cores": 154,
+          "min_offset_m": 0.75,
+          "median_offset_m": 15.91,
+          "p90_offset_m": 26.8,
+          "main_centroid_dist_m": 11.6
+        },
+        {
+          "building_id": "113309851",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 106,
+          "min_offset_m": 3.78,
+          "median_offset_m": 11.41,
+          "p90_offset_m": 20.67,
+          "main_centroid_dist_m": 7.95
+        },
+        {
+          "building_id": "113309853",
+          "n_snt_main_cores": 32,
+          "n_tsx_cores": 215,
+          "min_offset_m": 0.0,
+          "median_offset_m": 15.86,
+          "p90_offset_m": 31.63,
+          "main_centroid_dist_m": 7.95
+        },
+        {
+          "building_id": "114978535",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 16,
+          "min_offset_m": 0.0,
+          "median_offset_m": 5.17,
+          "p90_offset_m": 11.86,
+          "main_centroid_dist_m": 6.44
+        },
+        {
+          "building_id": "114978537",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 23,
+          "min_offset_m": 0.72,
+          "median_offset_m": 7.1,
+          "p90_offset_m": 11.17,
+          "main_centroid_dist_m": 5.26
+        },
+        {
+          "building_id": "114978542",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 50,
+          "min_offset_m": 0.54,
+          "median_offset_m": 15.31,
+          "p90_offset_m": 20.6,
+          "main_centroid_dist_m": 14.71
+        },
+        {
+          "building_id": "114978556",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 30,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.65,
+          "p90_offset_m": 13.82,
+          "main_centroid_dist_m": 9.58
+        },
+        {
+          "building_id": "114978569",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 70,
+          "min_offset_m": 0.0,
+          "median_offset_m": 9.81,
+          "p90_offset_m": 15.97,
+          "main_centroid_dist_m": 5.01
+        },
+        {
+          "building_id": "114978579",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 10,
+          "min_offset_m": 4.11,
+          "median_offset_m": 8.52,
+          "p90_offset_m": 10.21,
+          "main_centroid_dist_m": 8.39
+        },
+        {
+          "building_id": "114978584",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 3,
+          "min_offset_m": 0.0,
+          "median_offset_m": 9.01,
+          "p90_offset_m": 12.23,
+          "main_centroid_dist_m": 9.01
+        },
+        {
+          "building_id": "120878936",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 58,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.14,
+          "p90_offset_m": 11.79,
+          "main_centroid_dist_m": 4.45
+        },
+        {
+          "building_id": "120878941",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 12,
+          "min_offset_m": 0.0,
+          "median_offset_m": 10.59,
+          "p90_offset_m": 13.0,
+          "main_centroid_dist_m": 9.69
+        },
+        {
+          "building_id": "120878946",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 5,
+          "min_offset_m": 7.41,
+          "median_offset_m": 9.24,
+          "p90_offset_m": 10.2,
+          "main_centroid_dist_m": 9.24
+        },
+        {
+          "building_id": "120878955",
+          "n_snt_main_cores": 31,
+          "n_tsx_cores": 269,
+          "min_offset_m": 0.0,
+          "median_offset_m": 12.65,
+          "p90_offset_m": 23.16,
+          "main_centroid_dist_m": 2.63
+        },
+        {
+          "building_id": "120878958",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 22,
+          "min_offset_m": 0.0,
+          "median_offset_m": 4.79,
+          "p90_offset_m": 8.79,
+          "main_centroid_dist_m": 2.14
+        },
+        {
+          "building_id": "120878966",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 26,
+          "min_offset_m": 0.0,
+          "median_offset_m": 13.32,
+          "p90_offset_m": 17.61,
+          "main_centroid_dist_m": 12.91
+        },
+        {
+          "building_id": "216707201",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 20,
+          "min_offset_m": 0.0,
+          "median_offset_m": 9.5,
+          "p90_offset_m": 12.15,
+          "main_centroid_dist_m": 8.67
+        },
+        {
+          "building_id": "216707205",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 27,
+          "min_offset_m": 2.93,
+          "median_offset_m": 9.0,
+          "p90_offset_m": 12.67,
+          "main_centroid_dist_m": 8.3
+        },
+        {
+          "building_id": "238057562",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 128,
+          "min_offset_m": 0.0,
+          "median_offset_m": 11.07,
+          "p90_offset_m": 20.27,
+          "main_centroid_dist_m": 5.41
+        },
+        {
+          "building_id": "238057563",
+          "n_snt_main_cores": 28,
+          "n_tsx_cores": 394,
+          "min_offset_m": 0.0,
+          "median_offset_m": 16.7,
+          "p90_offset_m": 26.22,
+          "main_centroid_dist_m": 0.55
+        },
+        {
+          "building_id": "238057564",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 97,
+          "min_offset_m": 0.0,
+          "median_offset_m": 8.88,
+          "p90_offset_m": 14.39,
+          "main_centroid_dist_m": 5.74
+        },
+        {
+          "building_id": "238063649",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 11,
+          "min_offset_m": 0.0,
+          "median_offset_m": 15.3,
+          "p90_offset_m": 19.2,
+          "main_centroid_dist_m": 15.84
+        },
+        {
+          "building_id": "33956594",
+          "n_snt_main_cores": 36,
+          "n_tsx_cores": 199,
+          "min_offset_m": 0.0,
+          "median_offset_m": 19.15,
+          "p90_offset_m": 27.0,
+          "main_centroid_dist_m": 0.51
+        },
+        {
+          "building_id": "368017563",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 24,
+          "min_offset_m": 1.47,
+          "median_offset_m": 5.46,
+          "p90_offset_m": 9.02,
+          "main_centroid_dist_m": 4.76
+        },
+        {
+          "building_id": "591630211",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 29,
+          "min_offset_m": 1.81,
+          "median_offset_m": 10.51,
+          "p90_offset_m": 14.58,
+          "main_centroid_dist_m": 2.58
+        },
+        {
+          "building_id": "655185156",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 7,
+          "min_offset_m": 0.0,
+          "median_offset_m": 3.3,
+          "p90_offset_m": 3.6,
+          "main_centroid_dist_m": 2.92
+        }
+      ]
+    },
+    "mirabell": {
+      "snt_aoi": "mirabell",
+      "tsx_aoi": "mirabell_tsx",
+      "summary": {
+        "buildings_coupled": 33,
+        "min_offset": {
+          "n": 33,
+          "median": 4.34,
+          "p75": 6.87,
+          "p90": 11.95,
+          "share_le_15m": 0.939,
+          "hist": {
+            "0-3m": 13,
+            "3-6m": 7,
+            "6-9m": 8,
+            "9-12m": 2,
+            "12-15m": 1,
+            "15-20m": 2,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "median_offset": {
+          "n": 33,
+          "median": 11.09,
+          "p75": 13.72,
+          "p90": 26.3,
+          "share_le_15m": 0.758,
+          "hist": {
+            "0-3m": 0,
+            "3-6m": 1,
+            "6-9m": 11,
+            "9-12m": 9,
+            "12-15m": 4,
+            "15-20m": 2,
+            "20-30m": 4,
+            "30-infm": 2
+          }
+        },
+        "main_centroid_dist": {
+          "n": 32,
+          "median": 7.12,
+          "p75": 9.82,
+          "p90": 17.99,
+          "share_le_15m": 0.844,
+          "hist": {
+            "0-3m": 5,
+            "3-6m": 6,
+            "6-9m": 11,
+            "9-12m": 4,
+            "12-15m": 1,
+            "15-20m": 3,
+            "20-30m": 2,
+            "30-infm": 0
+          }
+        }
+      },
+      "rows": [
+        {
+          "building_id": "150571108",
+          "n_snt_main_cores": 32,
+          "n_tsx_cores": 11,
+          "min_offset_m": 4.46,
+          "median_offset_m": 8.29,
+          "p90_offset_m": 16.39,
+          "main_centroid_dist_m": 7.64
+        },
+        {
+          "building_id": "155037922",
+          "n_snt_main_cores": 24,
+          "n_tsx_cores": 23,
+          "min_offset_m": 0.62,
+          "median_offset_m": 13.72,
+          "p90_offset_m": 17.78,
+          "main_centroid_dist_m": 4.21
+        },
+        {
+          "building_id": "324384",
+          "n_snt_main_cores": 140,
+          "n_tsx_cores": 133,
+          "min_offset_m": 16.02,
+          "median_offset_m": 34.49,
+          "p90_offset_m": 46.19,
+          "main_centroid_dist_m": 6.86
+        },
+        {
+          "building_id": "44331034",
+          "n_snt_main_cores": 42,
+          "n_tsx_cores": 58,
+          "min_offset_m": 4.34,
+          "median_offset_m": 27.56,
+          "p90_offset_m": 33.94,
+          "main_centroid_dist_m": 19.39
+        },
+        {
+          "building_id": "44331052",
+          "n_snt_main_cores": 51,
+          "n_tsx_cores": 27,
+          "min_offset_m": 2.34,
+          "median_offset_m": 16.38,
+          "p90_offset_m": 26.17,
+          "main_centroid_dist_m": 6.52
+        },
+        {
+          "building_id": "44331059",
+          "n_snt_main_cores": 18,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.49,
+          "median_offset_m": 9.81,
+          "p90_offset_m": 15.21,
+          "main_centroid_dist_m": 4.63
+        },
+        {
+          "building_id": "54773189",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 9,
+          "min_offset_m": 1.59,
+          "median_offset_m": 4.26,
+          "p90_offset_m": 7.27,
+          "main_centroid_dist_m": 2.55
+        },
+        {
+          "building_id": "54773192",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 8,
+          "min_offset_m": 1.51,
+          "median_offset_m": 6.57,
+          "p90_offset_m": 10.82,
+          "main_centroid_dist_m": 2.02
+        },
+        {
+          "building_id": "54773193",
+          "n_snt_main_cores": 29,
+          "n_tsx_cores": 24,
+          "min_offset_m": 13.18,
+          "median_offset_m": 30.01,
+          "p90_offset_m": 46.04,
+          "main_centroid_dist_m": 25.33
+        },
+        {
+          "building_id": "54773226",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 11,
+          "min_offset_m": 4.73,
+          "median_offset_m": 7.87,
+          "p90_offset_m": 10.25,
+          "main_centroid_dist_m": 6.98
+        },
+        {
+          "building_id": "54773374",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 2,
+          "min_offset_m": 6.92,
+          "median_offset_m": 7.66,
+          "p90_offset_m": 8.25,
+          "main_centroid_dist_m": 7.37
+        },
+        {
+          "building_id": "54773386",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 6,
+          "min_offset_m": 8.95,
+          "median_offset_m": 10.53,
+          "p90_offset_m": 12.04,
+          "main_centroid_dist_m": 9.23
+        },
+        {
+          "building_id": "548204",
+          "n_snt_main_cores": 28,
+          "n_tsx_cores": 16,
+          "min_offset_m": 1.44,
+          "median_offset_m": 11.99,
+          "p90_offset_m": 21.51,
+          "main_centroid_dist_m": 2.14
+        },
+        {
+          "building_id": "548205",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 3,
+          "min_offset_m": 4.26,
+          "median_offset_m": 7.29,
+          "p90_offset_m": 8.33,
+          "main_centroid_dist_m": 6.64
+        },
+        {
+          "building_id": "548206",
+          "n_snt_main_cores": 47,
+          "n_tsx_cores": 75,
+          "min_offset_m": 1.19,
+          "median_offset_m": 17.52,
+          "p90_offset_m": 38.98,
+          "main_centroid_dist_m": 3.99
+        },
+        {
+          "building_id": "548207",
+          "n_snt_main_cores": 29,
+          "n_tsx_cores": 23,
+          "min_offset_m": 5.81,
+          "median_offset_m": 21.26,
+          "p90_offset_m": 26.69,
+          "main_centroid_dist_m": 15.97
+        },
+        {
+          "building_id": "54827809",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 6,
+          "min_offset_m": 2.54,
+          "median_offset_m": 11.39,
+          "p90_offset_m": 14.9,
+          "main_centroid_dist_m": 11.03
+        },
+        {
+          "building_id": "54833007",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 4,
+          "min_offset_m": 6.13,
+          "median_offset_m": 8.87,
+          "p90_offset_m": 10.18,
+          "main_centroid_dist_m": 8.6
+        },
+        {
+          "building_id": "54833029",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.9,
+          "median_offset_m": 12.95,
+          "p90_offset_m": 29.55,
+          "main_centroid_dist_m": 9.74
+        },
+        {
+          "building_id": "54833089",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 14,
+          "min_offset_m": 2.77,
+          "median_offset_m": 8.51,
+          "p90_offset_m": 12.44,
+          "main_centroid_dist_m": 2.97
+        },
+        {
+          "building_id": "54843077",
+          "n_snt_main_cores": 25,
+          "n_tsx_cores": 17,
+          "min_offset_m": 3.15,
+          "median_offset_m": 7.87,
+          "p90_offset_m": 16.65,
+          "main_centroid_dist_m": 6.11
+        },
+        {
+          "building_id": "54843078",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 10,
+          "min_offset_m": 6.82,
+          "median_offset_m": 11.09,
+          "p90_offset_m": 13.55,
+          "main_centroid_dist_m": 7.27
+        },
+        {
+          "building_id": "54843082",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 5,
+          "min_offset_m": 6.29,
+          "median_offset_m": 13.32,
+          "p90_offset_m": 15.89,
+          "main_centroid_dist_m": 12.86
+        },
+        {
+          "building_id": "54843101",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 19,
+          "min_offset_m": 6.19,
+          "median_offset_m": 10.87,
+          "p90_offset_m": 24.76,
+          "main_centroid_dist_m": 4.83
+        },
+        {
+          "building_id": "54843111",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 14,
+          "min_offset_m": 2.54,
+          "median_offset_m": 11.58,
+          "p90_offset_m": 13.88,
+          "main_centroid_dist_m": 1.85
+        },
+        {
+          "building_id": "54843115",
+          "n_snt_main_cores": 18,
+          "n_tsx_cores": 24,
+          "min_offset_m": 6.87,
+          "median_offset_m": 13.7,
+          "p90_offset_m": 18.0,
+          "main_centroid_dist_m": 8.99
+        },
+        {
+          "building_id": "54843117",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 7,
+          "min_offset_m": 0.27,
+          "median_offset_m": 6.3,
+          "p90_offset_m": 7.4,
+          "main_centroid_dist_m": 3.59
+        },
+        {
+          "building_id": "55219642",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 15,
+          "min_offset_m": 3.0,
+          "median_offset_m": 7.43,
+          "p90_offset_m": 17.18,
+          "main_centroid_dist_m": 5.38
+        },
+        {
+          "building_id": "737515124",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 9,
+          "min_offset_m": 2.94,
+          "median_offset_m": 8.69,
+          "p90_offset_m": 12.75,
+          "main_centroid_dist_m": 8.41
+        },
+        {
+          "building_id": "772957950",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 7,
+          "min_offset_m": 16.01,
+          "median_offset_m": 20.12,
+          "p90_offset_m": 26.63,
+          "main_centroid_dist_m": 20.11
+        },
+        {
+          "building_id": "802519494",
+          "n_snt_main_cores": 33,
+          "n_tsx_cores": 34,
+          "min_offset_m": 11.98,
+          "median_offset_m": 28.98,
+          "p90_offset_m": 37.48,
+          "main_centroid_dist_m": 18.21
+        },
+        {
+          "building_id": "803726800",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 5,
+          "min_offset_m": 7.97,
+          "median_offset_m": 10.06,
+          "p90_offset_m": 39.13,
+          "main_centroid_dist_m": 10.06
+        },
+        {
+          "building_id": "986479013",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 1,
+          "min_offset_m": 11.82,
+          "median_offset_m": 11.82,
+          "p90_offset_m": 11.82,
+          "main_centroid_dist_m": null
+        }
+      ]
+    },
+    "moosstrasse": {
+      "snt_aoi": "moosstrasse",
+      "tsx_aoi": "moosstrasse_tsx",
+      "summary": {
+        "buildings_coupled": 83,
+        "min_offset": {
+          "n": 83,
+          "median": 3.38,
+          "p75": 5.25,
+          "p90": 7.53,
+          "share_le_15m": 0.988,
+          "hist": {
+            "0-3m": 35,
+            "3-6m": 32,
+            "6-9m": 12,
+            "9-12m": 2,
+            "12-15m": 1,
+            "15-20m": 0,
+            "20-30m": 1,
+            "30-infm": 0
+          }
+        },
+        "median_offset": {
+          "n": 83,
+          "median": 8.36,
+          "p75": 10.98,
+          "p90": 15.29,
+          "share_le_15m": 0.892,
+          "hist": {
+            "0-3m": 1,
+            "3-6m": 16,
+            "6-9m": 33,
+            "9-12m": 15,
+            "12-15m": 9,
+            "15-20m": 7,
+            "20-30m": 2,
+            "30-infm": 0
+          }
+        },
+        "main_centroid_dist": {
+          "n": 83,
+          "median": 5.83,
+          "p75": 8.79,
+          "p90": 13.52,
+          "share_le_15m": 0.964,
+          "hist": {
+            "0-3m": 12,
+            "3-6m": 31,
+            "6-9m": 21,
+            "9-12m": 6,
+            "12-15m": 10,
+            "15-20m": 1,
+            "20-30m": 2,
+            "30-infm": 0
+          }
+        }
+      },
+      "rows": [
+        {
+          "building_id": "102312007",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 11,
+          "min_offset_m": 3.28,
+          "median_offset_m": 8.63,
+          "p90_offset_m": 12.13,
+          "main_centroid_dist_m": 3.38
+        },
+        {
+          "building_id": "199400273",
+          "n_snt_main_cores": 16,
+          "n_tsx_cores": 9,
+          "min_offset_m": 3.47,
+          "median_offset_m": 7.88,
+          "p90_offset_m": 17.0,
+          "main_centroid_dist_m": 5.31
+        },
+        {
+          "building_id": "224672804",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 18,
+          "min_offset_m": 3.96,
+          "median_offset_m": 10.12,
+          "p90_offset_m": 14.87,
+          "main_centroid_dist_m": 7.04
+        },
+        {
+          "building_id": "494774478",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 3,
+          "min_offset_m": 2.43,
+          "median_offset_m": 2.64,
+          "p90_offset_m": 5.73,
+          "main_centroid_dist_m": 2.38
+        },
+        {
+          "building_id": "879376606",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 10,
+          "min_offset_m": 3.09,
+          "median_offset_m": 7.44,
+          "p90_offset_m": 11.93,
+          "main_centroid_dist_m": 4.62
+        },
+        {
+          "building_id": "93887701",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 7,
+          "min_offset_m": 3.58,
+          "median_offset_m": 9.69,
+          "p90_offset_m": 13.4,
+          "main_centroid_dist_m": 4.81
+        },
+        {
+          "building_id": "93887771",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 5,
+          "min_offset_m": 6.12,
+          "median_offset_m": 13.02,
+          "p90_offset_m": 18.87,
+          "main_centroid_dist_m": 13.52
+        },
+        {
+          "building_id": "93887803",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 16,
+          "min_offset_m": 7.88,
+          "median_offset_m": 14.16,
+          "p90_offset_m": 27.05,
+          "main_centroid_dist_m": 13.5
+        },
+        {
+          "building_id": "96637427",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 3,
+          "min_offset_m": 7.11,
+          "median_offset_m": 7.52,
+          "p90_offset_m": 8.03,
+          "main_centroid_dist_m": 6.51
+        },
+        {
+          "building_id": "96637435",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 9,
+          "min_offset_m": 4.8,
+          "median_offset_m": 6.32,
+          "p90_offset_m": 16.89,
+          "main_centroid_dist_m": 4.67
+        },
+        {
+          "building_id": "96637437",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 8,
+          "min_offset_m": 3.82,
+          "median_offset_m": 8.27,
+          "p90_offset_m": 13.73,
+          "main_centroid_dist_m": 7.25
+        },
+        {
+          "building_id": "96637447",
+          "n_snt_main_cores": 16,
+          "n_tsx_cores": 15,
+          "min_offset_m": 1.02,
+          "median_offset_m": 8.55,
+          "p90_offset_m": 17.29,
+          "main_centroid_dist_m": 2.25
+        },
+        {
+          "building_id": "96637452",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 21,
+          "min_offset_m": 6.23,
+          "median_offset_m": 25.11,
+          "p90_offset_m": 36.3,
+          "main_centroid_dist_m": 23.75
+        },
+        {
+          "building_id": "96637468",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 18,
+          "min_offset_m": 6.22,
+          "median_offset_m": 10.31,
+          "p90_offset_m": 21.86,
+          "main_centroid_dist_m": 8.29
+        },
+        {
+          "building_id": "96637473",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 7,
+          "min_offset_m": 0.99,
+          "median_offset_m": 6.35,
+          "p90_offset_m": 8.23,
+          "main_centroid_dist_m": 2.84
+        },
+        {
+          "building_id": "96637482",
+          "n_snt_main_cores": 29,
+          "n_tsx_cores": 26,
+          "min_offset_m": 5.72,
+          "median_offset_m": 17.59,
+          "p90_offset_m": 28.36,
+          "main_centroid_dist_m": 8.24
+        },
+        {
+          "building_id": "96637502",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 14,
+          "min_offset_m": 0.8,
+          "median_offset_m": 6.42,
+          "p90_offset_m": 11.21,
+          "main_centroid_dist_m": 2.28
+        },
+        {
+          "building_id": "96637515",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 29,
+          "min_offset_m": 1.14,
+          "median_offset_m": 17.88,
+          "p90_offset_m": 27.7,
+          "main_centroid_dist_m": 3.08
+        },
+        {
+          "building_id": "96637522",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 7,
+          "min_offset_m": 4.34,
+          "median_offset_m": 8.05,
+          "p90_offset_m": 10.29,
+          "main_centroid_dist_m": 5.02
+        },
+        {
+          "building_id": "96637543",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 6,
+          "min_offset_m": 2.49,
+          "median_offset_m": 4.29,
+          "p90_offset_m": 6.03,
+          "main_centroid_dist_m": 4.76
+        },
+        {
+          "building_id": "96637547",
+          "n_snt_main_cores": 19,
+          "n_tsx_cores": 5,
+          "min_offset_m": 9.42,
+          "median_offset_m": 14.82,
+          "p90_offset_m": 17.42,
+          "main_centroid_dist_m": 15.31
+        },
+        {
+          "building_id": "96639511",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 10,
+          "min_offset_m": 2.43,
+          "median_offset_m": 14.86,
+          "p90_offset_m": 26.0,
+          "main_centroid_dist_m": 13.6
+        },
+        {
+          "building_id": "96639512",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 6,
+          "min_offset_m": 0.71,
+          "median_offset_m": 5.73,
+          "p90_offset_m": 10.5,
+          "main_centroid_dist_m": 3.55
+        },
+        {
+          "building_id": "96639516",
+          "n_snt_main_cores": 15,
+          "n_tsx_cores": 11,
+          "min_offset_m": 1.78,
+          "median_offset_m": 6.17,
+          "p90_offset_m": 10.13,
+          "main_centroid_dist_m": 3.29
+        },
+        {
+          "building_id": "96639517",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 10,
+          "min_offset_m": 3.97,
+          "median_offset_m": 8.36,
+          "p90_offset_m": 14.6,
+          "main_centroid_dist_m": 7.56
+        },
+        {
+          "building_id": "96639518",
+          "n_snt_main_cores": 31,
+          "n_tsx_cores": 33,
+          "min_offset_m": 2.11,
+          "median_offset_m": 15.63,
+          "p90_offset_m": 33.7,
+          "main_centroid_dist_m": 5.84
+        },
+        {
+          "building_id": "96639519",
+          "n_snt_main_cores": 16,
+          "n_tsx_cores": 8,
+          "min_offset_m": 5.57,
+          "median_offset_m": 10.65,
+          "p90_offset_m": 11.85,
+          "main_centroid_dist_m": 8.77
+        },
+        {
+          "building_id": "96639520",
+          "n_snt_main_cores": 33,
+          "n_tsx_cores": 24,
+          "min_offset_m": 1.28,
+          "median_offset_m": 18.08,
+          "p90_offset_m": 26.51,
+          "main_centroid_dist_m": 1.54
+        },
+        {
+          "building_id": "96639522",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 10,
+          "min_offset_m": 2.45,
+          "median_offset_m": 6.77,
+          "p90_offset_m": 9.76,
+          "main_centroid_dist_m": 5.55
+        },
+        {
+          "building_id": "96856542",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 8,
+          "min_offset_m": 3.38,
+          "median_offset_m": 10.84,
+          "p90_offset_m": 14.87,
+          "main_centroid_dist_m": 6.68
+        },
+        {
+          "building_id": "96856582",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 6,
+          "min_offset_m": 5.05,
+          "median_offset_m": 6.09,
+          "p90_offset_m": 6.84,
+          "main_centroid_dist_m": 4.89
+        },
+        {
+          "building_id": "96856583",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 6,
+          "min_offset_m": 1.86,
+          "median_offset_m": 13.59,
+          "p90_offset_m": 15.47,
+          "main_centroid_dist_m": 14.38
+        },
+        {
+          "building_id": "96856606",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 7,
+          "min_offset_m": 0.14,
+          "median_offset_m": 8.85,
+          "p90_offset_m": 11.65,
+          "main_centroid_dist_m": 8.78
+        },
+        {
+          "building_id": "96856632",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 2,
+          "min_offset_m": 13.21,
+          "median_offset_m": 13.9,
+          "p90_offset_m": 14.45,
+          "main_centroid_dist_m": 13.87
+        },
+        {
+          "building_id": "96856670",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 12,
+          "min_offset_m": 4.13,
+          "median_offset_m": 8.77,
+          "p90_offset_m": 18.08,
+          "main_centroid_dist_m": 7.44
+        },
+        {
+          "building_id": "96856672",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 7,
+          "min_offset_m": 6.88,
+          "median_offset_m": 8.17,
+          "p90_offset_m": 14.15,
+          "main_centroid_dist_m": 6.88
+        },
+        {
+          "building_id": "96955263",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.2,
+          "median_offset_m": 9.03,
+          "p90_offset_m": 12.29,
+          "main_centroid_dist_m": 1.1
+        },
+        {
+          "building_id": "96955266",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 9,
+          "min_offset_m": 7.72,
+          "median_offset_m": 11.93,
+          "p90_offset_m": 14.19,
+          "main_centroid_dist_m": 11.25
+        },
+        {
+          "building_id": "96955277",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 7,
+          "min_offset_m": 2.36,
+          "median_offset_m": 4.65,
+          "p90_offset_m": 8.3,
+          "main_centroid_dist_m": 3.84
+        },
+        {
+          "building_id": "96955278",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 6,
+          "min_offset_m": 3.38,
+          "median_offset_m": 8.02,
+          "p90_offset_m": 11.91,
+          "main_centroid_dist_m": 4.06
+        },
+        {
+          "building_id": "96955298",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 17,
+          "min_offset_m": 4.99,
+          "median_offset_m": 8.5,
+          "p90_offset_m": 18.13,
+          "main_centroid_dist_m": 2.15
+        },
+        {
+          "building_id": "96955312",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 2,
+          "min_offset_m": 5.19,
+          "median_offset_m": 5.89,
+          "p90_offset_m": 6.45,
+          "main_centroid_dist_m": 5.83
+        },
+        {
+          "building_id": "96955315",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 2,
+          "min_offset_m": 3.07,
+          "median_offset_m": 7.45,
+          "p90_offset_m": 10.96,
+          "main_centroid_dist_m": 7.44
+        },
+        {
+          "building_id": "96955326",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 10,
+          "min_offset_m": 4.96,
+          "median_offset_m": 16.21,
+          "p90_offset_m": 19.52,
+          "main_centroid_dist_m": 13.94
+        },
+        {
+          "building_id": "96955330",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 7,
+          "min_offset_m": 4.76,
+          "median_offset_m": 10.49,
+          "p90_offset_m": 13.86,
+          "main_centroid_dist_m": 6.67
+        },
+        {
+          "building_id": "96955335",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 11,
+          "min_offset_m": 1.8,
+          "median_offset_m": 5.18,
+          "p90_offset_m": 10.67,
+          "main_centroid_dist_m": 3.84
+        },
+        {
+          "building_id": "96955337",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 5,
+          "min_offset_m": 1.35,
+          "median_offset_m": 3.69,
+          "p90_offset_m": 7.82,
+          "main_centroid_dist_m": 3.3
+        },
+        {
+          "building_id": "96955339",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 5,
+          "min_offset_m": 5.58,
+          "median_offset_m": 8.86,
+          "p90_offset_m": 13.54,
+          "main_centroid_dist_m": 12.47
+        },
+        {
+          "building_id": "96955341",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 4,
+          "min_offset_m": 4.44,
+          "median_offset_m": 5.04,
+          "p90_offset_m": 6.84,
+          "main_centroid_dist_m": 4.83
+        },
+        {
+          "building_id": "96955347",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 31,
+          "min_offset_m": 2.87,
+          "median_offset_m": 8.72,
+          "p90_offset_m": 15.71,
+          "main_centroid_dist_m": 5.11
+        },
+        {
+          "building_id": "96955356",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 7,
+          "min_offset_m": 3.28,
+          "median_offset_m": 7.24,
+          "p90_offset_m": 8.94,
+          "main_centroid_dist_m": 4.59
+        },
+        {
+          "building_id": "96955365",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 13,
+          "min_offset_m": 0.98,
+          "median_offset_m": 6.07,
+          "p90_offset_m": 13.22,
+          "main_centroid_dist_m": 5.82
+        },
+        {
+          "building_id": "96955367",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 3,
+          "min_offset_m": 2.62,
+          "median_offset_m": 4.78,
+          "p90_offset_m": 6.48,
+          "main_centroid_dist_m": 4.78
+        },
+        {
+          "building_id": "96955370",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 33,
+          "min_offset_m": 1.41,
+          "median_offset_m": 15.63,
+          "p90_offset_m": 27.69,
+          "main_centroid_dist_m": 8.33
+        },
+        {
+          "building_id": "96955373",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 12,
+          "min_offset_m": 2.52,
+          "median_offset_m": 6.24,
+          "p90_offset_m": 9.97,
+          "main_centroid_dist_m": 1.92
+        },
+        {
+          "building_id": "96959816",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 10,
+          "min_offset_m": 4.81,
+          "median_offset_m": 15.37,
+          "p90_offset_m": 23.72,
+          "main_centroid_dist_m": 12.62
+        },
+        {
+          "building_id": "96959823",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 4,
+          "min_offset_m": 5.26,
+          "median_offset_m": 9.98,
+          "p90_offset_m": 10.66,
+          "main_centroid_dist_m": 6.23
+        },
+        {
+          "building_id": "96959824",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 5,
+          "min_offset_m": 0.65,
+          "median_offset_m": 4.98,
+          "p90_offset_m": 8.2,
+          "main_centroid_dist_m": 4.27
+        },
+        {
+          "building_id": "96959827",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 14,
+          "min_offset_m": 0.43,
+          "median_offset_m": 9.86,
+          "p90_offset_m": 19.85,
+          "main_centroid_dist_m": 9.23
+        },
+        {
+          "building_id": "96959831",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 12,
+          "min_offset_m": 0.99,
+          "median_offset_m": 8.07,
+          "p90_offset_m": 11.4,
+          "main_centroid_dist_m": 5.31
+        },
+        {
+          "building_id": "96959833",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 2,
+          "min_offset_m": 8.39,
+          "median_offset_m": 8.97,
+          "p90_offset_m": 9.44,
+          "main_centroid_dist_m": 8.92
+        },
+        {
+          "building_id": "96959835",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.02,
+          "median_offset_m": 5.52,
+          "p90_offset_m": 11.04,
+          "main_centroid_dist_m": 1.53
+        },
+        {
+          "building_id": "96959836",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 7,
+          "min_offset_m": 4.94,
+          "median_offset_m": 7.84,
+          "p90_offset_m": 9.93,
+          "main_centroid_dist_m": 6.15
+        },
+        {
+          "building_id": "96959839",
+          "n_snt_main_cores": 23,
+          "n_tsx_cores": 21,
+          "min_offset_m": 7.63,
+          "median_offset_m": 13.6,
+          "p90_offset_m": 21.79,
+          "main_centroid_dist_m": 11.37
+        },
+        {
+          "building_id": "96959840",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 7,
+          "min_offset_m": 2.11,
+          "median_offset_m": 5.06,
+          "p90_offset_m": 8.84,
+          "main_centroid_dist_m": 3.08
+        },
+        {
+          "building_id": "96959841",
+          "n_snt_main_cores": 15,
+          "n_tsx_cores": 6,
+          "min_offset_m": 5.98,
+          "median_offset_m": 8.11,
+          "p90_offset_m": 10.19,
+          "main_centroid_dist_m": 8.15
+        },
+        {
+          "building_id": "96959842",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 10,
+          "min_offset_m": 6.46,
+          "median_offset_m": 11.13,
+          "p90_offset_m": 15.91,
+          "main_centroid_dist_m": 11.51
+        },
+        {
+          "building_id": "96959843",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 21,
+          "min_offset_m": 2.01,
+          "median_offset_m": 14.58,
+          "p90_offset_m": 27.62,
+          "main_centroid_dist_m": 13.43
+        },
+        {
+          "building_id": "96959848",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 8,
+          "min_offset_m": 2.89,
+          "median_offset_m": 10.82,
+          "p90_offset_m": 12.55,
+          "main_centroid_dist_m": 8.81
+        },
+        {
+          "building_id": "96959850",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 6,
+          "min_offset_m": 7.66,
+          "median_offset_m": 8.29,
+          "p90_offset_m": 9.49,
+          "main_centroid_dist_m": 7.71
+        },
+        {
+          "building_id": "96959851",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 10,
+          "min_offset_m": 2.43,
+          "median_offset_m": 6.8,
+          "p90_offset_m": 9.55,
+          "main_centroid_dist_m": 5.48
+        },
+        {
+          "building_id": "96959852",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 13,
+          "min_offset_m": 3.26,
+          "median_offset_m": 10.6,
+          "p90_offset_m": 15.0,
+          "main_centroid_dist_m": 9.3
+        },
+        {
+          "building_id": "96959853",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 5,
+          "min_offset_m": 4.73,
+          "median_offset_m": 5.83,
+          "p90_offset_m": 9.22,
+          "main_centroid_dist_m": 5.2
+        },
+        {
+          "building_id": "96959854",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 6,
+          "min_offset_m": 3.26,
+          "median_offset_m": 6.64,
+          "p90_offset_m": 9.65,
+          "main_centroid_dist_m": 3.32
+        },
+        {
+          "building_id": "96959857",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 14,
+          "min_offset_m": 4.32,
+          "median_offset_m": 10.48,
+          "p90_offset_m": 15.03,
+          "main_centroid_dist_m": 7.3
+        },
+        {
+          "building_id": "98698978",
+          "n_snt_main_cores": 13,
+          "n_tsx_cores": 10,
+          "min_offset_m": 1.01,
+          "median_offset_m": 3.65,
+          "p90_offset_m": 10.44,
+          "main_centroid_dist_m": 2.64
+        },
+        {
+          "building_id": "98698979",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 13,
+          "min_offset_m": 0.78,
+          "median_offset_m": 5.96,
+          "p90_offset_m": 9.64,
+          "main_centroid_dist_m": 4.22
+        },
+        {
+          "building_id": "98698983",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 7,
+          "min_offset_m": 6.82,
+          "median_offset_m": 14.99,
+          "p90_offset_m": 16.33,
+          "main_centroid_dist_m": 14.14
+        },
+        {
+          "building_id": "98698984",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 3,
+          "min_offset_m": 5.23,
+          "median_offset_m": 5.72,
+          "p90_offset_m": 6.8,
+          "main_centroid_dist_m": 5.64
+        },
+        {
+          "building_id": "98698986",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 2,
+          "min_offset_m": 10.06,
+          "median_offset_m": 11.89,
+          "p90_offset_m": 13.36,
+          "main_centroid_dist_m": 11.82
+        },
+        {
+          "building_id": "98698987",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 18,
+          "min_offset_m": 1.03,
+          "median_offset_m": 8.01,
+          "p90_offset_m": 17.17,
+          "main_centroid_dist_m": 2.59
+        },
+        {
+          "building_id": "98698989",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 6,
+          "min_offset_m": 2.48,
+          "median_offset_m": 5.9,
+          "p90_offset_m": 8.34,
+          "main_centroid_dist_m": 2.53
+        },
+        {
+          "building_id": "Austria_120230030_12751",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 12,
+          "min_offset_m": 26.05,
+          "median_offset_m": 28.99,
+          "p90_offset_m": 31.38,
+          "main_centroid_dist_m": 28.1
+        }
+      ]
+    },
+    "osthang": {
+      "snt_aoi": "osthang",
+      "tsx_aoi": "osthang_tsx",
+      "summary": {
+        "buildings_coupled": 36,
+        "min_offset": {
+          "n": 36,
+          "median": 3.87,
+          "p75": 6.24,
+          "p90": 8.48,
+          "share_le_15m": 0.972,
+          "hist": {
+            "0-3m": 15,
+            "3-6m": 9,
+            "6-9m": 9,
+            "9-12m": 1,
+            "12-15m": 1,
+            "15-20m": 1,
+            "20-30m": 0,
+            "30-infm": 0
+          }
+        },
+        "median_offset": {
+          "n": 36,
+          "median": 10.25,
+          "p75": 11.39,
+          "p90": 14.28,
+          "share_le_15m": 0.917,
+          "hist": {
+            "0-3m": 0,
+            "3-6m": 4,
+            "6-9m": 9,
+            "9-12m": 16,
+            "12-15m": 4,
+            "15-20m": 1,
+            "20-30m": 2,
+            "30-infm": 0
+          }
+        },
+        "main_centroid_dist": {
+          "n": 36,
+          "median": 7.07,
+          "p75": 10.54,
+          "p90": 12.49,
+          "share_le_15m": 0.944,
+          "hist": {
+            "0-3m": 6,
+            "3-6m": 6,
+            "6-9m": 11,
+            "9-12m": 8,
+            "12-15m": 3,
+            "15-20m": 1,
+            "20-30m": 1,
+            "30-infm": 0
+          }
+        }
+      },
+      "rows": [
+        {
+          "building_id": "150506168",
+          "n_snt_main_cores": 23,
+          "n_tsx_cores": 15,
+          "min_offset_m": 2.47,
+          "median_offset_m": 27.66,
+          "p90_offset_m": 44.81,
+          "main_centroid_dist_m": 1.17
+        },
+        {
+          "building_id": "150506170",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 12,
+          "min_offset_m": 3.98,
+          "median_offset_m": 10.21,
+          "p90_offset_m": 18.66,
+          "main_centroid_dist_m": 8.94
+        },
+        {
+          "building_id": "150506174",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 7,
+          "min_offset_m": 9.36,
+          "median_offset_m": 13.12,
+          "p90_offset_m": 15.61,
+          "main_centroid_dist_m": 12.68
+        },
+        {
+          "building_id": "150506175",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 11,
+          "min_offset_m": 2.3,
+          "median_offset_m": 7.02,
+          "p90_offset_m": 12.75,
+          "main_centroid_dist_m": 2.3
+        },
+        {
+          "building_id": "150506176",
+          "n_snt_main_cores": 17,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.84,
+          "median_offset_m": 11.07,
+          "p90_offset_m": 15.01,
+          "main_centroid_dist_m": 7.32
+        },
+        {
+          "building_id": "150506177",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 15,
+          "min_offset_m": 1.78,
+          "median_offset_m": 8.57,
+          "p90_offset_m": 12.48,
+          "main_centroid_dist_m": 2.2
+        },
+        {
+          "building_id": "150506179",
+          "n_snt_main_cores": 8,
+          "n_tsx_cores": 7,
+          "min_offset_m": 1.8,
+          "median_offset_m": 10.86,
+          "p90_offset_m": 14.03,
+          "main_centroid_dist_m": 10.45
+        },
+        {
+          "building_id": "150547747",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 20,
+          "min_offset_m": 5.87,
+          "median_offset_m": 14.18,
+          "p90_offset_m": 18.16,
+          "main_centroid_dist_m": 4.7
+        },
+        {
+          "building_id": "150547748",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 6,
+          "min_offset_m": 1.37,
+          "median_offset_m": 5.01,
+          "p90_offset_m": 9.12,
+          "main_centroid_dist_m": 4.19
+        },
+        {
+          "building_id": "150547751",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 10,
+          "min_offset_m": 8.45,
+          "median_offset_m": 14.16,
+          "p90_offset_m": 16.62,
+          "main_centroid_dist_m": 12.3
+        },
+        {
+          "building_id": "150547754",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 3,
+          "min_offset_m": 6.64,
+          "median_offset_m": 8.04,
+          "p90_offset_m": 9.58,
+          "main_centroid_dist_m": 8.65
+        },
+        {
+          "building_id": "150547755",
+          "n_snt_main_cores": 11,
+          "n_tsx_cores": 13,
+          "min_offset_m": 0.96,
+          "median_offset_m": 10.89,
+          "p90_offset_m": 24.85,
+          "main_centroid_dist_m": 10.89
+        },
+        {
+          "building_id": "150547761",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 10,
+          "min_offset_m": 2.8,
+          "median_offset_m": 10.34,
+          "p90_offset_m": 14.0,
+          "main_centroid_dist_m": 7.06
+        },
+        {
+          "building_id": "150547766",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 4,
+          "min_offset_m": 6.66,
+          "median_offset_m": 11.29,
+          "p90_offset_m": 13.88,
+          "main_centroid_dist_m": 11.29
+        },
+        {
+          "building_id": "150547769",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 5,
+          "min_offset_m": 6.15,
+          "median_offset_m": 8.04,
+          "p90_offset_m": 10.97,
+          "main_centroid_dist_m": 9.77
+        },
+        {
+          "building_id": "255071634",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 10,
+          "min_offset_m": 3.03,
+          "median_offset_m": 7.52,
+          "p90_offset_m": 13.34,
+          "main_centroid_dist_m": 6.11
+        },
+        {
+          "building_id": "395354933",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 15,
+          "min_offset_m": 4.05,
+          "median_offset_m": 23.06,
+          "p90_offset_m": 32.51,
+          "main_centroid_dist_m": 23.78
+        },
+        {
+          "building_id": "48955015",
+          "n_snt_main_cores": 5,
+          "n_tsx_cores": 13,
+          "min_offset_m": 1.61,
+          "median_offset_m": 8.52,
+          "p90_offset_m": 12.89,
+          "main_centroid_dist_m": 4.62
+        },
+        {
+          "building_id": "48955017",
+          "n_snt_main_cores": 14,
+          "n_tsx_cores": 13,
+          "min_offset_m": 2.31,
+          "median_offset_m": 11.37,
+          "p90_offset_m": 14.3,
+          "main_centroid_dist_m": 2.13
+        },
+        {
+          "building_id": "48955018",
+          "n_snt_main_cores": 15,
+          "n_tsx_cores": 8,
+          "min_offset_m": 7.13,
+          "median_offset_m": 9.66,
+          "p90_offset_m": 13.37,
+          "main_centroid_dist_m": 7.09
+        },
+        {
+          "building_id": "48955021",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 7,
+          "min_offset_m": 15.43,
+          "median_offset_m": 17.72,
+          "p90_offset_m": 20.22,
+          "main_centroid_dist_m": 17.5
+        },
+        {
+          "building_id": "48955022",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 9,
+          "min_offset_m": 2.75,
+          "median_offset_m": 9.38,
+          "p90_offset_m": 11.35,
+          "main_centroid_dist_m": 9.02
+        },
+        {
+          "building_id": "48955023",
+          "n_snt_main_cores": 30,
+          "n_tsx_cores": 12,
+          "min_offset_m": 6.2,
+          "median_offset_m": 11.45,
+          "p90_offset_m": 25.3,
+          "main_centroid_dist_m": 2.63
+        },
+        {
+          "building_id": "48955024",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 5,
+          "min_offset_m": 2.73,
+          "median_offset_m": 4.88,
+          "p90_offset_m": 7.18,
+          "main_centroid_dist_m": 6.73
+        },
+        {
+          "building_id": "48955025",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 4,
+          "min_offset_m": 5.29,
+          "median_offset_m": 10.21,
+          "p90_offset_m": 13.05,
+          "main_centroid_dist_m": 7.02
+        },
+        {
+          "building_id": "54747451",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 5,
+          "min_offset_m": 3.38,
+          "median_offset_m": 7.86,
+          "p90_offset_m": 10.19,
+          "main_centroid_dist_m": 5.76
+        },
+        {
+          "building_id": "54773350",
+          "n_snt_main_cores": 2,
+          "n_tsx_cores": 8,
+          "min_offset_m": 6.35,
+          "median_offset_m": 11.59,
+          "p90_offset_m": 14.48,
+          "main_centroid_dist_m": 10.79
+        },
+        {
+          "building_id": "54773351",
+          "n_snt_main_cores": 7,
+          "n_tsx_cores": 3,
+          "min_offset_m": 4.84,
+          "median_offset_m": 5.83,
+          "p90_offset_m": 6.05,
+          "main_centroid_dist_m": 5.07
+        },
+        {
+          "building_id": "54773352",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 21,
+          "min_offset_m": 6.01,
+          "median_offset_m": 10.85,
+          "p90_offset_m": 23.13,
+          "main_centroid_dist_m": 9.18
+        },
+        {
+          "building_id": "54773355",
+          "n_snt_main_cores": 12,
+          "n_tsx_cores": 8,
+          "min_offset_m": 1.79,
+          "median_offset_m": 5.54,
+          "p90_offset_m": 7.64,
+          "main_centroid_dist_m": 2.55
+        },
+        {
+          "building_id": "54773356",
+          "n_snt_main_cores": 4,
+          "n_tsx_cores": 5,
+          "min_offset_m": 2.48,
+          "median_offset_m": 8.0,
+          "p90_offset_m": 10.1,
+          "main_centroid_dist_m": 5.09
+        },
+        {
+          "building_id": "54773359",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 3,
+          "min_offset_m": 8.51,
+          "median_offset_m": 11.13,
+          "p90_offset_m": 13.1,
+          "main_centroid_dist_m": 11.13
+        },
+        {
+          "building_id": "54773361",
+          "n_snt_main_cores": 3,
+          "n_tsx_cores": 4,
+          "min_offset_m": 4.02,
+          "median_offset_m": 10.29,
+          "p90_offset_m": 18.65,
+          "main_centroid_dist_m": 7.98
+        },
+        {
+          "building_id": "54773362",
+          "n_snt_main_cores": 6,
+          "n_tsx_cores": 4,
+          "min_offset_m": 12.08,
+          "median_offset_m": 14.38,
+          "p90_offset_m": 15.74,
+          "main_centroid_dist_m": 13.79
+        },
+        {
+          "building_id": "54773363",
+          "n_snt_main_cores": 10,
+          "n_tsx_cores": 11,
+          "min_offset_m": 3.75,
+          "median_offset_m": 9.94,
+          "p90_offset_m": 14.95,
+          "main_centroid_dist_m": 6.32
+        },
+        {
+          "building_id": "54773364",
+          "n_snt_main_cores": 9,
+          "n_tsx_cores": 12,
+          "min_offset_m": 1.49,
+          "median_offset_m": 7.06,
+          "p90_offset_m": 15.31,
+          "main_centroid_dist_m": 6.08
+        }
+      ]
+    }
+  },
+  "pooled": {
+    "buildings_coupled": 240,
+    "min_offset": {
+      "n": 240,
+      "median": 2.43,
+      "p75": 4.74,
+      "p90": 6.94,
+      "share_le_15m": 0.983,
+      "hist": {
+        "0-3m": 145,
+        "3-6m": 53,
+        "6-9m": 30,
+        "9-12m": 5,
+        "12-15m": 3,
+        "15-20m": 3,
+        "20-30m": 1,
+        "30-infm": 0
+      }
+    },
+    "median_offset": {
+      "n": 240,
+      "median": 8.93,
+      "p75": 11.57,
+      "p90": 15.63,
+      "share_le_15m": 0.879,
+      "hist": {
+        "0-3m": 2,
+        "3-6m": 35,
+        "6-9m": 84,
+        "9-12m": 66,
+        "12-15m": 24,
+        "15-20m": 19,
+        "20-30m": 8,
+        "30-infm": 2
+      }
+    },
+    "main_centroid_dist": {
+      "n": 239,
+      "median": 6.35,
+      "p75": 9.15,
+      "p90": 12.93,
+      "share_le_15m": 0.95,
+      "hist": {
+        "0-3m": 40,
+        "3-6m": 71,
+        "6-9m": 65,
+        "9-12m": 31,
+        "12-15m": 20,
+        "15-20m": 7,
+        "20-30m": 5,
+        "30-infm": 0
+      }
+    }
+  }
+}

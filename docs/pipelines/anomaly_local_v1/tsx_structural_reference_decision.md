@@ -88,9 +88,36 @@ als Metrik nicht diskriminativ -> No-Go fuer P7-N3 in der geplanten Form;
 Alternative bleibt der Gebaeude-Level-Guardrail. Ergebnis-Nachtrag folgt
 hier nach dem Lauf.
 
-## Ergebnis-Nachtrag
+## Ergebnis-Nachtrag (2026-07-07, hr_offset_recon gelaufen)
 
-(offen — wird nach `hr_offset_recon`-Lauf ergaenzt)
+240 gekoppelte Gebaeude ueber 5 AOI-Paare (Salzburg: mirabell/moosstrasse/
+osthang mit salzburg_tsx_t93_d; Bad Gastein: bg_flat_01/bg_slope_01),
+Details `artifacts/hr_offset_recon.md`:
+
+| Metrik (gepoolt) | Median | p75 | p90 | Anteil <= 15 m |
+| --- | ---: | ---: | ---: | ---: |
+| SNT-Main-Zentroid <-> TSX-Main-Zentroid | 6.35 m | 9.15 m | 12.93 m | 95 % |
+| SNT-Main-Zentroid <-> naechster TSX-Core | 2.43 m | 4.74 m | 6.94 m | 98 % |
+
+**Entscheidung: NO-GO fuer Sub-Gebaeude-Patch-Matching (P7-N3 in der
+geplanten Form).** Die Zentroid-Distanzen liegen mit Median ~6 m und p90
+~13 m genau in der Groessenordnung der SNT-Geokodierungs-Praezision
+(+/- 8-12 m 1 Sigma) und sind ueber flach/Hang nahezu identisch (5.4-7.1 m
+je Paar) — ein Patch-Matching wuerde primaer Geokodierungsrauschen messen
+und Kandidaten nicht diskriminieren. Die Handbuch-Prognose ist damit
+empirisch bestaetigt.
+
+Was stattdessen bleibt:
+
+1. Gebaeude-Level-Guardrail unveraendert (min_offset-Median 2.4 m, 98 %
+   <= 15 m: TSX-Struktursupport auf Gebaeudeebene ist nahezu universell —
+   erklaert die Saettigung der match_rate bei 1.0).
+2. Optionales GROBES Divergenz-Flag: Gebaeude mit Main-Zentroid-Distanz
+   > ~13 m (p90) als `hr_divergent` fuer Visual-Audit-Priorisierung —
+   schwaches Signal, kein Kandidaten-Diskriminator.
+3. P7-N2 (regime-konditionale TSX-Strategie) verliert damit seine
+   geplante feine Verifikationsbasis und braucht eine andere Evidenz
+   (z. B. Injection-Tests, siehe Feature-Research-Bericht).
 
 ## Quellen
 
