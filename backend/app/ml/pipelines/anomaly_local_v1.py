@@ -43,10 +43,24 @@ CLUSTER_FIT_SCALE_FLOORS = {
     "height": 0.10,
     "step": 0.75,
 }
+# Vierter/fünfter Eintrag: (buffer_height_expression, plausibility_height_expression).
+# buffer_* treibt die Candidate Area / den Layover-Buffer; plausibility_* dient
+# Plausibilitaets-/Reichweiten-Checks (Folge-Ticket). Fuer gba sind beide
+# Ausdruecke identisch -> keine Verhaltensaenderung.
 BUILDING_SOURCE_SPECS = {
-    "bev": ("bev_buildings", "bev_id", "height_m"),
-    "gba": ("gba_buildings", "gba_id", "height"),
-    "osm": ("osm_buildings", "osm_id", "NULL::double precision"),
+    "bev": (
+        "bev_buildings",
+        "bev_id",
+        "COALESCE(height_max_m, height_m)",
+        "COALESCE(height_median_m, height_m)",
+    ),
+    "gba": ("gba_buildings", "gba_id", "height", "height"),
+    "osm": (
+        "osm_buildings",
+        "osm_id",
+        "NULL::double precision",
+        "NULL::double precision",
+    ),
 }
 
 
@@ -74,6 +88,7 @@ class LocalPointRecord:
     building_source: str | None
     building_id: str | None
     building_height: float | None
+    building_plausibility_height: float | None
     building_centroid_x_m: float | None
     building_centroid_y_m: float | None
     distance_m: float | None
@@ -197,7 +212,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         source_spec = BUILDING_SOURCE_SPECS.get(source)
         if source_spec is None:
             raise ValueError("anomaly_local_v1 source must be one of: bev, gba, osm")
-        building_table, building_id_column, building_height_expression = source_spec
+        (
+            building_table,
+            building_id_column,
+            building_height_expression,
+            building_plausibility_height_expression,
+        ) = source_spec
 
         points_query = f"""
             WITH envelope AS (
@@ -249,6 +269,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     '{source}'::text AS building_source,
                     b.{building_id_column}::text AS building_id,
                     {building_height_expression} AS building_height,
+                    {building_plausibility_height_expression} AS building_plausibility_height,
                     b.geom,
                     ST_Transform(b.geom, 32633) AS geom_utm,
                     ST_X(ST_Centroid(ST_Transform(b.geom, 32633))) AS centroid_x_m,
@@ -293,6 +314,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 cand.building_source,
                 cand.building_id,
                 cand.building_height,
+                cand.building_plausibility_height,
                 cand.centroid_x_m,
                 cand.centroid_y_m,
                 cand.distance_m,
@@ -318,6 +340,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.building_id,
                         b.building_source,
                         b.building_height,
+                        b.building_plausibility_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
                         0::double precision AS distance_m,
@@ -340,6 +363,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.building_id,
                         b.building_source,
                         b.building_height,
+                        b.building_plausibility_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
                         ST_Distance(p.geom::geography, b.geom::geography) AS distance_m,
@@ -388,6 +412,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.building_id,
                         b.building_source,
                         b.building_height,
+                        b.building_plausibility_height,
                         b.centroid_x_m,
                         b.centroid_y_m,
                         ST_Distance(p.geom::geography, b.geom::geography) AS distance_m,
@@ -527,6 +552,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 building_source=row["building_source"],
                 building_id=row["building_id"],
                 building_height=self._float_or_none(row["building_height"]),
+                building_plausibility_height=self._float_or_none(
+                    row["building_plausibility_height"]
+                ),
                 building_centroid_x_m=self._float_or_none(row["centroid_x_m"]),
                 building_centroid_y_m=self._float_or_none(row["centroid_y_m"]),
                 distance_m=self._float_or_none(row["distance_m"]),

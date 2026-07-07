@@ -58,10 +58,23 @@ CLUSTER_COLOR_PALETTE_SIZE = 60
 CLUSTER_COLOR_OFFSET = 34
 CLUSTER_COLOR_STEP = 17
 BUILDING_SOURCES = {"bev", "gba", "osm"}
+# Vierter/fuenfter Eintrag: (buffer_height_expression, plausibility_height_expression).
+# buffer_* treibt Candidate Area / Layover-Buffer; plausibility_* dient
+# Plausibilitaets-/Reichweiten-Checks (Folge-Ticket). Fuer gba identisch.
 BUILDING_SOURCE_TABLES = {
-    "bev": ("bev_buildings", "bev_id", "height_m"),
-    "gba": ("gba_buildings", "gba_id", "height"),
-    "osm": ("osm_buildings", "osm_id", "NULL::double precision"),
+    "bev": (
+        "bev_buildings",
+        "bev_id",
+        "COALESCE(height_max_m, height_m)",
+        "COALESCE(height_median_m, height_m)",
+    ),
+    "gba": ("gba_buildings", "gba_id", "height", "height"),
+    "osm": (
+        "osm_buildings",
+        "osm_id",
+        "NULL::double precision",
+        "NULL::double precision",
+    ),
 }
 
 
@@ -70,7 +83,7 @@ def _validate_building_source(source: str) -> None:
         raise HTTPException(status_code=400, detail="Invalid source")
 
 
-def _building_table_spec(source: str) -> tuple[str, str, str]:
+def _building_table_spec(source: str) -> tuple[str, str, str, str]:
     _validate_building_source(source)
     return BUILDING_SOURCE_TABLES[source]
 
@@ -1192,13 +1205,18 @@ async def ml_building_context_visualization(
         default_height_m = float(params.get("default_height_m", 12.0) or 12.0)
         buffer_multiplier = float(params.get("buffer_multiplier", 1.0) or 1.0)
         lateral_slack_m = float(params.get("lateral_slack_m", 2.0) or 2.0)
-        table_name, id_column, height_expression = _building_table_spec(source)
+        (
+            table_name,
+            id_column,
+            buffer_height_expression,
+            plausibility_height_expression,
+        ) = _building_table_spec(source)
 
         building_row = await conn.fetchrow(
             f"""
             SELECT
                 {id_column}::text AS building_id,
-                {height_expression} AS height,
+                {buffer_height_expression} AS height,
                 ST_AsGeoJSON(geom)::jsonb AS geometry,
                 ARRAY[ST_XMin(geom), ST_YMin(geom), ST_XMax(geom), ST_YMax(geom)] AS bounds
             FROM {table_name}
@@ -1218,7 +1236,7 @@ async def ml_building_context_visualization(
                 WITH building AS (
                     SELECT
                         {id_column}::text AS building_id,
-                        {height_expression} AS building_height,
+                        {buffer_height_expression} AS building_height,
                         ST_Transform(geom, 32633) AS geom_utm
                     FROM {table_name}
                     WHERE {id_column}::text = $1
