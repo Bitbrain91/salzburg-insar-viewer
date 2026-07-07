@@ -64,46 +64,65 @@ AOIS: dict[str, dict[str, Any]] = {
     "mirabell": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.04027, 47.80375, 13.04387, 47.80735),
-        "baseline_run": "5e56381a-1115-46f3-aeb4-337f7d067ead",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "c23cd637-3251-45bb-a95e-e2aa88abe6de",
+        "baseline_run": "13fb52ef-e351-43a7-b33e-57d64fb62934",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
+        "legacy_baseline_run": "5e56381a-1115-46f3-aeb4-337f7d067ead",
     },
     "moosstrasse": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.02714, 47.79189, 13.03074, 47.79549),
-        "baseline_run": "9ef01ded-270f-47be-b662-3a9b5950c745",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "15cee7d1-1f0c-44b2-a6e2-ecb633841db0",
+        "baseline_run": "79dd1468-f8ed-42c5-a6bd-62431be06f8f",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
+        "legacy_baseline_run": "9ef01ded-270f-47be-b662-3a9b5950c745",
     },
     "osthang": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "stress_diagnose",
         "bbox": (13.0492, 47.8036, 13.0528, 47.8054),
-        "baseline_run": "42b0d3df-3074-4a3a-b5f3-c02790113406",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "74c1481e-f2c7-4938-a4ac-8022e1fe2799",
+        "baseline_run": "9ff3a6dc-a9a2-4503-8052-71dfc91ddd45",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
+        "legacy_baseline_run": "42b0d3df-3074-4a3a-b5f3-c02790113406",
     },
     "bg_flat_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
         # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
-        "baseline_run": "f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef",
-        "legacy_baseline_run": "619dc244-48c1-4a1f-8b22-af79cd7b403e",  # P7-E-W1-T2, vor BG-Amplituden
+        "baseline_run": "76eb4779-a04d-4798-bcd7-4b979ca7f799",
+        "legacy_baseline_run": "f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef",  # P7-E-W1-T2, vor BG-Amplituden
     },
     "bg_slope_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
         # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
-        "baseline_run": "2c734086-23bd-4708-8e7c-75e8a876e523",
-        "legacy_baseline_run": "78ce5c6b-1539-49a3-bb32-76218d10db8b",  # P7-E-W1-T2, vor BG-Amplituden
+        "baseline_run": "430c3aa2-98b7-466f-8372-c6f514d01272",
+        "legacy_baseline_run": "2c734086-23bd-4708-8e7c-75e8a876e523",  # P7-E-W1-T2, vor BG-Amplituden
     },
     "bg_flat_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        "baseline_run": "69f13507-3ab7-425a-9e59-07caee9fb8e5",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "97672f6e-f06e-43d8-b279-1dddecc21300",
+        "baseline_run": "f0bcde44-3a13-473b-ac58-fc415a89d452",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
+        "legacy_baseline_run": "69f13507-3ab7-425a-9e59-07caee9fb8e5",
     },
     "bg_slope_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "49a4b1fa-3c9c-4d8b-8ab4-96281c975309",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "60a3899f-118a-4856-b40a-379939449e8a",
+        "baseline_run": "6edd064a-a7e6-4ec7-8999-cdbf60b4ed83",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
+        "legacy_baseline_run": "49a4b1fa-3c9c-4d8b-8ab4-96281c975309",
+    },
+    "moosstrasse_bev": {
+        "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
+        "source": "bev",
+        "bbox": (13.02714, 47.79189, 13.03074, 47.79549),
+        # v3-Baseline 2026-07-07 (P8-A-W2-T1: BEV-Standard-Vollzug)
+        "baseline_run": "85953608-14e6-473e-967c-d24c8791d880",
+    },
+    "bg_slope_01_snt_bev": {
+        "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
+        "source": "bev",
+        "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
+        "baseline_run": "935a3a0a-4917-4b21-8d8e-cd099d3e2db5",
+    },
+    "bg_slope_01_tsx_bev": {
+        "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "stress_diagnose",
+        "source": "bev",
+        "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
+        "baseline_run": "649cf539-75f6-4c34-9375-164a1fe29c66",
     },
 }
 
@@ -1203,7 +1222,10 @@ CASE_TYPE_EXPECTED_STATUS: dict[str, set[str] | None] = {
 }
 
 AOI_KEYS_BY_CASE_AOI = {
-    "mirabell": ["mirabell"], "moosstrasse": ["moosstrasse"], "osthang": ["osthang"],
+    # moosstrasse_bev: Referenzfaelle werden dort ueber den Dual-Key-Lookup
+    # (bev_building_id) aufgeloest; die bg-bev-Varianten bleiben bewusst
+    # aussen vor, bis bev-spezifische Erwartungen formuliert sind.
+    "mirabell": ["mirabell"], "moosstrasse": ["moosstrasse", "moosstrasse_bev"], "osthang": ["osthang"],
     "bg_flat_01": ["bg_flat_01_snt", "bg_flat_01_tsx"],
     "bg_slope_01": ["bg_slope_01_snt", "bg_slope_01_tsx"],
 }

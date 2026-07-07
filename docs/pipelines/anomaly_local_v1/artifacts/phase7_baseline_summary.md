@@ -230,3 +230,30 @@ regeneriert (alle 7 AOIs `noop_identical=True`, siehe Snapshot).
 Randnotiz Datenhygiene: 141 invalide OSM-Polygone (Salzburg) wurden per
 `ST_MakeValid` saniert; Load-Pfad repariert Geometrien jetzt beim Import
 (Commit "Harness: Gebaeudequelle aus AOI-Spec pinnen ...").
+
+## Re-Baseline 2026-07-07: MODEL_SET_VERSION v3_k2xh_diffv2 (Phase 8 W4)
+
+Ausloeser: Produktions-Integration des Bauteil-Trenners (a6/a7/a8 +
+Separation, Commit 85fe1ce) und Differential-Motion v2 (Commit f5122df).
+Alle 7 Pflicht-AOIs frisch gebaselined (source gba, Default-Params, CLI);
+zusaetzlich erstmals drei bev-AOI-Varianten (P8-A-W2-T1, BEV-Standard-
+Vollzug). Verify: alle 10 AOIs `noop_identical=True` (Snapshot
+`phase7_experiment_noop_baseline.json`; Vorstand als `_pre_v3` gesichert).
+
+| AOI | neu (v3) | vorher (jetzt legacy, v2_k2x) |
+| --- | --- | --- |
+| mirabell | `13fb52ef` | `5e56381a` |
+| moosstrasse | `79dd1468` (W4-Abnahmelauf) | `9ef01ded` |
+| osthang | `9ff3a6dc` | `42b0d3df` |
+| bg_flat_01_snt | `76eb4779` | `f2c4a59e` (2026-07-06, Amplituden) |
+| bg_slope_01_snt | `430c3aa2` | `2c734086` (2026-07-06, Amplituden) |
+| bg_flat_01_tsx | `f0bcde44` | `69f13507` |
+| bg_slope_01_tsx | `6edd064a` | `49a4b1fa` |
+| moosstrasse_bev (NEU) | `85953608` | - |
+| bg_slope_01_snt_bev (NEU) | `935a3a0a` | - |
+| bg_slope_01_tsx_bev (NEU) | `649cf539` | - |
+
+Alle Alt-Runs bleiben in ml_runs (Viewer-inspizierbar). Cross-Track-Mediane
+nach v3: mirabell 0.674, moosstrasse 0.388, osthang 0.850, bg_flat_snt
+0.658, bg_slope_snt 0.171, bg_flat_tsx 0.502, bg_slope_tsx 0.086 -
+Hang-Stress bleibt als ehrliche Diagnose sichtbar.
