@@ -203,3 +203,30 @@ Cross-Track: full_support_buildings=0, agreement_median=None, Quelle: NOT_COMPUT
 6. nearest-Quoten sind ueberall hoch (Mirabell ~33 %, Moosstrasse ~44 %,
    bg_flat_01 ~45 % der zugeordneten Punkte) - Assignment-Hygiene
    (`P7-C-W1-T5`) bleibt zentral.
+
+## Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6)
+
+Ausloeser: `insar_amplitude_timeseries` fuer bad_gastein_snt t44/t95 wurde
+2026-06-12 geladen; die v2_k2x-Baselines der BG-SNT-AOIs entstanden OHNE
+Amplituden-Input (amp_ts-Gates/amp_quality wirken jetzt). Precheck
+(`phase7_noop_precheck_2026-07.json`): mirabell/moosstrasse/osthang und
+beide bg_*_tsx punktidentisch (`noop_identical=True`), nur bg_flat_01_snt
+und bg_slope_01_snt divergieren — exakt der erwartete Datenstands-Effekt,
+keine unerklaerte Drift. Modellstand unveraendert
+`local_hdbscan_rulegate_v2_k2x`; Quelle weiterhin `gba` (BEV-Umstellung ist
+P8-A-W2-T1; Referenzfaelle sind gba-gekeyt).
+
+Baseline-Kette (nur die zwei divergierenden AOIs):
+
+| AOI | neu (baseline_run) | vorher (jetzt legacy) | v1-Alt (Doku) |
+| --- | --- | --- | --- |
+| bg_flat_01_snt | `f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef` | `619dc244-48c1-4a1f-8b22-af79cd7b403e` | `ff2217a1-098d-4126-a89a-c3c9b9c148e5` |
+| bg_slope_01_snt | `2c734086-23bd-4708-8e7c-75e8a876e523` | `78ce5c6b-1539-49a3-bb32-76218d10db8b` | `633325ef-409f-4a9e-a160-c9bc8394e574` |
+
+Alle Runs bleiben unangetastet in ml_runs (Viewer-inspizierbar). Der alte
+Noop-Snapshot ist als `phase7_experiment_noop_baseline_pre_bg_amp.json`
+gesichert; der neue wurde mit `--verify-noop --cross-track --confidence`
+regeneriert (alle 7 AOIs `noop_identical=True`, siehe Snapshot).
+Randnotiz Datenhygiene: 141 invalide OSM-Polygone (Salzburg) wurden per
+`ST_MakeValid` saniert; Load-Pfad repariert Geometrien jetzt beim Import
+(Commit "Harness: Gebaeudequelle aus AOI-Spec pinnen ...").

@@ -66,14 +66,16 @@ AOIS: dict[str, dict[str, Any]] = {
     "bg_flat_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        "baseline_run": "619dc244-48c1-4a1f-8b22-af79cd7b403e",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "ff2217a1-098d-4126-a89a-c3c9b9c148e5",
+        # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
+        "baseline_run": "f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef",
+        "legacy_baseline_run": "619dc244-48c1-4a1f-8b22-af79cd7b403e",  # P7-E-W1-T2, vor BG-Amplituden
     },
     "bg_slope_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "78ce5c6b-1539-49a3-bb32-76218d10db8b",  # P7-E-W1-T2 (v2_k2x)
-        "legacy_baseline_run": "633325ef-409f-4a9e-a160-c9bc8394e574",
+        # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
+        "baseline_run": "2c734086-23bd-4708-8e7c-75e8a876e523",
+        "legacy_baseline_run": "78ce5c6b-1539-49a3-bb32-76218d10db8b",  # P7-E-W1-T2, vor BG-Amplituden
     },
     "bg_flat_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "calibration_gate",
