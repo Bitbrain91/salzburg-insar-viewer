@@ -51,16 +51,29 @@ teilweise abgebrochen (Synthese + Teil der Verifikationen). Kennzeichnung:
 
 ## 2. Gates und Features: zwei belastbare Warnungen
 
-- **[V]** **Kohaerenz-Gate-Confound:** Temporale Modell-Kohaerenz aus
-  linearer PSI-Prozessierung vermischt Signalqualitaet mit
-  **Modell-Misfit**. Gebaeudeteile mit stark nichtlinearer (thermisch
-  saisonaler) Bewegung liefern kaum PS ueber einer 0.6-Schwelle; senkt man
-  auf 0.4, erscheinen dort Punkte, deren lineare Geschwindigkeiten aber
-  Prozessierungsartefakte sind. **Konsequenz fuer uns:** unser
-  `coherence_floor`-Gate (max(0.45, track_p05)) kann echte Gebaeudepunkte
-  auf thermisch arbeitenden Strukturen systematisch ausschliessen;
-  `season_amp`-bewusste Gate-Ausnahme als Harness-Achse pruefen.
+- **[V]** **Kohaerenz-Gate-Confound (mit wichtigem Handbuch-Abgleich):**
+  Temporale Modell-Kohaerenz aus **linearer** PSI-Prozessierung vermischt
+  Signalqualitaet mit **Modell-Misfit**: Gebaeudeteile mit stark
+  nichtlinearer (thermisch saisonaler) Bewegung liefern kaum PS ueber einer
+  0.6-Schwelle; senkt man auf 0.4, erscheinen dort Punkte, deren lineare
+  Geschwindigkeiten Prozessierungsartefakte sind.
   Quelle: https://isprs-annals.copernicus.org/articles/V-3-2022/123/2022/
+
+  **Handbuch-Abgleich (2026-07-07, User-Hinweis geprueft):** Diese Warnung
+  gilt fuer LINEARE PSI-Produkte und ist auf unsere SqueeSAR-Lieferungen
+  nur abgeschwaecht uebertragbar. Laut TRE-Handbook (PDF S. 17, gedruckt
+  S. 16) misst die temporale Kohaerenz den Fit gegen ein **automatisch per
+  Model Order Selection gewaehltes analytisches Modell** (nicht fix
+  linear); die **Saisonalitaet wird explizit mitmodelliert** und als
+  Attribut geliefert (S. 23: Fit `d(t)=a+bt+ct^2+A*cos(2*pi*T/365+phi)`
+  -> `season_amp`/`season_phs` + Stds). Saisonale Bewegung wird also beim
+  Produkterzeugen NICHT aus der Zeitreihe entfernt, aber sie druesckt die
+  Kohaerenz nicht zwangslaeufig wie im Linear-Modell-Fall. **Restrisiko:**
+  Die Modellwahl haengt von Datensatzqualitaet ab (Anzahl Bilder, Luecken)
+  und ist nicht garantiert saisonal. **Konsequenz fuer uns (statt
+  Gate-Umbau):** billige empirische Diagnose zuerst — korreliert niedrige
+  Kohaerenz in unseren Daten mit hohem `season_amp`? Nur falls ja, die
+  `season_amp`-bewusste Gate-Ausnahme als Harness-Achse testen.
 - **[U]** Klassische PS-Selektion (Amplituden-Dispersion/Kohaerenz)
   uebersieht phasenstabile Streuer mit niedriger Amplitude (Hooper-Linie) —
   Amplituden-Features als HARTE Gates waeren daher riskant; als weiche

@@ -104,9 +104,16 @@ k2x-Hygiene ist auf BEV-Footprints NICHT kalibriert.
 
 ## Entscheidungsnotiz: BEV als Produktions-Default
 
-**Empfehlung: Noch NICHT umstellen.** Der UI-Default (bev) kann fuer
-exploratives Arbeiten bleiben, aber produktive Aussagen/Baselines bleiben
-gba-basiert, bis (phase8):
+**User-Entscheidung 2026-07-07: BEV IST der Standard** (Datenqualitaet
+unstrittig besser: gemessene ALS-Hoehen, vollstaendigere Footprints —
+belegt durch diesen Vergleich und `bev_footprint_recheck_96959851.md`).
+App-/Pipeline-Default steht seit Commit a970742 auf bev. GBA bleibt
+AUSSCHLIESSLICH als Mess-/Regressionsbasis des Harness bestehen, bis die
+Baselines und Referenzfaelle auf BEV-IDs migriert sind (P8-A, vorgezogen).
+
+Die urspruengliche Empfehlung "noch nicht umstellen" bezog sich auf diese
+Messbasis und auf die folgenden Hygiene-Punkte, die durch die Umstellung
+NICHT hinfaellig werden, sondern dringlicher (phase8):
 
 1. das Hoehen-Mapping (buffer=height_max, plausibility=height_median)
    umgesetzt ist,

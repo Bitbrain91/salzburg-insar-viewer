@@ -94,11 +94,14 @@ Welle W1 (parallelisierbar, disjunkte Write-Sets):
 
 Welle W2 (nach W1):
 
-- **P8-A-W2-T1 Entscheidung Produktions-Default**: auf Basis T1-T3 +
-  P8-B-Ergebnis entscheiden, ob bev Produktions-Default wird; wenn ja:
-  BEV-Baselines einfrieren (AOIS erhaelt `source: "bev"`-Varianten,
-  gba-Baselines bleiben als legacy), Referenzfall-Erwartungen fuer bev
-  formulieren. DoD: Decision-Log-Eintrag + ggf. neue Baseline-Runs.
+- **P8-A-W2-T1 Vollzug Produktions-Default BEV** (User-Entscheidung
+  2026-07-07: BEV IST der Standard; die Entscheidung ist gefallen, dieses
+  Ticket ist der technische Vollzug): BEV-Baselines einfrieren (AOIS
+  erhaelt `source: "bev"`-Varianten, gba-Baselines bleiben als legacy),
+  Referenzfall-Erwartungen fuer bev formulieren (Fall 18: Erwartung wird
+  Multi-Cluster/Differential statt nearest-Demotion). DoD: neue
+  Baseline-Runs + verify-noop gruen auf den bev-AOIS-Varianten +
+  Decision-Log-Eintrag.
 
 ### Phase P8-B: Assignment-Hygiene 2 (kartierungsfrei)
 
