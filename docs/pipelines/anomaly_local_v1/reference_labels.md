@@ -49,6 +49,16 @@ Abgrenzung annex vs. foreign: entscheidend ist die bauliche Verbindung
 (Lehre aus Fall 96959851: als "unkartiertes Nebengebaeude" gelabelt,
 tatsaechlich baulich verbundener Anbau).
 
+**Einsatz-Konvention Google-Earth-3D (User-Entscheidung 2026-07-07):**
+grundsaetzlich verwenden, wo sinnvoll — verpflichtend beim Labeling
+(foreign/annex-Abgrenzung), empfohlen zur Analyse unklarer Ergebnisse
+(Watch-Items, Visual-Audit-Faelle, ueberraschende Statuswechsel). NICHT
+als Standard fuer jede Gebaeudebewertung (manuell, skaliert nicht auf
+62k+ Gebaeude). Skalierbare Struktur-Proxys fuer die Flaeche: BEV-Attribute
+(Footprint-Teile, AGWR-Funktion) und kuenftig das nDSM aus dem 1m-ALS
+DOM-DGM (erkennt niedrigere angebaute Bauteile automatisch; siehe
+`../../research/2026-07_hanglagen_terrain_research.md`).
+
 ## Regeln
 
 1. Nur Punkte mit dokumentierter Evidenz aufnehmen (Visual-Audit-Report,
@@ -71,11 +81,18 @@ Fuer einen Kandidaten-Lauf gilt pro gelabeltem Punkt:
   der Hygiene.
 - `foreign` und demotiert/noise/excluded -> True Positive.
 - `roof` und demotiert/verloren -> False Positive (zu aggressiv).
-- `annex` und core im MAIN-Cluster -> Fehler (unsepariert: Anbau praegt
-  die Hauptbau-Bewegung).
+- `annex` und core im MAIN-Cluster -> Fehler, WENN sich das
+  Anbau-Verhalten kinematisch vom Hauptbau unterscheidet (wie im Fall
+  96959851: Anbau -0.9/-1.7 mm/a vs. Hauptdach +0.1/+0.4). Bewegen sich
+  beide Teile gleich, ist ein gemeinsamer Cluster statistisch korrekt
+  (mehr Stuetzung, robusterer Median) und KEIN Fehler — dann ist nur ein
+  struktureller Hinweis gewuenscht (Bauteil-Mix-Flag), damit spaeteres
+  Auseinanderlaufen gezielt beobachtet wird. Prinzip: **Cluster folgen dem
+  Verhalten, Flags folgen der Struktur.**
 - `annex` in eigenem Cluster (nicht Main) mit differential-Bewertung ->
-  korrekt (Ideal). `annex` demotiert/excluded -> suboptimal (Signal
-  verloren), aber besser als unsepariert; separat ausweisen.
+  korrekt (Ideal bei abweichendem Verhalten). `annex` demotiert/excluded
+  -> suboptimal (Signal verloren), aber besser als kinematisch
+  abweichend im Main verschmolzen; separat ausweisen.
 - `unclear` -> nicht gewertet, aber im Report gelistet.
 
 Kennzahlen: Precision/Recall/F1 der Fremdpunkt-Erkennung + Anzahl
