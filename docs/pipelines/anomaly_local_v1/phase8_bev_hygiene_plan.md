@@ -141,6 +141,23 @@ Welle W2:
 - **P8-B-W2-T2 Visual-Audit + Survivors-Pass** der Shortlist (Pflicht v2).
 - **P8-B-W2-T3 Entscheidung/Integration** analog P7-E (nur bei gruenen
   Guardrails; sonst dokumentiertes no_integrate).
+- **P8-B-W2-T4 Differential-Motion-Kriterium v2** (beantwortet die offene
+  Frage aus next_steps §2 "ab welcher Differenz?"; Diskussion 2026-07-07).
+  Ist-Zustand: Flag bei Delta >= max(1.5, 1.0+0.15*slope) mm/a zwischen
+  belastbaren Clustern (je >=2 Punkte). Zielbild dreistufig:
+  (a) `differential_candidate` = heutige Regel;
+  (b) `differential_significant` = zusaetzlich Delta > 2*sigma_Delta mit
+      sigma aus Bootstrap-CI der Cluster-Mediane (nutzt v_stdev/Stuetzung;
+      lokale Differenzen sind praeziser als Absolutwerte, da Atmosphaere/
+      Orbit/REF-Fehler gebaeudeintern herausfallen);
+  (c) `differential_confirmed` = zusaetzlich Bestaetigung durch zweite
+      Geometrie (gleiches Vorzeichen der Differenz) ODER persistenter
+      Trend der Differenz-Zeitreihe (nicht nur Endpunkt-Fit).
+  Plausibilitaets-Downgrades vor (b)/(c): grosse season_amp-Differenz
+  (thermische Ausdehnung Blechdach) und instabile Amplitude (Korrosion ->
+  Phasenzentrum-Drift = Scheinbewegung) druecken auf candidate.
+  DoD: Kriterium implementiert + an 96959851 (erwartet: candidate, nicht
+  confirmed - nur t95, n=2/Seite) und 96637447 validiert; UI zeigt Stufe.
 
 ### Phase P8-C: Feature-Achsen + Hygiene-Ablation (nach Research-Bericht 1)
 
