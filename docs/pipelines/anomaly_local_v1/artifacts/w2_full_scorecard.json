@@ -1,0 +1,2435 @@
+{
+  "stand": "2026-06-10",
+  "baseline": "noop",
+  "entries": {
+    "noop": {
+      "config": {
+        "experiment_id": "noop",
+        "description": "Produktionsidentische Variante (seit v2_k2x inkl. a5_crosslook + smalln_strict)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "optics_cluster_method": "xi",
+        "optics_xi": 0.05,
+        "optics_eps": 0.5,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a0",
+        "separation_mode": "demote",
+        "smalln_mode": "baseline",
+        "reassign_mode": "on"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "insufficient_support",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "insufficient_support",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "noise_dominated",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        }
+      ],
+      "reference_cases_ok": false,
+      "label_metrics": {
+        "roof_lost": 0,
+        "foreign_in_main": 1,
+        "foreign_caught": 4,
+        "annex_merged": 2,
+        "annex_separated": 0,
+        "annex_demoted": 0,
+        "labels_evaluated": 44,
+        "unclear": 15,
+        "details": [
+          {
+            "code": "NTC3CYZ01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "main_core",
+            "verdict": "annex_merged"
+          },
+          {
+            "code": "NTDA86J01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "main_core",
+            "verdict": "annex_merged"
+          },
+          {
+            "code": "O2HC2XV01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NTF2IZV01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NTG9E7F01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2CKM3N01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2FJS4J01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NTEH3E401",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTFNYLN01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O37J5KI01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "core",
+            "verdict": "foreign_in_secondary_core"
+          },
+          {
+            "code": "O384L6A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "core",
+            "verdict": "foreign_in_secondary_core"
+          },
+          {
+            "code": "O355F5A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "core",
+            "verdict": "foreign_in_secondary_core"
+          },
+          {
+            "code": "O36XPYO01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "main_core",
+            "verdict": "foreign_in_main"
+          },
+          {
+            "code": "NSZL99801",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSZL99701",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NT06OUX01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSVF80S01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NSXSYFW01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O33D4C101",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O32ROQ901",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O36XPYJ01",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O355F5701",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NT946XL01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTC3CYH01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTAWHQX01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2RGG8R01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2QV0MZ01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2Q9L1701",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "L4B171Q01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L498W8F01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCI03HM01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCKDTWQ01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCF0XGY01",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCEFHV601",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4L5KBR01",
+            "track": 95,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCMRKC201",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCNCZXU01",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4C829201",
+            "track": 95,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQTI1RF",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HD7",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQUOWZ0",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HDL",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZC",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZD",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          }
+        ],
+        "by_aoi": {
+          "mirabell": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "moosstrasse": {
+            "roof_lost": 0,
+            "foreign_in_main": 1,
+            "foreign_caught": 4,
+            "annex_merged": 2,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 28,
+            "unclear": 12
+          },
+          "osthang": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 10,
+            "unclear": 0
+          },
+          "bg_slope_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_slope_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 6,
+            "unclear": 3
+          }
+        }
+      },
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1141,
+          "noise_rate": 0.3585,
+          "multi_cluster_buildings": 25,
+          "multi_cluster_buildings_robust": 28,
+          "nearest_dominated_main_clusters": 5,
+          "status_counts": {
+            "ok": 22,
+            "insufficient_support": 19,
+            "single_track_only": 8,
+            "noise_dominated": 4,
+            "small_n": 5
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "moosstrasse": {
+          "kept": 1241,
+          "noise_rate": 0.2417,
+          "multi_cluster_buildings": 61,
+          "multi_cluster_buildings_robust": 60,
+          "nearest_dominated_main_clusters": 11,
+          "status_counts": {
+            "insufficient_support": 57,
+            "noise_dominated": 6,
+            "ok": 59,
+            "small_n": 18,
+            "single_track_only": 7
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "osthang": {
+          "kept": 484,
+          "noise_rate": 0.2459,
+          "multi_cluster_buildings": 21,
+          "multi_cluster_buildings_robust": 22,
+          "nearest_dominated_main_clusters": 3,
+          "status_counts": {
+            "ok": 19,
+            "single_track_only": 8,
+            "small_n": 11,
+            "insufficient_support": 8,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "bg_flat_01_snt": {
+          "kept": 718,
+          "noise_rate": 0.2925,
+          "multi_cluster_buildings": 32,
+          "multi_cluster_buildings_robust": 29,
+          "nearest_dominated_main_clusters": 9,
+          "status_counts": {
+            "ok": 28,
+            "insufficient_support": 28,
+            "noise_dominated": 8,
+            "single_track_only": 7,
+            "small_n": 11
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "bg_slope_01_snt": {
+          "kept": 533,
+          "noise_rate": 0.272,
+          "multi_cluster_buildings": 14,
+          "multi_cluster_buildings_robust": 15,
+          "nearest_dominated_main_clusters": 4,
+          "status_counts": {
+            "insufficient_support": 26,
+            "small_n": 14,
+            "ok": 13,
+            "single_track_only": 5,
+            "noise_dominated": 2
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5652,
+          "noise_rate": 0.3661,
+          "multi_cluster_buildings": 68,
+          "multi_cluster_buildings_robust": 60,
+          "nearest_dominated_main_clusters": 12,
+          "status_counts": {
+            "ok": 58,
+            "single_track_only": 6,
+            "small_n": 3,
+            "noise_dominated": 8,
+            "insufficient_support": 7
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3912,
+          "noise_rate": 0.2868,
+          "multi_cluster_buildings": 49,
+          "multi_cluster_buildings_robust": 44,
+          "nearest_dominated_main_clusters": 5,
+          "status_counts": {
+            "ok": 43,
+            "noise_dominated": 6,
+            "small_n": 5,
+            "insufficient_support": 5,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        }
+      },
+      "guardrails": {},
+      "verdict": "baseline",
+      "reasons": []
+    },
+    "k2xh": {
+      "config": {
+        "experiment_id": "k2xh",
+        "description": "Komposit K2xh = a5_crosslook + Hoehenprofil + Anti-Layover + Reichweite (Trennung)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "optics_cluster_method": "xi",
+        "optics_xi": 0.05,
+        "optics_eps": 0.5,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
+        "separation_mode": "separate",
+        "smalln_mode": "strict",
+        "reassign_mode": "on"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated",
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "policy_pin:k2xh"
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "small_n",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated",
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "policy_pin:k2xh"
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_carport_merge_confirmed",
+          "aoi": "moosstrasse",
+          "building_id": "96959851",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "policy_pin:k2xh"
+        }
+      ],
+      "reference_cases_ok": true,
+      "label_metrics": {
+        "roof_lost": 0,
+        "foreign_in_main": 0,
+        "foreign_caught": 8,
+        "annex_merged": 0,
+        "annex_separated": 2,
+        "annex_demoted": 0,
+        "labels_evaluated": 44,
+        "unclear": 15,
+        "details": [
+          {
+            "code": "NTC3CYZ01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "annex",
+            "verdict": "annex_separated"
+          },
+          {
+            "code": "NTDA86J01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "annex",
+            "verdict": "annex_separated"
+          },
+          {
+            "code": "O2HC2XV01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NTF2IZV01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NTG9E7F01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2CKM3N01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2FJS4J01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NTEH3E401",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTFNYLN01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O37J5KI01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O384L6A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O355F5A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O36XPYO01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSZL99801",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSZL99701",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NT06OUX01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "annex",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSVF80S01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NSXSYFW01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O33D4C101",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "annex",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O32ROQ901",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "annex",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O36XPYJ01",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "annex",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O355F5701",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "annex",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NT946XL01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTC3CYH01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTAWHQX01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2RGG8R01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2QV0MZ01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2Q9L1701",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "L4B171Q01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L498W8F01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCI03HM01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCKDTWQ01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCF0XGY01",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCEFHV601",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4L5KBR01",
+            "track": 95,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCMRKC201",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCNCZXU01",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4C829201",
+            "track": 95,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQTI1RF",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HD7",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQUOWZ0",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HDL",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZC",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZD",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          }
+        ],
+        "by_aoi": {
+          "mirabell": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "moosstrasse": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 8,
+            "annex_merged": 0,
+            "annex_separated": 2,
+            "annex_demoted": 0,
+            "labels_evaluated": 28,
+            "unclear": 12
+          },
+          "osthang": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 10,
+            "unclear": 0
+          },
+          "bg_slope_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_slope_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 6,
+            "unclear": 3
+          }
+        }
+      },
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1141,
+          "noise_rate": 0.3155,
+          "multi_cluster_buildings": 25,
+          "multi_cluster_buildings_robust": 30,
+          "nearest_dominated_main_clusters": 1,
+          "status_counts": {
+            "ok": 24,
+            "insufficient_support": 22,
+            "single_track_only": 6,
+            "noise_dominated": 1,
+            "small_n": 5
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "548206",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "548207",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "moosstrasse": {
+          "kept": 1241,
+          "noise_rate": 0.1789,
+          "multi_cluster_buildings": 56,
+          "multi_cluster_buildings_robust": 62,
+          "nearest_dominated_main_clusters": 4,
+          "status_counts": {
+            "insufficient_support": 64,
+            "ok": 56,
+            "small_n": 15,
+            "single_track_only": 11,
+            "noise_dominated": 1
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "96637515",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "96955278",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "osthang": {
+          "kept": 484,
+          "noise_rate": 0.1921,
+          "multi_cluster_buildings": 20,
+          "multi_cluster_buildings_robust": 25,
+          "nearest_dominated_main_clusters": 1,
+          "status_counts": {
+            "ok": 20,
+            "single_track_only": 8,
+            "insufficient_support": 9,
+            "small_n": 10
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "54773363",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_flat_01_snt": {
+          "kept": 718,
+          "noise_rate": 0.2159,
+          "multi_cluster_buildings": 29,
+          "multi_cluster_buildings_robust": 34,
+          "nearest_dominated_main_clusters": 2,
+          "status_counts": {
+            "ok": 26,
+            "insufficient_support": 34,
+            "single_track_only": 6,
+            "small_n": 12,
+            "noise_dominated": 4
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "238099991",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_slope_01_snt": {
+          "kept": 533,
+          "noise_rate": 0.2045,
+          "multi_cluster_buildings": 14,
+          "multi_cluster_buildings_robust": 18,
+          "nearest_dominated_main_clusters": 0,
+          "status_counts": {
+            "insufficient_support": 30,
+            "small_n": 12,
+            "ok": 14,
+            "single_track_only": 4
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "238057563",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5652,
+          "noise_rate": 0.2937,
+          "multi_cluster_buildings": 66,
+          "multi_cluster_buildings_robust": 64,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 61,
+            "single_track_only": 8,
+            "small_n": 3,
+            "noise_dominated": 3,
+            "insufficient_support": 7
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "143823099",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238088268",
+              "from": "noise_dominated",
+              "to": "single_track_only"
+            },
+            {
+              "building_id": "238100024",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238100083",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "34031762",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3912,
+          "noise_rate": 0.2354,
+          "multi_cluster_buildings": 49,
+          "multi_cluster_buildings_robust": 47,
+          "nearest_dominated_main_clusters": 4,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 4,
+            "small_n": 5,
+            "insufficient_support": 6,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "120878946",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "120878958",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_inconclusive",
+      "reasons": [
+        "mirabell: 2 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "moosstrasse: 2 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "osthang: 1 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_flat_01_snt: 1 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_slope_01_snt: 1 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_flat_01_tsx: 5 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_slope_01_tsx: 2 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)"
+      ]
+    },
+    "k2xh_demote": {
+      "config": {
+        "experiment_id": "k2xh_demote",
+        "description": "K2xh im Demote-Modus (A/B-Gegenprobe: Kandidaten werden ausgeschlossen statt getrennt)",
+        "algorithm": "hdbscan",
+        "mcs_fraction": 0.2,
+        "mcs_cap": 8,
+        "mcs_floor": 2,
+        "min_samples_mode": "half",
+        "cluster_selection_method": "eom",
+        "allow_single_cluster": true,
+        "cluster_selection_epsilon": 0.0,
+        "optics_cluster_method": "xi",
+        "optics_xi": 0.05,
+        "optics_eps": 0.5,
+        "matrix_features": null,
+        "coherence_floor": null,
+        "coherence_gate_mode": "absolute",
+        "assignment_policy": "a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
+        "separation_mode": "demote",
+        "smalln_mode": "strict",
+        "reassign_mode": "on"
+      },
+      "reference_case_checks": [
+        {
+          "case_id": "mirabell_standard_weak_secondary",
+          "aoi": "mirabell",
+          "building_id": "548205",
+          "expected_any_of": [
+            "ok",
+            "single_track_only"
+          ],
+          "actual": "single_track_only",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "mirabell_adjacent_standard",
+          "aoi": "mirabell",
+          "building_id": "548204",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_anchor",
+          "aoi": "moosstrasse",
+          "building_id": "96637447",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_differential_low_agreement",
+          "aoi": "moosstrasse",
+          "building_id": "96637522",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_single_track_only",
+          "aoi": "moosstrasse",
+          "building_id": "96637488",
+          "expected_any_of": [
+            "single_track_only"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_small_n",
+          "aoi": "moosstrasse",
+          "building_id": "96959854",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "moosstrasse_noise_dominated",
+          "aoi": "moosstrasse",
+          "building_id": "96637551",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "osthang_insufficient_support",
+          "aoi": "osthang",
+          "building_id": "395674088",
+          "expected_any_of": [
+            "insufficient_support"
+          ],
+          "actual": "insufficient_support",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_low_agreement",
+          "aoi": "osthang",
+          "building_id": "54773363",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "ok",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "osthang_nearest_heavy_ok",
+          "aoi": "osthang",
+          "building_id": "150506168",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "policy_downgrade_tolerance"
+        },
+        {
+          "case_id": "bg_flat_small_n",
+          "aoi": "bg_flat_01_snt",
+          "building_id": "238100070",
+          "expected_any_of": [
+            "small_n"
+          ],
+          "actual": "single_track_only",
+          "ok": false,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_noise_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "238057563",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_slope_ok_low_agreement",
+          "aoi": "bg_slope_01_snt",
+          "building_id": "113309853",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "ok",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "bg_tsx_high_n_noise",
+          "aoi": "bg_flat_01_tsx",
+          "building_id": "227901749",
+          "expected_any_of": [
+            "noise_dominated"
+          ],
+          "actual": "noise_dominated",
+          "ok": true,
+          "source": "case_type_default"
+        },
+        {
+          "case_id": "moosstrasse_carport_merge_confirmed",
+          "aoi": "moosstrasse",
+          "building_id": "96959851",
+          "expected_any_of": [
+            "ok"
+          ],
+          "actual": "noise_dominated",
+          "ok": false,
+          "source": "policy_pin:a5_crosslook"
+        }
+      ],
+      "reference_cases_ok": false,
+      "label_metrics": {
+        "roof_lost": 2,
+        "foreign_in_main": 0,
+        "foreign_caught": 8,
+        "annex_merged": 0,
+        "annex_separated": 0,
+        "annex_demoted": 2,
+        "labels_evaluated": 44,
+        "unclear": 15,
+        "details": [
+          {
+            "code": "NTC3CYZ01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "excluded",
+            "verdict": "annex_demoted"
+          },
+          {
+            "code": "NTDA86J01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "annex",
+            "state": "noise",
+            "verdict": "annex_demoted"
+          },
+          {
+            "code": "O2HC2XV01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "foreign",
+            "state": "noise",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NTF2IZV01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "noise",
+            "verdict": "roof_lost"
+          },
+          {
+            "code": "NTG9E7F01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2CKM3N01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O2FJS4J01",
+            "track": 44,
+            "building_id": "96959851",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NTEH3E401",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTFNYLN01",
+            "track": 95,
+            "building_id": "96959851",
+            "label": "unclear",
+            "state": "noise",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O37J5KI01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O384L6A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O355F5A01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "O36XPYO01",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSZL99801",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSZL99701",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NT06OUX01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "foreign",
+            "state": "excluded",
+            "verdict": "foreign_caught"
+          },
+          {
+            "code": "NSVF80S01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "noise",
+            "verdict": "roof_lost"
+          },
+          {
+            "code": "NSXSYFW01",
+            "track": 95,
+            "building_id": "96637447",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "O33D4C101",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O32ROQ901",
+            "track": 44,
+            "building_id": "96637447",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O36XPYJ01",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O355F5701",
+            "track": 44,
+            "building_id": "96856632",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NT946XL01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTC3CYH01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "NTAWHQX01",
+            "track": 95,
+            "building_id": "203343478",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2RGG8R01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2QV0MZ01",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "O2Q9L1701",
+            "track": 44,
+            "building_id": "96637488",
+            "label": "unclear",
+            "state": "excluded",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "L4B171Q01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L498W8F01",
+            "track": 95,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCI03HM01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCKDTWQ01",
+            "track": 44,
+            "building_id": "105022686",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCF0XGY01",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCEFHV601",
+            "track": 44,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4L5KBR01",
+            "track": 95,
+            "building_id": "227901743",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCMRKC201",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "NCNCZXU01",
+            "track": 44,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "L4C829201",
+            "track": 95,
+            "building_id": "227901749",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQTI1RF",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HD7",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQUOWZ0",
+            "track": 70,
+            "building_id": "113309843",
+            "label": "roof",
+            "state": "main_core",
+            "verdict": "roof_kept"
+          },
+          {
+            "code": "DQU3HDL",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZC",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          },
+          {
+            "code": "DQUOWZD",
+            "track": 70,
+            "building_id": "113309836",
+            "label": "unclear",
+            "state": "main_core",
+            "verdict": "unclear_not_scored"
+          }
+        ],
+        "by_aoi": {
+          "mirabell": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "moosstrasse": {
+            "roof_lost": 2,
+            "foreign_in_main": 0,
+            "foreign_caught": 8,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 2,
+            "labels_evaluated": 28,
+            "unclear": 12
+          },
+          "osthang": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 10,
+            "unclear": 0
+          },
+          "bg_slope_01_snt": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_flat_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 0,
+            "unclear": 0
+          },
+          "bg_slope_01_tsx": {
+            "roof_lost": 0,
+            "foreign_in_main": 0,
+            "foreign_caught": 0,
+            "annex_merged": 0,
+            "annex_separated": 0,
+            "annex_demoted": 0,
+            "labels_evaluated": 6,
+            "unclear": 3
+          }
+        }
+      },
+      "aoi_aggregates": {
+        "mirabell": {
+          "kept": 1034,
+          "noise_rate": 0.3114,
+          "multi_cluster_buildings": 24,
+          "multi_cluster_buildings_robust": 27,
+          "nearest_dominated_main_clusters": 2,
+          "status_counts": {
+            "ok": 22,
+            "insufficient_support": 22,
+            "single_track_only": 6,
+            "noise_dominated": 2,
+            "small_n": 6
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "548207",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "moosstrasse": {
+          "kept": 1036,
+          "noise_rate": 0.221,
+          "multi_cluster_buildings": 50,
+          "multi_cluster_buildings_robust": 53,
+          "nearest_dominated_main_clusters": 4,
+          "status_counts": {
+            "insufficient_support": 67,
+            "ok": 49,
+            "small_n": 14,
+            "single_track_only": 13,
+            "noise_dominated": 4
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "96637515",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "96955278",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "osthang": {
+          "kept": 413,
+          "noise_rate": 0.2276,
+          "multi_cluster_buildings": 18,
+          "multi_cluster_buildings_robust": 22,
+          "nearest_dominated_main_clusters": 1,
+          "status_counts": {
+            "ok": 15,
+            "single_track_only": 9,
+            "small_n": 11,
+            "noise_dominated": 3,
+            "insufficient_support": 9
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "54773363",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_flat_01_snt": {
+          "kept": 590,
+          "noise_rate": 0.2254,
+          "multi_cluster_buildings": 28,
+          "multi_cluster_buildings_robust": 29,
+          "nearest_dominated_main_clusters": 2,
+          "status_counts": {
+            "ok": 25,
+            "insufficient_support": 35,
+            "single_track_only": 7,
+            "noise_dominated": 5,
+            "small_n": 10
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "105022685",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238099991",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238100070",
+              "from": "noise_dominated",
+              "to": "single_track_only"
+            }
+          ]
+        },
+        "bg_slope_01_snt": {
+          "kept": 459,
+          "noise_rate": 0.2593,
+          "multi_cluster_buildings": 13,
+          "multi_cluster_buildings_robust": 14,
+          "nearest_dominated_main_clusters": 0,
+          "status_counts": {
+            "insufficient_support": 32,
+            "small_n": 9,
+            "ok": 12,
+            "single_track_only": 4,
+            "noise_dominated": 3
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null
+        },
+        "bg_flat_01_tsx": {
+          "kept": 5049,
+          "noise_rate": 0.3494,
+          "multi_cluster_buildings": 64,
+          "multi_cluster_buildings_robust": 62,
+          "nearest_dominated_main_clusters": 8,
+          "status_counts": {
+            "ok": 57,
+            "single_track_only": 7,
+            "small_n": 3,
+            "noise_dominated": 8,
+            "insufficient_support": 7
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "143823099",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238088268",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238100024",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "238100083",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "34031762",
+              "from": "noise_dominated",
+              "to": "ok"
+            }
+          ]
+        },
+        "bg_slope_01_tsx": {
+          "kept": 3495,
+          "noise_rate": 0.2558,
+          "multi_cluster_buildings": 48,
+          "multi_cluster_buildings_robust": 45,
+          "nearest_dominated_main_clusters": 4,
+          "status_counts": {
+            "ok": 45,
+            "noise_dominated": 5,
+            "insufficient_support": 8,
+            "small_n": 2,
+            "single_track_only": 3
+          },
+          "xtrack_agreement_median": null,
+          "confidence_bands": null,
+          "status_upgrades_vs_baseline": [
+            {
+              "building_id": "120878946",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "591630211",
+              "from": "noise_dominated",
+              "to": "ok"
+            },
+            {
+              "building_id": "655414072",
+              "from": "small_n",
+              "to": "single_track_only"
+            }
+          ]
+        }
+      },
+      "guardrails": {},
+      "verdict": "candidate_red",
+      "reasons": [
+        "mirabell: 1 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "moosstrasse: 2 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "osthang: 1 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_flat_01_snt: 3 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_flat_01_tsx: 5 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "bg_slope_01_tsx: 3 Status-Aufwertung(en) (audit-pflichtig, kein Auto-Fail)",
+        "Referenzfall-Erwartung verletzt"
+      ]
+    }
+  },
+  "schema": {
+    "verdicts": [
+      "baseline",
+      "candidate_green",
+      "candidate_red",
+      "candidate_inconclusive"
+    ],
+    "rule": "Niedrigere Noise-Rate allein ist kein Erfolg; harte Gates muessen halten.",
+    "policy_rule": "P7-V1: Hygiene-Politiken (assignment_policy!=a0 oder smalln_mode!=baseline) duerfen Status-Ansprueche abschwaechen (CLAIM_RANK-Toleranz) und nearest-getragene Zweitcluster verlieren (robuste Multi-Cluster-Zaehlung); Aufwertungen und Verlust robuster Struktur bleiben harte Fails. policy_expectations in phase7_reference_cases.json pinnen Einzelfaelle.",
+    "cross_track_fields": [
+      "cross_track_source",
+      "cross_track_pair_type",
+      "temporal_overlap_days"
+    ]
+  }
+}

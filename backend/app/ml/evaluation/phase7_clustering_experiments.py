@@ -39,8 +39,24 @@ from sklearn.cluster import OPTICS
 from sklearn.preprocessing import RobustScaler
 
 from ...config import settings
-from ..pipelines.anomaly_local_v1 import AnomalyLocalV1Pipeline, LocalPointRecord
+from ..pipelines.anomaly_local_v1 import (
+    BUILDING_SOURCE_SPECS,
+    AnomalyLocalV1Pipeline,
+    LocalPointRecord,
+)
 from ..types import RunConfig
+# P8-B (Bauteil-Trenner): dieselben selbstkalibrierten Konstanten wie der
+# validierte Survivors-Scan (Fall 96959851) treiben die neuen Achsen
+# a6_antilayover / a7_reach / a8_heightprofile.
+from .phase7_survivors_scan import (
+    ANTI_COMPONENT_MIN_M,
+    ANTI_LAYOVER_DOT,
+    HEIGHT_MARGIN_M,
+    HEIGHT_SATURATION_RATIO,
+    MAD_FLOOR_M,
+    MAD_K,
+    OFF_FOOTPRINT_EPS_M,
+)
 
 ARTIFACTS_DIR = Path(__file__).resolve().parents[4] / "docs" / "pipelines" / "anomaly_local_v1" / "artifacts"
 
@@ -112,6 +128,33 @@ EXTRA_FIELDS_QUERY = """
       AND ST_Intersects(p.geom, ST_MakeEnvelope($1, $2, $3, $4, 4326))
 """
 
+# Geometrische Zusatzfelder fuer a6_antilayover (P8-B): Azimut von der Kante
+# des NAECHSTGELEGENEN Quelltabellen-Footprints zum Punkt (wie im
+# Survivors-Scan, aber LATERAL-nearest statt der zugeordneten building_id, weil
+# der Offline-Pfad die Zuordnung nicht in die Query traegt). {building_table}
+# stammt aus BUILDING_SOURCE_SPECS (keine Nutzereingabe).
+GEOM_EXTRAS_QUERY_TEMPLATE = """
+    WITH envelope AS (
+        SELECT ST_MakeEnvelope($1, $2, $3, $4, 4326) AS geom
+    )
+    SELECT p.code, p.track, nb.az_from_fp, nb.d_fp_db
+    FROM insar_points p
+    CROSS JOIN envelope e
+    CROSS JOIN LATERAL (
+        SELECT
+            degrees(ST_Azimuth(ST_ClosestPoint(b.geom, p.geom)::geography,
+                               p.geom::geography)) AS az_from_fp,
+            ST_Distance(p.geom::geography, b.geom::geography) AS d_fp_db
+        FROM {building_table} b
+        WHERE b.area_id = $5
+          AND ST_DWithin(b.geom::geography, e.geom::geography, 60.0)
+        ORDER BY b.geom <-> p.geom
+        LIMIT 1
+    ) nb
+    WHERE p.area_id = $5 AND p.dataset_id = $6
+      AND ST_Intersects(p.geom, e.geom)
+"""
+
 # nearest-Punkte in einer OSM-Struktur OHNE GBA-Entsprechung (Carport-Veto,
 # nur Salzburg verfuegbar; Bad Gastein hat keine geladenen OSM-Gebaeude).
 OSM_FOREIGN_QUERY = """
@@ -152,8 +195,16 @@ class ExperimentConfig:
     # Gate-Achsen
     coherence_floor: float | None = None  # None = produktiv 0.45
     coherence_gate_mode: str = "absolute" # absolute | percentile:<p>
-    # Assignment-Politik (Schritt 4): a0 | a1_demote | a2_dist:<m> | a3_height | a4_osm
+    # Assignment-Politik (Schritt 4): kommaseparierte Token-Liste. Bekannte
+    # Token: a0 | a1_demote | a2_dist:<m> | a3_height | a4_osm | a5_crosslook |
+    # a6_antilayover | a7_reach | a8_heightprofile. Ein Single-Token verhaelt
+    # sich exakt wie frueher.
     assignment_policy: str = "a0"
+    # P8-B (Bauteil-Trenner): "demote" (klassisch: Kandidaten der neuen Achsen
+    # a6/a7/a8 werden gate-ausgeschlossen) | "separate" (Kandidaten bekommen
+    # einen eigenen annex-Cluster statt entfernt zu werden). Nur die neuen
+    # Achsen reagieren darauf; a1..a5 demotieren unveraendert direkt.
+    separation_mode: str = "demote"
     # Small-N-Politik: baseline | strict (Konsistenzpflicht statt Pseudo-Core)
     smalln_mode: str = "baseline"
     # Borderline-Noise-Reassignment: on | off
@@ -184,10 +235,13 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
     """
 
     def __init__(self, exp: ExperimentConfig, extra_features: dict[tuple[str, int], dict[str, float | None]] | None = None,
-                 osm_foreign: set[tuple[str, int]] | None = None):
+                 osm_foreign: set[tuple[str, int]] | None = None,
+                 geom_extras: dict[tuple[str, int], dict[str, float | None]] | None = None):
         self.exp = exp
         self.extra_features = extra_features or {}
         self.osm_foreign = osm_foreign or set()
+        # P8-B: geometrische Zusatzfelder (az_from_fp) aus GEOM_EXTRAS_QUERY.
+        self.geom_extras = geom_extras or {}
         self.reassign_stats: Counter = Counter()
         self.policy_stats: Counter = Counter()
 
@@ -196,11 +250,13 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
         super()._compute_series_features(records)
         for record in records:
             extra = self.extra_features.get((record.code, record.track))
-            if not extra:
-                continue
-            for name, value in extra.items():
-                if value is not None:
-                    record.features[f"x_{name}"] = float(value)
+            if extra:
+                for name, value in extra.items():
+                    if value is not None:
+                        record.features[f"x_{name}"] = float(value)
+            geom = self.geom_extras.get((record.code, record.track))
+            if geom and geom.get("az_from_fp") is not None:
+                record.features["x_az_from_fp"] = float(geom["az_from_fp"])
 
     # --- Gate-Achse -------------------------------------------------------
     def _apply_gate_rules(self, records, track_stats, params):
@@ -220,107 +276,292 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
         super()._apply_gate_rules(records, track_stats, params)
         self._apply_assignment_policy(records)
 
+    # --- Assignment-Politik: Token-Dispatcher (P8-B) ----------------------
     def _apply_assignment_policy(self, records: list[LocalPointRecord]) -> None:
-        """A1/A3/A4: nearest-Punkte ohne geometrische Begruendung demotieren.
+        """Kommaseparierte Politik-Token nacheinander anwenden.
 
-        Demotion = gate-excluded mit eigenem Grund: sichtbar/geflaggt, aber
-        weder Cluster-Mitglied noch Score-Beitrag (Asymmetrie-Prinzip).
-        A2 (Distanz) wirkt ueber den Fetch-Parameter max_distance_m.
+        a1..a5 demotieren direkt (gate-excluded mit eigenem Grund: sichtbar/
+        geflaggt, aber weder Cluster-Mitglied noch Score-Beitrag). a6/a7/a8
+        MARKIEREN nur (separation_candidate); ob daraus Demotion oder ein
+        eigener annex-Cluster wird, entscheidet separation_mode (nach der
+        Token-Schleife, damit a5-Demotion und a6/a7/a8-Trennung disjunkt
+        bleiben). a0 ist no-op; a2_dist wirkt ueber max_distance_m im Fetch.
         """
-        policy = self.exp.assignment_policy
-        if policy in ("a0",) or policy.startswith("a2_dist"):
-            return
+        dispatch = {
+            "a1_demote": self._policy_a1,
+            "a3_height": self._policy_a3,
+            "a4_osm": self._policy_a4,
+            "a5_crosslook": self._policy_a5,
+            "a6_antilayover": self._policy_a6,
+            "a7_reach": self._policy_a7,
+            "a8_heightprofile": self._policy_a8,
+        }
+        for raw in self.exp.assignment_policy.split(","):
+            token = raw.strip()
+            if not token:
+                continue
+            base = token.split(":")[0]
+            if base in ("a0", "a2_dist"):
+                continue
+            handler = dispatch.get(base)
+            if handler is None:
+                raise ValueError(f"unknown assignment_policy token: {token}")
+            handler(records)
 
-        def demote(record: LocalPointRecord, reason: str) -> None:
-            record.gate_reasons = list(record.gate_reasons) + [reason]
-            record.gate_excluded = True
-            record.kept_for_scoring = False
-            record.flags["gate_excluded"] = True
-            record.flags["gate_reasons"] = record.gate_reasons
-            record.flags.setdefault("degraded_reason", reason)
-            self.policy_stats[reason] += 1
+        if self.exp.separation_mode == "demote":
+            # A/B-Vergleich: die markierten Bauteil-Kandidaten klassisch
+            # demotieren (statt in einen annex-Cluster zu trennen).
+            for r in records:
+                if r.flags.get("separation_candidate") and not r.gate_excluded:
+                    self._policy_demote(r, r.flags["separation_reasons"][0])
 
-        if policy == "a1_demote":
-            for r in records:
-                if r.assignment_method == "nearest" and not r.gate_excluded:
-                    demote(r, "nearest_demoted")
-            return
+    def _policy_demote(self, record: LocalPointRecord, reason: str) -> None:
+        record.gate_reasons = list(record.gate_reasons) + [reason]
+        record.gate_excluded = True
+        record.kept_for_scoring = False
+        record.flags["gate_excluded"] = True
+        record.flags["gate_reasons"] = record.gate_reasons
+        record.flags.setdefault("degraded_reason", reason)
+        self.policy_stats[reason] += 1
 
-        if policy == "a3_height":
-            # Kalibrierung je Track: p25 der (Punkthoehe - Gelaendehoehe) der
-            # geometrisch begruendeten Punkte; nearest deutlich darunter
-            # (>2 m) = Bodenobjekt-/Carport-Verdacht.
-            rel_by_track: dict[int, list[float]] = {}
-            def rel(r: LocalPointRecord) -> float | None:
-                extra = self.extra_features.get((r.code, r.track)) or {}
-                terr = extra.get("terrain_elevation_m")
-                if terr is None or r.height is None:
-                    return None
-                return float(r.height) - float(terr)
-            for r in records:
-                if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
-                    v = rel(r)
-                    if v is not None:
-                        rel_by_track.setdefault(r.track, []).append(v)
-            p25 = {t: float(np.percentile(np.asarray(v), 25)) for t, v in rel_by_track.items() if v}
-            for r in records:
-                if r.assignment_method != "nearest" or r.gate_excluded:
-                    continue
+    def _mark_separation(self, record: LocalPointRecord, reason: str) -> None:
+        record.flags["separation_candidate"] = True
+        record.flags.setdefault("separation_reasons", []).append(reason)
+        self.policy_stats[f"separation_candidate:{reason}"] += 1
+
+    def _policy_a1(self, records: list[LocalPointRecord]) -> None:
+        for r in records:
+            if r.assignment_method == "nearest" and not r.gate_excluded:
+                self._policy_demote(r, "nearest_demoted")
+
+    def _policy_a3(self, records: list[LocalPointRecord]) -> None:
+        # Kalibrierung je Track: p25 der (Punkthoehe - Gelaendehoehe) der
+        # geometrisch begruendeten Punkte; nearest deutlich darunter
+        # (>2 m) = Bodenobjekt-/Carport-Verdacht.
+        rel_by_track: dict[int, list[float]] = {}
+        def rel(r: LocalPointRecord) -> float | None:
+            extra = self.extra_features.get((r.code, r.track)) or {}
+            terr = extra.get("terrain_elevation_m")
+            if terr is None or r.height is None:
+                return None
+            return float(r.height) - float(terr)
+        for r in records:
+            if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
                 v = rel(r)
-                ref = p25.get(r.track)
-                if v is not None and ref is not None and v < ref - 2.0:
-                    demote(r, "nearest_low_height")
-            return
+                if v is not None:
+                    rel_by_track.setdefault(r.track, []).append(v)
+        p25 = {t: float(np.percentile(np.asarray(v), 25)) for t, v in rel_by_track.items() if v}
+        for r in records:
+            if r.assignment_method != "nearest" or r.gate_excluded:
+                continue
+            v = rel(r)
+            ref = p25.get(r.track)
+            if v is not None and ref is not None and v < ref - 2.0:
+                self._policy_demote(r, "nearest_low_height")
 
-        if policy == "a4_osm":
-            for r in records:
-                if (
-                    r.assignment_method == "nearest" and not r.gate_excluded
-                    and (r.code, r.track) in self.osm_foreign
-                ):
-                    demote(r, "nearest_osm_foreign_structure")
-            return
+    def _policy_a4(self, records: list[LocalPointRecord]) -> None:
+        for r in records:
+            if (
+                r.assignment_method == "nearest" and not r.gate_excluded
+                and (r.code, r.track) in self.osm_foreign
+            ):
+                self._policy_demote(r, "nearest_osm_foreign_structure")
 
-        if policy == "a5_crosslook":
-            # Quer-Versatz-Politik (P7-V3, motiviert durch Fall 96959851):
-            # Laengs-Versatz kann Radarprojektion sein, Quer-Versatz nicht.
-            # Selbstkalibrierend pro Gebaeude x Track: Toleranz aus ROBUSTER
-            # Statistik der |cross_look_offset_m| der geometrisch
-            # begruendeten Anker (within/directional):
-            #   limit = median + 3*1.4826*MAD + 3 m Geocoding-Marge
-            #           + sqrt(eff_area) des Kandidatenpunkts.
-            # Median/MAD statt p95, weil die Candidate-Area selbst
-            # Fremdpunkte als directional fangen kann (Fall 96959851:
-            # directional-Anker bei +13 m wuerde p95 vergiften). Ohne Anker
-            # gibt es keine geometrische Referenz -> alle nearest demotieren
-            # (Asymmetrie-Prinzip).
-            anchors_by_group: dict[tuple[str | None, int], list[float]] = {}
-            for r in records:
-                if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
-                    cross = r.features.get("cross_look_offset_m")
-                    if cross is not None and np.isfinite(cross):
-                        anchors_by_group.setdefault((r.building_id, r.track), []).append(abs(float(cross)))
-            for r in records:
-                if r.assignment_method != "nearest" or r.gate_excluded:
-                    continue
-                anchors = anchors_by_group.get((r.building_id, r.track))
-                if not anchors:
-                    demote(r, "nearest_no_geometric_anchor")
-                    continue
+    def _policy_a5(self, records: list[LocalPointRecord]) -> None:
+        # Quer-Versatz-Politik (P7-V3, motiviert durch Fall 96959851):
+        # Laengs-Versatz kann Radarprojektion sein, Quer-Versatz nicht.
+        # Selbstkalibrierend pro Gebaeude x Track: Toleranz aus ROBUSTER
+        # Statistik der |cross_look_offset_m| der geometrisch begruendeten
+        # Anker (within/directional):
+        #   limit = median + 3*1.4826*MAD + 3 m Geocoding-Marge
+        #           + sqrt(eff_area) des Kandidatenpunkts.
+        # Median/MAD statt p95, weil die Candidate-Area selbst Fremdpunkte
+        # als directional fangen kann. Ohne Anker: alle nearest demotieren.
+        anchors_by_group: dict[tuple[str | None, int], list[float]] = {}
+        for r in records:
+            if r.assignment_method in ("within", "directional_buffer") and not r.gate_excluded:
                 cross = r.features.get("cross_look_offset_m")
-                if cross is None or not np.isfinite(cross):
-                    demote(r, "nearest_crosslook_unknown")
-                    continue
-                arr = np.asarray(anchors, dtype=float)
-                med = float(np.median(arr))
-                mad = float(np.median(np.abs(arr - med)))
-                eff_area = r.features.get("x_eff_area") or 0.0
-                limit = med + 3.0 * 1.4826 * mad + 3.0 + math.sqrt(max(float(eff_area), 0.0))
-                if abs(float(cross)) > limit:
-                    demote(r, "nearest_crosslook_outlier")
-            return
+                if cross is not None and np.isfinite(cross):
+                    anchors_by_group.setdefault((r.building_id, r.track), []).append(abs(float(cross)))
+        for r in records:
+            if r.assignment_method != "nearest" or r.gate_excluded:
+                continue
+            anchors = anchors_by_group.get((r.building_id, r.track))
+            if not anchors:
+                self._policy_demote(r, "nearest_no_geometric_anchor")
+                continue
+            cross = r.features.get("cross_look_offset_m")
+            if cross is None or not np.isfinite(cross):
+                self._policy_demote(r, "nearest_crosslook_unknown")
+                continue
+            arr = np.asarray(anchors, dtype=float)
+            med = float(np.median(arr))
+            mad = float(np.median(np.abs(arr - med)))
+            eff_area = r.features.get("x_eff_area") or 0.0
+            limit = med + 3.0 * 1.4826 * mad + 3.0 + math.sqrt(max(float(eff_area), 0.0))
+            if abs(float(cross)) > limit:
+                self._policy_demote(r, "nearest_crosslook_outlier")
 
-        raise ValueError(f"unknown assignment_policy: {policy}")
+    def _policy_a8(self, records: list[LocalPointRecord]) -> None:
+        """Hoehenprofil-Trenner (P8-B): kartierungsfrei, ALLE
+        Zuordnungsmethoden. Anker = nicht ausgeschlossene within/directional-
+        Punkte am Footprint (d_fp<=0.5) je (building, track); Median/MAD der
+        Anker-Hoehen, tol = max(3*1.4826*MAD, 1 m). Kandidat: jeder kept-Punkt
+        mit |height - median| > tol.
+
+        Robustheit (W2-Iteration): der Kandidat wird aus SEINEM EIGENEN
+        Anker-Set entfernt (Selbst-Anker-Effekt) und es sind >=2 UNABHAENGIGE
+        Anker noetig; sonst kein Check. Der fragile Single-Anchor-3m-Fall
+        entfaellt (zu viele False Positives auf Kleinbauten)."""
+        anchors_by_group: dict[tuple[str | None, int], list[tuple[str, float]]] = {}
+        for r in records:
+            if (
+                r.assignment_method in ("within", "directional_buffer")
+                and not r.gate_excluded
+                and r.height is not None
+                and r.distance_m is not None
+                and float(r.distance_m) <= OFF_FOOTPRINT_EPS_M
+            ):
+                anchors_by_group.setdefault((r.building_id, r.track), []).append((r.code, float(r.height)))
+        for r in records:
+            if r.gate_excluded or r.height is None:
+                continue
+            anchors = anchors_by_group.get((r.building_id, r.track))
+            if not anchors:
+                continue
+            heights = [h for code, h in anchors if code != r.code]
+            if len(heights) < 2:
+                continue
+            med = float(np.median(heights))
+            mad = float(np.median([abs(h - med) for h in heights]))
+            tol = max(MAD_K * mad, MAD_FLOOR_M)
+            # Einseitiges Anbau-Band (W2-Iteration 2): Anbauten liegen UNTER
+            # dem Hauptdach, aber nicht beliebig tief. Punkte > 8 m unter den
+            # Ankern sind Boden-/Gelaende-Returns (Osthang-Befund: -11/-21 m)
+            # und gehoeren in die normale Clusterung, nicht in annex-Cores;
+            # Punkte OBERHALB der Anker sind kein Anbau (ueber-Dach-Klasse
+            # bleibt a6/a7 bzw. foreign-Logik).
+            delta_below = med - float(r.height)
+            if tol < delta_below <= 8.0:
+                self._mark_separation(r, "height_outlier")
+
+    def _policy_a7(self, records: list[LocalPointRecord]) -> None:
+        """Layover-Reichweiten-Trenner (P8-B): implizite Reflektorhoehe
+        d_fp/tan(inc) uebersteigt die plausible Gebaeudehoehe + Marge. Fuer
+        gba wird die Saturierung korrigiert (h/0.735), fuer bev ist die Hoehe
+        gemessen. Fehlt die Hoehe: kein Check."""
+        for r in records:
+            if r.gate_excluded:
+                continue
+            d_fp = r.distance_m
+            if d_fp is None or float(d_fp) <= OFF_FOOTPRINT_EPS_M:
+                continue
+            ph = r.building_plausibility_height
+            if ph is None:
+                continue
+            source = (r.building_source or "").lower()
+            plausible_h = float(ph) / HEIGHT_SATURATION_RATIO if source == "gba" else float(ph)
+            inc = float(r.incidence_angle) if r.incidence_angle is not None else 38.5
+            implied_h = float(d_fp) / max(math.tan(math.radians(inc)), 1e-6)
+            if implied_h > plausible_h + HEIGHT_MARGIN_M:
+                self._mark_separation(r, "reach_height_excess")
+
+    def _policy_a6(self, records: list[LocalPointRecord]) -> None:
+        """Anti-Layover-Trenner (P8-B): Versatz ENTGEGEN der Range-Richtung
+        (range_dx/dy) ist als Dachreflexion physikalisch unmoeglich (Layover
+        verschiebt nur in EINE Richtung). az_from_fp aus GEOM_EXTRAS_QUERY.
+        Kandidat wenn dot < -0.2 UND d_fp*(-dot) > 1.5 UND d_fp > 0.5."""
+        for r in records:
+            if r.gate_excluded:
+                continue
+            d_fp = r.distance_m
+            if d_fp is None or float(d_fp) <= OFF_FOOTPRINT_EPS_M:
+                continue
+            az = r.features.get("x_az_from_fp")
+            if az is None or r.range_dx is None or r.range_dy is None:
+                continue
+            az_rad = math.radians(float(az))
+            ux, uy = math.sin(az_rad), math.cos(az_rad)
+            norm = math.hypot(float(r.range_dx), float(r.range_dy)) or 1.0
+            dot = (ux * float(r.range_dx) + uy * float(r.range_dy)) / norm
+            if dot < ANTI_LAYOVER_DOT and float(d_fp) * (-dot) > ANTI_COMPONENT_MIN_M:
+                self._mark_separation(r, "anti_layover")
+
+    # --- Bauteil-Trenner-Seams (P8-B) --------------------------------------
+    def _partition_for_clustering(self, building_id, track, kept):
+        """Peel-after-Clustering: der VOLLE kept-Satz wird geclustert (damit
+        die Hauptdach-Kerne exakt ihre noop-Rollen behalten und nicht durch das
+        Herausnehmen von Nachbarpunkten in Noise kippen, W2-Iteration); die
+        markierten Kandidaten werden erst in `_assign_side_group` in den annex
+        umetikettiert. side_set treibt nur die Nachbearbeitung, nicht das
+        Clustering."""
+        if self.exp.separation_mode != "separate":
+            return super()._partition_for_clustering(building_id, track, kept)
+        side = [r for r in kept if r.flags.get("separation_candidate")]
+        return (kept, side)
+
+    def _assign_side_group(self, building_id, track, side_set, kept):
+        if self.exp.separation_mode != "separate" or not side_set:
+            return super()._assign_side_group(building_id, track, side_set, kept)
+        annex = list(side_set)
+        annex_codes = {id(r) for r in annex}
+
+        # Verhaltensbasierte Anreicherung (Prinzip reference_labels.md
+        # "Cluster folgen dem Verhalten"): ein OFF-Footprint-Punkt, der sich MIT
+        # dem annex und GEGEN das Hauptdach bewegt, gehoert kinematisch zum
+        # Anbau, auch wenn ihn kein Einzelcheck markiert hat (z. B. NTDA86J01:
+        # hoehengleich mit einem echten Dachpunkt, aber staerkster Beweger).
+        # Streng geführt: nur OFF-Footprint, Geschwindigkeit nah am annex UND
+        # klar verschieden vom Dach-Proxy.
+        roof_proxy = [
+            r for r in kept
+            if not r.flags.get("separation_candidate")
+            and r.distance_m is not None
+            and float(r.distance_m) <= OFF_FOOTPRINT_EPS_M
+        ]
+        if roof_proxy:
+            annex_v = float(np.median([r.velocity for r in annex]))
+            roof_v = float(np.median([r.velocity for r in roof_proxy]))
+            for r in kept:
+                if id(r) in annex_codes or r.flags.get("separation_candidate"):
+                    continue
+                # W2-Iteration 2: Rekrutierung erst ab 2 m Abstand - Punkte an
+                # der Footprint-Kante (0.5-2 m) sind Geokodierungsrauschen des
+                # Hauptdachs, keine Anbau-Kandidaten (Ueber-Rekrutierung auf
+                # grossen Gebaeuden, Befund 105022686).
+                if r.distance_m is None or float(r.distance_m) <= 2.0:
+                    continue
+                vtol = max(1.0, 2.0 * (r.velocity_std or 0.5))
+                if abs(r.velocity - annex_v) <= vtol and abs(r.velocity - roof_v) > vtol:
+                    r.flags["separation_candidate"] = True
+                    r.flags.setdefault("separation_reasons", []).append("annex_velocity_growth")
+                    self.policy_stats["separation_candidate:annex_velocity_growth"] += 1
+                    annex.append(r)
+                    annex_codes.add(id(r))
+
+        # Ein annex-Cluster mit kinematischer Konsistenzpruefung (wie
+        # smalln_strict): >=2 velocity-konsistente Punkte -> belastbarer core
+        # (annex_0), sonst schwacher weak_support-Annex (annex_weak).
+        velocities = np.asarray([r.velocity for r in annex], dtype=float)
+        med = float(np.median(velocities))
+        tol = np.maximum(1.0, 2.0 * np.asarray([r.velocity_std or 0.5 for r in annex], dtype=float))
+        consistent = int(np.sum(np.abs(velocities - med) <= tol))
+        if consistent >= 2:
+            cid = f"{building_id}:t{track}:annex_0"
+            for r in annex:
+                r.cluster_id = cid
+                r.cluster_role = "core"
+                r.flags["annex_suspect"] = True
+                r.cluster_probability = 0.5
+                r.cluster_outlier_score = max(r.cluster_outlier_score, 0.25)
+        else:
+            cid = f"{building_id}:t{track}:annex_weak"
+            for r in annex:
+                r.cluster_id = cid
+                r.cluster_role = "weak_support"
+                r.flags["annex_suspect"] = True
+                r.cluster_probability = 0.30
+                r.cluster_outlier_score = max(r.cluster_outlier_score, 0.50)
 
     # --- Small-N-Politik (P7-C-W1-T3) --------------------------------------
     def _apply_small_n_fallback(self, building_id, track, kept, noise_threshold):
@@ -496,12 +737,17 @@ async def fetch_aoi_inputs(aoi: str, params_overrides: dict[str, Any] | None = N
     params["source"] = str(spec.get("source", "gba"))
     if params_overrides:
         params.update(params_overrides)
+    building_table = BUILDING_SOURCE_SPECS[str(params["source"]).lower()][0]
+    geom_query = GEOM_EXTRAS_QUERY_TEMPLATE.format(building_table=building_table)
     pool = await asyncpg.create_pool(dsn=settings.db_dsn, min_size=1, max_size=2)
     try:
         base_rows, ts_rows, amp_rows = await pipeline._fetch_inputs(pool, config, params)
         async with pool.acquire() as conn:
             extra_rows = await conn.fetch(
                 EXTRA_FIELDS_QUERY, *spec["bbox"], spec["area_id"], spec["dataset_id"]
+            )
+            geom_rows = await conn.fetch(
+                geom_query, *spec["bbox"], spec["area_id"], spec["dataset_id"]
             )
             osm_rows = []
             if spec["area_id"] == "salzburg":
@@ -522,19 +768,27 @@ async def fetch_aoi_inputs(aoi: str, params_overrides: dict[str, Any] | None = N
         }
         for r in extra_rows
     }
+    geom_extras = {
+        (r["code"], r["track"]): {"az_from_fp": r["az_from_fp"], "d_fp_db": r["d_fp_db"]}
+        for r in geom_rows
+    }
     return {"spec": spec, "params": params, "base_rows": base_rows, "ts_rows": ts_rows,
-            "amp_rows": amp_rows, "extras": extras,
+            "amp_rows": amp_rows, "extras": extras, "geom_extras": geom_extras,
             "osm_foreign": {(r["code"], r["track"]) for r in osm_rows}}
 
 
 def fetch_overrides_for(exp: ExperimentConfig) -> dict[str, Any] | None:
-    if exp.assignment_policy.startswith("a2_dist:"):
-        return {"max_distance_m": float(exp.assignment_policy.split(":", 1)[1])}
+    for raw in exp.assignment_policy.split(","):
+        token = raw.strip()
+        if token.startswith("a2_dist:"):
+            return {"max_distance_m": float(token.split(":", 1)[1])}
     return None
 
 
 def run_experiment_on_inputs(exp: ExperimentConfig, inputs: dict[str, Any]):
-    pipeline = ExperimentPipeline(exp, inputs["extras"], inputs.get("osm_foreign"))
+    pipeline = ExperimentPipeline(
+        exp, inputs["extras"], inputs.get("osm_foreign"), inputs.get("geom_extras")
+    )
     records, metrics = pipeline._compute_run(
         inputs["base_rows"], inputs["ts_rows"], inputs["amp_rows"], dict(inputs["params"])
     )
@@ -996,8 +1250,10 @@ def _policy_keys(config: dict[str, Any]) -> list[str]:
     exakte experiment_id -> assignment_policy (normalisiert) -> smalln_<mode>."""
     keys = [str(config.get("experiment_id") or "")]
     policy = str(config.get("assignment_policy") or "a0")
-    if policy != "a0":
-        keys.append(policy.split(":")[0])
+    for raw in policy.split(","):
+        token = raw.strip()
+        if token and token != "a0":
+            keys.append(token.split(":")[0])
     smalln = str(config.get("smalln_mode") or "baseline")
     if smalln != "baseline":
         keys.append(f"smalln_{smalln}")
@@ -1076,6 +1332,118 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
     return checks
 
 
+# ---------------------------------------------------------------------------
+# Label-Korpus-Metriken (P8-D-W1-T2)
+# ---------------------------------------------------------------------------
+
+_LABEL_METRIC_KEYS = (
+    "roof_lost", "foreign_in_main", "foreign_caught",
+    "annex_merged", "annex_separated", "annex_demoted",
+    "labels_evaluated", "unclear",
+)
+
+
+def _reference_label_state(record: LocalPointRecord) -> str:
+    """Ist-Zustand eines Punkts fuer die Label-Benotung."""
+    if record.gate_excluded or record.cluster_role == "excluded":
+        return "excluded"
+    if record.flags.get("annex_suspect"):
+        return "annex"
+    role = record.cluster_role or "unassigned"
+    if role == "core":
+        return "main_core" if record.flags.get("is_main_cluster") else "core"
+    return role
+
+
+def check_reference_labels(records: list[LocalPointRecord], aoi: str) -> dict[str, Any]:
+    """Benotet den Ist-Zustand jedes gelabelten Punkts gegen die Regeln aus
+    reference_labels.md (P8-D-W1-T2). Die JSON-Datei wird zur LAUFZEIT gelesen,
+    weil eine parallele Session den Korpus erweitert.
+
+    - roof: Fehler, wenn verloren (excluded/noise) oder faelschlich in einen
+      annex getrennt.
+    - foreign: gefangen, wenn nicht Main-Core; Fehler, wenn Main-Core.
+    - annex: ideal im eigenen (annex/nicht-Main-)Cluster, suboptimal wenn
+      demotiert, Fehler wenn in den Main verschmolzen.
+    - unclear: nicht gewertet, nur gelistet.
+    """
+    metrics: dict[str, Any] = {k: 0 for k in _LABEL_METRIC_KEYS}
+    metrics["details"] = []
+    path = ARTIFACTS_DIR / "reference_labels.json"
+    if not path.exists():
+        return metrics
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return metrics
+    dataset_id = AOIS.get(aoi, {}).get("dataset_id")
+    by_code = {(r.code, r.track): r for r in records}
+    for lab in data.get("labels", []):
+        ds = lab.get("dataset_id")
+        if dataset_id and ds and ds != dataset_id:
+            continue
+        try:
+            track = int(lab["track"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        rec = by_code.get((lab.get("point_code"), track))
+        if rec is None:
+            continue
+        label = lab.get("label")
+        state = _reference_label_state(rec)
+        if label == "roof":
+            if state in ("excluded", "noise", "annex"):
+                metrics["roof_lost"] += 1
+                verdict = "roof_lost"
+            else:
+                verdict = "roof_kept"
+        elif label == "foreign":
+            if state == "main_core":
+                metrics["foreign_in_main"] += 1
+                verdict = "foreign_in_main"
+            elif state in ("excluded", "noise", "annex", "weak_support"):
+                metrics["foreign_caught"] += 1
+                verdict = "foreign_caught"
+            else:
+                verdict = "foreign_in_secondary_core"
+        elif label == "annex":
+            if state == "main_core":
+                metrics["annex_merged"] += 1
+                verdict = "annex_merged"
+            elif state in ("annex", "core"):
+                metrics["annex_separated"] += 1
+                verdict = "annex_separated"
+            else:
+                metrics["annex_demoted"] += 1
+                verdict = "annex_demoted"
+        elif label == "unclear":
+            metrics["unclear"] += 1
+            verdict = "unclear_not_scored"
+        else:
+            continue
+        metrics["labels_evaluated"] += 1
+        metrics["details"].append({
+            "code": rec.code, "track": track, "building_id": lab.get("building_id"),
+            "label": label, "state": state, "verdict": verdict,
+        })
+    return metrics
+
+
+def _aggregate_label_metrics(exp_out: dict[str, Any]) -> dict[str, Any]:
+    agg: dict[str, Any] = {k: 0 for k in _LABEL_METRIC_KEYS}
+    agg["details"] = []
+    agg["by_aoi"] = {}
+    for aoi, aoi_out in exp_out["aois"].items():
+        lm = aoi_out.get("label_metrics")
+        if not lm:
+            continue
+        for k in _LABEL_METRIC_KEYS:
+            agg[k] += int(lm.get(k, 0) or 0)
+        agg["details"].extend(lm.get("details", []))
+        agg["by_aoi"][aoi] = {k: int(lm.get(k, 0) or 0) for k in _LABEL_METRIC_KEYS}
+    return agg
+
+
 def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[str, Any]:
     base = results["experiments"].get(baseline_id)
     scorecard: dict[str, Any] = {
@@ -1098,6 +1466,7 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
             "config": exp_out["config"],
             "reference_case_checks": ref_checks,
             "reference_cases_ok": all(c["ok"] for c in ref_checks) if ref_checks else None,
+            "label_metrics": _aggregate_label_metrics(exp_out),
             "aoi_aggregates": {}, "guardrails": {}, "verdict": None, "reasons": [],
         }
         for aoi, aoi_out in exp_out["aois"].items():
@@ -1221,6 +1590,28 @@ def write_scorecard_md(scorecard: dict[str, Any], path: Path) -> None:
         lines.append("")
         lines.append(f"Referenzfaelle: {len(ref) - len(fails)}/{len(ref)} ok{suffix}")
         lines.append("")
+        lm = entry.get("label_metrics") or {}
+        if lm.get("labels_evaluated"):
+            lines.append(
+                f"Label-Korpus ({lm['labels_evaluated']} Punkte): "
+                f"roof_lost={lm.get('roof_lost', 0)}, "
+                f"foreign_caught={lm.get('foreign_caught', 0)}, "
+                f"foreign_in_main={lm.get('foreign_in_main', 0)}, "
+                f"annex_separated={lm.get('annex_separated', 0)}, "
+                f"annex_demoted={lm.get('annex_demoted', 0)}, "
+                f"annex_merged={lm.get('annex_merged', 0)}, "
+                f"unclear={lm.get('unclear', 0)}"
+            )
+            flagged = [
+                d for d in lm.get("details", [])
+                if d.get("verdict") in ("roof_lost", "foreign_in_main", "annex_merged")
+            ]
+            if flagged:
+                lines.append(
+                    "  Auffaellig: "
+                    + ", ".join(f"{d['code']}:t{d['track']} {d['label']}->{d['verdict']}" for d in flagged)
+                )
+            lines.append("")
     path.write_text("\n".join(lines) + "\n")
 
 
@@ -1289,7 +1680,9 @@ async def persist_experiment_run(aoi: str, exp_id: str) -> dict[str, Any]:
     # Pipeline-Overrides; pipeline.run() fetcht danach ueber denselben
     # SQL-Pfad (deterministisch identisch).
     inputs = await fetch_aoi_inputs(aoi, overrides or None)
-    pipeline = ExperimentPipeline(exp, inputs["extras"], inputs.get("osm_foreign"))
+    pipeline = ExperimentPipeline(
+        exp, inputs["extras"], inputs.get("osm_foreign"), inputs.get("geom_extras")
+    )
     run_id = str(uuid4())
     config = RunConfig(
         run_id=run_id,
@@ -1467,6 +1860,38 @@ EXPERIMENTS["k2x_leaf_spatial"] = _variant(
     matrix_features=EXPERIMENTS["feat_spatial_hi"].matrix_features,
 )
 
+# P8-B (Bauteil-Trenner): kartierungsfreie Achsen als Trenner statt Wegwerfer.
+# Einzeln (isoliert, separation_mode="separate"), plus das Komposit k2xh
+# (a5_crosslook + Hoehenprofil + Anti-Layover + Reichweite) in Trenn- und
+# Demote-Variante fuer das A/B.
+EXPERIMENTS["a6_antilayover"] = ExperimentConfig(
+    "a6_antilayover",
+    "Anti-Layover-Trenner: Versatz entgegen range_dx/dy -> eigener annex-Cluster",
+    assignment_policy="a6_antilayover", separation_mode="separate",
+)
+EXPERIMENTS["a7_reach"] = ExperimentConfig(
+    "a7_reach",
+    "Layover-Reichweiten-Trenner: implizite Reflektorhoehe > plausible Hoehe + 3 m",
+    assignment_policy="a7_reach", separation_mode="separate",
+)
+EXPERIMENTS["a8_heightprofile"] = ExperimentConfig(
+    "a8_heightprofile",
+    "Hoehenprofil-Trenner: |height - Median(Dach-Anker)| > tol (alle Zuordnungen)",
+    assignment_policy="a8_heightprofile", separation_mode="separate",
+)
+EXPERIMENTS["k2xh"] = _variant(
+    "k2x", "k2xh",
+    "Komposit K2xh = a5_crosslook + Hoehenprofil + Anti-Layover + Reichweite (Trennung)",
+    assignment_policy="a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
+    separation_mode="separate",
+)
+EXPERIMENTS["k2xh_demote"] = _variant(
+    "k2x", "k2xh_demote",
+    "K2xh im Demote-Modus (A/B-Gegenprobe: Kandidaten werden ausgeschlossen statt getrennt)",
+    assignment_policy="a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
+    separation_mode="demote",
+)
+
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Phase-7 Clustering-Experiment-Harness")
     p.add_argument("--aois", default="mirabell", help=f"Kommagetrennt aus: {','.join(AOIS)}")
@@ -1534,6 +1959,7 @@ async def amain(argv: list[str] | None = None) -> int:
             aoi_out: dict[str, Any] = {
                 "summary": summarize_records(records),
                 "pipeline_metrics": {k: v for k, v in metrics.items()},
+                "label_metrics": check_reference_labels(records, aoi),
             }
             if pipeline.reassign_stats:
                 aoi_out["reassign_stats"] = dict(pipeline.reassign_stats)

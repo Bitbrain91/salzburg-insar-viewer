@@ -896,8 +896,14 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 record.building_context["kept_point_count_track"] = len(kept)
                 record.building_context["excluded_point_count_track"] = len(group) - len(kept)
 
-            if len(kept) < 3:
-                for record in kept:
+            # P8-B (Bauteil-Trenner): der Haupt-Clustering-Kern laeuft auf
+            # main_set; abgetrennte Bauteil-/Anbau-Kandidaten (side_set) bekommen
+            # ihre eigene Cluster-Rolle. Basis-Verhalten ist noop
+            # (main_set == kept, side_set == []).
+            main_set, side_set = self._partition_for_clustering(building_id, track, kept)
+
+            if len(main_set) < 3:
+                for record in main_set:
                     record.cluster_id = f"{building_id}:t{track}:insufficient_support"
                     record.cluster_role = "insufficient_support"
                     record.cluster_probability = 0.5
@@ -907,15 +913,22 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     record.building_context["cluster_count_track"] = 0
                     record.building_context["noise_point_count_track"] = 0
                     record.building_context["small_n_fallback"] = False
+                self._assign_side_group(building_id, track, side_set, kept)
+                for record in side_set:
+                    record.building_context["cluster_count_track"] = 0
+                    record.building_context["noise_point_count_track"] = 0
+                    record.building_context["small_n_fallback"] = record.small_n_fallback
                 for record in group:
                     if record.gate_excluded:
                         self._mark_excluded(record, track)
                 continue
 
-            if len(kept) <= 5:
-                self._apply_small_n_fallback(building_id, track, kept, float(params["small_n_noise_threshold"]))
+            if len(main_set) <= 5:
+                self._apply_small_n_fallback(building_id, track, main_set, float(params["small_n_noise_threshold"]))
             else:
-                self._apply_density_clustering(building_id, track, kept)
+                self._apply_density_clustering(building_id, track, main_set)
+
+            self._assign_side_group(building_id, track, side_set, kept)
 
             cluster_ids = {record.cluster_id for record in kept if record.cluster_role == "core" and record.cluster_id}
             noise_count = sum(1 for record in kept if record.cluster_role == "noise")
@@ -926,6 +939,32 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             for record in group:
                 if record.gate_excluded:
                     self._mark_excluded(record, track)
+
+    def _partition_for_clustering(
+        self,
+        building_id: str,
+        track: int,
+        kept: list[LocalPointRecord],
+    ) -> tuple[list[LocalPointRecord], list[LocalPointRecord]]:
+        """Waehlt den Clustering-Kern (main_set) und das Seiten-Set
+        (abgetrennte Bauteile). Basis: keine Trennung (noop-bitidentisch).
+        Ueberschreibende Trenner clustern typischerweise den VOLLEN Satz und
+        loesen das Seiten-Set erst danach heraus (Peel-after-Clustering), damit
+        die Restpunkte des Hauptdachs ihre Clusterrollen behalten."""
+        return (kept, [])
+
+    def _assign_side_group(
+        self,
+        building_id: str,
+        track: int,
+        side_set: list[LocalPointRecord],
+        kept: list[LocalPointRecord],
+    ) -> None:
+        """Weist dem abgetrennten Seiten-Set (Anbau-/Bauteil-Kandidaten) eine
+        eigene Cluster-Rolle zu. `kept` ist die volle (bereits geclusterte)
+        Punktmenge des Gebaeude x Track fuer verhaltensbasierte Anreicherung.
+        Basis: no-op (noop-bitidentisch)."""
+        return None
 
     def _apply_small_n_fallback(
         self,
@@ -1174,6 +1213,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             track_cluster_rollups: list[dict[str, Any]] = []
             for cluster_id, cluster_records in track_cluster_records.items():
                 cluster_role = str(cluster_records[0].cluster_role or "unknown")
+                # P8-B: ein Cluster gilt als Anbau/Bauteil, wenn ALLE Mitglieder
+                # als annex_suspect markiert sind. Ein solcher Cluster darf nie
+                # Main werden (Sort-Key-Praefix). Noop: Flag nie gesetzt -> False.
+                annex_flag = all(bool(record.flags.get("annex_suspect")) for record in cluster_records)
                 point_count = len(cluster_records)
                 median_velocity = float(np.median([record.velocity for record in cluster_records]))
                 median_vertical_proxy = float(
@@ -1221,6 +1264,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         "building_id": building_id,
                         "track": track,
                         "cluster_role": cluster_role,
+                        "annex_flag": annex_flag,
                         "is_main_cluster": False,
                         "cluster_rank": None,
                         "point_count": point_count,
@@ -1237,8 +1281,14 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     }
                 )
 
+            # Annex-Cluster (abgetrennte Bauteile) duerfen den Main-Cluster
+            # NIE stellen - auch nicht als einziger Core-Cluster. Sonst werten
+            # Gebaeude, deren Hauptdach-Support wegfaellt, ueber den Anbau auf
+            # (insufficient_support -> ok) und der Anbau praegt die Motion.
             reliable_clusters = [
-                cluster for cluster in track_cluster_rollups if cluster.get("reliable_core")
+                cluster
+                for cluster in track_cluster_rollups
+                if cluster.get("reliable_core") and not cluster.get("annex_flag")
             ]
             main_cluster = None
             if reliable_clusters:

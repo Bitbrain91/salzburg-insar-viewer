@@ -83,7 +83,13 @@
       "building_id": "54773363",
       "bev_building_id": "{4D2A86F3-9729-4B7A-A92E-797EB434D23A}",
       "case_type": "noise_dominated_low_agreement",
-      "expectation": "Hangfall mit Agreement ~0.13 und hohem Noise; Cross-Track-Disagreement ist hier Diagnose (Horizontalanteil moeglich), kein Fehler."
+      "expectation": "Hangfall mit Agreement ~0.13 und hohem Noise; Cross-Track-Disagreement ist hier Diagnose (Horizontalanteil moeglich), kein Fehler.",
+      "policy_expectations": {
+        "k2xh": [
+          "ok",
+          "noise_dominated"
+        ]
+      }
     },
     {
       "case_id": "osthang_nearest_heavy_ok",
@@ -103,7 +109,10 @@
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t44 besteht zu 3/3 aus nearest-Punkten mit ~9.7 m Distanz - Verdachtsmuster des User-Carport-Falls. Visuelle Bestaetigung ausstehend; Zielverhalten: solche Cluster duerfen den Gebaeude-Motion-Score nicht praegen (Asymmetrie-Prinzip).",
       "policy_expectations": {
-        "a1_demote": ["insufficient_support", "small_n"]
+        "a1_demote": [
+          "insufficient_support",
+          "small_n"
+        ]
       },
       "visual_confirmation": "pending"
     },
@@ -116,7 +125,11 @@
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t95 6/6 nearest, ~7.3 m. Zweiter Verdachtsfall fuer Assignment-Hygiene und Visual-Audit.",
       "policy_expectations": {
-        "a1_demote": ["insufficient_support", "small_n", "noise_dominated"]
+        "a1_demote": [
+          "insufficient_support",
+          "small_n",
+          "noise_dominated"
+        ]
       },
       "visual_confirmation": "pending"
     },
@@ -147,7 +160,11 @@
       "case_type": "small_n",
       "expectation": "BG-Small-N-Fall (8 kept) fuer P7-C-W1-T3. P7-V1-Untersuchung 2026-06-10: t44 besteht aus 2/2 nearest-Punkten ohne geometrische Begruendung; unter a1_demote ist single_track_only (t95-Kern within+directional) die EHRLICHE Antwort, kein kosmetisches Upgrade.",
       "policy_expectations": {
-        "a1_demote": ["small_n", "single_track_only", "insufficient_support"]
+        "a1_demote": [
+          "small_n",
+          "single_track_only",
+          "insufficient_support"
+        ]
       }
     },
     {
@@ -157,7 +174,13 @@
       "building_id": "238057563",
       "bev_building_id": "{3E66F288-C222-45C5-AC9A-813760A46A62}",
       "case_type": "noise_dominated_low_agreement",
-      "expectation": "61 kept, Agreement 0.188, Hang: Stress-Anker Bad Gastein; ASC/DSC-Disagreement als Diagnose behandeln."
+      "expectation": "61 kept, Agreement 0.188, Hang: Stress-Anker Bad Gastein; ASC/DSC-Disagreement als Diagnose behandeln.",
+      "policy_expectations": {
+        "k2xh": [
+          "ok",
+          "noise_dominated"
+        ]
+      }
     },
     {
       "case_id": "bg_slope_ok_low_agreement",
@@ -186,9 +209,18 @@
       "case_type": "carport_nearest_main_suspect",
       "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden. NACHTRAG 2026-06-12: Der Fall ist unter k2x nur TEILGELOEST - eine zweite Kontaminationsklasse (unkartiertes Nebengebaeude, along-look) blieb im Main-Cluster; siehe residual_contamination. NACHTRAG 2026-07-06: BEV-Recheck - alle drei Kontaminationspunkte (NTC3CYZ01, NTDA86J01, O2HC2XV01) liegen in/an BEV-Footprint {A9A7E442-BA31-41D0-8949-A120CB660943} (323 m2, height_max 6.1 m, height_quality=measured); unter --source bev sind sie within/directional desselben Polygons statt nearest -> Kontamination wird zur Multi-Cluster-/Differential-Frage, a5 greift dort nicht mehr. Details: bev_footprint_recheck_96959851.md. Die gba-basierten Erwartungen dieses Falls bleiben fuer gba-Runs unveraendert gueltig. NACHTRAG 2026-07-07 (Google-Earth-3D, User-Befund): Die Struktur ist KEIN freistehendes Nebengebaeude, sondern ein BAULICH VERBUNDENER Anbau am SW-Giebel (Wellblech direkt am Haupthaus, gemeinsame Wand; GE-Aufnahme 04/2023). Fall-Umdeutung: annex-Merge statt Fremdobjekt-Merge. Revidiertes Zielverhalten: NTC3CYZ01/NTDA86J01 duerfen den MAIN-Cluster nicht praegen, sollen aber NICHT entfernt werden - Ziel ist Cluster-Trennung + differential_motion-Bewertung (Anbau vs. Hauptbau, Rissrisiko an der Fuge; vgl. next_steps.md Paragraph 2). Labels in reference_labels.json v2 auf annex revidiert.",
       "policy_expectations": {
-        "a1_demote": ["insufficient_support"],
-        "a3_height": ["single_track_only"],
-        "a5_crosslook": ["ok"]
+        "a1_demote": [
+          "insufficient_support"
+        ],
+        "a3_height": [
+          "single_track_only"
+        ],
+        "a5_crosslook": [
+          "ok"
+        ],
+        "k2xh": [
+          "ok"
+        ]
       },
       "visual_confirmation": "confirmed_2026-06-10; residual_contamination_user_2026-06-11",
       "a5_note": "P7-V3 2026-06-10: Unter a5_crosslook (Median+3*MAD-Anker) werden genau die 3 cross+13m-nearest demotiert, der vergiftete directional-Punkt faellt ohne deren Verstaerkung von selbst zu Noise, der t95-Main besteht aus 4 cross-konsistenten Punkten (-0.9). REVISION 2026-06-12: Die damalige Folgerung 'ok MIT sauberem Cluster = normatives Ziel erreicht' ist ueberholt - 'cross-konsistent' war ein ZIRKULAERES Kriterium (gleiche Achse wie die Politik). a5 prueft nur QUER zur Blickrichtung; das unkartierte Nebengebaeude liegt fuer beide Tracks LAENGS der Blickachse und ist fuer a5 strukturell unsichtbar. a5 bleibt korrekt fuer die +13m-Quer-Klasse, loest aber nicht den Gesamtfall.",
@@ -197,9 +229,24 @@
         "date": "2026-06-11",
         "structure": "Unkartiertes Nebengebaeude mit Blechdach oestlich des Hauses (weder GBA noch OSM; Google-Maps-3D: eigener Baukoerper + tieferes Blech-Verbindungsdach). DB-verifiziert: kein kartiertes Objekt an den Punktpositionen (naechste 4.0/8.1 m).",
         "points": [
-          {"code": "O2HC2XV01", "track": 44, "role": "noise", "evidence": "BEWIESEN fremd: anti-layover (dot -0.95, 2.9 m oestlich; t44/ASC verschiebt nur nach Westen) + 5-8.5 m unter Dachpunkten. Score-neutral, Zuordnung dennoch falsch."},
-          {"code": "NTC3CYZ01", "track": 95, "role": "core", "evidence": "SEHR WAHRSCHEINLICH fremd: d_fp 8.1 m -> implizite Reflektorhoehe 10.2 m bei plausiblen 7.9 m (GBA 3.6 m / Ratio 0.735 + 3 m). Praegt Motion-Score."},
-          {"code": "NTDA86J01", "track": 95, "role": "core", "evidence": "WAHRSCHEINLICH fremd: directional, d_fp 4.0 m, Hoehe -3.6 m unter Dach-Anker; staerkster negativer Beweger (-1.7 mm/a). Geometrisch allein nicht entscheidbar (Layover-Korridor)."}
+          {
+            "code": "O2HC2XV01",
+            "track": 44,
+            "role": "noise",
+            "evidence": "BEWIESEN fremd: anti-layover (dot -0.95, 2.9 m oestlich; t44/ASC verschiebt nur nach Westen) + 5-8.5 m unter Dachpunkten. Score-neutral, Zuordnung dennoch falsch."
+          },
+          {
+            "code": "NTC3CYZ01",
+            "track": 95,
+            "role": "core",
+            "evidence": "SEHR WAHRSCHEINLICH fremd: d_fp 8.1 m -> implizite Reflektorhoehe 10.2 m bei plausiblen 7.9 m (GBA 3.6 m / Ratio 0.735 + 3 m). Praegt Motion-Score."
+          },
+          {
+            "code": "NTDA86J01",
+            "track": 95,
+            "role": "core",
+            "evidence": "WAHRSCHEINLICH fremd: directional, d_fp 4.0 m, Hoehe -3.6 m unter Dach-Anker; staerkster negativer Beweger (-1.7 mm/a). Geometrisch allein nicht entscheidbar (Layover-Korridor)."
+          }
         ],
         "consequence": "t95-Main-Motion -0.64 mm/a nicht belastbar (unstrittige Dachpunkte: +0.1/+0.4). PRUEFSTEIN fuer die naechste Politik (P7-N5): NTC3CYZ01 + NTDA86J01 muessen demotiert werden, OHNE NTF2IZV01/NTG9E7F01 zu verlieren; O2HC2XV01 darf nicht zugeordnet bleiben.",
         "artifacts": [
