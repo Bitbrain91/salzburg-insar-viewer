@@ -230,8 +230,19 @@ PRODUCTION_MATRIX: list[tuple[str, float]] = [
 class ExperimentPipeline(AnomalyLocalV1Pipeline):
     """Produktionspipeline mit konfigurierbarem Clustering-Kern.
 
-    Mit der Default-Konfiguration ist das Verhalten punktidentisch zur
+    Mit der Default-Konfiguration (noop) ist das Verhalten punktidentisch zur
     Produktion (No-op-Beweis gegen persistierte Baseline-Runs).
+
+    P8-B (W4-Port): Der Component-Separator (a6/a7/a8 -> annex-Cluster) ist seit
+    diesem Port produktiv (AnomalyLocalV1Pipeline.component_separation_enabled).
+    Damit gilt: noop == Produktion MIT k2xh-Separation. Fuer Experimente, die die
+    Trennung selbst ueber a6/a7/a8-Token steuern (k2xh, k2xh_demote, isolierte
+    a6/a7/a8), schaltet __init__ die Produktions-Separation ab und der Harness
+    fuehrt sie ueber die Assignment-Policy (separate/demote). Deshalb ist
+    EXPERIMENTS['k2xh'] jetzt eine Beinahe-Identitaet zu noop; der einzige
+    Unterschied ist die a6-Azimutquelle (k2xh nutzt den geodaetischen
+    x_az_from_fp aus GEOM_EXTRAS_QUERY, die Produktion/noop den planaren
+    record.az_from_fp aus der points_query).
     """
 
     def __init__(self, exp: ExperimentConfig, extra_features: dict[tuple[str, int], dict[str, float | None]] | None = None,
@@ -244,6 +255,19 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
         self.geom_extras = geom_extras or {}
         self.reassign_stats: Counter = Counter()
         self.policy_stats: Counter = Counter()
+        # P8-B (W4-Port): Die Produktion trennt jetzt IMMER
+        # (component_separation_enabled=True als Klassenattribut). Fuer
+        # Experimente, die die Trennung selbst ueber a6/a7/a8-Token steuern
+        # (separate ODER demote), die Produktions-Separation ausschalten, damit
+        # nicht doppelt markiert/getrennt wird. Fuer alle anderen (noop und die
+        # reinen Clustering-Achsen-Sweeps) laeuft die Produktions-Separation:
+        # noop == Produktion MIT k2xh.
+        _component_tokens = {
+            raw.strip().split(":")[0] for raw in exp.assignment_policy.split(",")
+        }
+        self.component_separation_enabled = not (
+            _component_tokens & {"a6_antilayover", "a7_reach", "a8_heightprofile"}
+        )
 
     # --- Zusatzfelder in die Feature-Map injizieren -----------------------
     def _compute_series_features(self, records: list[LocalPointRecord]) -> None:
@@ -308,9 +332,13 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                 raise ValueError(f"unknown assignment_policy token: {token}")
             handler(records)
 
-        if self.exp.separation_mode == "demote":
-            # A/B-Vergleich: die markierten Bauteil-Kandidaten klassisch
-            # demotieren (statt in einen annex-Cluster zu trennen).
+        if self.exp.separation_mode == "demote" and not self.component_separation_enabled:
+            # A/B-Vergleich: die vom Harness markierten Bauteil-Kandidaten
+            # klassisch demotieren (statt in annex zu trennen). Nur wenn der
+            # Harness die Separation selbst besitzt - sonst hat die Produktion
+            # (component_separation_enabled=True, noop-Pfad) die Kandidaten schon
+            # in annex-Cluster getrennt und darf sie nicht nachtraeglich demotiert
+            # bekommen.
             for r in records:
                 if r.flags.get("separation_candidate") and not r.gate_excluded:
                     self._policy_demote(r, r.flags["separation_reasons"][0])
@@ -477,7 +505,14 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
             d_fp = r.distance_m
             if d_fp is None or float(d_fp) <= OFF_FOOTPRINT_EPS_M:
                 continue
+            # x_az_from_fp (geodaetischer Azimut aus GEOM_EXTRAS_QUERY) bevorzugt;
+            # Fallback record.az_from_fp (planarer Azimut aus der Produktions-
+            # points_query), damit Harness- und Produktions-Pfad dieselbe Quelle
+            # nutzen koennen. None-Check statt `or`, weil Azimut 0.0 (Nord)
+            # gueltig ist.
             az = r.features.get("x_az_from_fp")
+            if az is None:
+                az = r.az_from_fp
             if az is None or r.range_dx is None or r.range_dy is None:
                 continue
             az_rad = math.radians(float(az))
@@ -488,80 +523,23 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
                 self._mark_separation(r, "anti_layover")
 
     # --- Bauteil-Trenner-Seams (P8-B) --------------------------------------
+    # Seit dem W4-Port lebt _assign_side_group (annex-Zuweisung + kinematische
+    # Rekrutierung) in der Produktion (AnomalyLocalV1Pipeline) und wird hier
+    # geerbt. Der Harness liefert ihm im separate-Modus nur die Kandidaten via
+    # _partition_for_clustering; im Nicht-separate-Modus delegiert er an die
+    # Produktion, die selbst per component_separation_enabled entscheidet.
     def _partition_for_clustering(self, building_id, track, kept):
         """Peel-after-Clustering: der VOLLE kept-Satz wird geclustert (damit
         die Hauptdach-Kerne exakt ihre noop-Rollen behalten und nicht durch das
         Herausnehmen von Nachbarpunkten in Noise kippen, W2-Iteration); die
-        markierten Kandidaten werden erst in `_assign_side_group` in den annex
-        umetikettiert. side_set treibt nur die Nachbearbeitung, nicht das
-        Clustering."""
+        markierten Kandidaten werden erst im geerbten `_assign_side_group` in
+        den annex umetikettiert. Im separate-Modus peelt der Harness selbst
+        (Produktions-Separation ist dann ausgeschaltet); sonst delegiert er an
+        die Produktion."""
         if self.exp.separation_mode != "separate":
             return super()._partition_for_clustering(building_id, track, kept)
         side = [r for r in kept if r.flags.get("separation_candidate")]
         return (kept, side)
-
-    def _assign_side_group(self, building_id, track, side_set, kept):
-        if self.exp.separation_mode != "separate" or not side_set:
-            return super()._assign_side_group(building_id, track, side_set, kept)
-        annex = list(side_set)
-        annex_codes = {id(r) for r in annex}
-
-        # Verhaltensbasierte Anreicherung (Prinzip reference_labels.md
-        # "Cluster folgen dem Verhalten"): ein OFF-Footprint-Punkt, der sich MIT
-        # dem annex und GEGEN das Hauptdach bewegt, gehoert kinematisch zum
-        # Anbau, auch wenn ihn kein Einzelcheck markiert hat (z. B. NTDA86J01:
-        # hoehengleich mit einem echten Dachpunkt, aber staerkster Beweger).
-        # Streng geführt: nur OFF-Footprint, Geschwindigkeit nah am annex UND
-        # klar verschieden vom Dach-Proxy.
-        roof_proxy = [
-            r for r in kept
-            if not r.flags.get("separation_candidate")
-            and r.distance_m is not None
-            and float(r.distance_m) <= OFF_FOOTPRINT_EPS_M
-        ]
-        if roof_proxy:
-            annex_v = float(np.median([r.velocity for r in annex]))
-            roof_v = float(np.median([r.velocity for r in roof_proxy]))
-            for r in kept:
-                if id(r) in annex_codes or r.flags.get("separation_candidate"):
-                    continue
-                # W2-Iteration 2: Rekrutierung erst ab 2 m Abstand - Punkte an
-                # der Footprint-Kante (0.5-2 m) sind Geokodierungsrauschen des
-                # Hauptdachs, keine Anbau-Kandidaten (Ueber-Rekrutierung auf
-                # grossen Gebaeuden, Befund 105022686).
-                if r.distance_m is None or float(r.distance_m) <= 2.0:
-                    continue
-                vtol = max(1.0, 2.0 * (r.velocity_std or 0.5))
-                if abs(r.velocity - annex_v) <= vtol and abs(r.velocity - roof_v) > vtol:
-                    r.flags["separation_candidate"] = True
-                    r.flags.setdefault("separation_reasons", []).append("annex_velocity_growth")
-                    self.policy_stats["separation_candidate:annex_velocity_growth"] += 1
-                    annex.append(r)
-                    annex_codes.add(id(r))
-
-        # Ein annex-Cluster mit kinematischer Konsistenzpruefung (wie
-        # smalln_strict): >=2 velocity-konsistente Punkte -> belastbarer core
-        # (annex_0), sonst schwacher weak_support-Annex (annex_weak).
-        velocities = np.asarray([r.velocity for r in annex], dtype=float)
-        med = float(np.median(velocities))
-        tol = np.maximum(1.0, 2.0 * np.asarray([r.velocity_std or 0.5 for r in annex], dtype=float))
-        consistent = int(np.sum(np.abs(velocities - med) <= tol))
-        if consistent >= 2:
-            cid = f"{building_id}:t{track}:annex_0"
-            for r in annex:
-                r.cluster_id = cid
-                r.cluster_role = "core"
-                r.flags["annex_suspect"] = True
-                r.cluster_probability = 0.5
-                r.cluster_outlier_score = max(r.cluster_outlier_score, 0.25)
-        else:
-            cid = f"{building_id}:t{track}:annex_weak"
-            for r in annex:
-                r.cluster_id = cid
-                r.cluster_role = "weak_support"
-                r.flags["annex_suspect"] = True
-                r.cluster_probability = 0.30
-                r.cluster_outlier_score = max(r.cluster_outlier_score, 0.50)
 
     # --- Small-N-Politik (P7-C-W1-T3) --------------------------------------
     def _apply_small_n_fallback(self, building_id, track, kept, noise_threshold):
@@ -1758,7 +1736,7 @@ EXPERIMENTS: dict[str, ExperimentConfig] = {
     # AOIS). Die Politiken a1..a5/smalln_strict bleiben als
     # Forschungs-Overrides; a5_crosslook/k1/k2x sind gegenueber noop
     # jetzt verhaltensgleich (Doppel-Anwendung idempotent).
-    "noop": ExperimentConfig("noop", "Produktionsidentische Variante (seit v2_k2x inkl. a5_crosslook + smalln_strict)"),
+    "noop": ExperimentConfig("noop", "Produktionsidentische Variante (seit W4-Port inkl. a5_crosslook + smalln_strict + k2xh-Component-Separation)"),
     # --- P7-C-W1-T1: HDBSCAN-Sweep (isolierte Achsen) ---
     "ms_equal": ExperimentConfig("ms_equal", "Bibliotheks-Default min_samples=min_cluster_size (Pflichtvergleich)", min_samples_mode="equal"),
     "leaf": ExperimentConfig("leaf", "cluster_selection_method=leaf (feinere homogene Cluster)", cluster_selection_method="leaf"),
@@ -1881,7 +1859,9 @@ EXPERIMENTS["a8_heightprofile"] = ExperimentConfig(
 )
 EXPERIMENTS["k2xh"] = _variant(
     "k2x", "k2xh",
-    "Komposit K2xh = a5_crosslook + Hoehenprofil + Anti-Layover + Reichweite (Trennung)",
+    "Komposit K2xh = a5_crosslook + Hoehenprofil + Anti-Layover + Reichweite (Trennung). "
+    "Seit dem W4-Port Beinahe-Identitaet zu noop (=Produktion mit Component-Separation); "
+    "einziger Unterschied ist die geodaetische a6-Azimutquelle x_az_from_fp statt planar.",
     assignment_policy="a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
     separation_mode="separate",
 )

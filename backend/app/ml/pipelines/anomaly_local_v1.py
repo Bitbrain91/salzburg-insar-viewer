@@ -43,6 +43,18 @@ CLUSTER_FIT_SCALE_FLOORS = {
     "height": 0.10,
     "step": 0.75,
 }
+# P8-B (Bauteil-Trenner): selbstkalibrierte Konstanten des Component-Separators
+# (a6_antilayover / a7_reach / a8_heightprofile). Werte identisch zum
+# validierten Survivors-Scan (Fall 96959851,
+# backend/app/ml/evaluation/phase7_survivors_scan.py); hier dupliziert, damit
+# die Produktions-Pipeline nicht auf ein evaluation-Modul angewiesen ist.
+OFF_FOOTPRINT_EPS_M = 0.5
+HEIGHT_SATURATION_RATIO = 0.735  # GBA unterschaetzt Hoehen (Audit P7-A-W1-T6)
+HEIGHT_MARGIN_M = 3.0
+MAD_K = 3.0 * 1.4826
+MAD_FLOOR_M = 1.0
+ANTI_LAYOVER_DOT = -0.2
+ANTI_COMPONENT_MIN_M = 1.5
 # Vierter/fünfter Eintrag: (buffer_height_expression, plausibility_height_expression).
 # buffer_* treibt die Candidate Area / den Layover-Buffer; plausibility_* dient
 # Plausibilitaets-/Reichweiten-Checks (Folge-Ticket). Fuer gba sind beide
@@ -109,6 +121,9 @@ class LocalPointRecord:
     # SqueeSAR-Patch-Flaeche (m^2; 0 = PS): Toleranzterm der
     # Quer-Versatz-Politik (P7-E-W1-T2).
     eff_area: float | None = None
+    # P8-B: planarer Azimut vom naechsten Punkt des ZUGEORDNETEN Footprints
+    # zum Punkt (aus der Haupt-points_query); Quelle fuer a6_antilayover.
+    az_from_fp: float | None = None
     displacement_dates: list[date] = field(default_factory=list)
     displacement_values: list[float] = field(default_factory=list)
     amplitude_dates: list[date] = field(default_factory=list)
@@ -144,6 +159,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
     name = "anomaly_local_v1"
     version = "0.1.0"
     run_type = "anomaly"
+    # P8-B: Component-Separator produktiv aktiv (Bauteil-/Anbau-Trennung).
+    # Der Phase-7-Harness schaltet das Flag pro Experiment ab, wenn er die
+    # Separation selbst ueber Assignment-Policy-Token (a6/a7/a8) steuert.
+    component_separation_enabled = True
 
     def default_params(self) -> dict[str, Any]:
         return {
@@ -331,7 +350,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 cand.within_building,
                 cand.slope_mean_deg,
                 cand.slope_max_deg,
-                cand.relief_range_m
+                cand.relief_range_m,
+                cand.az_from_fp
             FROM pts p
             LEFT JOIN LATERAL (
                 SELECT *
@@ -353,6 +373,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.slope_mean_deg,
                         b.slope_max_deg,
                         b.relief_range_m,
+                        degrees(ST_Azimuth(ST_ClosestPoint(b.geom, p.geom), p.geom)) AS az_from_fp,
                         0 AS priority
                     FROM buildings b
                     WHERE ST_Covers(b.geom, p.geom)
@@ -376,6 +397,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.slope_mean_deg,
                         b.slope_max_deg,
                         b.relief_range_m,
+                        degrees(ST_Azimuth(ST_ClosestPoint(b.geom, p.geom), p.geom)) AS az_from_fp,
                         1 AS priority
                     FROM (
                         SELECT
@@ -425,6 +447,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         b.slope_mean_deg,
                         b.slope_max_deg,
                         b.relief_range_m,
+                        degrees(ST_Azimuth(ST_ClosestPoint(b.geom, p.geom), p.geom)) AS az_from_fp,
                         2 AS priority
                     FROM buildings b
                     WHERE ST_DWithin(p.geom::geography, b.geom::geography, $11::double precision)
@@ -572,6 +595,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 slope_mean_deg=self._float_or_none(row["slope_mean_deg"]),
                 slope_max_deg=self._float_or_none(row["slope_max_deg"]),
                 relief_range_m=self._float_or_none(row["relief_range_m"]),
+                az_from_fp=self._float_or_none(row["az_from_fp"]),
             )
 
         for row in ts_rows:
@@ -827,6 +851,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 record.flags["degraded_reason"] = reasons[0]
 
         self._apply_crosslook_policy(records)
+        self._apply_component_separation_policy(records)
 
     def _apply_crosslook_policy(self, records: list[LocalPointRecord]) -> None:
         """Quer-Versatz-Politik fuer nearest-Punkte (P7-E-W1-T2, Kandidat k2x).
@@ -881,6 +906,103 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             limit = med + 3.0 * 1.4826 * mad + 3.0 + math.sqrt(max(float(eff_area), 0.0))
             if abs(float(cross)) > limit:
                 demote(record, "nearest_crosslook_outlier")
+
+    # --- Bauteil-Trenner / Component-Separator (P8-B) ----------------------
+    # Portiert 1:1 aus dem Phase-7-Harness (ExperimentPipeline._policy_a6/_a7/_a8,
+    # separation_mode="separate"). Markiert Anbau-/Bauteil-Kandidaten; die
+    # eigentliche Trennung in annex-Cluster passiert in
+    # _partition_for_clustering / _assign_side_group (Peel-after-Clustering).
+    def _mark_separation(self, record: LocalPointRecord, reason: str) -> None:
+        record.flags["separation_candidate"] = True
+        record.flags.setdefault("separation_reasons", []).append(reason)
+
+    def _apply_component_separation_policy(self, records: list[LocalPointRecord]) -> None:
+        """Kartierungsfreier Bauteil-Trenner: markiert separation_candidate.
+        Reihenfolge wie das Komposit k2xh nach a5_crosslook: a8 Hoehenprofil,
+        a6 Anti-Layover, a7 Reichweite. Gate: component_separation_enabled."""
+        if not self.component_separation_enabled:
+            return
+        self._component_a8_heightprofile(records)
+        self._component_a6_antilayover(records)
+        self._component_a7_reach(records)
+
+    def _component_a8_heightprofile(self, records: list[LocalPointRecord]) -> None:
+        """Hoehenprofil-Trenner: |height - Median(Dach-Anker)| ausserhalb der
+        Toleranz, einseitiges Anbau-Band 1-8 m UNTER den Ankern. Anker =
+        nicht ausgeschlossene within/directional-Punkte am Footprint
+        (d_fp<=OFF_FOOTPRINT_EPS_M); der Kandidat wird aus seinem eigenen
+        Anker-Set entfernt (Selbst-Anker-Ausschluss) und braucht >=2
+        unabhaengige Anker."""
+        anchors_by_group: dict[tuple[str | None, int], list[tuple[str, float]]] = {}
+        for record in records:
+            if (
+                record.assignment_method in ("within", "directional_buffer")
+                and not record.gate_excluded
+                and record.height is not None
+                and record.distance_m is not None
+                and float(record.distance_m) <= OFF_FOOTPRINT_EPS_M
+            ):
+                anchors_by_group.setdefault((record.building_id, record.track), []).append(
+                    (record.code, float(record.height))
+                )
+        for record in records:
+            if record.gate_excluded or record.height is None:
+                continue
+            anchors = anchors_by_group.get((record.building_id, record.track))
+            if not anchors:
+                continue
+            heights = [height for code, height in anchors if code != record.code]
+            if len(heights) < 2:
+                continue
+            med = float(np.median(heights))
+            mad = float(np.median([abs(height - med) for height in heights]))
+            tol = max(MAD_K * mad, MAD_FLOOR_M)
+            delta_below = med - float(record.height)
+            if tol < delta_below <= 8.0:
+                self._mark_separation(record, "height_outlier")
+
+    def _component_a6_antilayover(self, records: list[LocalPointRecord]) -> None:
+        """Anti-Layover-Trenner: Versatz ENTGEGEN der Range-Richtung
+        (range_dx/dy) ist als Dachreflexion physikalisch unmoeglich. Nutzt
+        record.az_from_fp (planarer Azimut vom naechsten Punkt des zugeordneten
+        Footprints, aus der Haupt-points_query). Kandidat wenn
+        dot < ANTI_LAYOVER_DOT UND d_fp*(-dot) > ANTI_COMPONENT_MIN_M UND
+        d_fp > OFF_FOOTPRINT_EPS_M."""
+        for record in records:
+            if record.gate_excluded:
+                continue
+            d_fp = record.distance_m
+            if d_fp is None or float(d_fp) <= OFF_FOOTPRINT_EPS_M:
+                continue
+            az = record.az_from_fp
+            if az is None or record.range_dx is None or record.range_dy is None:
+                continue
+            az_rad = math.radians(float(az))
+            ux, uy = math.sin(az_rad), math.cos(az_rad)
+            norm = math.hypot(float(record.range_dx), float(record.range_dy)) or 1.0
+            dot = (ux * float(record.range_dx) + uy * float(record.range_dy)) / norm
+            if dot < ANTI_LAYOVER_DOT and float(d_fp) * (-dot) > ANTI_COMPONENT_MIN_M:
+                self._mark_separation(record, "anti_layover")
+
+    def _component_a7_reach(self, records: list[LocalPointRecord]) -> None:
+        """Layover-Reichweiten-Trenner: implizite Reflektorhoehe d_fp/tan(inc)
+        uebersteigt die plausible Gebaeudehoehe + Marge. Fuer gba wird die
+        Saturierung korrigiert (h/HEIGHT_SATURATION_RATIO)."""
+        for record in records:
+            if record.gate_excluded:
+                continue
+            d_fp = record.distance_m
+            if d_fp is None or float(d_fp) <= OFF_FOOTPRINT_EPS_M:
+                continue
+            ph = record.building_plausibility_height
+            if ph is None:
+                continue
+            source = (record.building_source or "").lower()
+            plausible_h = float(ph) / HEIGHT_SATURATION_RATIO if source == "gba" else float(ph)
+            inc = float(record.incidence_angle) if record.incidence_angle is not None else 38.5
+            implied_h = float(d_fp) / max(math.tan(math.radians(inc)), 1e-6)
+            if implied_h > plausible_h + HEIGHT_MARGIN_M:
+                self._mark_separation(record, "reach_height_excess")
 
     def _cluster_building_groups(self, records: list[LocalPointRecord], params: dict[str, Any]) -> None:
         building_track_groups: dict[tuple[str, int], list[LocalPointRecord]] = defaultdict(list)
@@ -946,12 +1068,17 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         track: int,
         kept: list[LocalPointRecord],
     ) -> tuple[list[LocalPointRecord], list[LocalPointRecord]]:
-        """Waehlt den Clustering-Kern (main_set) und das Seiten-Set
-        (abgetrennte Bauteile). Basis: keine Trennung (noop-bitidentisch).
-        Ueberschreibende Trenner clustern typischerweise den VOLLEN Satz und
-        loesen das Seiten-Set erst danach heraus (Peel-after-Clustering), damit
-        die Restpunkte des Hauptdachs ihre Clusterrollen behalten."""
-        return (kept, [])
+        """Peel-after-Clustering: der VOLLE kept-Satz wird geclustert (main_set),
+        die als separation_candidate markierten Punkte werden erst in
+        _assign_side_group in einen annex-Cluster umetikettiert. So behalten die
+        Hauptdach-Kerne exakt ihre Rollen (der is_noop-Fastpath des Harness
+        clustert dieselbe main_set-Menge). Ohne aktiven Component-Separator
+        (component_separation_enabled=False) faellt das auf noop zurueck
+        (main_set==kept, side_set==[])."""
+        if not self.component_separation_enabled:
+            return (kept, [])
+        side = [record for record in kept if record.flags.get("separation_candidate")]
+        return (kept, side)
 
     def _assign_side_group(
         self,
@@ -960,11 +1087,63 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         side_set: list[LocalPointRecord],
         kept: list[LocalPointRecord],
     ) -> None:
-        """Weist dem abgetrennten Seiten-Set (Anbau-/Bauteil-Kandidaten) eine
-        eigene Cluster-Rolle zu. `kept` ist die volle (bereits geclusterte)
-        Punktmenge des Gebaeude x Track fuer verhaltensbasierte Anreicherung.
-        Basis: no-op (noop-bitidentisch)."""
-        return None
+        """Trennt die markierten Bauteil-/Anbau-Kandidaten in einen eigenen
+        annex-Cluster und reichert ihn verhaltensbasiert an: ein OFF-Footprint-
+        Punkt (Abstand > 2 m), der sich MIT dem annex und GEGEN das Hauptdach
+        bewegt, gehoert kinematisch zum Anbau (annex_velocity_growth).
+        Kinematische Konsistenzpruefung wie smalln_strict: >=2 velocity-
+        konsistente Punkte -> belastbarer annex_0-Core, sonst annex_weak.
+        `kept` ist die volle (bereits geclusterte) Punktmenge des
+        Gebaeude x Track. No-op bei leerem side_set."""
+        if not side_set:
+            return
+        annex = list(side_set)
+        annex_codes = {id(record) for record in annex}
+
+        roof_proxy = [
+            record
+            for record in kept
+            if not record.flags.get("separation_candidate")
+            and record.distance_m is not None
+            and float(record.distance_m) <= OFF_FOOTPRINT_EPS_M
+        ]
+        if roof_proxy:
+            annex_v = float(np.median([record.velocity for record in annex]))
+            roof_v = float(np.median([record.velocity for record in roof_proxy]))
+            for record in kept:
+                if id(record) in annex_codes or record.flags.get("separation_candidate"):
+                    continue
+                if record.distance_m is None or float(record.distance_m) <= 2.0:
+                    continue
+                vtol = max(1.0, 2.0 * (record.velocity_std or 0.5))
+                if abs(record.velocity - annex_v) <= vtol and abs(record.velocity - roof_v) > vtol:
+                    record.flags["separation_candidate"] = True
+                    record.flags.setdefault("separation_reasons", []).append("annex_velocity_growth")
+                    annex.append(record)
+                    annex_codes.add(id(record))
+
+        velocities = np.asarray([record.velocity for record in annex], dtype=float)
+        med = float(np.median(velocities))
+        tol = np.maximum(
+            1.0, 2.0 * np.asarray([record.velocity_std or 0.5 for record in annex], dtype=float)
+        )
+        consistent = int(np.sum(np.abs(velocities - med) <= tol))
+        if consistent >= 2:
+            cluster_id = f"{building_id}:t{track}:annex_0"
+            for record in annex:
+                record.cluster_id = cluster_id
+                record.cluster_role = "core"
+                record.flags["annex_suspect"] = True
+                record.cluster_probability = 0.5
+                record.cluster_outlier_score = max(record.cluster_outlier_score, 0.25)
+        else:
+            cluster_id = f"{building_id}:t{track}:annex_weak"
+            for record in annex:
+                record.cluster_id = cluster_id
+                record.cluster_role = "weak_support"
+                record.flags["annex_suspect"] = True
+                record.cluster_probability = 0.30
+                record.cluster_outlier_score = max(record.cluster_outlier_score, 0.50)
 
     def _apply_small_n_fallback(
         self,
