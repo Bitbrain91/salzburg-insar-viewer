@@ -19,20 +19,20 @@ from rasterio.warp import calculate_default_transform, reproject, transform_boun
 from shapely.geometry import mapping
 
 from config import (
+    DEFAULT_TERRAIN_SOURCE,
     PARQUET_DIR,
     PROJECT_ROOT,
     RASTER_TILES_DIR,
     TERRAIN_DERIVED_DIR,
-    TERRAIN_RAW_DIR,
     area_choices,
     iter_area_items,
+    terrain_raw_dir,
 )
 
 
 DEFAULT_GDAL_IMAGE = os.getenv("GDAL_IMAGE", "ghcr.io/osgeo/gdal:ubuntu-small-latest")
 TARGET_CRS = "EPSG:25833"
 WEB_CRS = "EPSG:3857"
-TERRAIN_SOURCE = "srtm"
 TERRAIN_PADDING_DEG = 0.01
 POINT_TERRAIN_OUT = PARQUET_DIR / "insar_point_terrain.parquet"
 BUILDING_TERRAIN_OUT = PARQUET_DIR / "building_terrain_context.parquet"
@@ -95,9 +95,27 @@ def _docker_available() -> bool:
 
 def _find_raw_inputs(raw_dir: Path) -> list[Path]:
     inputs: list[Path] = []
+    # rglob so per-Gemeinde subfolders (e.g. dgm1m/raw/50101_salzburg/*.tif) are found;
+    # flat layouts such as srtm/raw/*.hgt keep working unchanged.
     for pattern in ("*.hgt", "*.hgt.gz", "*.tif", "*.tiff", "*.img"):
-        inputs.extend(sorted(raw_dir.glob(pattern)))
+        inputs.extend(sorted(raw_dir.rglob(pattern)))
     return inputs
+
+
+def _derived_raster_paths(source: str) -> dict[str, Path]:
+    """Source-prefixed derived raster paths, all under the shared derived dir."""
+    d = TERRAIN_DERIVED_DIR
+    return {
+        "vrt": d / f"{source}_mosaic.vrt",
+        "elevation_25833": d / f"{source}_elevation_25833.tif",
+        "hillshade_25833": d / f"{source}_hillshade_25833.tif",
+        "slope_25833": d / f"{source}_slope_25833.tif",
+        "aspect_25833": d / f"{source}_aspect_25833.tif",
+        "hillshade_3857": d / f"{source}_hillshade_3857.tif",
+        "slope_color_25833": d / f"{source}_slope_color_25833.tif",
+        "slope_color_3857": d / f"{source}_slope_color_3857.tif",
+        "color_ramp": d / f"{source}_slope_color.txt",
+    }
 
 
 def _ensure_uncompressed_inputs(raw_inputs: list[Path], overwrite: bool) -> list[Path]:
@@ -186,15 +204,31 @@ def _write_single_band_raster(
         dst.write(data.astype(dtype), 1)
 
 
+def _resolve_source_crs(datasets: list) -> "rasterio.crs.CRS":
+    """Source CRS shared by all raw tiles; errors on missing or mixed CRS."""
+    crs_values = [dataset.crs for dataset in datasets]
+    if any(crs is None for crs in crs_values):
+        raise ValueError(
+            "Terrain tiles are missing an embedded CRS; cannot reproject in the "
+            "rasterio fallback. Provide georeferenced GeoTIFFs or run with Docker GDAL."
+        )
+    unique = {crs.to_string() for crs in crs_values}
+    if len(unique) > 1:
+        raise ValueError(f"Terrain tiles have mixed CRS values: {sorted(unique)}")
+    return crs_values[0]
+
+
 def _build_derived_rasters_python(
     raw_inputs: list[Path],
     area_id: str,
     overwrite: bool,
+    source: str,
 ) -> tuple[Path, Path, Path]:
-    elevation_25833 = TERRAIN_DERIVED_DIR / "srtm_elevation_25833.tif"
-    hillshade_25833 = TERRAIN_DERIVED_DIR / "srtm_hillshade_25833.tif"
-    slope_25833 = TERRAIN_DERIVED_DIR / "srtm_slope_25833.tif"
-    aspect_25833 = TERRAIN_DERIVED_DIR / "srtm_aspect_25833.tif"
+    paths = _derived_raster_paths(source)
+    elevation_25833 = paths["elevation_25833"]
+    hillshade_25833 = paths["hillshade_25833"]
+    slope_25833 = paths["slope_25833"]
+    aspect_25833 = paths["aspect_25833"]
 
     if (
         not overwrite
@@ -208,16 +242,21 @@ def _build_derived_rasters_python(
     print("Building terrain rasters with rasterio fallback...")
     datasets = [rasterio.open(path) for path in raw_inputs]
     try:
+        src_crs = _resolve_source_crs(datasets)
+        # merge() consumes bounds in the tiles' own CRS, so project the WGS84 AOI first.
+        merge_bounds = transform_bounds(
+            "EPSG:4326", src_crs, min_lon, min_lat, max_lon, max_lat
+        )
         mosaic, src_transform = merge(
             datasets,
-            bounds=(min_lon, min_lat, max_lon, max_lat),
+            bounds=merge_bounds,
             nodata=-9999,
         )
-        source = mosaic[0].astype("float32")
-        src_height, src_width = source.shape
+        elevation_src = mosaic[0].astype("float32")
+        src_height, src_width = elevation_src.shape
         src_bounds = array_bounds(src_height, src_width, src_transform)
         dst_transform, dst_width, dst_height = calculate_default_transform(
-            "EPSG:4326",
+            src_crs,
             TARGET_CRS,
             src_width,
             src_height,
@@ -225,10 +264,10 @@ def _build_derived_rasters_python(
         )
         elevation = np.full((dst_height, dst_width), -9999.0, dtype="float32")
         reproject(
-            source,
+            elevation_src,
             elevation,
             src_transform=src_transform,
-            src_crs="EPSG:4326",
+            src_crs=src_crs,
             src_nodata=-9999,
             dst_transform=dst_transform,
             dst_crs=TARGET_CRS,
@@ -271,32 +310,37 @@ def _build_derived_rasters_python(
     return elevation_25833, slope_25833, aspect_25833
 
 
-def build_derived_rasters(image: str, overwrite: bool, area_id: str) -> tuple[Path, Path, Path]:
-    TERRAIN_RAW_DIR.mkdir(parents=True, exist_ok=True)
+def build_derived_rasters(
+    image: str, overwrite: bool, area_id: str, source: str
+) -> tuple[Path, Path, Path]:
+    raw_dir = terrain_raw_dir(source)
+    raw_dir.mkdir(parents=True, exist_ok=True)
     TERRAIN_DERIVED_DIR.mkdir(parents=True, exist_ok=True)
     RASTER_TILES_DIR.mkdir(parents=True, exist_ok=True)
 
-    raw_inputs = _find_raw_inputs(TERRAIN_RAW_DIR)
+    raw_inputs = _find_raw_inputs(raw_dir)
     if not raw_inputs:
         raise FileNotFoundError(
-            f"No SRTM files found in {TERRAIN_RAW_DIR}. Add .hgt or .tif tiles before running."
+            f"No '{source}' terrain files found in {raw_dir}. "
+            "Add .hgt or .tif tiles before running."
         )
     raw_inputs = _ensure_uncompressed_inputs(raw_inputs, overwrite=overwrite)
     if not _docker_available():
-        return _build_derived_rasters_python(raw_inputs, area_id, overwrite)
+        return _build_derived_rasters_python(raw_inputs, area_id, overwrite, source)
 
-    vrt_path = TERRAIN_DERIVED_DIR / "srtm_mosaic.vrt"
-    elevation_25833 = TERRAIN_DERIVED_DIR / "srtm_elevation_25833.tif"
-    hillshade_25833 = TERRAIN_DERIVED_DIR / "srtm_hillshade_25833.tif"
-    slope_25833 = TERRAIN_DERIVED_DIR / "srtm_slope_25833.tif"
-    aspect_25833 = TERRAIN_DERIVED_DIR / "srtm_aspect_25833.tif"
-    hillshade_3857 = TERRAIN_DERIVED_DIR / "srtm_hillshade_3857.tif"
-    slope_color_25833 = TERRAIN_DERIVED_DIR / "srtm_slope_color_25833.tif"
-    slope_color_3857 = TERRAIN_DERIVED_DIR / "srtm_slope_color_3857.tif"
-    color_ramp = TERRAIN_DERIVED_DIR / "srtm_slope_color.txt"
+    paths = _derived_raster_paths(source)
+    vrt_path = paths["vrt"]
+    elevation_25833 = paths["elevation_25833"]
+    hillshade_25833 = paths["hillshade_25833"]
+    slope_25833 = paths["slope_25833"]
+    aspect_25833 = paths["aspect_25833"]
+    hillshade_3857 = paths["hillshade_3857"]
+    slope_color_25833 = paths["slope_color_25833"]
+    slope_color_3857 = paths["slope_color_3857"]
+    color_ramp = paths["color_ramp"]
 
     if overwrite or not vrt_path.exists():
-        print("Building SRTM VRT mosaic...")
+        print(f"Building {source} VRT mosaic...")
         _run_gdal(
             [
                 "gdalbuildvrt",
@@ -469,6 +513,7 @@ def _sample_points(
     slope_path: Path,
     aspect_path: Path,
     area_id: str,
+    source: str,
 ) -> pd.DataFrame:
     point_files = _discover_point_files(area_id)
     point_frames = []
@@ -518,7 +563,7 @@ def _sample_points(
             "area_id": points["area_id"].astype(str),
             "dataset_id": points["dataset_id"].astype(str),
             "track": points["track"].astype(int),
-            "terrain_source": TERRAIN_SOURCE,
+            "terrain_source": source,
             "terrain_resolution_m": resolution_m,
             "terrain_elevation_m": terrain_elevation,
             "slope_deg": terrain_slope,
@@ -546,6 +591,7 @@ def _building_context_for_source(
     elevation_path: Path,
     slope_path: Path,
     area_id: str,
+    terrain_source: str,
 ) -> pd.DataFrame:
     if not parquet_path.exists():
         return pd.DataFrame(columns=BUILDING_TERRAIN_COLUMNS)
@@ -653,12 +699,14 @@ def _building_context_for_source(
         ]
     ].copy()
     result.insert(1, "building_source", source)
-    result.insert(3, "terrain_source", TERRAIN_SOURCE)
+    result.insert(3, "terrain_source", terrain_source)
     result.insert(4, "terrain_resolution_m", resolution_m)
     return result[BUILDING_TERRAIN_COLUMNS]
 
 
-def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> pd.DataFrame:
+def _sample_buildings(
+    elevation_path: Path, slope_path: Path, area_id: str, source: str
+) -> pd.DataFrame:
     bev = _building_context_for_source(
         "bev",
         PARQUET_DIR / "bev_buildings.parquet",
@@ -666,6 +714,7 @@ def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> p
         elevation_path,
         slope_path,
         area_id,
+        source,
     )
     gba = _building_context_for_source(
         "gba",
@@ -674,6 +723,7 @@ def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> p
         elevation_path,
         slope_path,
         area_id,
+        source,
     )
     osm = _building_context_for_source(
         "osm",
@@ -682,6 +732,7 @@ def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> p
         elevation_path,
         slope_path,
         area_id,
+        source,
     )
     return pd.concat([bev, gba, osm], ignore_index=True)[BUILDING_TERRAIN_COLUMNS]
 
@@ -689,6 +740,7 @@ def _sample_buildings(elevation_path: Path, slope_path: Path, area_id: str) -> p
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--area", choices=area_choices(), default="salzburg")
+    parser.add_argument("--terrain-source", default=DEFAULT_TERRAIN_SOURCE)
     parser.add_argument("--gdal-image", default=DEFAULT_GDAL_IMAGE)
     parser.add_argument("--skip-derive", action="store_true")
     parser.add_argument("--skip-points", action="store_true")
@@ -696,29 +748,32 @@ def main() -> None:
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
+    source = args.terrain_source
     PARQUET_DIR.mkdir(parents=True, exist_ok=True)
     TERRAIN_DERIVED_DIR.mkdir(parents=True, exist_ok=True)
 
-    elevation_path = TERRAIN_DERIVED_DIR / "srtm_elevation_25833.tif"
-    slope_path = TERRAIN_DERIVED_DIR / "srtm_slope_25833.tif"
-    aspect_path = TERRAIN_DERIVED_DIR / "srtm_aspect_25833.tif"
+    paths = _derived_raster_paths(source)
+    elevation_path = paths["elevation_25833"]
+    slope_path = paths["slope_25833"]
+    aspect_path = paths["aspect_25833"]
 
     if not args.skip_derive:
         elevation_path, slope_path, aspect_path = build_derived_rasters(
             image=args.gdal_image,
             overwrite=args.overwrite,
             area_id=args.area,
+            source=source,
         )
 
     if not args.skip_points:
-        print("Sampling SRTM terrain values for InSAR points...")
-        point_df = _sample_points(elevation_path, slope_path, aspect_path, args.area)
+        print(f"Sampling {source} terrain values for InSAR points...")
+        point_df = _sample_points(elevation_path, slope_path, aspect_path, args.area, source)
         point_df.to_parquet(POINT_TERRAIN_OUT, index=False)
         print(f"Saved point terrain context: {POINT_TERRAIN_OUT}")
 
     if not args.skip_buildings:
-        print("Sampling SRTM terrain values for buildings...")
-        building_df = _sample_buildings(elevation_path, slope_path, args.area)
+        print(f"Sampling {source} terrain values for buildings...")
+        building_df = _sample_buildings(elevation_path, slope_path, args.area, source)
         building_df.to_parquet(BUILDING_TERRAIN_OUT, index=False)
         print(f"Saved building terrain context: {BUILDING_TERRAIN_OUT}")
 

@@ -12,9 +12,15 @@ PARQUET_DIR = PIPELINE_DATA_DIR / "parquet"
 PMTILES_DIR = PIPELINE_DATA_DIR / "pmtiles"
 EXTRACTS_DIR = PIPELINE_DATA_DIR / "extracts"
 TERRAIN_DIR = PIPELINE_DATA_DIR / "terrain"
-TERRAIN_RAW_DIR = TERRAIN_DIR / "srtm" / "raw"
+DEFAULT_TERRAIN_SOURCE = "srtm"
+TERRAIN_RAW_DIR = TERRAIN_DIR / DEFAULT_TERRAIN_SOURCE / "raw"
 TERRAIN_DERIVED_DIR = TERRAIN_DIR / "derived"
 RASTER_TILES_DIR = PIPELINE_DATA_DIR / "raster_tiles"
+
+
+def terrain_raw_dir(source: str = DEFAULT_TERRAIN_SOURCE) -> Path:
+    """Raw-input directory for a terrain source, e.g. data/terrain/dgm1m/raw."""
+    return TERRAIN_DIR / source / "raw"
 
 TIMESERIES_PREFIX = "d20"
 AMP_PREFIX = "D"

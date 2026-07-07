@@ -52,6 +52,35 @@ python pipeline/prepare_buildings.py --area all --osm-source local
 python pipeline/prepare_terrain.py --area all --overwrite
 ```
 
+### Terrain-Quellen
+
+`prepare_terrain.py` ist ueber `--terrain-source` parametrisiert (Default `srtm`,
+rueckwaertskompatibel). Die Quelle bestimmt das Rohdaten-Verzeichnis
+`data/terrain/<source>/raw/` (Unterordner je Gemeinde erlaubt, wird rekursiv
+eingelesen), die `<source>_*`-Praefixe der abgeleiteten Raster in
+`data/terrain/derived/` und den Wert der Spalte `terrain_source`.
+
+- `srtm` — grobes 30m-Hoehenmodell (Bestand), Rohdaten `data/terrain/srtm/raw/*.hgt`.
+- `dgm1m` / `dom1m` — 1m Digitales Gelaende-/Oberflaechenmodell des Landes Salzburg
+  (Airborne Laserscanning), gemeindeweise als GeoTIFF (TFW) oder ASCII. Bezug ueber
+  das OGD-Downloadportal (SAGIS ALS-Download,
+  `https://www.salzburg.gv.at/api5/datalinq/report/vektorpublik@alsdownload@alsdownload`),
+  Lizenz **CC BY 4.0** (Land Salzburg, Referat Geodateninfrastruktur). Direkte
+  Gemeinde-ZIPs: `https://static.salzburg.gv.at/sagisdaten_download/SAGIS_DATEN/ALS/<Gemeindenr>_DGM_tif.zip`
+  (bzw. `_DOM_tif.zip`); Gemeindenummern z. B. Salzburg 50101, Bad Gastein 50403,
+  Bad Hofgastein 50402.
+- Bezugssysteme der 1m-Daten: horizontal **MGI / Austria GK M31 (EPSG:31258)** —
+  im GeoTIFF eingebettet und per `gdalinfo` verifiziert. Der GeoTIFF traegt nur das
+  horizontale CRS (2D); das Hoehensystem ist weder in der Datei noch auf der
+  OGD-Datensatzseite explizit angegeben. Fuer oesterreichische ALS-Hoehenprodukte
+  gilt konventionsgemaess das orthometrische Hoehensystem **Gebrauchshoehen ueber
+  Adria (GHA, EPSG:5778)** (nicht ellipsoidisch) — fuer diesen Datensatz aus
+  Sekundaerquellen abgeleitet, beim Datenhalter zu bestaetigen. Beim Verschneiden
+  mit ellipsoidischen bzw. anderen Hoehen ist die Datumsdifferenz zu beachten.
+
+`build_tiles.sh` / `build_terrain_tiles.sh` erwarten weiterhin die `srtm_*`-Raster;
+ein Wechsel des Terrain-Datenstands (inkl. Tile-/DB-Load) ist ein Folge-Ticket.
+
 PostGIS und Tiles:
 ```bash
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar
