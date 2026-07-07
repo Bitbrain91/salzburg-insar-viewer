@@ -759,6 +759,7 @@ async def ml_building_analysis(
             "agreement_tension_flag": False,
             "reliability_penalties": [],
             "differential_motion_flag": False,
+            "differential_motion_level": "none",
             "main_cluster_by_track": {},
             "neighbour_context_available": False,
             "neighbour_candidate_building_count": 0,
@@ -802,6 +803,7 @@ async def ml_building_analysis(
             "value",
         ),
         differential_motion_flag=_rollup_bool(building_rollup, "differential_motion_flag"),
+        differential_motion_level=_rollup_str(building_rollup, "differential_motion_level") or "none",
         building_status=_rollup_str(building_rollup, "building_status"),
         main_cluster_by_track=track_string_map(building_rollup.get("main_cluster_by_track")),
         neighbour_context_available=_rollup_bool(building_rollup, "neighbour_context_available"),
@@ -1110,6 +1112,10 @@ async def ml_building_points_visualization(
                     "differential_motion_flag": bool(
                         building_rollup.get("differential_motion_flag", False)
                     ),
+                    "differential_motion_level": _rollup_str(
+                        building_rollup, "differential_motion_level"
+                    )
+                    or "none",
                     "allowed_diff_mm_a": cross_meta.get("allowed_diff_mm_a"),
                     "context_available": _rollup_bool(neighbour_context, "context_available"),
                     "candidate_neighbour_count": _rollup_int(
@@ -1531,6 +1537,8 @@ async def ml_building_context_visualization(
             ),
             "building_status": summary_rollup.get("building_status"),
             "differential_motion_flag": _rollup_bool(summary_rollup, "differential_motion_flag"),
+            "differential_motion_level": _rollup_str(summary_rollup, "differential_motion_level")
+            or "none",
             "neighbour_context_available": _rollup_bool(
                 summary_rollup,
                 "neighbour_context_available",
@@ -1647,6 +1655,7 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 COALESCE((r.meta->'building_rollup'->'reliability_penalties')::text, '[]')
                     AS reliability_penalties_json,
                 COALESCE((r.meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
+                COALESCE(r.meta->'building_rollup'->>'differential_motion_level', 'none') AS differential_motion_level,
                 (r.meta->'building_rollup'->>'building_status') AS building_status,
                 (r.meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
                 (r.meta->'building_rollup'->>'cluster_count')::integer AS building_cluster_count,
@@ -1725,6 +1734,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 COALESCE((meta->'building_rollup'->'reliability_penalties')::text, '[]')
                     AS reliability_penalties_json,
                 COALESCE((meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
+                COALESCE(meta->'building_rollup'->>'differential_motion_level', 'none') AS differential_motion_level,
                 (meta->'building_rollup'->>'building_status') AS building_status,
                 (meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
                 (meta->'building_rollup'->>'cluster_count')::integer AS cluster_count,
@@ -1825,6 +1835,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.agreement_tension_flag,
                 rollups.reliability_penalties_json,
                 rollups.differential_motion_flag,
+                rollups.differential_motion_level,
                 rollups.building_status,
                 rollups.track_agreement_score,
                 rollups.cluster_count,

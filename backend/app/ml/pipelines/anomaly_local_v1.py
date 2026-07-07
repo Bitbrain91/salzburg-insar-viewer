@@ -28,7 +28,7 @@ FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
 # P7-E-W1-T2 (2026-06-10): Kandidat k2x integriert (a5_crosslook +
 # smalln_strict als Default-Verhalten); Entscheidung und Evidenz in
 # docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_report.md.
-MODEL_SET_VERSION = "local_hdbscan_rulegate_v2_k2x"
+MODEL_SET_VERSION = "local_hdbscan_rulegate_v3_k2xh_diffv2"
 EPSILON = 1e-9
 NEIGHBOUR_BUILDING_RADIUS_M = 25.0
 MAX_NEIGHBOUR_BUILDINGS = 8
@@ -518,7 +518,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         self._compute_building_group_features(records, track_stats)
         self._apply_gate_rules(records, track_stats, params)
         self._cluster_building_groups(records, params)
-        cross_track_metrics = self._compute_phase1_rollups(records)
+        cross_track_metrics = self._compute_phase1_rollups(records, track_stats)
         self._compute_neighbourhood_rollups(records)
         self._score_records(records, track_stats, params)
         metrics = self._evaluate_run(records, cross_track_metrics)
@@ -1123,7 +1123,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
         return labels, probabilities, outlier_scores
 
-    def _compute_phase1_rollups(self, records: list[LocalPointRecord]) -> dict[str, float]:
+    def _compute_phase1_rollups(
+        self,
+        records: list[LocalPointRecord],
+        track_stats: dict[int, dict[str, float]],
+    ) -> dict[str, float]:
         by_building: dict[str, list[LocalPointRecord]] = defaultdict(list)
         for record in records:
             if record.building_id:
@@ -1137,6 +1141,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             building_rollup, cluster_rollups, cross_track_summary = self._build_building_rollup(
                 building_id,
                 building_records,
+                track_stats,
             )
             if cross_track_summary.get("diff_before_mm_a") is not None:
                 diffs_before.append(float(cross_track_summary["diff_before_mm_a"]))
@@ -1170,6 +1175,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     record.building_context["differential_motion_flag"] = building_rollup.get(
                         "differential_motion_flag"
                     )
+                    record.building_context["differential_motion_level"] = building_rollup.get(
+                        "differential_motion_level"
+                    )
 
         return {
             "median_cross_track_diff_before": float(np.median(diffs_before)) if diffs_before else 0.0,
@@ -1190,6 +1198,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         self,
         building_id: str,
         records: list[LocalPointRecord],
+        track_stats: dict[int, dict[str, float]],
     ) -> tuple[dict[str, Any], dict[tuple[int, str | None], dict[str, Any]], dict[str, Any]]:
         building_source = next((record.building_source for record in records if record.building_source), None)
         kept_records = [record for record in records if not record.gate_excluded]
@@ -1197,6 +1206,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         noise_point_count = sum(1 for record in kept_records if record.cluster_role == "noise")
         cluster_rollups: dict[tuple[int, str | None], dict[str, Any]] = {}
         track_rollups: dict[int, dict[str, Any]] = {}
+        # P8-B-W2-T4: Punktlisten je (track, cluster_id) fuer die analytische
+        # Sigma-Schaetzung des Differential-Motion-Levels aufheben.
+        cluster_point_records: dict[tuple[int, str], list[LocalPointRecord]] = {}
         reliable_cluster_count = 0
         cluster_count = 0
 
@@ -1212,6 +1224,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
             track_cluster_rollups: list[dict[str, Any]] = []
             for cluster_id, cluster_records in track_cluster_records.items():
+                cluster_point_records[(track, cluster_id)] = cluster_records
                 cluster_role = str(cluster_records[0].cluster_role or "unknown")
                 # P8-B: ein Cluster gilt als Anbau/Bauteil, wenn ALLE Mitglieder
                 # als annex_suspect markiert sind. Ein solcher Cluster darf nie
@@ -1412,6 +1425,126 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             if differential_motion_flag:
                 break
 
+        # P8-B-W2-T4: dreistufiges Differential-Motion-Level (deterministisch,
+        # kein RNG). candidate == exakt die Flag-Regel oben (Level>none <=> Flag);
+        # significant/confirmed verschaerfen ueber analytisches Sigma bzw. eine
+        # zweite Geometrie, Plausibilitaets-Downgrades druecken zurueck (Floor
+        # candidate). Das bool differential_motion_flag bleibt unberuehrt.
+        level_rank = {"none": 0, "candidate": 1, "significant": 2, "confirmed": 3}
+        rank_to_level = {rank: level for level, rank in level_rank.items()}
+        candidate_threshold = max(1.5, allowed_diff)
+
+        # Signierte Deltas der belastbaren Nicht-Main-Cluster (core, >=2 Punkte)
+        # gegen die Track-Motion des Main-Clusters, je Track.
+        track_secondaries: dict[int, list[dict[str, Any]]] = {}
+        for track, track_rollup in track_rollups.items():
+            main_cluster_id = track_rollup.get("main_cluster_id")
+            main_cluster_motion = track_rollup.get("track_motion_mm_a")
+            if main_cluster_id is None or main_cluster_motion is None:
+                continue
+            secondaries: list[dict[str, Any]] = []
+            for cluster in cluster_rollups.values():
+                if cluster["track"] != track or cluster["cluster_role"] != "core":
+                    continue
+                if int(cluster["point_count"]) < 2:
+                    continue
+                cluster_id = str(cluster["cluster_id"])
+                if cluster_id == str(main_cluster_id):
+                    continue
+                proxy = cluster.get("median_vertical_proxy_mm_a")
+                if proxy is None:
+                    continue
+                secondaries.append(
+                    {
+                        "cluster_id": cluster_id,
+                        "delta_signed": float(proxy) - float(main_cluster_motion),
+                        "annex": bool(cluster.get("annex_flag")),
+                    }
+                )
+            if secondaries:
+                track_secondaries[track] = sorted(secondaries, key=lambda item: item["cluster_id"])
+
+        differential_motion_level = "none"
+        differential_motion_evidence: dict[str, Any] | None = None
+        best_rank = 0
+        best_delta_abs = -1.0
+        for track in sorted(track_secondaries):
+            main_cluster_id = str(track_rollups[track]["main_cluster_id"])
+            main_points = cluster_point_records.get((track, main_cluster_id), [])
+            se_main = self._safe_value(self._cluster_proxy_se(main_points), 0.0)
+            main_season = (
+                float(np.median([record.features.get("season_amp", 0.0) for record in main_points]))
+                if main_points
+                else 0.0
+            )
+            amp_cv_p95 = float(track_stats.get(track, {}).get("amp_cv_p95", 0.0))
+            for secondary in track_secondaries[track]:
+                delta_signed = float(secondary["delta_signed"])
+                delta_abs = abs(delta_signed)
+                if delta_abs < candidate_threshold:
+                    continue  # kein candidate -> traegt nicht zum Level bei
+                sek_points = cluster_point_records.get((track, secondary["cluster_id"]), [])
+                se_sek = self._safe_value(self._cluster_proxy_se(sek_points), 0.0)
+                sigma_delta = float(math.hypot(se_main, se_sek))
+                base_rank = level_rank["candidate"]
+                # Mindest-Support-Guard: ein analytisches SE aus n<3 Punkten
+                # (MAD ueber 2 Werte) ist nicht belastbar - Signifikanz erst
+                # ab 3 Punkten je Cluster (vgl. Harness-Konvention "Bootstrap
+                # nur n>=8"); darunter bleibt es ein Kandidat.
+                small_n_guard = min(len(main_points), len(sek_points)) < 3
+                if delta_abs >= 2.0 * sigma_delta and not small_n_guard:
+                    base_rank = level_rank["significant"]
+                confirming_track: int | None = None
+                if base_rank >= level_rank["significant"]:
+                    for other_track in sorted(track_secondaries):
+                        if other_track == track:
+                            continue
+                        has_confirmation = any(
+                            other["delta_signed"] * delta_signed > 0.0
+                            and abs(other["delta_signed"]) >= candidate_threshold
+                            for other in track_secondaries[other_track]
+                        )
+                        if has_confirmation:
+                            confirming_track = int(other_track)
+                            base_rank = level_rank["confirmed"]
+                            break
+                downgrades: list[str] = []
+                if small_n_guard and delta_abs >= 2.0 * sigma_delta:
+                    downgrades.append("small_n_guard")
+                sek_season = (
+                    float(np.median([record.features.get("season_amp", 0.0) for record in sek_points]))
+                    if sek_points
+                    else 0.0
+                )
+                if abs(sek_season - main_season) > 2.0:
+                    downgrades.append("season_amp_mismatch")
+                sek_amp_cv = (
+                    float(np.median([record.features.get("amp_ts_cv", 0.0) for record in sek_points]))
+                    if sek_points
+                    else 0.0
+                )
+                if amp_cv_p95 > EPSILON and sek_amp_cv > amp_cv_p95:
+                    downgrades.append("unstable_amplitude")
+                effective_rank = max(level_rank["candidate"], base_rank - len(downgrades))
+                if effective_rank < level_rank["confirmed"]:
+                    confirming_track = None
+                if effective_rank > best_rank or (
+                    effective_rank == best_rank and delta_abs > best_delta_abs
+                ):
+                    best_rank = effective_rank
+                    best_delta_abs = delta_abs
+                    differential_motion_level = rank_to_level[effective_rank]
+                    differential_motion_evidence = {
+                        "track": int(track),
+                        "cluster_id": secondary["cluster_id"],
+                        "delta_mm_a": round(delta_signed, 2),
+                        "sigma_delta_mm_a": round(sigma_delta, 3),
+                        "threshold_mm_a": round(candidate_threshold, 2),
+                        "confirming_track": confirming_track,
+                        "downgrades": downgrades,
+                        "annex_cluster": bool(secondary["annex"]),
+                    }
+
         main_tracks = [
             track for track, values in track_rollups.items() if values.get("main_cluster_id") is not None
         ]
@@ -1522,7 +1655,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     - (0.15 if len(main_tracks) == 1 else 0.0)
                     - (0.10 if main_cluster_support_total < 4 else 0.0)
                     - (0.15 if noise_point_count > len(kept_records) * 0.5 else 0.0)
-                    - (0.15 if differential_motion_flag else 0.0)
+                    - (0.15 if differential_motion_level in ("significant", "confirmed") else 0.0)
                     - retuning_penalty_total,
                     0.0,
                     1.0,
@@ -1546,6 +1679,8 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             "agreement_tension_flag": agreement_tension_flag,
             "reliability_penalties": reliability_penalties,
             "differential_motion_flag": differential_motion_flag,
+            "differential_motion_level": differential_motion_level,
+            "differential_motion_evidence": differential_motion_evidence,
             "main_cluster_by_track": {
                 str(track): values.get("main_cluster_id")
                 for track, values in sorted(track_rollups.items())
@@ -2500,6 +2635,32 @@ class AnomalyLocalV1Pipeline(BasePipeline):
     def _median_vertical_proxy(self, records: list[LocalPointRecord]) -> float:
         proxies = np.asarray([self._vertical_proxy(record) for record in records], dtype=float)
         return float(np.median(proxies)) if proxies.size else 0.0
+
+    def _cluster_proxy_se(self, records: list[LocalPointRecord]) -> float | None:
+        """Analytischer Standardfehler des Cluster-Median-Vertical-Proxys (P8-B-W2-T4).
+
+        se = 1.253 * max(mad_sigma, noise_floor) / sqrt(n); mad_sigma robust aus
+        den Punkt-Proxys (1.4826*MAD), noise_floor = median(velocity_std/cos(inc))
+        mit velocity_std-Fallback 0.5. Der Faktor 1.253 = sqrt(pi/2) hebt vom
+        Median- auf den Mittelwert-Standardfehler.
+        """
+        if not records:
+            return None
+        proxies = np.asarray([self._vertical_proxy(record) for record in records], dtype=float)
+        n = int(proxies.size)
+        if n == 0:
+            return None
+        median_proxy = float(np.median(proxies))
+        mad_sigma = 1.4826 * float(np.median(np.abs(proxies - median_proxy)))
+        noise_terms: list[float] = []
+        for record in records:
+            incidence = math.radians(
+                self._safe_value(record.incidence_angle, self._default_incidence_deg(record))
+            )
+            velocity_std = self._safe_value(record.velocity_std, 0.5)
+            noise_terms.append(velocity_std / max(math.cos(incidence), 0.30))
+        noise_floor = float(np.median(noise_terms)) if noise_terms else 0.5
+        return float(1.253 * max(mad_sigma, noise_floor) / math.sqrt(n))
 
     def _vertical_proxy(self, record: LocalPointRecord) -> float:
         incidence = math.radians(self._safe_value(record.incidence_angle, self._default_incidence_deg(record)))

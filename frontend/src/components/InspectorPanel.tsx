@@ -216,6 +216,13 @@ type AttributeHint = {
   context: AttributeContext;
 };
 
+const differentialMotionLevelLabels: Record<string, string> = {
+  none: "keine",
+  candidate: "Kandidat",
+  significant: "signifikant",
+  confirmed: "bestaetigt",
+};
+
 const metricAttributeHints: Record<string, AttributeHint> = {
   "Punktcode": { key: "code", context: "insar-point" },
   "Track / LOS": { key: "los", context: "insar-point" },
@@ -281,7 +288,7 @@ const metricAttributeHints: Record<string, AttributeHint> = {
   "Track-Uebereinstimmung": { key: "track_agreement_score", context: "ml-building" },
   "Retuning-Anpassungen": { key: "reliability_penalties", context: "ml-building" },
   "Cluster / belastbar": { key: "cluster_count", context: "ml-building" },
-  "Differenzielle Bewegung": { key: "differential_motion_flag", context: "ml-building" },
+  "Differenzielle Bewegung": { key: "differential_motion_level", context: "ml-building" },
   "Hauptcluster": { key: "main_cluster_by_track", context: "ml-building" },
   "Track-Bewegung": { key: "track_motion_mm_a", context: "ml-building" },
   "Median-Abstand": { key: "median_distance_m", context: "ml-building" },
@@ -1169,12 +1176,17 @@ export default function InspectorPanel() {
     }
 
     if (analysis.differential_motion_flag) {
+      const level = analysis.differential_motion_level ?? "candidate";
+      const levelText = differentialMotionLevelLabels[level] ?? level;
+      const confirmed = level === "significant" || level === "confirmed";
       reasons.push({
         key: "differential_motion",
-        label: "Differenzielle Bewegung",
-        detail: "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor.",
+        label: `Differenzielle Bewegung (${levelText})`,
+        detail: confirmed
+          ? "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor; die Differenz ist statistisch abgesichert."
+          : "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor (Kandidat).",
         tone: "warning",
-        priority: 88,
+        priority: confirmed ? 90 : 88,
       });
     }
 
@@ -2723,7 +2735,12 @@ export default function InspectorPanel() {
                   )}
                   {renderMetric("Retuning-Anpassungen", formatPenaltySummary(analysis.reliability_penalties))}
                   {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
-                  {renderMetric("Differenzielle Bewegung", analysis.differential_motion_flag ? "ja" : "nein")}
+                  {renderMetric(
+                    "Differenzielle Bewegung",
+                    differentialMotionLevelLabels[analysis.differential_motion_level] ??
+                      analysis.differential_motion_level ??
+                      (analysis.differential_motion_flag ? "ja" : "nein")
+                  )}
                   {renderMetric(
                     "Kontext",
                     `${analysis.neighbour_context_available ? "ja" : "nein"} / ${

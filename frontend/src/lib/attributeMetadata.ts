@@ -1194,6 +1194,13 @@ const definitions: AttributeMetadataDefinition[] = [
     contexts: ["ml-building", "ml-point"],
   },
   {
+    key: "differential_motion_level",
+    label: "Differentielle Bewegung (Stufe)",
+    description: "Dreistufige Bewertung der differentiellen Bewegung: keine, Kandidat (Delta ueberschreitet Schwelle), signifikant (Delta > 2*Sigma) oder bestaetigt (zweite Geometrie bestaetigt das Vorzeichen). Plausibilitaets-Downgrades (Saisonamplitude, instabile Amplitude) druecken zurueck auf Kandidat.",
+    source: SOURCE_ML_BUILDING,
+    contexts: ["ml-building", "ml-point"],
+  },
+  {
     key: "building_status",
     label: "Gebaeudestatus",
     description: "Fachlicher Status des Gebaeuderollups, etwa ok, single_track_only, small_n oder insufficient_support.",

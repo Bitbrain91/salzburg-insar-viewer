@@ -341,6 +341,7 @@ class MLBuildingAnalysis(BaseModel):
     agreement_tension_flag: bool = False
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
     differential_motion_flag: bool = False
+    differential_motion_level: str = "none"
     building_status: Optional[str] = None
     main_cluster_by_track: dict[str, Optional[str]] = Field(default_factory=dict)
     neighbour_context_available: bool = False
@@ -407,6 +408,7 @@ class MLBuildingVisualizationSummary(BaseModel):
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
     building_status: Optional[str] = None
     differential_motion_flag: bool = False
+    differential_motion_level: str = "none"
     neighbour_context_available: bool = False
     neighbour_candidate_building_count: int = 0
     neighbour_misassignment_point_count: int = 0

@@ -352,6 +352,12 @@ export type MlReliabilityPenalty = {
   observed_score: number | null;
 };
 
+export type DifferentialMotionLevel =
+  | "none"
+  | "candidate"
+  | "significant"
+  | "confirmed";
+
 export type MlBuildingNeighbourhoodSummary = {
   neighbour_context_available: boolean;
   neighbour_candidate_building_count: number;
@@ -385,6 +391,7 @@ export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
   agreement_tension_flag: boolean;
   reliability_penalties: MlReliabilityPenalty[];
   differential_motion_flag: boolean;
+  differential_motion_level: DifferentialMotionLevel;
   building_status: string | null;
   main_cluster_by_track: Record<string, string | null>;
   track_motion_mm_a: Record<string, number | null>;
@@ -436,6 +443,7 @@ export type MlBuildingVisualizationSummary = MlBuildingNeighbourhoodSummary & {
   reliability_penalties: MlReliabilityPenalty[];
   building_status: string | null;
   differential_motion_flag: boolean;
+  differential_motion_level: DifferentialMotionLevel;
 };
 
 export type MlBuildingVisualizationContextResponse = {
