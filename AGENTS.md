@@ -46,7 +46,7 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 - Default pattern for substantial work: planning session first, then create a repo plan structured as `Plan -> Phase -> Welle -> Ticket`, then execute it in a fresh supervisor session with subagents.
 - Permanent repo rule for supervisor sessions: ticket work is delegated to subagents. The supervisor is responsible for scheduling, ticket slicing, gate checks, integration, and status updates, but should not silently do ticket implementation work in the main thread.
 - Supervisor sessions should be bootstrappable from a single prompt file: the new session should usually only need to be told to read `docs/<...>_supervisor_prompt.md` and execute it fully.
-- Keep supervisor context small, let delegated agents verify and refine their own work before reporting back, and use `gpt-5.5` with `xhigh` reasoning for this workflow by default; no model downgrades. If `gpt-5.5` is unavailable, stop and report the blocker instead of using a smaller model.
+- Keep supervisor context small and let delegated agents verify and refine their own work before reporting back. Delegated agents inherit the current session model (and reasoning effort) unless the plan explicitly specifies otherwise; no silent downgrades to smaller/faster variants. If the session model is unavailable or unsuitable for a ticket, stop and report the blocker instead of silently switching. (Revised 2026-07-07; previously hardcoded to gpt-5.5/xhigh.)
 
 ## Commit & Pull Request Guidelines
 - Current history uses short, imperative summaries (e.g., “Add InSAR documentation PDFs”). Keep messages concise and descriptive.

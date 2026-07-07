@@ -16,8 +16,9 @@ gruenen Guardrails integrieren.
 
 - Arbeite als Supervisor, nicht als stiller Ticket-Implementierer.
 - Ticket-Arbeit wird an Subagents delegiert; Write-Sets disjunkt halten.
-- Nutze fuer delegierte Agents `gpt-5.5` mit Reasoning `xhigh`.
-- Wenn `gpt-5.5` nicht verfuegbar ist, stoppe und melde den Blocker.
+- Delegierte Agents erben das aktuelle Session-Modell und dessen Reasoning-
+  Stufe, sofern nicht explizit anders vorgegeben (Konvention 2026-07-07).
+- Keine stillen Modell-Downgrades; bei Nichtverfuegbarkeit Blocker melden.
 - Starte die naechste Welle automatisch, sobald das interne Gate gruen ist.
 - Keine destruktiven Git-Kommandos; keine fremden Aenderungen revertieren.
 - Schwere DB-Laeufe strikt sequenziell (ein Lauf zur Zeit).

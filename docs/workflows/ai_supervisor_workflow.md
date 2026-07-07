@@ -68,21 +68,24 @@ Delegierte Agents sollen ihre Arbeit moeglichst end-to-end innerhalb ihres Teilp
 
 ## Modellstandard
 
-Fuer diesen Workflow gilt als feste Repo-Vorgabe:
+Fuer diesen Workflow gilt (revidiert 2026-07-07, User-Entscheidung):
 
-- alle delegierten Agents werden mit `gpt-5.5` gestartet
-- reasoning effort ist `xhigh`
-- keine Mini-, Nano- oder sonstigen kleineren/fasteren Varianten
-- keine modellseitigen Downgrades
-- falls `gpt-5.5` nicht verfuegbar ist, wird die Arbeit gestoppt und als
-  Modell-Blocker gemeldet
+- delegierte Agents ERBEN das aktuelle Session-Modell des Supervisors,
+  sofern im Plan/Prompt nicht explizit ein anderes Modell vorgegeben ist
+- reasoning effort erbt ebenfalls vom Supervisor (hoechste verfuegbare
+  Stufe fuer research-lastige Tickets)
+- keine stillen Downgrades auf kleinere/fastere Varianten; ein bewusster
+  Downgrade fuer triviale mechanische Tickets ist zulaessig, wenn er im
+  Plan dokumentiert ist
+- ist das Session-Modell fuer ein Ticket ungeeignet oder nicht verfuegbar,
+  wird das als Blocker gemeldet statt still gewechselt
 
 Begruendung:
 
 - der Workflow ist fuer groessere, research-lastige und mehrstufige Aufgaben gedacht
 - der Supervisor soll sich auf hochwertige Rueckmeldungen der delegierten Agents verlassen koennen
-- GPT-5.5 ist der feste Repo-Standard fuer wichtige allgemeine und code-lastige
-  Agentenarbeit
+- die Vorgabe folgt dem jeweils aktuellen Spitzenmodell der Session statt
+  einem hart kodierten Modellnamen (historisch: gpt-5.5/xhigh)
 
 ## Steuerungsmodell
 
