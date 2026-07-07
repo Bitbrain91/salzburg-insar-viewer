@@ -1,21 +1,21 @@
 {
-  "version": 1,
-  "updated": "2026-07-06",
+  "version": 2,
+  "updated": "2026-07-07",
   "labeled_by": "team_internal",
-  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md",
-  "label_values": ["roof", "foreign", "unclear"],
+  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md. v2: Kategorie annex ergaenzt; NTC3CYZ01/NTDA86J01 von foreign auf annex umgelabelt (Google-Earth-3D-Befund 2026-07-07: baulich verbundener Anbau).",
+  "label_values": ["roof", "annex", "foreign", "unclear"],
   "labels": [
     {
       "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
-      "track": 95, "point_code": "NTC3CYZ01", "label": "foreign",
-      "evidence": "Unkartiertes Blechdach-Nebengebaeude entlang der Blickrichtung; implied_height_excess (10.2 m noetig, 3.6 m GBA-Haus); User-Befund 2026-06-11, Survivors-Scan S6; Pruefstein P7-N5 (muss demotiert werden). BEV-Recheck: 1.2 m an BEV-Footprint A9A7E442.",
-      "date": "2026-07-06"
+      "track": 95, "point_code": "NTC3CYZ01", "label": "annex",
+      "evidence": "Blechdach-Struktur entlang der Blickrichtung; implied_height_excess (10.2 m noetig, 3.6 m GBA-Haus); User-Befund 2026-06-11 (zunaechst als unkartiertes Nebengebaeude gelesen). REVISION 2026-07-07 (Google-Earth-3D, User): Struktur ist BAULICH VERBUNDENER Anbau am SW-Giebel (Wellblech, teils verrostet) -> annex. Zielverhalten: Trennung vom Main-Cluster + differential_motion, nicht Demotion. BEV-Recheck: 1.2 m an BEV-Footprint A9A7E442 (BEV kartiert den Komplex korrekt als ein Bauwerk).",
+      "date": "2026-07-07"
     },
     {
       "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",
-      "track": 95, "point_code": "NTDA86J01", "label": "foreign",
-      "evidence": "Geometrisch unentscheidbar, aber Hoehenprofil -3.6 m unter Dach-Anker als staerkster Beweger (P7-N5); Pruefstein: muss demotiert werden. BEV-Recheck: within BEV-Footprint A9A7E442 (Nebengebaeude-Bereich).",
-      "date": "2026-07-06"
+      "track": 95, "point_code": "NTDA86J01", "label": "annex",
+      "evidence": "Hoehenprofil -3.6 m unter Dach-Anker als staerkster Beweger (P7-N5). REVISION 2026-07-07 (Google-Earth-3D, User): Punkt liegt im Bereich des baulich verbundenen Anbaus (within BEV-Footprint A9A7E442) -> annex. Das Hoehenprofil trennt korrekt Anbau- von Hauptdach-Ebene; Zielverhalten: Trennung + differential_motion, nicht Demotion.",
+      "date": "2026-07-07"
     },
     {
       "building_id": "96959851", "building_source": "gba", "dataset_id": "salzburg_snt",

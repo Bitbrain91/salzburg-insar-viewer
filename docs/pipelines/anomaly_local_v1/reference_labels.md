@@ -26,13 +26,28 @@ Eine Zeile pro gelabeltem Punkt in `artifacts/reference_labels.json`:
 
 ## Label-Semantik
 
-- **roof**: Punkt stammt mit hoher Sicherheit vom Zielgebaeude
-  (Dach/Struktur des Baukoerpers). Muss score-relevant bleiben duerfen.
-- **foreign**: Punkt stammt mit hoher Sicherheit von einer Fremdstruktur
-  (Nachbargebaeude, Nebengebaeude, Carport) oder ist als Dachpunkt
-  physikalisch unplausibel (Anti-Layover). Darf den Score nicht praegen.
+- **roof**: Punkt stammt mit hoher Sicherheit vom Hauptbaukoerper
+  (Dach/Struktur). Muss score-relevant bleiben duerfen.
+- **annex** (seit 2026-07-07): Punkt stammt von einem BAULICH VERBUNDENEN
+  Gebaeudeteil mit potenziell eigenem Bewegungsregime (Anbau, angebaute
+  Garage/Werkstatt; typisch leichter, flacher gegruendet, Blechdach).
+  Fachlich KEIN Fremdpunkt und KEIN Muell: differenzielle Bewegung
+  zwischen Hauptbau und Anbau ist ein schadensrelevantes Signal
+  (Rissrisiko an der Fuge; vgl. `next_steps.md` §2). Zielverhalten:
+  eigener Cluster bzw. explizite Trennung vom Main-Cluster +
+  differential_motion-Bewertung — NICHT Demotion/Entfernung.
+- **foreign**: Punkt stammt mit hoher Sicherheit von einer eigenstaendigen
+  Fremdstruktur (Nachbargebaeude, freistehender Carport) oder ist als
+  erhoehter Reflektor des Baukoerpers physikalisch unplausibel
+  (Anti-Layover). Darf den Score nicht praegen.
 - **unclear**: dokumentiert verdaechtig, aber nicht bestaetigt. Zaehlt in
   Metriken weder als Treffer noch als Fehler.
+
+Abgrenzung annex vs. foreign: entscheidend ist die bauliche Verbindung
+(gemeinsame Wand/Giebel) — per Google-Earth-3D/Orthofoto pruefen. Der
+3D-Blick ist seit 2026-07-07 PFLICHTSCHRITT vor jeder foreign-Vergabe
+(Lehre aus Fall 96959851: als "unkartiertes Nebengebaeude" gelabelt,
+tatsaechlich baulich verbundener Anbau).
 
 ## Regeln
 
@@ -56,14 +71,19 @@ Fuer einen Kandidaten-Lauf gilt pro gelabeltem Punkt:
   der Hygiene.
 - `foreign` und demotiert/noise/excluded -> True Positive.
 - `roof` und demotiert/verloren -> False Positive (zu aggressiv).
+- `annex` und core im MAIN-Cluster -> Fehler (unsepariert: Anbau praegt
+  die Hauptbau-Bewegung).
+- `annex` in eigenem Cluster (nicht Main) mit differential-Bewertung ->
+  korrekt (Ideal). `annex` demotiert/excluded -> suboptimal (Signal
+  verloren), aber besser als unsepariert; separat ausweisen.
 - `unclear` -> nicht gewertet, aber im Report gelistet.
 
 Kennzahlen: Precision/Recall/F1 der Fremdpunkt-Erkennung + Anzahl
 verlorener roof-Punkte. Integration als Scorecard-Block ist phase8-Ticket.
 
-## Stand der Erstbefuellung (2026-07-06)
+## Stand der Erstbefuellung (2026-07-06, revidiert 2026-07-07)
 
-2 Gebaeude, 20 gelabelte Punkte (6 roof, 10 foreign, 4 unclear) aus den
+2 Gebaeude, 20 gelabelte Punkte (6 roof, 2 annex, 8 foreign, 4 unclear) aus den
 dokumentierten Referenzfaellen 96959851 (Moosstrasse, unkartiertes
 Nebengebaeude; BEV-Recheck `artifacts/bev_footprint_recheck_96959851.md`)
 und 96637447 (Moosstrasse, Differential-Anker mit Anti-Layover-Cores).

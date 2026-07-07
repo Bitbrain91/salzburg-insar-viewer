@@ -62,8 +62,16 @@ PLUS neu:
 
 Pruefsteine (Pflicht-Gegenbeispiele fuer jeden Kandidaten):
 
-- 96959851: NTC3CYZ01 + NTDA86J01 muessen demotiert werden, OHNE
-  NTF2IZV01/NTG9E7F01 zu verlieren; O2HC2XV01 darf nicht zugeordnet bleiben.
+- 96959851 (REVIDIERT 2026-07-07, Google-Earth-Befund: baulich verbundener
+  Anbau, kein Nebengebaeude): NTC3CYZ01 + NTDA86J01 duerfen den
+  MAIN-Cluster nicht praegen — Zielverhalten ist TRENNUNG (eigener
+  Cluster/annex-Rolle) + differential_motion, NICHT Entfernung. Demotion
+  zaehlt als suboptimal-akzeptabel, Verschmelzung in den Main als Fehler.
+  NTF2IZV01/NTG9E7F01 (Hauptdach) duerfen nicht verloren gehen;
+  O2HC2XV01 (anti-layover) darf nicht zugeordnet bleiben. Damit steigt
+  die Prioritaet von Multi-Cluster-/Differential-Handling (next_steps §2)
+  innerhalb von P8: Hoehenprofil-Checks wirken hier als BAUTEIL-TRENNER,
+  nicht als Wegwerf-Regel.
 - 96637447: alle 4 Anti-Layover-t44-Cores raus; Differential-Semantik und
   echte Dachkerne (NSVF80S01, NSXSYFW01) unveraendert. Unter BEV zusaetzlich:
   NSVF80S01 darf NICHT excluded sein (aktueller bev-Lauf verliert ihn).
