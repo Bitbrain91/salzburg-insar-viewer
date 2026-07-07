@@ -9,6 +9,7 @@
       "aoi": "mirabell",
       "dataset_id": "salzburg_snt",
       "building_id": "548205",
+      "bev_building_id": "{3F9B8860-2EDC-44E1-BEA5-7655253FD530}",
       "case_type": "standard_ok_weak_secondary",
       "expectation": "Belastbarer Zwei-Track-Fall, dessen Status durch Verlust EINES Track-95-Punkts kippt (dokumentierter Ein-Punkt-Flip seit P6). Erwartung an Kandidaten: weak-secondary wird klar ausgewiesen, keine hohe Konfidenz vorgespiegelt, Status-Flip wird durch Konfidenzmodul sichtbar."
     },
@@ -17,6 +18,7 @@
       "aoi": "mirabell",
       "dataset_id": "salzburg_snt",
       "building_id": "548204",
+      "bev_building_id": "{03ABD640-D9B7-490C-B836-9201067B1607}",
       "case_type": "adjacent_ok",
       "expectation": "Stabiler Nachbarfall mit moderaterem Agreement; darf sich durch Kandidaten nicht verschlechtern."
     },
@@ -25,6 +27,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96637447",
+      "bev_building_id": "{33DD9DFA-1065-4A7C-BC6C-3A4132493CCF}",
       "case_type": "differential_motion",
       "expectation": "Multi-Cluster mit differential_motion_flag bleibt erhalten; Wegglaetten zu einem Cluster ist candidate_red. Hinweis: t44:cluster_3 ist nearest-dominiert (3/3, 7.0 m) - Differenzial-Semantik darf nicht an einem Fremdcluster haengen. NACHTRAG 2026-06-12 (Survivors-Scan): 4 ueberlebende t44-Cores an der Ostkante liegen auf der ANTI-Layover-Seite (physikalisch nicht dacherklaerbar); der cluster_3-Vorbehalt ist damit geometrisch belegt, Experten-Gegenlabeling vorgemerkt (phase7_survivors_scan_s6.md)."
     },
@@ -33,6 +36,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96637522",
+      "bev_building_id": "{3620F5E4-221B-4EAD-B27A-00BF5870D20F}",
       "case_type": "differential_motion_low_reliability",
       "expectation": "Differenzialfall mit niedrigem Agreement; ehrliche mittlere/niedrige Konfidenz erwartet."
     },
@@ -41,6 +45,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96637488",
+      "bev_building_id": "{ACC01695-3BD7-418A-8FFD-B849011D6B7C}",
       "case_type": "single_track_only",
       "expectation": "Ein-Track-Fall bleibt single_track_only; sein t44-Main-Cluster ist komplett nearest (4/4, 7.0 m) und gehoert in die Assignment-Hygiene-Pruefung."
     },
@@ -49,6 +54,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96959854",
+      "bev_building_id": "{B781065D-892C-4DD0-95F0-56A7A1440C0C}",
       "case_type": "small_n",
       "expectation": "Knapper Support; keine kuenstliche Aufwertung durch Kandidaten."
     },
@@ -57,6 +63,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96637551",
+      "bev_building_id": "{4A087356-292B-4309-A850-6CD1BB23D244}",
       "case_type": "noise_dominated",
       "expectation": "Noise-dominiert; Kandidaten duerfen Noise nicht kosmetisch in Cluster pressen."
     },
@@ -65,6 +72,7 @@
       "aoi": "osthang",
       "dataset_id": "salzburg_snt",
       "building_id": "395674088",
+      "bev_building_id": "{D016CB6E-0EA7-42C8-87FA-C0504B5B02D4}",
       "case_type": "insufficient_support",
       "expectation": "2 Punkte, beide nearest, Steilhang: bleibt insufficient_support."
     },
@@ -73,6 +81,7 @@
       "aoi": "osthang",
       "dataset_id": "salzburg_snt",
       "building_id": "54773363",
+      "bev_building_id": "{4D2A86F3-9729-4B7A-A92E-797EB434D23A}",
       "case_type": "noise_dominated_low_agreement",
       "expectation": "Hangfall mit Agreement ~0.13 und hohem Noise; Cross-Track-Disagreement ist hier Diagnose (Horizontalanteil moeglich), kein Fehler."
     },
@@ -81,6 +90,7 @@
       "aoi": "osthang",
       "dataset_id": "salzburg_snt",
       "building_id": "150506168",
+      "bev_building_id": "{9752F892-EC21-4425-895E-A6BEB5DBA352}",
       "case_type": "nearest_heavy_suspicious_ok",
       "expectation": "23/47 nearest bei Status ok/high: Kandidaten muessen Assignment-Unsicherheit sichtbar machen statt sie zu verstecken."
     },
@@ -89,6 +99,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96856632",
+      "bev_building_id": "{B0064459-26C1-4C5D-9142-36598B9EE2A2}",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t44 besteht zu 3/3 aus nearest-Punkten mit ~9.7 m Distanz - Verdachtsmuster des User-Carport-Falls. Visuelle Bestaetigung ausstehend; Zielverhalten: solche Cluster duerfen den Gebaeude-Motion-Score nicht praegen (Asymmetrie-Prinzip).",
       "policy_expectations": {
@@ -101,6 +112,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "203343478",
+      "bev_building_id": "{EE082BB8-7B80-4386-9BA1-2239F06388E8}",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "Main-Cluster t95 6/6 nearest, ~7.3 m. Zweiter Verdachtsfall fuer Assignment-Hygiene und Visual-Audit.",
       "policy_expectations": {
@@ -113,6 +125,7 @@
       "aoi": "bg_flat_01",
       "dataset_id": "bad_gastein_snt+tsx_paz",
       "building_id": "105022686",
+      "bev_building_id": "{E1742E36-0F06-48C5-BB3E-70FC4F860A5B}",
       "case_type": "hr_coupling_ok",
       "expectation": "Status ok in SNT (43 kept, Agreement 0.46) UND TSX (264 kept): primaerer Kopplungsfall fuer das HR-Modul - TSX-Clusterstruktur muss die SNT-Main-Cluster-Region stuetzen."
     },
@@ -121,6 +134,7 @@
       "aoi": "bg_flat_01",
       "dataset_id": "bad_gastein_snt+tsx_paz",
       "building_id": "105022685",
+      "bev_building_id": "{395B9336-FB1E-43CE-9F0A-FFC7D778B785}",
       "case_type": "hr_divergence",
       "expectation": "SNT noise_dominated (40 kept) vs TSX ok (219 kept): Diagnosefall - klaert das HR-Modul, ob SNT-Noise hier Datenqualitaet oder Clusterentscheidung ist?"
     },
@@ -129,6 +143,7 @@
       "aoi": "bg_flat_01",
       "dataset_id": "bad_gastein_snt",
       "building_id": "238100070",
+      "bev_building_id": "{9C06A44C-77C2-4720-A83A-DC3271A37C8C}",
       "case_type": "small_n",
       "expectation": "BG-Small-N-Fall (8 kept) fuer P7-C-W1-T3. P7-V1-Untersuchung 2026-06-10: t44 besteht aus 2/2 nearest-Punkten ohne geometrische Begruendung; unter a1_demote ist single_track_only (t95-Kern within+directional) die EHRLICHE Antwort, kein kosmetisches Upgrade.",
       "policy_expectations": {
@@ -140,6 +155,7 @@
       "aoi": "bg_slope_01",
       "dataset_id": "bad_gastein_snt",
       "building_id": "238057563",
+      "bev_building_id": "{3E66F288-C222-45C5-AC9A-813760A46A62}",
       "case_type": "noise_dominated_low_agreement",
       "expectation": "61 kept, Agreement 0.188, Hang: Stress-Anker Bad Gastein; ASC/DSC-Disagreement als Diagnose behandeln."
     },
@@ -148,6 +164,7 @@
       "aoi": "bg_slope_01",
       "dataset_id": "bad_gastein_snt",
       "building_id": "113309853",
+      "bev_building_id": "{5DA0E2AA-771E-4A67-8AEC-4C08A7E7462C}",
       "case_type": "ok_low_agreement_slope",
       "expectation": "Status ok trotz Agreement 0.229: prueft, ob Kandidaten Agreement-Spannung ehrlich kennzeichnen."
     },
@@ -156,6 +173,7 @@
       "aoi": "bg_flat_01",
       "dataset_id": "bad_gastein_tsx_paz",
       "building_id": "227901749",
+      "bev_building_id": "{5C6CF7FA-A66B-4741-8D6E-4A374A2E8F25}",
       "case_type": "high_n_noise_dominated",
       "expectation": "173 kept und trotzdem noise_dominated in TSX: High-N-Diagnosefall fuer P7-C-W2-T2 (Schritt 5, hier nur dokumentiert)."
     },
@@ -164,6 +182,7 @@
       "aoi": "moosstrasse",
       "dataset_id": "salzburg_snt",
       "building_id": "96959851",
+      "bev_building_id": "{A9A7E442-BA31-41D0-8949-A120CB660943}",
       "case_type": "carport_nearest_main_suspect",
       "expectation": "BESTAETIGTER Fremdobjekt-Merge (User-Befund 2026-06-10): t95-Main mischt Dachpunkte mit cross_look+13m-nearest-Gruppe auf Nachbarstrukturen; Quer-Versatz schliesst Radargeometrie aus. Zielverhalten: Fremdpunkte praegen den Score nicht (a1/a3); echte within-Punkte duerfen nicht zugunsten von Fremdpunkten zu Noise degradiert werden. NACHTRAG 2026-06-12: Der Fall ist unter k2x nur TEILGELOEST - eine zweite Kontaminationsklasse (unkartiertes Nebengebaeude, along-look) blieb im Main-Cluster; siehe residual_contamination. NACHTRAG 2026-07-06: BEV-Recheck - alle drei Kontaminationspunkte (NTC3CYZ01, NTDA86J01, O2HC2XV01) liegen in/an BEV-Footprint {A9A7E442-BA31-41D0-8949-A120CB660943} (323 m2, height_max 6.1 m, height_quality=measured); unter --source bev sind sie within/directional desselben Polygons statt nearest -> Kontamination wird zur Multi-Cluster-/Differential-Frage, a5 greift dort nicht mehr. Details: bev_footprint_recheck_96959851.md. Die gba-basierten Erwartungen dieses Falls bleiben fuer gba-Runs unveraendert gueltig. NACHTRAG 2026-07-07 (Google-Earth-3D, User-Befund): Die Struktur ist KEIN freistehendes Nebengebaeude, sondern ein BAULICH VERBUNDENER Anbau am SW-Giebel (Wellblech direkt am Haupthaus, gemeinsame Wand; GE-Aufnahme 04/2023). Fall-Umdeutung: annex-Merge statt Fremdobjekt-Merge. Revidiertes Zielverhalten: NTC3CYZ01/NTDA86J01 duerfen den MAIN-Cluster nicht praegen, sollen aber NICHT entfernt werden - Ziel ist Cluster-Trennung + differential_motion-Bewertung (Anbau vs. Hauptbau, Rissrisiko an der Fuge; vgl. next_steps.md Paragraph 2). Labels in reference_labels.json v2 auf annex revidiert.",
       "policy_expectations": {

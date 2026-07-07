@@ -1041,10 +1041,17 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
                 continue
             if aoi_key.endswith("_snt") and ds and "snt" not in ds:
                 continue
-            actual = aoi_out["summary"]["building_statuses"].get(case["building_id"])
+            # bev-Runs keyen building_statuses mit bev_id-GUIDs statt GBA-IDs; darum
+            # zuerst per GBA-ID, bei Fehltreffer per bev_building_id nachschlagen.
+            statuses = aoi_out["summary"]["building_statuses"]
+            actual = statuses.get(case["building_id"])
+            bev_id = case.get("bev_building_id")
+            if actual is None and bev_id and bev_id != "no_bev_match":
+                actual = statuses.get(bev_id)
             if actual is None:
                 if pin is not None:
-                    # Gepinnter Fall verschwindet unter der Politik -> sichtbar machen.
+                    # Gepinnter Fall verschwindet unter der Politik (beide Keys fehlen)
+                    # -> sichtbar machen.
                     checks.append({
                         "case_id": case["case_id"], "aoi": aoi_key,
                         "building_id": case["building_id"],
