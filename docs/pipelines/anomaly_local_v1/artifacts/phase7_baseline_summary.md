@@ -257,3 +257,39 @@ Alle Alt-Runs bleiben in ml_runs (Viewer-inspizierbar). Cross-Track-Mediane
 nach v3: mirabell 0.674, moosstrasse 0.388, osthang 0.850, bg_flat_snt
 0.658, bg_slope_snt 0.171, bg_flat_tsx 0.502, bg_slope_tsx 0.086 -
 Hang-Stress bleibt als ehrliche Diagnose sichtbar.
+
+## Re-Baseline 2026-07-08: MODEL_SET_VERSION v4_k2xhf_diffv2 (P8-F)
+
+Ausloeser: annex/foreign-Evidenzklassen-Fix (User-Befund: t44-Punkte auf der
+Anti-Layover-Seite wurden als `:annex_0` etikettiert; Fall {A9A7E442-...},
+moosstrasse_bev). `separation_classes="anti_foreign"` produktiv:
+anti_layover-Kandidaten (bev-Kontext: auch reach_height_excess) werden als
+`:foreign`-Cluster (weak_support, foreign_suspect) separiert statt als
+annex; annex-Rekrutierung laeuft nur noch ueber die annex-Klasse (beendet
+die Zirkular-Rekrutierung an Fremd-Seeds, Audit-Fall {C34B199D}).
+Gate-Beleg: `phase7_scorecard_sepcls.{json,md}` (sepcls_foreign
+candidate_inconclusive, refcases_ok=True inkl. neuer Punkt-Pins;
+foreign_in_annex=0, annex_in_foreign=0, foreign 10/10, annex 2/2;
+Vergleichsvariante sepcls_strict wie designt ROT). Differential: 21 statt
+50 Bewertungen (32 Schein-Differentials an Fremd-Clustern entfallen, 0
+foreign-sourced, 0 mit anti-Punkten; Flaggschiff 96959851 bleibt
+candidate; 3 neue strukturell evidenzierte Kandidaten als Watch-Items).
+
+| AOI | neu (v4) | vorher (jetzt legacy, v3) |
+| --- | --- | --- |
+| mirabell | `a9419755` | `13fb52ef` |
+| moosstrasse | `c1297b3e` | `79dd1468` |
+| osthang | `d8aa1314` | `9ff3a6dc` |
+| bg_flat_01_snt | `ce87a736` | `76eb4779` |
+| bg_slope_01_snt | `a7cd181e` | `430c3aa2` |
+| bg_flat_01_tsx | `438ba411` | `f0bcde44` |
+| bg_slope_01_tsx | `bb685fc3` | `6edd064a` |
+| moosstrasse_bev | `b4514e21` | `85953608` |
+| bg_slope_01_snt_bev | `b24b1e91` | `935a3a0a` |
+| bg_slope_01_tsx_bev | `377393ca` | `649cf539` |
+
+Alle Alt-Runs bleiben in ml_runs. Noop-Snapshot regeneriert (Vorstand als
+`phase7_experiment_noop_baseline_pre_v4.json` gesichert); verify-noop
+10/10 `noop_identical=True`. Cross-Track-Mediane unveraendert (mirabell
+0.674 ... bg_slope_tsx_bev 0.093) - der Fix wirkt auf Etikettierung/
+Differential, nicht auf die Kern-Cluster.

@@ -1,5 +1,18 @@
 # Phase 8 - Integrationsreport (v3_k2xh_diffv2)
 
+> **NACHTRAG P8-F (2026-07-08): v4_k2xhf_diffv2 ist produktiv.**
+> Der v3-Bauteil-Trenner routete ALLE separation_candidates in
+> annex-Cluster - auch anti_layover-Fremdpunkte (User-Befund {A9A7E442}
+> t44). 65-86 % der annex-Cluster waren Fremdpunkt-Faelle; 14 candidate-
+> und 3 significant-Differentials hingen daran. Fix: Evidenzklassen-
+> Routing `separation_classes="anti_foreign"` (anti -> `:foreign`/
+> weak_support, bev-Kontext auch reach; Rekrutierung nur annex-Klasse),
+> Gate-Nachschaerfung (foreign_in_annex/annex_in_foreign rote Gates,
+> maschinelle Punkt-Pins, separation_composition-Statistik), Korpus v4,
+> Re-Baseline aller 10 AOIs. Details: Abschnitt "P8-F" unten und
+> `phase7_scorecard_sepcls.md`. Die restlichen v3-Abschnitte bleiben als
+> historischer Stand erhalten.
+
 Stand: 2026-07-07
 Entscheidung: Integration bei gruenen Gates (User-Freigabe, automatisch).
 Plan: `../phase8_bev_hygiene_plan.md`. Supervisor-Session mit delegierten
@@ -70,12 +83,82 @@ messbar ueberlegen (w2_full_scorecard.md).
 5. **MapView stylt Gebaeude weiter am bool-Flag** - Level-Styling ist ein
    additives UI-Folge-Ticket (P7-N7-Familie).
 
+## P8-F (2026-07-08): annex/foreign-Evidenzklassen-Fix (v4_k2xhf_diffv2)
+
+Ausloeser: User-Befund im Viewer - bev-Lauf 85953608, Gebaeude
+{A9A7E442-...}: die t44-Punkte O2G57QB01 (8.54 m ausserhalb) und
+O2GQNC301 (2.56 m) lagen auf der Anti-Layover-Seite von t44 und waren
+trotzdem als `:t44:annex_0` etikettiert. Die Checks hatten korrekt
+gefeuert; der Fehler war die EINE Auffang-Kategorie "annex" fuer alle
+separation_candidates.
+
+**Warum die v3-Gates das nicht sahen (Lessons Learned):**
+1. Die Label-Metrik zaehlte foreign-im-annex als `foreign_caught`
+   (Erfolg) - die semantische Fehlablage wurde metrisch belohnt.
+2. Referenzfaelle pinnten nur Gebaeude-STATUS; die Anbau-Erwartung des
+   Flaggschiffs existierte nur als Prosa.
+3. Es gab keine Kompositions-Statistik der annex-Cluster (65-86 % ohne
+   Struktur-Evidenz blieben unsichtbar).
+   Konsequenz als Regel: Jede neue semantische Ergebnis-Kategorie bekommt
+   ab Tag 1 (a) eine Reinheits-/Kompositions-Statistik im Scorecard,
+   (b) Fehlablage-zwischen-Kategorien als eigenen Failure-State,
+   (c) maschinell gepinnte Punkt-Erwartungen statt Prosa.
+
+**Fix (produktiv):** `separation_classes="anti_foreign"` in
+`_assign_side_group`: anti_layover-Kandidaten -> ein `:foreign`-Cluster
+je Gebaeude x Track (cluster_role weak_support, flags foreign_suspect;
+nie Main, nie Differential-Quelle, kein reliable_cluster_count, kein
+Hull). Im bev-Kontext zusaetzlich reach_height_excess -> foreign (BEV
+kartiert Anbauten als eigene Footprints - die unkartierter-Anbau-Ausrede
+des gba-Kontexts existiert dort nicht). Die annex-Klasse (height_outlier,
+gba-reach) laeuft unveraendert durch Rekrutierung + Konsistenz; die
+kinematische Rekrutierung startet damit nie mehr an Fremd-Seeds
+(Zirkularitaets-Fall {C34B199D}: 1 Anti-Seed hatte 3 Punkte in ein
+Schein-annex rekrutiert).
+
+**Design-Absicherung:** Vergleichsvariante `sepcls_strict` (nur
+height_outlier bleibt annex) laeuft dauerhaft im Harness und ist wie
+vorhergesagt ROT (annex_in_foreign=1: sie zerbricht den GE-3D-bestaetigten
+Flaggschiff-Anbau 96959851, dessen Evidenz reach-only+growth ist) -
+maschinell dokumentierter Beleg fuer die anti_foreign-Regel.
+
+**Gates (phase7_scorecard_sepcls.md):** sepcls_foreign
+candidate_inconclusive, refcases_ok=True (inkl. neuer Punkt-Pins fuer
+Flaggschiff-gba und bev-Fall moosstrasse_bev_foreign_separation);
+foreign_in_annex=0, annex_in_foreign=0, foreign 10/10 (Korpus v4, +2
+foreign mit GE-3D-Beleg ge_A9A7E442_t44_foreign.png), annex 2/2,
+roof_lost ohne Regression (1 vorbestehender bev-Doppel-Grading-Fall
+NSVF80S01, R9). verify-noop 10/10 gegen frische v4-Baselines
+(Kette in phase7_baseline_summary.md).
+
+**Differential-Bereinigung:** 21 statt 50 aktive Bewertungen ueber die
+10 Baselines; 32 Schein-Differentials an Fremdpunkt-Clustern entfallen
+(darunter 3 significant mit -0.15-Reliability-Wirkung); 0 Bewertungen
+haengen an foreign-Clustern oder Clustern mit anti-Punkten; Flaggschiff
+96959851 bleibt candidate. NEU/verstaerkt (strukturell evidenziert,
+Watch-Items fuers naechste Visual-Audit): 96637447 t44 (reach-only,
+11.8-12.8 m), 96639519 t44 (reach+growth), 96955335 (candidate->
+significant, t95 reach+growth), 238100082 t70 (Hoehenband on-footprint -
+plausibelster echter Neu-Fund). Audit {C34B199D}: small_n ->
+single_track_only = legitime Dekontamination.
+
+**Offene P8-F-Folge-Punkte:**
+- Watch-Items oben beim naechsten Visual-Audit pruefen (insb. die
+  reach-only-gba-Differentials >10 m).
+- R9 Label-Doppel-Grading gba/bev (gleiche dataset_id): building_source-
+  Filter fuer Label-Grading als Klein-Ticket.
+- UI: `cluster_kind`-Feld (annex/foreign visuell unterscheidbar) +
+  MlLogicExplainer-Kapitel Bauteil-Trenner/foreign.
+- Optionaler a9-Check "Nachbar-Footprint am Punkt" (BEV-Topologie als
+  Evidenzquelle fuer annex/foreign in Grenzfaellen).
+
 ## Offene Phase-8-Punkte (unveraendert im Plan)
 
 - P8-C Feature-Achsen + Hygiene-Ablation Runde 1 (Research-Berichte liegen
   vor; Injection-Achse empfohlen).
-- P8-D Label-Korpus-Ausbau Fortsetzung (Stand v3: 10 Gebaeude/44 Punkte)
+- P8-D Label-Korpus-Ausbau Fortsetzung (Stand v4: 10 Gebaeude/46 Punkte)
   + Label-Metriken automatisch je Kandidat (bereits im Scorecard-Block).
 - P8-E Motion-Ablation: wartet auf SNT/TSX-Overlap-Daten.
 - Terrain-Datenstands-Wechsel (1m-DGM/DOM liegen bereit, `--terrain-source`).
-- Referenzfall-Erwartungen fuer bev-Varianten (bg_slope) formulieren.
+- Referenzfall-Erwartungen fuer bev-Varianten (bg_slope) formulieren
+  (moosstrasse_bev hat seit P8-F einen eigenen Fall mit Punkt-Pins).
