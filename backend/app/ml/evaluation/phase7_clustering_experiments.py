@@ -2069,8 +2069,10 @@ EXPERIMENTS["k2xh_demote"] = _variant(
 # P8-F: Evidenzklassen-Routing auf noop-Basis (= Produktions-Separation).
 EXPERIMENTS["sepcls_foreign"] = _variant(
     "noop", "sepcls_foreign",
-    "P8-F Variante A: anti_layover-Kandidaten -> :foreign (weak_support), "
-    "height/reach-Kandidaten bleiben annex-Klasse (Rekrutierung unveraendert)",
+    "P8-F Variante A: anti_layover-Kandidaten -> :foreign (weak_support); "
+    "im bev-Kontext zusaetzlich reach_height_excess (BEV kartiert Anbauten -> "
+    "keine unkartierter-Anbau-Ausrede); height/reach(gba)-Kandidaten bleiben "
+    "annex-Klasse (Rekrutierung unveraendert)",
     separation_classes="anti_foreign",
 )
 EXPERIMENTS["sepcls_strict"] = _variant(

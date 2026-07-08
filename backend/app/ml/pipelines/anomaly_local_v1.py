@@ -1108,17 +1108,29 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         sein" - solche Kandidaten sind Fremdpunkte, kein Anbau. Sie werden VOR
         der Rekrutierung in einen eigenen :foreign-Cluster (weak_support,
         foreign_suspect) abgetrennt: nie Main, nie Differential-Quelle, kein
-        reliable_cluster_count. Nur die annex-Klasse (height_outlier/reach)
-        durchlaeuft Rekrutierung und Konsistenz-Zweiteilung."""
+        reliable_cluster_count. Nur die annex-Klasse durchlaeuft Rekrutierung
+        und Konsistenz-Zweiteilung.
+
+        Quellenabhaengigkeit von reach_height_excess: Im gba-Kontext kann ein
+        reach-Kandidat ein UNKARTIERTER Anbau sein (Flaggschiff 96959851:
+        NTC3CYZ01 reach-only ist der GE-3D-bestaetigte Anbau) -> annex-faehig.
+        Im bev-Kontext existiert diese Ausrede nicht: BEV kartiert Anbauten
+        als eigene Footprints (derselbe Anbau IST bev-Gebaeude A9A7E442).
+        Ein Punkt, den Layover-Reichweite nicht plausibel erklaert und der zu
+        keinem Footprint gehoert, ist dort ein Fremdreflektor -> foreign
+        (Befund O37J5KI01/O384L6A01 an {1D314AEB}, 9.1 m, reach)."""
         if not side_set:
             return
         mode = self.separation_classes
         if mode == "anti_foreign":
-            foreign = [
-                record
-                for record in side_set
-                if "anti_layover" in (record.flags.get("separation_reasons") or [])
-            ]
+            foreign = []
+            for record in side_set:
+                reasons = record.flags.get("separation_reasons") or []
+                source = str(record.building_source or "").lower()
+                if "anti_layover" in reasons or (
+                    source == "bev" and "reach_height_excess" in reasons
+                ):
+                    foreign.append(record)
         elif mode == "strict_structural":
             foreign = [
                 record

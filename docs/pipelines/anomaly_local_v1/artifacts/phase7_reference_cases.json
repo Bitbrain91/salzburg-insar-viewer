@@ -38,7 +38,22 @@
       "building_id": "96637522",
       "bev_building_id": "{3620F5E4-221B-4EAD-B27A-00BF5870D20F}",
       "case_type": "differential_motion_low_reliability",
-      "expectation": "Differenzialfall mit niedrigem Agreement; ehrliche mittlere/niedrige Konfidenz erwartet."
+      "expectation": "Differenzialfall mit niedrigem Agreement; ehrliche mittlere/niedrige Konfidenz erwartet.",
+      "policy_expectations": {
+        "noop": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_foreign": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_strict": [
+          "ok",
+          "noise_dominated"
+        ]
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "moosstrasse_single_track_only",
@@ -47,7 +62,25 @@
       "building_id": "96637488",
       "bev_building_id": "{ACC01695-3BD7-418A-8FFD-B849011D6B7C}",
       "case_type": "single_track_only",
-      "expectation": "Ein-Track-Fall bleibt single_track_only; sein t44-Main-Cluster ist komplett nearest (4/4, 7.0 m) und gehoert in die Assignment-Hygiene-Pruefung."
+      "expectation": "Ein-Track-Fall bleibt single_track_only; sein t44-Main-Cluster ist komplett nearest (4/4, 7.0 m) und gehoert in die Assignment-Hygiene-Pruefung.",
+      "policy_expectations": {
+        "noop": [
+          "single_track_only",
+          "small_n",
+          "insufficient_support"
+        ],
+        "sepcls_foreign": [
+          "single_track_only",
+          "small_n",
+          "insufficient_support"
+        ],
+        "sepcls_strict": [
+          "single_track_only",
+          "small_n",
+          "insufficient_support"
+        ]
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "moosstrasse_small_n",
@@ -56,7 +89,22 @@
       "building_id": "96959854",
       "bev_building_id": "{B781065D-892C-4DD0-95F0-56A7A1440C0C}",
       "case_type": "small_n",
-      "expectation": "Knapper Support; keine kuenstliche Aufwertung durch Kandidaten."
+      "expectation": "Knapper Support; keine kuenstliche Aufwertung durch Kandidaten.",
+      "policy_expectations": {
+        "noop": [
+          "small_n",
+          "insufficient_support"
+        ],
+        "sepcls_foreign": [
+          "small_n",
+          "insufficient_support"
+        ],
+        "sepcls_strict": [
+          "small_n",
+          "insufficient_support"
+        ]
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "moosstrasse_noise_dominated",
@@ -65,7 +113,22 @@
       "building_id": "96637551",
       "bev_building_id": "{4A087356-292B-4309-A850-6CD1BB23D244}",
       "case_type": "noise_dominated",
-      "expectation": "Noise-dominiert; Kandidaten duerfen Noise nicht kosmetisch in Cluster pressen."
+      "expectation": "Noise-dominiert; Kandidaten duerfen Noise nicht kosmetisch in Cluster pressen.",
+      "policy_expectations": {
+        "noop": [
+          "noise_dominated",
+          "insufficient_support"
+        ],
+        "sepcls_foreign": [
+          "noise_dominated",
+          "insufficient_support"
+        ],
+        "sepcls_strict": [
+          "noise_dominated",
+          "insufficient_support"
+        ]
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "osthang_insufficient_support",
@@ -88,8 +151,21 @@
         "k2xh": [
           "ok",
           "noise_dominated"
+        ],
+        "noop": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_foreign": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_strict": [
+          "ok",
+          "noise_dominated"
         ]
-      }
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "osthang_nearest_heavy_ok",
@@ -179,8 +255,21 @@
         "k2xh": [
           "ok",
           "noise_dominated"
+        ],
+        "noop": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_foreign": [
+          "ok",
+          "noise_dominated"
+        ],
+        "sepcls_strict": [
+          "ok",
+          "noise_dominated"
         ]
-      }
+      },
+      "policy_expectations_note": "P8-F 2026-07-08: Pins fuer die noop-Familie (noop/sepcls_*) ergaenzt - seit dem W4-Port ist k2xh-Verhalten der Produktions-Default (noop), die frueheren k2xh-Pins bzw. policy_downgrade_tolerance-Abstufungen (W2-Audit) gelten daher auch fuer noop-basierte Kandidaten. Werte = im W2/W4-Audit sanktionierter v3-Stand."
     },
     {
       "case_id": "bg_slope_ok_low_agreement",
@@ -224,18 +313,38 @@
       },
       "point_expectations": [
         {
-          "point_code": "NTC3CYZ01", "track": 95,
-          "expected_states": ["annex"], "only_sources": ["gba"],
+          "point_code": "NTC3CYZ01",
+          "track": 95,
+          "expected_states": [
+            "annex"
+          ],
+          "only_sources": [
+            "gba"
+          ],
           "note": "P8-F: reach-only-Kandidat des BAULICH VERBUNDENEN Anbaus - muss annex bleiben (nie foreign, nie main_core). Im bev-Kontext ist der Anbau als eigenes Gebaeude kartiert -> Pin gilt nur fuer gba."
         },
         {
-          "point_code": "NTDA86J01", "track": 95,
-          "expected_states": ["annex"], "only_sources": ["gba"],
+          "point_code": "NTDA86J01",
+          "track": 95,
+          "expected_states": [
+            "annex"
+          ],
+          "only_sources": [
+            "gba"
+          ],
           "note": "P8-F: kinematisch rekrutierter Anbau-Punkt (annex_velocity_growth) - muss annex bleiben."
         },
         {
-          "point_code": "O2HC2XV01", "track": 44,
-          "expected_states": ["foreign_separated", "excluded", "noise"], "only_sources": ["gba"],
+          "point_code": "O2HC2XV01",
+          "track": 44,
+          "expected_states": [
+            "foreign_separated",
+            "excluded",
+            "noise"
+          ],
+          "only_sources": [
+            "gba"
+          ],
           "note": "P8-F: anti-layover (dot -0.95) - als Fremdpunkt behandeln, nie annex, nie main_core."
         }
       ],
@@ -284,23 +393,47 @@
       "expectation": "P8-F (User-Befund 2026-07-08, Ausloeser des annex/foreign-Fixes): Die t44-Punkte O2G57QB01 (8.54 m) und O2GQNC301 (2.56 m) liegen OESTLICH des BEV-Anbau-Footprints - auf der Anti-Layover-Seite von t44 (= Layover-Seite von t95) - und wurden unter v3 faelschlich als :t44:annex_0 etikettiert. GE-3D + Footprint-Geometrie (label_evidence/ge_A9A7E442_t44_foreign.png, fp_A9A7E442_t44_foreign.png): offener Garten, keine verbundene Struktur. Zielverhalten: foreign-Separation (weak_support), nie annex, nie Main; die vier t95-Dachkerne des Anbaus (u.a. NTC3CYZ01/NTDA86J01, im bev-Kontext regulaere Gebaeudepunkte) bleiben Main-Core; Gebaeude-Status bleibt ok; Differential-Level bleibt none.",
       "point_expectations": [
         {
-          "point_code": "O2G57QB01", "track": 44,
-          "expected_states": ["foreign_separated"], "only_sources": ["bev"],
+          "point_code": "O2G57QB01",
+          "track": 44,
+          "expected_states": [
+            "foreign_separated"
+          ],
+          "only_sources": [
+            "bev"
+          ],
           "note": "anti_layover + reach_height_excess; 8.54 m ausserhalb, nearest-Zuordnung."
         },
         {
-          "point_code": "O2GQNC301", "track": 44,
-          "expected_states": ["foreign_separated"], "only_sources": ["bev"],
+          "point_code": "O2GQNC301",
+          "track": 44,
+          "expected_states": [
+            "foreign_separated"
+          ],
+          "only_sources": [
+            "bev"
+          ],
           "note": "anti_layover (grenzwertig, 2.56 m); GE-3D: keine Struktur an der Position."
         },
         {
-          "point_code": "NTC3CYZ01", "track": 95,
-          "expected_states": ["main_core"], "only_sources": ["bev"],
+          "point_code": "NTC3CYZ01",
+          "track": 95,
+          "expected_states": [
+            "main_core"
+          ],
+          "only_sources": [
+            "bev"
+          ],
           "note": "bev-Semantik: Anbau ist eigenes Gebaeude -> Punkt ist regulaerer Dachkern, KEINE Trennung erwartet."
         },
         {
-          "point_code": "NTDA86J01", "track": 95,
-          "expected_states": ["main_core"], "only_sources": ["bev"],
+          "point_code": "NTDA86J01",
+          "track": 95,
+          "expected_states": [
+            "main_core"
+          ],
+          "only_sources": [
+            "bev"
+          ],
           "note": "bev-Semantik: regulaerer Dachkern des Anbau-Gebaeudes."
         }
       ],
