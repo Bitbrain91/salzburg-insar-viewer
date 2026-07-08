@@ -222,6 +222,23 @@
           "ok"
         ]
       },
+      "point_expectations": [
+        {
+          "point_code": "NTC3CYZ01", "track": 95,
+          "expected_states": ["annex"], "only_sources": ["gba"],
+          "note": "P8-F: reach-only-Kandidat des BAULICH VERBUNDENEN Anbaus - muss annex bleiben (nie foreign, nie main_core). Im bev-Kontext ist der Anbau als eigenes Gebaeude kartiert -> Pin gilt nur fuer gba."
+        },
+        {
+          "point_code": "NTDA86J01", "track": 95,
+          "expected_states": ["annex"], "only_sources": ["gba"],
+          "note": "P8-F: kinematisch rekrutierter Anbau-Punkt (annex_velocity_growth) - muss annex bleiben."
+        },
+        {
+          "point_code": "O2HC2XV01", "track": 44,
+          "expected_states": ["foreign_separated", "excluded", "noise"], "only_sources": ["gba"],
+          "note": "P8-F: anti-layover (dot -0.95) - als Fremdpunkt behandeln, nie annex, nie main_core."
+        }
+      ],
       "visual_confirmation": "confirmed_2026-06-10; residual_contamination_user_2026-06-11",
       "a5_note": "P7-V3 2026-06-10: Unter a5_crosslook (Median+3*MAD-Anker) werden genau die 3 cross+13m-nearest demotiert, der vergiftete directional-Punkt faellt ohne deren Verstaerkung von selbst zu Noise, der t95-Main besteht aus 4 cross-konsistenten Punkten (-0.9). REVISION 2026-06-12: Die damalige Folgerung 'ok MIT sauberem Cluster = normatives Ziel erreicht' ist ueberholt - 'cross-konsistent' war ein ZIRKULAERES Kriterium (gleiche Achse wie die Politik). a5 prueft nur QUER zur Blickrichtung; das unkartierte Nebengebaeude liegt fuer beide Tracks LAENGS der Blickachse und ist fuer a5 strukturell unsichtbar. a5 bleibt korrekt fuer die +13m-Quer-Klasse, loest aber nicht den Gesamtfall.",
       "residual_contamination": {
@@ -256,6 +273,38 @@
           "phase7_survivors_scan_s6.md"
         ]
       }
+    },
+    {
+      "case_id": "moosstrasse_bev_foreign_separation",
+      "aoi": "moosstrasse_bev",
+      "dataset_id": "salzburg_snt",
+      "building_id": "96959851",
+      "bev_building_id": "{A9A7E442-BA31-41D0-8949-A120CB660943}",
+      "case_type": "foreign_separation_bev",
+      "expectation": "P8-F (User-Befund 2026-07-08, Ausloeser des annex/foreign-Fixes): Die t44-Punkte O2G57QB01 (8.54 m) und O2GQNC301 (2.56 m) liegen OESTLICH des BEV-Anbau-Footprints - auf der Anti-Layover-Seite von t44 (= Layover-Seite von t95) - und wurden unter v3 faelschlich als :t44:annex_0 etikettiert. GE-3D + Footprint-Geometrie (label_evidence/ge_A9A7E442_t44_foreign.png, fp_A9A7E442_t44_foreign.png): offener Garten, keine verbundene Struktur. Zielverhalten: foreign-Separation (weak_support), nie annex, nie Main; die vier t95-Dachkerne des Anbaus (u.a. NTC3CYZ01/NTDA86J01, im bev-Kontext regulaere Gebaeudepunkte) bleiben Main-Core; Gebaeude-Status bleibt ok; Differential-Level bleibt none.",
+      "point_expectations": [
+        {
+          "point_code": "O2G57QB01", "track": 44,
+          "expected_states": ["foreign_separated"], "only_sources": ["bev"],
+          "note": "anti_layover + reach_height_excess; 8.54 m ausserhalb, nearest-Zuordnung."
+        },
+        {
+          "point_code": "O2GQNC301", "track": 44,
+          "expected_states": ["foreign_separated"], "only_sources": ["bev"],
+          "note": "anti_layover (grenzwertig, 2.56 m); GE-3D: keine Struktur an der Position."
+        },
+        {
+          "point_code": "NTC3CYZ01", "track": 95,
+          "expected_states": ["main_core"], "only_sources": ["bev"],
+          "note": "bev-Semantik: Anbau ist eigenes Gebaeude -> Punkt ist regulaerer Dachkern, KEINE Trennung erwartet."
+        },
+        {
+          "point_code": "NTDA86J01", "track": 95,
+          "expected_states": ["main_core"], "only_sources": ["bev"],
+          "note": "bev-Semantik: regulaerer Dachkern des Anbau-Gebaeudes."
+        }
+      ],
+      "visual_confirmation": "user_2026-07-08 (Viewer) + GE-3D-Check 2026-07-08"
     }
   ]
 }

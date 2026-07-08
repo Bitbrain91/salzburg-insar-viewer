@@ -1,8 +1,8 @@
 {
-  "version": 3,
-  "updated": "2026-07-07",
+  "version": 4,
+  "updated": "2026-07-08",
   "labeled_by": "team_internal",
-  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md. v2: Kategorie annex ergaenzt; NTC3CYZ01/NTDA86J01 von foreign auf annex umgelabelt (Google-Earth-3D-Befund 2026-07-07: baulich verbundener Anbau). v3 (2026-07-07, N1 Label-Korpus-Ausbau): +8 Gebaeude / +24 Punkte. 4 Roof-Gebaeude (within+core+main-Kerne aus persistierten Runs, stratifiziert: flach/Hang, SNT/TSX, Salzburg fehlte zuvor -> jetzt Bad-Gastein-Abdeckung): 105022686 (bg_flat, Zwei-Track), 113309843 (Hang, TSX t70), 227901743 (Hang, SNT), 227901749 (Hang, SNT). 4 Verdachts-Gebaeude als unclear mit GE-3D-Pflichtcheck 2026-07-07 (KEINE neuen foreign/annex, da keiner der Kandidaten die Regel-2-Schwelle 'bestaetigte Freistehend-Lage ODER anti-layover' erreichte): 96856632, 203343478, 96637488 (salzburg_snt), 113309836 (bad_gastein_tsx_paz). GE-Screenshots: artifacts/label_evidence/ge_<building_id>.png. Ausgelassen ggue. Seed: 238100070 (nur 1 within+core+main, noise_dominated -> zu schwach), 548205 (nicht in persistierten 2026-07-06-Runs).",
+  "note": "Interne Silver Ground Truth; NICHT expertenvalidiert. Konvention: ../reference_labels.md. v2: Kategorie annex ergaenzt; NTC3CYZ01/NTDA86J01 von foreign auf annex umgelabelt (Google-Earth-3D-Befund 2026-07-07: baulich verbundener Anbau). v3 (2026-07-07, N1 Label-Korpus-Ausbau): +8 Gebaeude / +24 Punkte. 4 Roof-Gebaeude (within+core+main-Kerne aus persistierten Runs, stratifiziert: flach/Hang, SNT/TSX, Salzburg fehlte zuvor -> jetzt Bad-Gastein-Abdeckung): 105022686 (bg_flat, Zwei-Track), 113309843 (Hang, TSX t70), 227901743 (Hang, SNT), 227901749 (Hang, SNT). 4 Verdachts-Gebaeude als unclear mit GE-3D-Pflichtcheck 2026-07-07 (KEINE neuen foreign/annex, da keiner der Kandidaten die Regel-2-Schwelle 'bestaetigte Freistehend-Lage ODER anti-layover' erreichte): 96856632, 203343478, 96637488 (salzburg_snt), 113309836 (bad_gastein_tsx_paz). GE-Screenshots: artifacts/label_evidence/ge_<building_id>.png. Ausgelassen ggue. Seed: 238100070 (nur 1 within+core+main, noise_dominated -> zu schwach), 548205 (nicht in persistierten 2026-07-06-Runs). v4 (2026-07-08, P8-F annex/foreign-Fix): +2 foreign am BEV-Anbau {A9A7E442-...} (User-Befund: t44-Punkte auf der Anti-Layover-Seite faelschlich als annex_0 etikettiert). GE-3D-Pflichtcheck 2026-07-08 (ge_A9A7E442_t44_foreign.png) + Footprint-Geometrie (fp_A9A7E442_t44_foreign.png): offener Garten oestlich des Anbaus, KEINE baulich verbundene Struktur an den Punktpositionen; naechste Strukturen 087198BD (12.6 m, ~8 m noerdl.) und B4BDA739 (15.9 m, ~15 m oestl.) als plausible echte Reflektorquellen.",
   "label_values": ["roof", "annex", "foreign", "unclear"],
   "labels": [
     {
@@ -270,6 +270,18 @@
       "track": 70, "point_code": "DQUOWZD", "label": "unclear",
       "evidence": "t70-core-main (directional_buffer, d_fp 1.3 m, along_look -9.2 m, v -3.4 mm/a), Survivors-Scan S6: height_outlier, 14.3 m ueber Dachankern. GE-3D 2026-07-07 (ge_113309836.png): Steilhang mit Strukturen oberhalb, Layover-Korridor (dot +0.14), kein Anti-Layover -> unclear.",
       "date": "2026-07-07"
+    },
+    {
+      "building_id": "{A9A7E442-BA31-41D0-8949-A120CB660943}", "building_source": "bev", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2G57QB01", "label": "foreign",
+      "evidence": "User-Befund 2026-07-08 (Ausloeser P8-F): 8.54 m ausserhalb des BEV-Anbau-Footprints, Azimut 82 (Ost) = Anti-Layover-Seite von t44 (separation_reasons anti_layover+reach_height_excess, nearest-Zuordnung). GE-3D-Pflichtcheck 2026-07-08 (ge_A9A7E442_t44_foreign.png) + fp_A9A7E442_t44_foreign.png: offener Garten, keine verbundene Struktur; plausible Quellen 087198BD (12.6 m) / B4BDA739 (15.9 m). Im gba-Lauf (79dd1468) an Nachbar 96959824 excluded -> konsistent. Zielverhalten: foreign-Separation, NIE annex.",
+      "date": "2026-07-08"
+    },
+    {
+      "building_id": "{A9A7E442-BA31-41D0-8949-A120CB660943}", "building_source": "bev", "dataset_id": "salzburg_snt",
+      "track": 44, "point_code": "O2GQNC301", "label": "foreign",
+      "evidence": "User-Befund 2026-07-08 (grenzwertig, P8-F): 2.56 m ausserhalb des BEV-Anbau-Footprints, Azimut 79 (Ost) = Anti-Layover-Seite von t44 (separation_reason anti_layover, Anti-Komponente > 1.5 m, nearest-Zuordnung). GE-3D-Pflichtcheck 2026-07-08: offener Garten oestlich des Anbaus, keine verbundene Struktur an der Punktposition. Im gba-Lauf an Nachbar Austria_120230030_32785 excluded -> konsistent. Zielverhalten: foreign-Separation, NIE annex.",
+      "date": "2026-07-08"
     }
   ]
 }

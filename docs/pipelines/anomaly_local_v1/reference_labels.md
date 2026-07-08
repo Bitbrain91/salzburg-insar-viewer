@@ -79,7 +79,15 @@ Fuer einen Kandidaten-Lauf gilt pro gelabeltem Punkt:
 
 - `foreign` und score-relevant (core im Main-Cluster) -> False Negative
   der Hygiene.
-- `foreign` und demotiert/noise/excluded -> True Positive.
+- `foreign` und demotiert/noise/excluded/foreign-separiert -> True Positive.
+- `foreign` in einem ANNEX-Cluster -> **eigener Failure-State
+  `foreign_in_annex`** (P8-F, 2026-07-08): Das annex-Etikett behauptet
+  "baulich verbundener Teil dieses Gebaeudes" - fuer einen Fremdpunkt ist
+  das eine semantische Fehlaussage, auch wenn er den Score nicht praegt.
+  Vor P8-F wurde dieser Fall faelschlich als foreign_caught (Erfolg)
+  gezaehlt; genau dadurch blieb der annex/foreign-Bug unsichtbar.
+  Umgekehrt gilt `annex` in einem foreign-Cluster als `annex_in_foreign`
+  (ebenfalls Failure). Beide sind rote Scorecard-Gates.
 - `roof` und demotiert/verloren -> False Positive (zu aggressiv).
 - `annex` und core im MAIN-Cluster -> Fehler, WENN sich das
   Anbau-Verhalten kinematisch vom Hauptbau unterscheidet (wie im Fall
@@ -132,6 +140,23 @@ unter `artifacts/label_evidence/ge_<building_id>.png` (GE-3D-Pflichtcheck
   SW-Carport nicht aufloesbar. 113309836: Steilhang-ueber-Dach-Verdacht in GE-3D
   physikalisch bestaetigt, aber Layover-Korridor (unentscheidbar) -> Watch-Item
   bleibt `unclear`. Alle vier gehen auf die Experten-Gegenlabeling-Liste.
+
+## Stand v4 (2026-07-08, P8-F annex/foreign-Fix)
+
+10 Gebaeude, 46 gelabelte Punkte (19 roof, 2 annex, 10 foreign, 15 unclear).
++2 `foreign` am BEV-Anbau `{A9A7E442-BA31-41D0-8949-A120CB660943}`
+(moosstrasse_bev, erster bev-basierter Korpus-Eintrag): `O2G57QB01`/t44
+(8.54 m ausserhalb, anti_layover+reach) und `O2GQNC301`/t44 (2.56 m,
+anti_layover, grenzwertig). Ausloeser: User-Befund 2026-07-08 - beide waren
+unter v3 faelschlich als `:t44:annex_0` etikettiert. GE-3D-Pflichtcheck +
+Footprint-Geometrie (`label_evidence/ge_A9A7E442_t44_foreign.png`,
+`label_evidence/fp_A9A7E442_t44_foreign.png`): offener Garten oestlich des
+Anbaus, keine baulich verbundene Struktur; plausible echte Quellen sind die
+hohen Nachbarn `{087198BD-...}` (12.6 m) und `{B4BDA739-...}` (15.9 m).
+Neu ab v4: Fehlablagen ZWISCHEN den Klassen (`foreign_in_annex`,
+`annex_in_foreign`) sind eigene Failure-States und rote Scorecard-Gates;
+fachliche Punkt-Erwartungen werden zusaetzlich maschinell gepinnt
+(`point_expectations` in `phase7_reference_cases.json`).
 
 Ausgelassen ggue. Seed-Vorschlag: `238100070` (nur 1 within+core+main,
 noise_dominated -> zu schwach als Roof-Quelle), `548205` (nicht in den

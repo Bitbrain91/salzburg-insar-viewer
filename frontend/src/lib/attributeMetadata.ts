@@ -517,14 +517,20 @@ const definitions: AttributeMetadataDefinition[] = [
   {
     key: "cluster_id",
     label: "Cluster-ID",
-    description: "Kennung des lokalen Punktclusters innerhalb eines Gebaeudes und Tracks.",
+    description:
+      "Kennung des lokalen Punktclusters innerhalb eines Gebaeudes und Tracks. " +
+      "Suffixe: cluster_<n> (regulaer), annex_0/annex_weak (abgetrennter Bauteil-/Anbau-Kandidat), " +
+      "foreign (als Fremdpunkt separiert, z.B. Anti-Layover), noise/excluded.",
     source: SOURCE_ML_POINT,
     contexts: ["ml-point", "ml-building"],
   },
   {
     key: "cluster_role",
     label: "Cluster-Rolle",
-    description: "Rolle des Punkts im lokalen Cluster: core, noise, excluded oder insufficient_support.",
+    description:
+      "Rolle des Punkts im lokalen Cluster: core, weak_support (schwache Stuetzung, " +
+      "u.a. annex_weak- und foreign-Cluster; fliesst nicht in Bewertung/Differential ein), " +
+      "noise, excluded oder insufficient_support.",
     source: SOURCE_ML_POINT,
     contexts: ["ml-point", "ml-building"],
   },

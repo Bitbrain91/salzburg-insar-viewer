@@ -163,6 +163,13 @@ class AnomalyLocalV1Pipeline(BasePipeline):
     # Der Phase-7-Harness schaltet das Flag pro Experiment ab, wenn er die
     # Separation selbst ueber Assignment-Policy-Token (a6/a7/a8) steuert.
     component_separation_enabled = True
+    # P8-F: Evidenzklassen-Routing der separation_candidates in
+    # _assign_side_group. "off" = alle Kandidaten in annex-Cluster (v3),
+    # "anti_foreign" = anti_layover-Kandidaten in :foreign (weak_support),
+    # "strict_structural" = nur height_outlier bleibt annex-Klasse
+    # (Vergleichsvariante, nicht fuer Produktion). Der Harness ueberschreibt
+    # den Wert pro Experiment als Instanzattribut.
+    separation_classes = "off"
 
     def default_params(self) -> dict[str, Any]:
         return {
@@ -1094,10 +1101,47 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         Kinematische Konsistenzpruefung wie smalln_strict: >=2 velocity-
         konsistente Punkte -> belastbarer annex_0-Core, sonst annex_weak.
         `kept` ist die volle (bereits geclusterte) Punktmenge des
-        Gebaeude x Track. No-op bei leerem side_set."""
+        Gebaeude x Track. No-op bei leerem side_set.
+
+        P8-F Evidenzklassen-Routing (separation_classes): anti_layover-Evidenz
+        besagt "kann physikalisch kein versetzter Dach-Return DIESES Gebaeudes
+        sein" - solche Kandidaten sind Fremdpunkte, kein Anbau. Sie werden VOR
+        der Rekrutierung in einen eigenen :foreign-Cluster (weak_support,
+        foreign_suspect) abgetrennt: nie Main, nie Differential-Quelle, kein
+        reliable_cluster_count. Nur die annex-Klasse (height_outlier/reach)
+        durchlaeuft Rekrutierung und Konsistenz-Zweiteilung."""
         if not side_set:
             return
-        annex = list(side_set)
+        mode = self.separation_classes
+        if mode == "anti_foreign":
+            foreign = [
+                record
+                for record in side_set
+                if "anti_layover" in (record.flags.get("separation_reasons") or [])
+            ]
+        elif mode == "strict_structural":
+            foreign = [
+                record
+                for record in side_set
+                if "height_outlier" not in (record.flags.get("separation_reasons") or [])
+            ]
+        else:
+            foreign = []
+        if foreign:
+            foreign_ids = {id(record) for record in foreign}
+            annex_seed = [record for record in side_set if id(record) not in foreign_ids]
+            cluster_id = f"{building_id}:t{track}:foreign"
+            for record in foreign:
+                record.cluster_id = cluster_id
+                record.cluster_role = "weak_support"
+                record.flags["foreign_suspect"] = True
+                record.cluster_probability = 0.30
+                record.cluster_outlier_score = max(record.cluster_outlier_score, 0.50)
+        else:
+            annex_seed = side_set
+        if not annex_seed:
+            return
+        annex = list(annex_seed)
         annex_codes = {id(record) for record in annex}
 
         roof_proxy = [
@@ -1409,6 +1453,12 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 # als annex_suspect markiert sind. Ein solcher Cluster darf nie
                 # Main werden (Sort-Key-Praefix). Noop: Flag nie gesetzt -> False.
                 annex_flag = all(bool(record.flags.get("annex_suspect")) for record in cluster_records)
+                # P8-F: analoges Transparenz-Flag fuer Fremdpunkt-Cluster
+                # (:foreign, weak_support) - keine Logikwirkung, role!=core
+                # haelt sie ohnehin aus Main/Differential heraus.
+                foreign_flag = all(
+                    bool(record.flags.get("foreign_suspect")) for record in cluster_records
+                )
                 point_count = len(cluster_records)
                 median_velocity = float(np.median([record.velocity for record in cluster_records]))
                 median_vertical_proxy = float(
@@ -1457,6 +1507,7 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                         "track": track,
                         "cluster_role": cluster_role,
                         "annex_flag": annex_flag,
+                        "foreign_flag": foreign_flag,
                         "is_main_cluster": False,
                         "cluster_rank": None,
                         "point_count": point_count,

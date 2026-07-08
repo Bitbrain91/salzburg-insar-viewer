@@ -224,6 +224,12 @@ class ExperimentConfig:
     # einen eigenen annex-Cluster statt entfernt zu werden). Nur die neuen
     # Achsen reagieren darauf; a1..a5 demotieren unveraendert direkt.
     separation_mode: str = "demote"
+    # P8-F: Evidenzklassen-Routing der separation_candidates in
+    # _assign_side_group (geerbt aus der Produktion). "off" (=v3: alle
+    # Kandidaten in annex-Cluster) | "anti_foreign" (anti_layover-Kandidaten
+    # -> :foreign/weak_support, Rest annex) | "strict_structural" (nur
+    # height_outlier bleibt annex-Klasse; Vergleichsvariante).
+    separation_classes: str = "off"
     # Small-N-Politik: baseline | strict (Konsistenzpflicht statt Pseudo-Core)
     smalln_mode: str = "baseline"
     # Borderline-Noise-Reassignment: on | off
@@ -287,6 +293,10 @@ class ExperimentPipeline(AnomalyLocalV1Pipeline):
         self.component_separation_enabled = not (
             _component_tokens & {"a6_antilayover", "a7_reach", "a8_heightprofile"}
         )
+        # P8-F: Evidenzklassen-Routing als Instanzattribut (ueberschreibt das
+        # Klassenattribut der Produktion; wirkt in dem geerbten
+        # _assign_side_group fuer Produktions- UND Token-Separation).
+        self.separation_classes = exp.separation_classes
 
     # --- Zusatzfelder in die Feature-Map injizieren -----------------------
     def _compute_series_features(self, records: list[LocalPointRecord]) -> None:
@@ -1177,6 +1187,22 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         if nearest_share <= 0.5:
             robust_by_building[bid] += 1
     multi_robust = sum(1 for n in robust_by_building.values() if n > 1)
+    # P8-F (report-only): aktive Differential-Level je Gebaeude inkl.
+    # Quell-Cluster - macht den Diff noop<->sepcls_* maschinell auswertbar
+    # (pure-geometric annex-Quellen muessen unter anti_foreign verschwinden).
+    diff_levels: dict[str, Any] = {}
+    diff_seen: set[str] = set()
+    for r in records:
+        if not r.building_id or r.building_id in diff_seen or not r.building_rollup:
+            continue
+        diff_seen.add(r.building_id)
+        level = str(r.building_rollup.get("differential_motion_level") or "none")
+        if level != "none":
+            evidence = r.building_rollup.get("differential_motion_evidence") or {}
+            diff_levels[r.building_id] = {
+                "level": level,
+                "cluster_id": evidence.get("cluster_id"),
+            }
     return {
         "points_total": len(records),
         "points_kept": sum(1 for r in records if r.kept_for_scoring),
@@ -1185,9 +1211,51 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         "n_regimes": {k: regimes.get(k, 0) for k in ["<3", "3-5", "6-12", "13-50", ">50"]},
         "building_status_counts": dict(Counter(statuses.values())),
         "building_statuses": statuses,
+        "building_differential_levels": diff_levels,
         "multi_cluster_buildings": multi,
         "multi_cluster_buildings_robust": multi_robust,
         "nearest_dominated_main_clusters": nearest_main,
+    }
+
+
+def separation_composition(records: list[LocalPointRecord]) -> dict[str, Any]:
+    """P8-F Sichtbarkeits-Statistik: woraus bestehen die separierten Cluster?
+
+    Zaehlt Punkte in annex-/foreign-Clustern je separation_reason-Kombination
+    und Cluster je Evidenzklasse (structural = height_outlier oder
+    annex_velocity_growth vorhanden). Haette den urspruenglichen Befund
+    (Mehrheit der annex-Cluster ohne Struktur-Evidenz) sofort sichtbar
+    gemacht - bleibt deshalb dauerhaft im AOI-Report."""
+    from collections import Counter
+    reason_combos: Counter = Counter()
+    clusters: dict[str, dict[str, Any]] = {}
+    for r in records:
+        cid = str(r.cluster_id or "")
+        if ":annex_" in cid:
+            kind = "annex"
+        elif cid.endswith(":foreign"):
+            kind = "foreign"
+        else:
+            continue
+        reasons = tuple(sorted(r.flags.get("separation_reasons") or []))
+        reason_combos[f"{kind}:" + ("+".join(reasons) if reasons else "none")] += 1
+        cluster = clusters.setdefault(cid, {"kind": kind, "structural": False})
+        if {"height_outlier", "annex_velocity_growth"} & set(reasons):
+            cluster["structural"] = True
+    cluster_classes: Counter = Counter()
+    for cluster in clusters.values():
+        if cluster["kind"] == "annex":
+            key = (
+                "annex_clusters_structural"
+                if cluster["structural"]
+                else "annex_clusters_pure_geometric"
+            )
+        else:
+            key = "foreign_clusters"
+        cluster_classes[key] += 1
+    return {
+        "point_reason_combos": dict(reason_combos),
+        "cluster_classes": dict(cluster_classes),
     }
 
 
@@ -1219,6 +1287,9 @@ CASE_TYPE_EXPECTED_STATUS: dict[str, set[str] | None] = {
     "carport_nearest_main_suspect": None,
     "hr_coupling_ok": None,
     "hr_divergence": None,
+    # P8-F: bev-spezifischer Fremdpunkt-Trennungs-Fall (A9A7E442); der
+    # Gebaeude-Status bleibt ok, die eigentliche Erwartung sind Punkt-Pins.
+    "foreign_separation_bev": {"ok"},
 }
 
 AOI_KEYS_BY_CASE_AOI = {
@@ -1228,6 +1299,8 @@ AOI_KEYS_BY_CASE_AOI = {
     "mirabell": ["mirabell"], "moosstrasse": ["moosstrasse", "moosstrasse_bev"], "osthang": ["osthang"],
     "bg_flat_01": ["bg_flat_01_snt", "bg_flat_01_tsx"],
     "bg_slope_01": ["bg_slope_01_snt", "bg_slope_01_tsx"],
+    # P8-F: Faelle, die NUR im bev-Kontext definiert sind.
+    "moosstrasse_bev": ["moosstrasse_bev"],
 }
 
 # Anspruchsstaerke eines Gebaeude-Status (P7-V1). Hygiene-Politiken duerfen
@@ -1284,7 +1357,7 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
                 pin = set(policy_expectations[key])
                 pin_key = key
                 break
-        if pin is None and default_expected is None:
+        if pin is None and default_expected is None and not case.get("point_expectations"):
             continue
         expected = pin if pin is not None else default_expected
         source = f"policy_pin:{pin_key}" if pin is not None else "case_type_default"
@@ -1296,6 +1369,40 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
             if aoi_key.endswith("_tsx") and "tsx" not in ds:
                 continue
             if aoi_key.endswith("_snt") and ds and "snt" not in ds:
+                continue
+            # P8-F: maschinelle Punkt-Pins (Evidenzklassen-Erwartungen je
+            # Punkt). only_sources filtert nach Gebaeudequelle des AOI-Keys
+            # (bev kartiert z.B. den 96959851-Anbau als eigenes Gebaeude -
+            # dort gilt die annex-Erwartung bewusst NICHT). Fehlt der Punkt
+            # im Lauf, wird das toleriert und nur sichtbar gemacht.
+            aoi_source = str(AOIS.get(aoi_key, {}).get("source", "gba"))
+            for pe in case.get("point_expectations") or []:
+                only_sources = pe.get("only_sources")
+                if only_sources and aoi_source not in only_sources:
+                    continue
+                try:
+                    pin_id = f"{pe['point_code']}:t{int(pe['track'])}"
+                    expected_states = set(pe["expected_states"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                actual_state = (aoi_out.get("point_states") or {}).get(pin_id)
+                if actual_state is None:
+                    checks.append({
+                        "case_id": case["case_id"], "aoi": aoi_key,
+                        "building_id": case["building_id"], "point": pin_id,
+                        "expected_any_of": sorted(expected_states), "actual": None,
+                        "ok": True, "source": "point_pin_absent_tolerated",
+                    })
+                    continue
+                checks.append({
+                    "case_id": case["case_id"], "aoi": aoi_key,
+                    "building_id": case["building_id"], "point": pin_id,
+                    "expected_any_of": sorted(expected_states),
+                    "actual": actual_state,
+                    "ok": actual_state in expected_states,
+                    "source": "point_pin",
+                })
+            if expected is None:
                 continue
             # bev-Runs keyen building_statuses mit bev_id-GUIDs statt GBA-IDs; darum
             # zuerst per GBA-ID, bei Fehltreffer per bev_building_id nachschlagen.
@@ -1338,21 +1445,57 @@ def check_reference_cases(exp_out: dict[str, Any]) -> list[dict[str, Any]]:
 
 _LABEL_METRIC_KEYS = (
     "roof_lost", "foreign_in_main", "foreign_caught",
+    "foreign_in_annex", "annex_in_foreign",
     "annex_merged", "annex_separated", "annex_demoted",
     "labels_evaluated", "unclear",
 )
 
 
 def _reference_label_state(record: LocalPointRecord) -> str:
-    """Ist-Zustand eines Punkts fuer die Label-Benotung."""
+    """Ist-Zustand eines Punkts fuer die Label-Benotung.
+
+    P8-F: foreign_suspect wird VOR annex_suspect geprueft - ein als
+    Fremdpunkt separierter Punkt (:foreign-Cluster) darf nie als annex
+    gewertet werden; die Flags schliessen sich per Konstruktion aus."""
     if record.gate_excluded or record.cluster_role == "excluded":
         return "excluded"
+    if record.flags.get("foreign_suspect"):
+        return "foreign_separated"
     if record.flags.get("annex_suspect"):
         return "annex"
     role = record.cluster_role or "unassigned"
     if role == "core":
         return "main_core" if record.flags.get("is_main_cluster") else "core"
     return role
+
+
+def pinned_point_states(records: list[LocalPointRecord]) -> dict[str, str]:
+    """P8-F: Ist-Zustaende aller Punkte, fuer die irgendein Referenzfall
+    point_expectations definiert. Wird je AOI in aoi_out persistiert und von
+    check_reference_cases maschinell gegen die Pins geprueft - fachliche
+    Punkt-Erwartungen existieren damit nie mehr nur als Prosa."""
+    ref_path = ARTIFACTS_DIR / "phase7_reference_cases.json"
+    if not ref_path.exists():
+        return {}
+    try:
+        cases = json.loads(ref_path.read_text())["cases"]
+    except (json.JSONDecodeError, OSError, KeyError):
+        return {}
+    wanted: set[tuple[str, int]] = set()
+    for case in cases:
+        for pe in case.get("point_expectations") or []:
+            try:
+                wanted.add((str(pe["point_code"]), int(pe["track"])))
+            except (KeyError, TypeError, ValueError):
+                continue
+    if not wanted:
+        return {}
+    by_code = {(r.code, r.track): r for r in records}
+    return {
+        f"{code}:t{track}": _reference_label_state(by_code[(code, track)])
+        for (code, track) in wanted
+        if (code, track) in by_code
+    }
 
 
 def check_reference_labels(records: list[LocalPointRecord], aoi: str) -> dict[str, Any]:
@@ -1392,7 +1535,7 @@ def check_reference_labels(records: list[LocalPointRecord], aoi: str) -> dict[st
         label = lab.get("label")
         state = _reference_label_state(rec)
         if label == "roof":
-            if state in ("excluded", "noise", "annex"):
+            if state in ("excluded", "noise", "annex", "foreign_separated"):
                 metrics["roof_lost"] += 1
                 verdict = "roof_lost"
             else:
@@ -1401,7 +1544,13 @@ def check_reference_labels(records: list[LocalPointRecord], aoi: str) -> dict[st
             if state == "main_core":
                 metrics["foreign_in_main"] += 1
                 verdict = "foreign_in_main"
-            elif state in ("excluded", "noise", "annex", "weak_support"):
+            elif state == "annex":
+                # P8-F: semantische Fehlablage - Fremdpunkt als "Anbau"
+                # etikettiert. Frueher als foreign_caught belohnt; jetzt
+                # eigener Failure-State (rotes Scorecard-Gate).
+                metrics["foreign_in_annex"] += 1
+                verdict = "foreign_in_annex"
+            elif state in ("excluded", "noise", "weak_support", "foreign_separated"):
                 metrics["foreign_caught"] += 1
                 verdict = "foreign_caught"
             else:
@@ -1410,7 +1559,15 @@ def check_reference_labels(records: list[LocalPointRecord], aoi: str) -> dict[st
             if state == "main_core":
                 metrics["annex_merged"] += 1
                 verdict = "annex_merged"
-            elif state in ("annex", "core"):
+            elif state == "foreign_separated":
+                # P8-F: umgekehrte Fehlablage - echter Anbau-Punkt als
+                # Fremdpunkt separiert (rotes Scorecard-Gate).
+                metrics["annex_in_foreign"] += 1
+                verdict = "annex_in_foreign"
+            elif state == "annex":
+                # P8-F: nur noch der annex-Cluster zaehlt als separiert;
+                # ein Nicht-Main-"core" (frueher mitgezaehlt) ist ab jetzt
+                # annex_demoted (fuer den aktuellen Korpus zahlneutral).
                 metrics["annex_separated"] += 1
                 verdict = "annex_separated"
             else:
@@ -1549,6 +1706,17 @@ def build_scorecard(results: dict[str, Any], baseline_id: str = "noop") -> dict[
             if entry["reference_cases_ok"] is False:
                 hard_fail = True
                 reasons.append("Referenzfall-Erwartung verletzt")
+            # P8-F: semantische Fehlablagen zwischen den Evidenzklassen sind
+            # rote Gates - foreign-Punkte duerfen nie als annex etikettiert
+            # werden (und umgekehrt), unabhaengig von allen anderen Metriken.
+            lm_agg = entry["label_metrics"]
+            fia = int(lm_agg.get("foreign_in_annex", 0) or 0)
+            aif = int(lm_agg.get("annex_in_foreign", 0) or 0)
+            if fia or aif:
+                hard_fail = True
+                reasons.append(
+                    f"Label-Korpus: foreign_in_annex={fia}, annex_in_foreign={aif} (rotes Gate)"
+                )
             entry["verdict"] = (
                 "candidate_red" if hard_fail
                 else ("candidate_green" if soft_gain else "candidate_inconclusive")
@@ -1597,14 +1765,19 @@ def write_scorecard_md(scorecard: dict[str, Any], path: Path) -> None:
                 f"roof_lost={lm.get('roof_lost', 0)}, "
                 f"foreign_caught={lm.get('foreign_caught', 0)}, "
                 f"foreign_in_main={lm.get('foreign_in_main', 0)}, "
+                f"foreign_in_annex={lm.get('foreign_in_annex', 0)}, "
                 f"annex_separated={lm.get('annex_separated', 0)}, "
+                f"annex_in_foreign={lm.get('annex_in_foreign', 0)}, "
                 f"annex_demoted={lm.get('annex_demoted', 0)}, "
                 f"annex_merged={lm.get('annex_merged', 0)}, "
                 f"unclear={lm.get('unclear', 0)}"
             )
             flagged = [
                 d for d in lm.get("details", [])
-                if d.get("verdict") in ("roof_lost", "foreign_in_main", "annex_merged")
+                if d.get("verdict") in (
+                    "roof_lost", "foreign_in_main", "annex_merged",
+                    "foreign_in_annex", "annex_in_foreign",
+                )
             ]
             if flagged:
                 lines.append(
@@ -1893,6 +2066,19 @@ EXPERIMENTS["k2xh_demote"] = _variant(
     assignment_policy="a5_crosslook,a8_heightprofile,a6_antilayover,a7_reach",
     separation_mode="demote",
 )
+# P8-F: Evidenzklassen-Routing auf noop-Basis (= Produktions-Separation).
+EXPERIMENTS["sepcls_foreign"] = _variant(
+    "noop", "sepcls_foreign",
+    "P8-F Variante A: anti_layover-Kandidaten -> :foreign (weak_support), "
+    "height/reach-Kandidaten bleiben annex-Klasse (Rekrutierung unveraendert)",
+    separation_classes="anti_foreign",
+)
+EXPERIMENTS["sepcls_strict"] = _variant(
+    "noop", "sepcls_strict",
+    "P8-F Variante B (nur Vergleich): nur height_outlier bleibt annex-Klasse; "
+    "erwartet ROT (annex_in_foreign>0), weil der Flaggschiff-Anbau reach-only ist",
+    separation_classes="strict_structural",
+)
 
 def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Phase-7 Clustering-Experiment-Harness")
@@ -1962,6 +2148,9 @@ async def amain(argv: list[str] | None = None) -> int:
                 "summary": summarize_records(records),
                 "pipeline_metrics": {k: v for k, v in metrics.items()},
                 "label_metrics": check_reference_labels(records, aoi),
+                # P8-F: Punkt-Pin-Zustaende + Klassen-Reinheit der Separation
+                "point_states": pinned_point_states(records),
+                "separation_composition": separation_composition(records),
             }
             if pipeline.reassign_stats:
                 aoi_out["reassign_stats"] = dict(pipeline.reassign_stats)
