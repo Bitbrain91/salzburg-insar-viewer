@@ -28,7 +28,10 @@ FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
 # P7-E-W1-T2 (2026-06-10): Kandidat k2x integriert (a5_crosslook +
 # smalln_strict als Default-Verhalten); Entscheidung und Evidenz in
 # docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_report.md.
-MODEL_SET_VERSION = "local_hdbscan_rulegate_v3_k2xh_diffv2"
+# P8-F (2026-07-08): v4 - annex/foreign-Evidenzklassen-Routing
+# (separation_classes="anti_foreign"): anti_layover-Kandidaten (bev: auch
+# reach) -> :foreign statt annex; Gate-Beleg phase7_scorecard_sepcls.md.
+MODEL_SET_VERSION = "local_hdbscan_rulegate_v4_k2xhf_diffv2"
 EPSILON = 1e-9
 NEIGHBOUR_BUILDING_RADIUS_M = 25.0
 MAX_NEIGHBOUR_BUILDINGS = 8
@@ -165,11 +168,13 @@ class AnomalyLocalV1Pipeline(BasePipeline):
     component_separation_enabled = True
     # P8-F: Evidenzklassen-Routing der separation_candidates in
     # _assign_side_group. "off" = alle Kandidaten in annex-Cluster (v3),
-    # "anti_foreign" = anti_layover-Kandidaten in :foreign (weak_support),
-    # "strict_structural" = nur height_outlier bleibt annex-Klasse
-    # (Vergleichsvariante, nicht fuer Produktion). Der Harness ueberschreibt
-    # den Wert pro Experiment als Instanzattribut.
-    separation_classes = "off"
+    # "anti_foreign" = anti_layover-Kandidaten (bev: auch reach) in
+    # :foreign (weak_support), "strict_structural" = nur height_outlier
+    # bleibt annex-Klasse (Vergleichsvariante, nicht fuer Produktion).
+    # Seit dem P8-F-Port (2026-07-08) produktiv "anti_foreign"; Gate-Beleg:
+    # phase7_scorecard_sepcls.md. Der Harness ueberschreibt den Wert pro
+    # Experiment als Instanzattribut.
+    separation_classes = "anti_foreign"
 
     def default_params(self) -> dict[str, Any]:
         return {

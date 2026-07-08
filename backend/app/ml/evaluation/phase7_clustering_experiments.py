@@ -64,65 +64,65 @@ AOIS: dict[str, dict[str, Any]] = {
     "mirabell": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.04027, 47.80375, 13.04387, 47.80735),
-        "baseline_run": "13fb52ef-e351-43a7-b33e-57d64fb62934",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
-        "legacy_baseline_run": "5e56381a-1115-46f3-aeb4-337f7d067ead",
+        "baseline_run": "a9419755-ced3-48c3-9d6d-57e17a7b6e7c",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "13fb52ef-e351-43a7-b33e-57d64fb62934",  # v3_k2xh_diffv2 (P8 W4)
     },
     "moosstrasse": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "bbox": (13.02714, 47.79189, 13.03074, 47.79549),
-        "baseline_run": "79dd1468-f8ed-42c5-a6bd-62431be06f8f",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
-        "legacy_baseline_run": "9ef01ded-270f-47be-b662-3a9b5950c745",
+        "baseline_run": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "79dd1468-f8ed-42c5-a6bd-62431be06f8f",  # v3_k2xh_diffv2 (P8 W4)
     },
     "osthang": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "stress_diagnose",
         "bbox": (13.0492, 47.8036, 13.0528, 47.8054),
-        "baseline_run": "9ff3a6dc-a9a2-4503-8052-71dfc91ddd45",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
-        "legacy_baseline_run": "42b0d3df-3074-4a3a-b5f3-c02790113406",
+        "baseline_run": "d8aa1314-0709-4646-9536-8c30736f178e",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "9ff3a6dc-a9a2-4503-8052-71dfc91ddd45",  # v3_k2xh_diffv2 (P8 W4)
     },
     "bg_flat_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
-        "baseline_run": "76eb4779-a04d-4798-bcd7-4b979ca7f799",
-        "legacy_baseline_run": "f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef",  # P7-E-W1-T2, vor BG-Amplituden
+        "baseline_run": "ce87a736-128b-48ac-b5a5-ea95f5127574",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "76eb4779-a04d-4798-bcd7-4b979ca7f799",  # v3_k2xh_diffv2 (P8 W4)
     },
     "bg_slope_01_snt": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        # Re-Baseline 2026-07-06: BG-Amplituden-Datenstand (P7-N6); v2_k2x unveraendert
-        "baseline_run": "430c3aa2-98b7-466f-8372-c6f514d01272",
-        "legacy_baseline_run": "2c734086-23bd-4708-8e7c-75e8a876e523",  # P7-E-W1-T2, vor BG-Amplituden
+        "baseline_run": "a7cd181e-b422-4d07-99c8-ddb8e8800252",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "430c3aa2-98b7-466f-8372-c6f514d01272",  # v3_k2xh_diffv2 (P8 W4)
     },
     "bg_flat_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "calibration_gate",
         "bbox": (13.132531, 47.106449, 13.135531, 47.109449),
-        "baseline_run": "f0bcde44-3a13-473b-ac58-fc415a89d452",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
-        "legacy_baseline_run": "69f13507-3ab7-425a-9e59-07caee9fb8e5",
+        "baseline_run": "438ba411-dc5c-4f2b-b656-fd24d945bbf5",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "f0bcde44-3a13-473b-ac58-fc415a89d452",  # v3_k2xh_diffv2 (P8 W4)
     },
     "bg_slope_01_tsx": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "stress_diagnose",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "6edd064a-a7e6-4ec7-8999-cdbf60b4ed83",  # v3_k2xh_diffv2 (P8 W4, 2026-07-07)
-        "legacy_baseline_run": "49a4b1fa-3c9c-4d8b-8ab4-96281c975309",
+        "baseline_run": "bb685fc3-a0a8-452b-a6a6-a6a2b23e803b",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "6edd064a-a7e6-4ec7-8999-cdbf60b4ed83",  # v3_k2xh_diffv2 (P8 W4)
     },
     "moosstrasse_bev": {
         "area_id": "salzburg", "dataset_id": "salzburg_snt", "role": "regression_gate",
         "source": "bev",
         "bbox": (13.02714, 47.79189, 13.03074, 47.79549),
-        # v3-Baseline 2026-07-07 (P8-A-W2-T1: BEV-Standard-Vollzug)
-        "baseline_run": "85953608-14e6-473e-967c-d24c8791d880",
+        "baseline_run": "b4514e21-6643-410d-8daa-a870485e5150",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "85953608-14e6-473e-967c-d24c8791d880",  # v3 (P8-A-W2-T1, BEV-Vollzug)
     },
     "bg_slope_01_snt_bev": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_snt", "role": "stress_diagnose",
         "source": "bev",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "935a3a0a-4917-4b21-8d8e-cd099d3e2db5",
+        "baseline_run": "b24b1e91-8f23-4fba-9b0a-11f7f809f863",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "935a3a0a-4917-4b21-8d8e-cd099d3e2db5",  # v3 (P8-A-W2-T1)
     },
     "bg_slope_01_tsx_bev": {
         "area_id": "bad_gastein", "dataset_id": "bad_gastein_tsx_paz", "role": "stress_diagnose",
         "source": "bev",
         "bbox": (13.138531, 47.118449, 13.141531, 47.121449),
-        "baseline_run": "649cf539-75f6-4c34-9375-164a1fe29c66",
+        "baseline_run": "377393ca-54a5-4eb7-9cf0-56549d09b52c",  # v4_k2xhf_diffv2 (P8-F, 2026-07-08)
+        "legacy_baseline_run": "649cf539-75f6-4c34-9375-164a1fe29c66",  # v3 (P8-A-W2-T1)
     },
 }
 
@@ -227,9 +227,11 @@ class ExperimentConfig:
     # P8-F: Evidenzklassen-Routing der separation_candidates in
     # _assign_side_group (geerbt aus der Produktion). "off" (=v3: alle
     # Kandidaten in annex-Cluster) | "anti_foreign" (anti_layover-Kandidaten
-    # -> :foreign/weak_support, Rest annex) | "strict_structural" (nur
-    # height_outlier bleibt annex-Klasse; Vergleichsvariante).
-    separation_classes: str = "off"
+    # -> :foreign/weak_support, bev auch reach; Rest annex) |
+    # "strict_structural" (nur height_outlier bleibt annex-Klasse;
+    # Vergleichsvariante). Default "anti_foreign" seit dem P8-F-Port
+    # (Invariante noop == Produktion).
+    separation_classes: str = "anti_foreign"
     # Small-N-Politik: baseline | strict (Konsistenzpflicht statt Pseudo-Core)
     smalln_mode: str = "baseline"
     # Borderline-Noise-Reassignment: on | off
