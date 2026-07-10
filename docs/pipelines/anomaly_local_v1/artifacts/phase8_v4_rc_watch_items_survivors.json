@@ -1,0 +1,176 @@
+{
+  "artifact": "phase8_v4_rc_watch_items_survivors",
+  "audited_at": "2026-07-10T10:43:33.807384Z",
+  "status": "green",
+  "mode": "read_only_postgis",
+  "scope": {
+    "baseline_catalog": "backend/app/ml/evaluation/phase7_clustering_experiments.py::AOIS",
+    "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+    "requested_buildings": ["96637447", "96639519", "96955335", "238100082", "96959851"],
+    "run_building_observations": 6,
+    "note": "238100082 occurs in both pinned bg_flat_01_snt and bg_flat_01_tsx runs."
+  },
+  "derivation": {
+    "cluster_kind": "final cluster_id segment: foreign -> foreign; annex_* -> annex; otherwise standard",
+    "labels": "Persisted pipeline labels normal/suspect/outlier, not expert ground-truth labels.",
+    "semantic_cluster_detail": "All annex and foreign clusters are listed; standard clusters are reduced to the main clusters and aggregate counts."
+  },
+  "gates": {
+    "active_differentials": 5,
+    "foreign_evidence_sources": 0,
+    "foreign_suspect_evidence_sources": 0,
+    "non_core_evidence_sources": 0,
+    "foreign_non_weak_support_clusters": 0,
+    "foreign_main_clusters": 0,
+    "verdict": "green"
+  },
+  "observations": [
+    {
+      "building_id": "238100082",
+      "aoi": "bg_flat_01_snt",
+      "dataset_id": "bad_gastein_snt",
+      "run_id": "ce87a736-128b-48ac-b5a5-ea95f5127574",
+      "building_source": "gba",
+      "tracks": [44, 95],
+      "point_count": 24,
+      "cluster_kind_point_counts": {"standard": 22, "annex": 1, "foreign": 1},
+      "role_point_counts": {"core": 14, "noise": 5, "excluded": 3, "weak_support": 2},
+      "label_point_counts": {"normal": 15, "suspect": 1, "outlier": 8},
+      "differential_motion_level": "none",
+      "differential_motion_evidence": null,
+      "main_clusters": [
+        {"track": 44, "cluster_id": "238100082:t44:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 4, "labels": {"normal": 4}},
+        {"track": 95, "cluster_id": "238100082:t95:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 10, "labels": {"normal": 9, "suspect": 1}}
+      ],
+      "semantic_clusters": [
+        {"track": 44, "cluster_id": "238100082:t44:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 1, "labels": {"normal": 1}, "separation_reasons": ["anti_layover"], "point_codes": ["NBO8F8J01"]},
+        {"track": 95, "cluster_id": "238100082:t95:annex_weak", "cluster_kind": "annex", "role": "weak_support", "is_main": false, "point_count": 1, "labels": {"normal": 1}, "separation_reasons": ["reach_height_excess"], "point_codes": ["L5189OC01"]}
+      ],
+      "checks": {"foreign_is_differential_source": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    },
+    {
+      "building_id": "238100082",
+      "aoi": "bg_flat_01_tsx",
+      "dataset_id": "bad_gastein_tsx_paz",
+      "run_id": "438ba411-dc5c-4f2b-b656-fd24d945bbf5",
+      "building_source": "gba",
+      "tracks": [70, 93],
+      "point_count": 180,
+      "cluster_kind_point_counts": {"standard": 167, "annex": 4, "foreign": 9},
+      "role_point_counts": {"core": 114, "noise": 44, "excluded": 13, "weak_support": 9},
+      "label_point_counts": {"normal": 59, "suspect": 64, "outlier": 57},
+      "differential_motion_level": "candidate",
+      "differential_motion_evidence": {"track": 70, "cluster_id": "238100082:t70:annex_0", "cluster_kind": "annex", "cluster_role": "core", "delta_mm_a": 1.53, "sigma_delta_mm_a": 1.55, "threshold_mm_a": 1.5, "confirming_track": null, "downgrades": [], "annex_cluster": true},
+      "main_clusters": [
+        {"track": 70, "cluster_id": "238100082:t70:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 77, "labels": {"normal": 46, "suspect": 31}},
+        {"track": 93, "cluster_id": "238100082:t93:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 33, "labels": {"normal": 13, "suspect": 20}}
+      ],
+      "semantic_clusters": [
+        {"track": 70, "cluster_id": "238100082:t70:annex_0", "cluster_kind": "annex", "role": "core", "is_main": false, "point_count": 4, "labels": {"suspect": 4}, "separation_reasons": ["height_outlier"], "point_codes": ["DSKM0DX", "DSKM0E9", "DSLSVLJ", "DSU4Y24"]},
+        {"track": 70, "cluster_id": "238100082:t70:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 3, "labels": {"suspect": 3}, "separation_reasons": ["anti_layover", "height_outlier", "reach_height_excess"], "point_codes": ["DSLSVLR", "DSLSVLS", "DSPDH8H"]},
+        {"track": 93, "cluster_id": "238100082:t93:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 6, "labels": {"suspect": 6}, "separation_reasons": ["anti_layover"], "point_codes": ["F9VHT23", "F9VHT24", "F9VHT25", "F9WOO9N", "F9WOO9R", "F9XVJH8"]}
+      ],
+      "checks": {"evidence_cluster_exists": true, "evidence_cluster_is_core": true, "evidence_cluster_is_foreign": false, "evidence_cluster_foreign_suspect": false, "evidence_cluster_has_anti_layover": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    },
+    {
+      "building_id": "96637447",
+      "aoi": "moosstrasse",
+      "dataset_id": "salzburg_snt",
+      "run_id": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",
+      "building_source": "gba",
+      "tracks": [44, 95],
+      "point_count": 30,
+      "cluster_kind_point_counts": {"standard": 21, "annex": 2, "foreign": 7},
+      "role_point_counts": {"core": 19, "noise": 3, "excluded": 1, "weak_support": 7},
+      "label_point_counts": {"normal": 13, "suspect": 13, "outlier": 4},
+      "differential_motion_level": "candidate",
+      "differential_motion_evidence": {"track": 44, "cluster_id": "96637447:t44:annex_0", "cluster_kind": "annex", "cluster_role": "core", "delta_mm_a": 2.69, "sigma_delta_mm_a": 1.686, "threshold_mm_a": 1.5, "confirming_track": null, "downgrades": [], "annex_cluster": true},
+      "main_clusters": [
+        {"track": 44, "cluster_id": "96637447:t44:cluster_2", "cluster_kind": "standard", "role": "core", "point_count": 2, "labels": {"normal": 2}},
+        {"track": 95, "cluster_id": "96637447:t95:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 13, "labels": {"normal": 10, "suspect": 3}}
+      ],
+      "semantic_clusters": [
+        {"track": 44, "cluster_id": "96637447:t44:annex_0", "cluster_kind": "annex", "role": "core", "is_main": false, "point_count": 2, "labels": {"suspect": 2}, "separation_reasons": ["reach_height_excess"], "point_codes": ["O32ROQ901", "O33D4C101"]},
+        {"track": 44, "cluster_id": "96637447:t44:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 4, "labels": {"suspect": 4}, "separation_reasons": ["anti_layover", "height_outlier"], "point_codes": ["O355F5A01", "O36XPYO01", "O37J5KI01", "O384L6A01"]},
+        {"track": 95, "cluster_id": "96637447:t95:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 3, "labels": {"suspect": 3}, "separation_reasons": ["anti_layover", "reach_height_excess"], "point_codes": ["NSZL99701", "NSZL99801", "NT06OUX01"]}
+      ],
+      "checks": {"evidence_cluster_exists": true, "evidence_cluster_is_core": true, "evidence_cluster_is_foreign": false, "evidence_cluster_foreign_suspect": false, "evidence_cluster_has_anti_layover": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    },
+    {
+      "building_id": "96639519",
+      "aoi": "moosstrasse",
+      "dataset_id": "salzburg_snt",
+      "run_id": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",
+      "building_source": "gba",
+      "tracks": [44, 95],
+      "point_count": 35,
+      "cluster_kind_point_counts": {"standard": 31, "annex": 3, "foreign": 1},
+      "role_point_counts": {"core": 15, "noise": 3, "excluded": 16, "weak_support": 1},
+      "label_point_counts": {"suspect": 13, "outlier": 22},
+      "differential_motion_level": "candidate",
+      "differential_motion_evidence": {"track": 44, "cluster_id": "96639519:t44:annex_0", "cluster_kind": "annex", "cluster_role": "core", "delta_mm_a": -2.18, "sigma_delta_mm_a": 1.386, "threshold_mm_a": 1.5, "confirming_track": null, "downgrades": [], "annex_cluster": true},
+      "main_clusters": [
+        {"track": 44, "cluster_id": "96639519:t44:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 4, "labels": {"suspect": 4}},
+        {"track": 95, "cluster_id": "96639519:t95:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 8, "labels": {"suspect": 5, "outlier": 3}}
+      ],
+      "semantic_clusters": [
+        {"track": 44, "cluster_id": "96639519:t44:annex_0", "cluster_kind": "annex", "role": "core", "is_main": false, "point_count": 3, "labels": {"suspect": 3}, "separation_reasons": ["annex_velocity_growth", "reach_height_excess"], "point_codes": ["O2P2PT501", "O2PO5EX01", "O2Q9L0P01"]},
+        {"track": 44, "cluster_id": "96639519:t44:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 1, "labels": {"suspect": 1}, "separation_reasons": ["anti_layover"], "point_codes": ["O2VMHGP01"]}
+      ],
+      "checks": {"evidence_cluster_exists": true, "evidence_cluster_is_core": true, "evidence_cluster_is_foreign": false, "evidence_cluster_foreign_suspect": false, "evidence_cluster_has_anti_layover": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    },
+    {
+      "building_id": "96955335",
+      "aoi": "moosstrasse",
+      "dataset_id": "salzburg_snt",
+      "run_id": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",
+      "building_source": "gba",
+      "tracks": [44, 95],
+      "point_count": 17,
+      "cluster_kind_point_counts": {"standard": 9, "annex": 4, "foreign": 4},
+      "role_point_counts": {"core": 10, "excluded": 2, "weak_support": 5},
+      "label_point_counts": {"suspect": 10, "outlier": 7},
+      "differential_motion_level": "significant",
+      "differential_motion_evidence": {"track": 95, "cluster_id": "96955335:t95:annex_0", "cluster_kind": "annex", "cluster_role": "core", "delta_mm_a": -3.96, "sigma_delta_mm_a": 1.244, "threshold_mm_a": 1.5, "confirming_track": null, "downgrades": [], "annex_cluster": true},
+      "main_clusters": [
+        {"track": 44, "cluster_id": "96955335:t44:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 2, "labels": {"suspect": 2}},
+        {"track": 95, "cluster_id": "96955335:t95:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 5, "labels": {"suspect": 4, "outlier": 1}}
+      ],
+      "semantic_clusters": [
+        {"track": 44, "cluster_id": "96955335:t44:annex_weak", "cluster_kind": "annex", "role": "weak_support", "is_main": false, "point_count": 1, "labels": {"outlier": 1}, "separation_reasons": ["reach_height_excess"], "point_codes": ["O24TZ8R01"]},
+        {"track": 44, "cluster_id": "96955335:t44:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 2, "labels": {"outlier": 2}, "separation_reasons": ["anti_layover", "reach_height_excess"], "point_codes": ["O27T59N01", "O2900H701"]},
+        {"track": 95, "cluster_id": "96955335:t95:annex_0", "cluster_kind": "annex", "role": "core", "is_main": false, "point_count": 3, "labels": {"suspect": 3}, "separation_reasons": ["annex_velocity_growth", "reach_height_excess"], "point_codes": ["NTNELGK01", "NTO012C01", "NTOLGO401"]},
+        {"track": 95, "cluster_id": "96955335:t95:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 2, "labels": {"suspect": 1, "outlier": 1}, "separation_reasons": ["anti_layover", "reach_height_excess"], "point_codes": ["NTQDRHG01", "NTV58BP01"]}
+      ],
+      "checks": {"evidence_cluster_exists": true, "evidence_cluster_is_core": true, "evidence_cluster_is_foreign": false, "evidence_cluster_foreign_suspect": false, "evidence_cluster_has_anti_layover": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    },
+    {
+      "building_id": "96959851",
+      "aoi": "moosstrasse",
+      "dataset_id": "salzburg_snt",
+      "run_id": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",
+      "building_source": "gba",
+      "tracks": [44, 95],
+      "point_count": 13,
+      "cluster_kind_point_counts": {"standard": 10, "annex": 2, "foreign": 1},
+      "role_point_counts": {"core": 6, "noise": 2, "excluded": 4, "weak_support": 1},
+      "label_point_counts": {"suspect": 7, "outlier": 6},
+      "differential_motion_level": "candidate",
+      "differential_motion_evidence": {"track": 95, "cluster_id": "96959851:t95:annex_0", "cluster_kind": "annex", "cluster_role": "core", "delta_mm_a": -1.98, "sigma_delta_mm_a": 0.916, "threshold_mm_a": 1.5, "confirming_track": null, "downgrades": ["small_n_guard"], "annex_cluster": true},
+      "main_clusters": [
+        {"track": 44, "cluster_id": "96959851:t44:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 2, "labels": {"suspect": 2}},
+        {"track": 95, "cluster_id": "96959851:t95:cluster_0", "cluster_kind": "standard", "role": "core", "point_count": 2, "labels": {"suspect": 2}}
+      ],
+      "semantic_clusters": [
+        {"track": 44, "cluster_id": "96959851:t44:foreign", "cluster_kind": "foreign", "role": "weak_support", "is_main": false, "point_count": 1, "labels": {"suspect": 1}, "separation_reasons": ["anti_layover"], "point_codes": ["O2HC2XV01"]},
+        {"track": 95, "cluster_id": "96959851:t95:annex_0", "cluster_kind": "annex", "role": "core", "is_main": false, "point_count": 2, "labels": {"suspect": 2}, "separation_reasons": ["annex_velocity_growth", "reach_height_excess"], "point_codes": ["NTC3CYZ01", "NTDA86J01"]}
+      ],
+      "checks": {"evidence_cluster_exists": true, "evidence_cluster_is_core": true, "evidence_cluster_is_foreign": false, "evidence_cluster_foreign_suspect": false, "evidence_cluster_has_anti_layover": false, "foreign_is_main": false, "foreign_roles_all_weak_support": true}
+    }
+  ],
+  "limitations": [
+    "This pass inspects persisted v4 baseline results and does not rerun or re-baseline the pipeline.",
+    "Pipeline labels are reported descriptively and are not treated as independent ground truth.",
+    "The audit establishes semantic routing and differential-source hygiene; final physical interpretation of the watch items remains a visual/domain review task."
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "artifact": "phase8_v4_rc_prechange_parity",
+  "audited_at": "2026-07-10T10:12:19.825228Z",
+  "status": "green",
+  "phase": "prechange",
+  "database": {
+    "reachable": true,
+    "engine": "local PostGIS via docker compose service db",
+    "access": "read_only_queries"
+  },
+  "scope": {
+    "aoi_catalog": "backend/app/ml/evaluation/phase7_clustering_experiments.py::AOIS",
+    "pinned_runs": 10,
+    "succeeded_runs": 10,
+    "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+    "point_rows": 23278,
+    "building_rollups": 870
+  },
+  "audit_rules": {
+    "rollup_identity": "DISTINCT run_id, building_source, building_id, building_rollup",
+    "flag_true_level_none": "differential_motion_flag=true while differential_motion_level=none",
+    "flag_false_active_level": "differential_motion_flag=false while differential_motion_level is candidate, significant, or confirmed",
+    "missing_level": "differential_motion_level key absent, non-string, null, or empty",
+    "invalid_level": "level outside none, candidate, significant, confirmed",
+    "proxy_evidence": [
+      "active levels require an evidence object with track, cluster_id, signed delta_mm_a, threshold_mm_a, sigma_delta_mm_a, downgrades, annex_cluster, and confirming_track",
+      "absolute delta_mm_a must meet threshold_mm_a",
+      "the evidence cluster must exist in the same run/building and expose cluster_rollup",
+      "signed delta_mm_a must equal cluster median_vertical_proxy_mm_a minus the main track_motion_mm_a within 0.011 mm/a (stored evidence is rounded to two decimals)",
+      "absolute delta_mm_a must equal cluster motion_delta_to_main_mm_a within 0.011 mm/a",
+      "confirmed requires a non-null confirming_track",
+      "level none requires null evidence"
+    ]
+  },
+  "summary": {
+    "levels": {
+      "none": 849,
+      "candidate": 17,
+      "significant": 4,
+      "confirmed": 0
+    },
+    "flag_true_level_none": 0,
+    "flag_false_active_level": 0,
+    "missing_level": 0,
+    "invalid_level": 0,
+    "missing_flag": 0,
+    "proxy_evidence_issues": 0
+  },
+  "runs": [
+    {
+      "aoi": "mirabell",
+      "run_id": "a9419755-ced3-48c3-9d6d-57e17a7b6e7c",
+      "source": "gba",
+      "point_rows": 1481,
+      "building_rollups": 58,
+      "levels": {"none": 58, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "moosstrasse",
+      "run_id": "c1297b3e-daf1-4ac5-982c-0ed8611fec3c",
+      "source": "gba",
+      "point_rows": 1692,
+      "building_rollups": 147,
+      "levels": {"none": 138, "candidate": 6, "significant": 3, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "osthang",
+      "run_id": "d8aa1314-0709-4646-9536-8c30736f178e",
+      "source": "gba",
+      "point_rows": 616,
+      "building_rollups": 47,
+      "levels": {"none": 47, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_flat_01_snt",
+      "run_id": "ce87a736-128b-48ac-b5a5-ea95f5127574",
+      "source": "gba",
+      "point_rows": 1195,
+      "building_rollups": 82,
+      "levels": {"none": 81, "candidate": 1, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_slope_01_snt",
+      "run_id": "a7cd181e-b422-4d07-99c8-ddb8e8800252",
+      "source": "gba",
+      "point_rows": 717,
+      "building_rollups": 60,
+      "levels": {"none": 60, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_flat_01_tsx",
+      "run_id": "438ba411-dc5c-4f2b-b656-fd24d945bbf5",
+      "source": "gba",
+      "point_rows": 6750,
+      "building_rollups": 82,
+      "levels": {"none": 75, "candidate": 6, "significant": 1, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_slope_01_tsx",
+      "run_id": "bb685fc3-a0a8-452b-a6a6-a6a2b23e803b",
+      "source": "gba",
+      "point_rows": 4209,
+      "building_rollups": 63,
+      "levels": {"none": 63, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "moosstrasse_bev",
+      "run_id": "b4514e21-6643-410d-8daa-a870485e5150",
+      "source": "bev",
+      "point_rows": 1692,
+      "building_rollups": 176,
+      "levels": {"none": 172, "candidate": 4, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_slope_01_snt_bev",
+      "run_id": "b24b1e91-8f23-4fba-9b0a-11f7f809f863",
+      "source": "bev",
+      "point_rows": 717,
+      "building_rollups": 74,
+      "levels": {"none": 74, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    },
+    {
+      "aoi": "bg_slope_01_tsx_bev",
+      "run_id": "377393ca-54a5-4eb7-9cf0-56549d09b52c",
+      "source": "bev",
+      "point_rows": 4209,
+      "building_rollups": 81,
+      "levels": {"none": 81, "candidate": 0, "significant": 0, "confirmed": 0},
+      "flag_level_mismatches": 0,
+      "missing_or_invalid_levels": 0,
+      "proxy_evidence_issues": 0
+    }
+  ],
+  "anomalies": {
+    "flag_true_level_none": [],
+    "flag_false_active_level": [],
+    "missing_level": [],
+    "invalid_level": [],
+    "proxy_evidence": []
+  },
+  "limitations": [
+    "This is a read-only parity audit of persisted v4 baseline rollups, not a pipeline rerun.",
+    "No confirmed rollup exists in the ten pinned baselines, so the confirming_track rule has no positive persisted example in this audit."
+  ]
+}

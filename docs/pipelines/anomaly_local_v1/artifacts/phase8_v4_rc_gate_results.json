@@ -1,0 +1,210 @@
+{
+  "artifact": "phase8_v4_rc_gate_results",
+  "generated_at": "2026-07-10T13:22:20+02:00",
+  "status": "red",
+  "decision": "v4 RC geprüft, nicht akzeptiert",
+  "accepted": false,
+  "push_blocking": false,
+  "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+  "inputs": {
+    "prechange_parity": "phase8_v4_rc_prechange_parity.json",
+    "automated_smoke": "phase8_v4_rc_automated_smoke.json",
+    "noop": "phase8_v4_rc_noop_results.json",
+    "watch_items": "phase8_v4_rc_watch_items_survivors.json",
+    "visual_audit": "phase8_v4_rc_visual_audit.md"
+  },
+  "parity": {
+    "status": "green",
+    "phase": "persisted_v4_prechange",
+    "pinned_runs": 10,
+    "point_results": 23278,
+    "building_rollups": 870,
+    "flag_true_level_none": 0,
+    "flag_false_active_level": 0,
+    "missing_level": 0,
+    "invalid_level": 0,
+    "proxy_evidence_issues": 0
+  },
+  "pre_level_count": 62,
+  "pre_level_inventory": {
+    "unit": "persisted_runs",
+    "total_run_count": 82,
+    "level_run_count": 20,
+    "pre_level_run_count": 62,
+    "definition": "A run is a level run when at least one ml_point_results row has meta.building_rollup.differential_motion_level; otherwise it is a pre-level run.",
+    "derivation_sql": "WITH per_run AS (SELECT run_id, bool_or((meta->'building_rollup') ? 'differential_motion_level') AS has_level FROM ml_point_results GROUP BY run_id) SELECT count(*) AS total_runs, count(*) FILTER (WHERE has_level) AS level_runs, count(*) FILTER (WHERE NOT has_level) AS pre_level_runs FROM per_run;",
+    "total_point_result_count": 192223,
+    "level_point_result_count": 44584,
+    "pre_level_point_result_count": 147639,
+    "compatibility_contract": "Pre-level results are exposed with differential_motion_level=null and are not reinterpreted as none."
+  },
+  "differential_distribution": {
+    "none": 849,
+    "candidate": 17,
+    "significant": 4,
+    "confirmed": 0,
+    "missing": 0,
+    "active_total": 21,
+    "rollup_total": 870,
+    "prechange_equals_noop": true
+  },
+  "automated_smoke": {
+    "status": "green",
+    "check_count": 17,
+    "green_checks": 17,
+    "red_findings": 0,
+    "warning_count": 1,
+    "mutations": {
+      "ml_runs_started": 0,
+      "rebaselines": 0,
+      "database_writes": 0
+    },
+    "warning": {
+      "id": "point_mvt_latency",
+      "observed_response_seconds": 57.6,
+      "acceptance_threshold_defined": false,
+      "note": "Contract passed; performance remains a separate follow-up."
+    }
+  },
+  "noop": {
+    "status": "green",
+    "exit_code": 0,
+    "aoi_count": 10,
+    "identical_aoi_count": 10,
+    "all_identical": true,
+    "point_results": 23278,
+    "only_db": 0,
+    "only_harness": 0,
+    "differing": 0,
+    "missing_levels": 0,
+    "per_aoi": [
+      {"aoi": "mirabell", "points": 1481, "buildings": 58, "identical": true},
+      {"aoi": "moosstrasse", "points": 1692, "buildings": 147, "identical": true},
+      {"aoi": "osthang", "points": 616, "buildings": 47, "identical": true},
+      {"aoi": "bg_flat_01_snt", "points": 1195, "buildings": 82, "identical": true},
+      {"aoi": "bg_slope_01_snt", "points": 717, "buildings": 60, "identical": true},
+      {"aoi": "bg_flat_01_tsx", "points": 6750, "buildings": 82, "identical": true},
+      {"aoi": "bg_slope_01_tsx", "points": 4209, "buildings": 63, "identical": true},
+      {"aoi": "moosstrasse_bev", "points": 1692, "buildings": 176, "identical": true},
+      {"aoi": "bg_slope_01_snt_bev", "points": 717, "buildings": 74, "identical": true},
+      {"aoi": "bg_slope_01_tsx_bev", "points": 4209, "buildings": 81, "identical": true}
+    ],
+    "reference_label_metrics": {
+      "labels_evaluated": 82,
+      "foreign_caught": 20,
+      "foreign_in_annex": 0,
+      "annex_in_foreign": 0,
+      "foreign_in_main": 0,
+      "annex_separated": 2,
+      "annex_merged": 2,
+      "unclear": 30,
+      "roof_lost": 1,
+      "note": "annex_merged is transparent but not an automatic purity failure and is unchanged under no-op parity."
+    }
+  },
+  "watch_items": [
+    {
+      "building_id": "238100082",
+      "aoi": "bg_flat_01_snt",
+      "geometry_plausibility": "No separate close-up; persisted semantics are internally consistent.",
+      "cluster_kind": {"annex": "annex_weak", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "none",
+      "evidence": null,
+      "result_category": "confirmed"
+    },
+    {
+      "building_id": "238100082",
+      "aoi": "bg_flat_01_tsx",
+      "geometry_plausibility": "Overview is plausible, but the four annex points are not independently verifiable at this zoom.",
+      "cluster_kind": {"evidence": "annex_0", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "candidate",
+      "evidence": {"track": 70, "delta_mm_a": 1.53, "sigma_delta_mm_a": 1.55, "threshold_mm_a": 1.5},
+      "result_category": "consciously_tolerated"
+    },
+    {
+      "building_id": "96637447",
+      "aoi": "moosstrasse",
+      "geometry_plausibility": "No focused close-up of the two annex points; no new visual evidence supports an active differential level.",
+      "cluster_kind": {"evidence": "annex_0", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "candidate",
+      "evidence": {"track": 44, "delta_mm_a": 2.69, "sigma_delta_mm_a": 1.686, "threshold_mm_a": 1.5, "downgrades": []},
+      "result_category": "unclear",
+      "gate_status": "red"
+    },
+    {
+      "building_id": "96639519",
+      "aoi": "moosstrasse",
+      "geometry_plausibility": "Close-up plausibly separates the point groups at the building.",
+      "cluster_kind": {"evidence": "annex_0", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "candidate",
+      "evidence": {"track": 44, "delta_mm_a": -2.18, "sigma_delta_mm_a": 1.386, "threshold_mm_a": 1.5},
+      "result_category": "confirmed"
+    },
+    {
+      "building_id": "96955335",
+      "aoi": "moosstrasse",
+      "geometry_plausibility": "Localized groups are visible, but the three-point annex has no independent motion confirmation.",
+      "cluster_kind": {"evidence": "annex_0", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "significant",
+      "evidence": {"track": 95, "delta_mm_a": -3.96, "sigma_delta_mm_a": 1.244, "threshold_mm_a": 1.5, "confirming_track": null},
+      "result_category": "consciously_tolerated"
+    },
+    {
+      "building_id": "96959851",
+      "aoi": "moosstrasse",
+      "geometry_plausibility": "Building and separated annex are plausible; n=2 remains deliberately guarded.",
+      "cluster_kind": {"evidence": "annex_0", "foreign": "weak_support", "foreign_is_main": false},
+      "level": "candidate",
+      "evidence": {"track": 95, "delta_mm_a": -1.98, "sigma_delta_mm_a": 0.916, "threshold_mm_a": 1.5, "downgrades": ["small_n_guard"]},
+      "result_category": "confirmed"
+    }
+  ],
+  "visual_anchors": [
+    {"aoi": "mirabell", "building_id": "324384", "points": 214, "clusters": 6, "reliable_clusters": 2, "motion_mm_a": 0.35, "reliability": 0.90, "result_category": "confirmed"},
+    {"aoi": "osthang", "building_id": "150506168", "points": 47, "clusters": 6, "reliable_clusters": 2, "motion_mm_a": 0.83, "reliability": 0.88, "result_category": "confirmed"}
+  ],
+  "individual_gates": [
+    {"id": "prechange_parity", "status": "green", "reason": "10 runs, 23278 points and 870 rollups have no flag/level or proxy-evidence mismatch."},
+    {"id": "pre_level_compatibility", "status": "green", "reason": "62 pre-level runs remain nullable and are not reinterpreted as none."},
+    {"id": "automated_contract_smoke", "status": "green", "reason": "17/17 service, import, OpenAPI, JSON and MVT contract checks passed."},
+    {"id": "noop_parity", "status": "green", "reason": "10/10 AOIs are point-identical; only_db=0, only_harness=0, differing=0."},
+    {"id": "level_distribution_parity", "status": "green", "reason": "No-op distribution remains none=849, candidate=17, significant=4, confirmed=0, missing=0."},
+    {"id": "cluster_kind_purity", "status": "green", "reason": "foreign_in_annex=0, annex_in_foreign=0 and foreign_in_main=0."},
+    {"id": "historical_v3_ui_semantics", "status": "green", "reason": "Historical annex is explicitly labelled as a v3 classification without v4 confirmation."},
+    {"id": "watch_96637447_visual_acceptance", "status": "red", "reason": "Candidate +2.69 mm/a persists without new focused visual evidence; classification remains unclear."},
+    {"id": "bev_roof_retention", "status": "red", "reason": "Absolute roof-loss: moosstrasse_bev point NSVF80S01, track 95, reference building 96637447, state excluded."},
+    {"id": "overall_rc", "status": "red", "reason": "Two hard P0 findings remain; v4 RC geprüft, nicht akzeptiert."}
+  ],
+  "red_findings": [
+    {
+      "id": "unexpected_candidate_96637447",
+      "building_id": "96637447",
+      "level": "candidate",
+      "delta_mm_a": 2.69,
+      "reason": "No new focused visual evidence supports the candidate level."
+    },
+    {
+      "id": "bev_roof_loss_NSVF80S01",
+      "aoi": "moosstrasse_bev",
+      "code": "NSVF80S01",
+      "track": 95,
+      "reference_building_id": "96637447",
+      "state": "excluded",
+      "verdict": "roof_lost",
+      "reason": "GBA/BEV reference grading must be filtered source-specifically; no silent exception is accepted."
+    }
+  ],
+  "follow_ups": [
+    "Obtain a focused close-up and domain decision for the two 96637447 track-44 annex points; keep candidate or constrain to none explicitly.",
+    "Resolve R9 source-specific GBA/BEV reference grading for NSVF80S01 and rerun the RC gates without a silent exception.",
+    "Track the 57.6 s point-MVT latency in a separate performance ticket.",
+    "Keep annex_merged=2 visible; it is not an automatic purity failure and no no-op drift occurred."
+  ],
+  "harness_query_note": {
+    "semantic_equivalence_checked": true,
+    "aoi_source_combinations_checked": 7,
+    "candidates_excluded_by_bbox_prefilter": 0,
+    "bev_moos_explain_cost_reduction_factor": 24.5,
+    "point_mvt_warning_related": false
+  }
+}

@@ -1,0 +1,282 @@
+{
+  "artifact": "phase8_v4_rc_automated_smoke",
+  "generated_at": "2026-07-10T12:54:06+02:00",
+  "status": "green",
+  "scope": "read-only service, import, OpenAPI, JSON and MVT contract smoke",
+  "mutations": {
+    "ml_runs_started": 0,
+    "rebaselines": 0,
+    "database_writes": 0
+  },
+  "fixtures": {
+    "v4_run_id": "b4514e21-6643-410d-8daa-a870485e5150",
+    "v4_model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+    "area_id": "salzburg",
+    "dataset_id": "salzburg_snt",
+    "building_source": "bev",
+    "building_id": "{CB6475BD-5BC6-4C43-85A1-5BF8D306AF0F}",
+    "point_code": "O2BDQW501",
+    "point_track": 44,
+    "historical_run_id": "f2c4a59e-a4b1-46e1-ae8c-bf699e6f84ef",
+    "historical_model_set_version": "local_hdbscan_rulegate_v2_k2x",
+    "historical_building_source": "gba",
+    "historical_building_id": "143823101"
+  },
+  "checks": [
+    {
+      "id": "services.postgis",
+      "status": "green",
+      "evidence": {
+        "compose_service": "db",
+        "state": "Up 5 days",
+        "database": "insar",
+        "postgis_version": "3.4 USE_GEOS=1 USE_PROJ=1 USE_STATS=1",
+        "ml_runs": 81,
+        "ml_point_results": 192223,
+        "bev_buildings": 75717
+      }
+    },
+    {
+      "id": "services.mlflow",
+      "status": "green",
+      "evidence": {
+        "compose_service": "mlflow",
+        "state": "Up 4 days",
+        "url": "http://127.0.0.1:5001/health",
+        "http_status": 200,
+        "body": "OK"
+      }
+    },
+    {
+      "id": "services.frontend",
+      "status": "green",
+      "evidence": {
+        "url": "http://127.0.0.1:3000",
+        "http_status": 200,
+        "content_type": "text/html"
+      }
+    },
+    {
+      "id": "backend.health",
+      "status": "green",
+      "evidence": {
+        "url": "http://127.0.0.1:8000/api/health",
+        "http_status": 200,
+        "body": {
+          "status": "ok"
+        },
+        "note": "The backend root intentionally returns 404; /api/health is the health contract."
+      }
+    },
+    {
+      "id": "backend.registry_imports",
+      "status": "green",
+      "evidence": {
+        "pipelines": [
+          "anomaly_local_v1"
+        ],
+        "active_model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "cluster_kind_derivation": {
+          "standard": "standard",
+          "annex_0": "annex",
+          "foreign": "foreign"
+        },
+        "schema_flag_absent": true,
+        "schema_level_nullable": true
+      }
+    },
+    {
+      "id": "backend.pipeline_api",
+      "status": "green",
+      "evidence": {
+        "url": "http://127.0.0.1:8000/api/ml/pipelines",
+        "http_status": 200,
+        "body": {
+          "pipelines": [
+            "anomaly_local_v1"
+          ]
+        }
+      }
+    },
+    {
+      "id": "openapi.contract",
+      "status": "green",
+      "evidence": {
+        "url": "http://127.0.0.1:8000/openapi.json",
+        "http_status": 200,
+        "content_type": "application/json",
+        "bytes": 52068,
+        "differential_motion_flag_occurrences": 0,
+        "cluster_kind_occurrences": 3,
+        "cluster_kind_enum": [
+          "standard",
+          "annex",
+          "foreign"
+        ],
+        "differential_motion_level_enum": [
+          "none",
+          "candidate",
+          "significant",
+          "confirmed"
+        ],
+        "differential_motion_level_nullable_in": [
+          "MLBuildingAnalysis",
+          "MLBuildingVisualizationSummary"
+        ],
+        "cluster_kind_present_in": [
+          "MLPointAnalysis",
+          "MLBuildingPointSummary",
+          "MLBuildingClusterSummary"
+        ]
+      }
+    },
+    {
+      "id": "json.point",
+      "status": "green",
+      "evidence": {
+        "http_status": 200,
+        "response_status": "ready",
+        "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "cluster_id": "{CB6475BD-5BC6-4C43-85A1-5BF8D306AF0F}:t44:foreign",
+        "cluster_kind": "foreign",
+        "cluster_role": "weak_support",
+        "differential_motion_level": "none",
+        "differential_motion_flag_present": false
+      }
+    },
+    {
+      "id": "json.building",
+      "status": "green",
+      "evidence": {
+        "http_status": 200,
+        "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "differential_motion_level": "none",
+        "differential_motion_flag_present": false,
+        "cluster_kinds": [
+          "standard",
+          "foreign"
+        ],
+        "cluster_count": 2
+      }
+    },
+    {
+      "id": "json.building_points_geojson",
+      "status": "green",
+      "evidence": {
+        "http_status": 200,
+        "content_type": "application/json",
+        "feature_count": 2,
+        "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "sample_cluster_kind": "foreign",
+        "differential_motion_level_present": true,
+        "differential_motion_flag_present": false
+      }
+    },
+    {
+      "id": "json.building_context",
+      "status": "green",
+      "evidence": {
+        "http_status": 200,
+        "content_type": "application/json",
+        "cluster_hull_count": 0,
+        "differential_motion_level": "none",
+        "differential_motion_flag_present": false
+      }
+    },
+    {
+      "id": "json.historical_nullable_level",
+      "status": "green",
+      "evidence": {
+        "http_status": 200,
+        "model_set_version": "local_hdbscan_rulegate_v2_k2x",
+        "differential_motion_level": null,
+        "differential_motion_flag_present": false,
+        "cluster_kinds": [
+          "standard"
+        ]
+      }
+    },
+    {
+      "id": "mvt.points",
+      "status": "green",
+      "evidence": {
+        "url_suffix": "/api/ml/runs/b4514e21-6643-410d-8daa-a870485e5150/tiles/14/8784/5709.pbf",
+        "http_status": 200,
+        "content_type": "application/x-protobuf",
+        "bytes": 236118,
+        "cluster_kind_key_present": true,
+        "differential_motion_level_key_present": true,
+        "differential_motion_flag_key_present": false,
+        "foreign_value_present": true,
+        "annex_value_present": true,
+        "observed_response_seconds": 57.6
+      }
+    },
+    {
+      "id": "mvt.buildings",
+      "status": "green",
+      "evidence": {
+        "url_suffix": "/api/ml/runs/b4514e21-6643-410d-8daa-a870485e5150/buildings/14/8784/5709.pbf",
+        "http_status": 200,
+        "content_type": "application/x-protobuf",
+        "bytes": 33460,
+        "differential_motion_level_key_present": true,
+        "differential_motion_flag_key_present": false,
+        "cluster_kind_key_present": false,
+        "note": "cluster_kind is a point/cluster property; the aggregate building tile is not expected to expose it."
+      }
+    },
+    {
+      "id": "active_source.legacy_absence",
+      "status": "green",
+      "evidence": {
+        "source_files_scanned": 78,
+        "roots": [
+          "backend/app",
+          "frontend/src",
+          "explainers/src"
+        ],
+        "differential_motion_flag_hits": 0
+      }
+    },
+    {
+      "id": "historical_persistence.compatibility",
+      "status": "green",
+      "evidence": {
+        "total_ml_point_results": 192223,
+        "rows_with_historical_flag_in_meta": 175915,
+        "rows_with_level_in_meta": 44584,
+        "note": "Frozen historical meta remains in PostGIS by design. Active code, OpenAPI, JSON and MVT do not read or expose the removed field."
+      }
+    },
+    {
+      "id": "claude_mcp.persistent_config",
+      "status": "green",
+      "evidence": {
+        "toml_parse": "ok",
+        "command": "/home/wsl_user/.local/bin/claude",
+        "args": [
+          "--model",
+          "fable",
+          "--effort",
+          "xhigh",
+          "--permission-mode",
+          "bypassPermissions",
+          "mcp",
+          "serve"
+        ],
+        "startup_timeout_sec": 60,
+        "claude_version": "2.1.206",
+        "mcp_serve_help_exit": 0
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "id": "point_mvt_latency",
+      "severity": "warning",
+      "message": "The point MVT request succeeded with the correct contract but took approximately 57.6 seconds; no acceptance threshold was defined for this smoke."
+    }
+  ],
+  "red_findings": []
+}
