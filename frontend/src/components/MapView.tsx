@@ -775,6 +775,7 @@ export default function MapView() {
   const mlTileVersion = useAppStore((state) => state.mlTileVersion);
   const setMapBBox = useAppStore((state) => state.setMapBBox);
   const searchFocus = useAppStore((state) => state.searchFocus);
+  const hoveredRunBBox = useAppStore((state) => state.hoveredRunBBox);
   const configQuery = useAppConfig();
   const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
   const appConfigRef = useRef<NormalizedAppConfig>(appConfig);
@@ -1465,6 +1466,51 @@ export default function MapView() {
     selectedMlBuildingFocusPoint,
     styleVersion,
   ]);
+
+  // Gestrichelte BBox-Vorschau beim Hover ueber eine Run-Karte.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || styleVersion === 0 || !map.getStyle()) return;
+    const features =
+      hoveredRunBBox && hoveredRunBBox.length === 4
+        ? [
+            {
+              type: "Feature" as const,
+              properties: {},
+              geometry: {
+                type: "Polygon" as const,
+                coordinates: [
+                  [
+                    [hoveredRunBBox[0], hoveredRunBBox[1]],
+                    [hoveredRunBBox[2], hoveredRunBBox[1]],
+                    [hoveredRunBBox[2], hoveredRunBBox[3]],
+                    [hoveredRunBBox[0], hoveredRunBBox[3]],
+                    [hoveredRunBBox[0], hoveredRunBBox[1]],
+                  ],
+                ],
+              },
+            },
+          ]
+        : [];
+    addOrUpdateGeoJsonSource(map, "hovered_run_bbox", {
+      type: "FeatureCollection",
+      features,
+    });
+    if (!map.getLayer("hovered_run_bbox_line")) {
+      map.addLayer({
+        id: "hovered_run_bbox_line",
+        type: "line",
+        source: "hovered_run_bbox",
+        paint: {
+          "line-color": "#0c766e",
+          "line-width": 2,
+          "line-dasharray": [2, 2],
+          "line-opacity": 0.9,
+        },
+      });
+    }
+    map.triggerRepaint();
+  }, [hoveredRunBBox, styleVersion]);
 
   // Deep-Link-Auto-Fit (P7-B-W2-T0): wurde ein Gebaeude per URL angefordert
   // und liegt kein Kamera-Hash vor, einmalig auf die Gebaeudegeometrie

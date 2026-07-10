@@ -132,6 +132,10 @@ export type AppState = {
   timeseriesCollapsed: boolean;
   /** Aktiver Tab der linken Spalte; im Store, damit Karte/Inspector ihn oeffnen koennen. */
   activeLeftTab: "map" | "analysis";
+  /** BBox eines gehoverten Laufs (gestrichelte Vorschau auf der Karte). */
+  hoveredRunBBox: [number, number, number, number] | null;
+  /** Im Inspector geoeffneter Lauf; jede Karten-Selektion verdraengt ihn. */
+  inspectedRunId: string | null;
   setLayer: (key: SimpleLayerVisibilityKey, value: boolean) => void;
   setSelectedAreaId: (areaId: string) => void;
   setInsarTrackVisibility: (
@@ -170,6 +174,8 @@ export type AppState = {
   setSearchFocus: (focus: SearchFocus) => void;
   setTimeseriesCollapsed: (collapsed: boolean) => void;
   setActiveLeftTab: (tab: "map" | "analysis") => void;
+  setHoveredRunBBox: (bbox: [number, number, number, number] | null) => void;
+  setInspectedRunId: (runId: string | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -211,6 +217,8 @@ export const useAppStore = create<AppState>((set) => ({
   searchFocus: null,
   timeseriesCollapsed: false,
   activeLeftTab: "map",
+  hoveredRunBBox: null,
+  inspectedRunId: null,
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
   setSelectedAreaId: (areaId) =>
@@ -245,11 +253,14 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ filters: { ...state.filters, [key]: value } })),
   setFiltersEnabled: (enabled) => set(() => ({ filtersEnabled: enabled })),
   setSelection: (selection, options) =>
-    set(() => {
+    set((state) => {
       const keepFocus = options?.preserveMlBuildingFocus ?? false;
+      // Jede echte Karten-Selektion verdraengt den Run-Inspector.
+      const inspectedRunId = selection ? null : state.inspectedRunId;
       if (selection?.type === "building") {
         return {
           selection,
+          inspectedRunId,
           mlBuildingFocusSelection: selection,
           selectedMlBuildingFocusPoint: null,
           mlBuildingShowHulls: true,
@@ -259,10 +270,11 @@ export const useAppStore = create<AppState>((set) => ({
         };
       }
       if (keepFocus) {
-        return { selection };
+        return { selection, inspectedRunId };
       }
       return {
         selection,
+        inspectedRunId,
         mlBuildingFocusSelection: null,
         selectedMlBuildingFocusPoint: null,
         mlBuildingShowHulls: true,
@@ -366,4 +378,6 @@ export const useAppStore = create<AppState>((set) => ({
   setSearchFocus: (focus) => set(() => ({ searchFocus: focus })),
   setTimeseriesCollapsed: (collapsed) => set(() => ({ timeseriesCollapsed: collapsed })),
   setActiveLeftTab: (tab) => set(() => ({ activeLeftTab: tab })),
+  setHoveredRunBBox: (bbox) => set(() => ({ hoveredRunBBox: bbox })),
+  setInspectedRunId: (runId) => set(() => ({ inspectedRunId: runId })),
 }));

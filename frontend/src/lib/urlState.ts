@@ -183,6 +183,59 @@ export function applyUrlStateToStore(
   }
 }
 
+// Minimaler Write-back (Stage 4 des UX-Redesigns): Die Deep-Link-tragenden
+// Parameter `run`, `building`, `area` und `mlview` folgen dem Store-Zustand
+// per debounced history.replaceState. Bewusst kein pushState (keine
+// History-Flut) und keine weiteren Parameter; die Kamera bleibt im
+// MapLibre-Hash.
+let writebackStarted = false;
+
+export function startUrlWriteback(): void {
+  if (writebackStarted) return;
+  writebackStarted = true;
+
+  let timer: number | null = null;
+
+  const write = () => {
+    const state = useAppStore.getState();
+    const params = new URLSearchParams(window.location.search);
+
+    if (state.activeRunId) params.set("run", state.activeRunId);
+    else params.delete("run");
+
+    if (state.selection?.type === "building") {
+      params.set("building", `${state.selection.source}:${state.selection.id}`);
+    } else {
+      params.delete("building");
+    }
+
+    if (state.selectedAreaId) params.set("area", state.selectedAreaId);
+
+    if (state.mlView !== "cluster") params.set("mlview", state.mlView);
+    else params.delete("mlview");
+
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ""}${window.location.hash}`;
+    const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (next !== current) {
+      window.history.replaceState(window.history.state, "", next);
+    }
+  };
+
+  useAppStore.subscribe((state, previous) => {
+    if (
+      state.activeRunId === previous.activeRunId &&
+      state.selection === previous.selection &&
+      state.selectedAreaId === previous.selectedAreaId &&
+      state.mlView === previous.mlView
+    ) {
+      return;
+    }
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(write, 300);
+  });
+}
+
 export function consumeAutoFitUrlBuilding(): boolean {
   if (!autoFitUrlBuildingPending) return false;
   autoFitUrlBuildingPending = false;

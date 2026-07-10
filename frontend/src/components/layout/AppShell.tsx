@@ -10,7 +10,7 @@ import { Toaster } from "sonner";
 import InspectorPanel from "../InspectorPanel";
 import LayerPanel from "../LayerPanel";
 import MapView from "../MapView";
-import PipelinePanel from "../PipelinePanel";
+import RunManagerPanel from "../runs/RunManagerPanel";
 import SearchBox from "../SearchBox";
 import TimeseriesPanel from "../TimeseriesPanel";
 import {
@@ -66,7 +66,7 @@ export function AppShell() {
           className="!mt-0 h-full w-full min-h-0 min-w-0 flex data-[state=inactive]:hidden"
           forceMount
         >
-          <PipelinePanel />
+          <RunManagerPanel />
         </TabsContent>
       </div>
     </Tabs>

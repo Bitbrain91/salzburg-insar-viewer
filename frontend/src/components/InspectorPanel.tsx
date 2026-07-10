@@ -76,6 +76,7 @@ import {
   getTrackVisibilityKey,
   normalizeAppConfig,
 } from "../lib/configMetadata";
+import { RunInspector } from "./runs/RunInspector";
 import { buildGoogleEarthUrlForGeometry } from "../lib/googleEarth";
 import { mlPalette } from "../lib/mlPalette";
 import {
@@ -215,6 +216,7 @@ function matchesSelectedBuildingRunData(
 export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
   const activeRunId = useAppStore((state) => state.activeRunId);
+  const inspectedRunId = useAppStore((state) => state.inspectedRunId);
   const setActiveRunId = useAppStore((state) => state.setActiveRunId);
   const setSelection = useAppStore((state) => state.setSelection);
   const selectedMlBuildingFocusPoint = useAppStore(
@@ -2623,7 +2625,9 @@ export default function InspectorPanel() {
         <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
       </div>
 
-      {!selection && (
+      {!selection && inspectedRunId && <RunInspector runId={inspectedRunId} />}
+
+      {!selection && !inspectedRunId && (
         <div className="flex flex-1 flex-col gap-4">
           <div className="rounded-lg border border-border bg-gradient-to-br from-primary/8 via-card to-card p-5">
             <div className="flex items-start gap-3">
