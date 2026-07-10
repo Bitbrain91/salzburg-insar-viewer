@@ -136,6 +136,8 @@ export type AppState = {
   hoveredRunBBox: [number, number, number, number] | null;
   /** Im Inspector geoeffneter Lauf; jede Karten-Selektion verdraengt ihn. */
   inspectedRunId: string | null;
+  /** In der ClusterSection gehoverter Cluster (Hervorhebung der Huelle). */
+  hoveredClusterId: string | null;
   setLayer: (key: SimpleLayerVisibilityKey, value: boolean) => void;
   setSelectedAreaId: (areaId: string) => void;
   setInsarTrackVisibility: (
@@ -176,6 +178,7 @@ export type AppState = {
   setActiveLeftTab: (tab: "map" | "analysis") => void;
   setHoveredRunBBox: (bbox: [number, number, number, number] | null) => void;
   setInspectedRunId: (runId: string | null) => void;
+  setHoveredClusterId: (clusterId: string | null) => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -219,6 +222,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeLeftTab: "map",
   hoveredRunBBox: null,
   inspectedRunId: null,
+  hoveredClusterId: null,
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
   setSelectedAreaId: (areaId) =>
@@ -380,4 +384,5 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveLeftTab: (tab) => set(() => ({ activeLeftTab: tab })),
   setHoveredRunBBox: (bbox) => set(() => ({ hoveredRunBBox: bbox })),
   setInspectedRunId: (runId) => set(() => ({ inspectedRunId: runId })),
+  setHoveredClusterId: (clusterId) => set(() => ({ hoveredClusterId: clusterId })),
 }));

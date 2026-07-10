@@ -776,6 +776,7 @@ export default function MapView() {
   const setMapBBox = useAppStore((state) => state.setMapBBox);
   const searchFocus = useAppStore((state) => state.searchFocus);
   const hoveredRunBBox = useAppStore((state) => state.hoveredRunBBox);
+  const hoveredClusterId = useAppStore((state) => state.hoveredClusterId);
   const configQuery = useAppConfig();
   const appConfig = useMemo(() => normalizeAppConfig(configQuery.data), [configQuery.data]);
   const appConfigRef = useRef<NormalizedAppConfig>(appConfig);
@@ -786,7 +787,7 @@ export default function MapView() {
   const focusBuildingSelection = mlBuildingFocusSelection;
 
   const activeRunQuery = useQuery({
-    queryKey: ["map-ml-run-detail", activeRunId],
+    queryKey: ["ml-run-detail", activeRunId],
     queryFn: () => getMlRunDetail(activeRunId as string),
     enabled: Boolean(activeRunId),
     refetchInterval: activeRunId ? 5000 : false,
@@ -1466,6 +1467,27 @@ export default function MapView() {
     selectedMlBuildingFocusPoint,
     styleVersion,
   ]);
+
+  // Hervorhebung der Cluster-Huelle beim Hover ueber eine Cluster-Karte
+  // im Inspector (hoveredClusterId).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || styleVersion === 0 || !map.getStyle()) return;
+    if (!map.getLayer("ml_focus_hulls_line")) return;
+    map.setPaintProperty(
+      "ml_focus_hulls_line",
+      "line-width",
+      hoveredClusterId
+        ? ([
+            "case",
+            ["==", ["get", "cluster_id"], hoveredClusterId],
+            6,
+            3,
+          ] as unknown as number)
+        : 3
+    );
+    map.triggerRepaint();
+  }, [hoveredClusterId, styleVersion]);
 
   // Gestrichelte BBox-Vorschau beim Hover ueber eine Run-Karte.
   useEffect(() => {

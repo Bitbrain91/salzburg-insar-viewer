@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Eye, EyeOff, Play, RotateCcw, Star, X } from "lucide-react";
+import { BookOpen, ExternalLink, Play, X } from "lucide-react";
 import {
   useAppStore,
   type MlBuildingFocusPoint,
-  type MlBuildingPointFocusMode,
   type MlBuildingTrackFilter,
   type Selection,
 } from "../lib/store";
@@ -21,13 +20,12 @@ import {
   type MlBuildingAnalysis,
   type MlBuildingClusterSummary,
   type MlBuildingRunSummary,
-  type MlReliabilityPenalty,
-  type DifferentialMotionLevel,
 } from "../hooks/useApi";
 import {
   Badge,
   Button,
   CollapsibleSection,
+  EmptyState,
   HelpButton,
   SegmentedTabs,
   SummaryMetric,
@@ -36,7 +34,6 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Switch,
   Label as UiLabel,
   type SummaryMetricTone,
 } from "./ui";
@@ -46,7 +43,6 @@ import {
   type AttributeMetadata,
 } from "../lib/attributeMetadata";
 import {
-  differentialMotionLevelLabels,
   fmtBool,
   fmtNum,
   fmtPct,
@@ -61,35 +57,27 @@ import {
   formatRawValue,
   formatRetuningFlags,
   formatRunTimestamp,
-  formatSignedTrackMotion,
-  formatTrackNumberMap,
-  formatTrackStringMap,
-  sortTrackEntries,
 } from "../lib/formatters";
 import { metricAttributeHints, type AttributeHint } from "../lib/metricHints";
-import {
-  buildReliabilityReasons,
-  reliabilityReasonSummary,
-  reliabilityReasonVariant,
-} from "../lib/reliabilityReasons";
 import {
   getTrackVisibilityKey,
   normalizeAppConfig,
 } from "../lib/configMetadata";
 import { RunInspector } from "./runs/RunInspector";
+import { BuildingBefund } from "./inspector/building/BuildingBefund";
+import { PointVerdict } from "./inspector/point/PointVerdict";
+import { GlossarSheet } from "./inspector/shared/GlossarSheet";
+import { WhyPanel, type WhyReason } from "./inspector/shared/WhyPanel";
+import { deriveRunTitle } from "../lib/runName";
 import { buildGoogleEarthUrlForGeometry } from "../lib/googleEarth";
-import { mlPalette } from "../lib/mlPalette";
 import {
-  ML_CLUSTER_KIND_COLORS,
-  ML_CLUSTER_KIND_DESCRIPTIONS,
-  ML_CLUSTER_KIND_LABELS,
   V3_ANNEX_CLASSIFICATION_NOTE,
   formatMlClusterKindForModel,
   isV3ModelSetVersion,
   type MlClusterKind,
 } from "../lib/mlClusterKind";
 
-type InspectorTabId = "overview" | "metrics" | "ml" | "raw";
+type InspectorTabId = "befund" | "details" | "raw";
 
 type InspectorTabConfig = {
   id: InspectorTabId;
@@ -97,45 +85,17 @@ type InspectorTabConfig = {
 };
 
 const pointTabs: InspectorTabConfig[] = [
-  { id: "overview", label: "Überblick" },
-  { id: "metrics", label: "Messwerte" },
-  { id: "ml", label: "Diagnose" },
+  { id: "befund", label: "Befund" },
+  { id: "details", label: "Details" },
   { id: "raw", label: "Rohdaten" },
 ];
 
 const buildingTabs: InspectorTabConfig[] = [
-  { id: "overview", label: "Überblick" },
-  { id: "metrics", label: "Attribute" },
-  { id: "ml", label: "Diagnose" },
+  { id: "befund", label: "Befund" },
+  { id: "details", label: "Details" },
   { id: "raw", label: "Rohdaten" },
 ];
 
-const buildingPointFocusOptions: Array<{
-  id: MlBuildingPointFocusMode;
-  label: string;
-  title: string;
-}> = [
-  {
-    id: "run",
-    label: "Run",
-    title: "Alle Punkte des aktiven ML-Laufs anzeigen.",
-  },
-  {
-    id: "building",
-    label: "Gebaeude",
-    title: "Nur Punkte anzeigen, die diesem Gebaeude im aktiven Lauf zugeordnet wurden.",
-  },
-  {
-    id: "scored",
-    label: "Scoring",
-    title: "Nur nicht gate-ausgeschlossene Punkte dieses Gebaeudes anzeigen.",
-  },
-  {
-    id: "cluster",
-    label: "Cluster",
-    title: "Nur Core-Clusterpunkte dieses Gebaeudes anzeigen.",
-  },
-];
 
 const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string; digits?: number }> = [
   { key: "along_look_offset_m", label: "Look-Laengsversatz", unit: "m", digits: 1 },
@@ -148,17 +108,6 @@ const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string
 
 const focusAssignmentReasonKeys = new Set(["nearest_assignment"]);
 
-function clusterColor(
-  cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role" | "cluster_kind">
-) {
-  if (cluster.cluster_role === "excluded") return "#9aa0a6";
-  if (cluster.cluster_role === "noise") return "#c6372a";
-  if (cluster.cluster_role === "insufficient_support") return "#f2c14e";
-  if (cluster.cluster_kind === "annex") return ML_CLUSTER_KIND_COLORS.annex;
-  if (cluster.cluster_kind === "foreign") return ML_CLUSTER_KIND_COLORS.foreign;
-  const index = cluster.cluster_color_index ?? 0;
-  return mlPalette[((index % mlPalette.length) + mlPalette.length) % mlPalette.length];
-}
 
 type BuildingSelection = Extract<NonNullable<Selection>, { type: "building" }>;
 type EarthLosTrackOption = {
@@ -219,6 +168,7 @@ export default function InspectorPanel() {
   const inspectedRunId = useAppStore((state) => state.inspectedRunId);
   const setActiveRunId = useAppStore((state) => state.setActiveRunId);
   const setSelection = useAppStore((state) => state.setSelection);
+  const setActiveLeftTab = useAppStore((state) => state.setActiveLeftTab);
   const selectedMlBuildingFocusPoint = useAppStore(
     (state) => state.selectedMlBuildingFocusPoint
   );
@@ -253,8 +203,9 @@ export default function InspectorPanel() {
   );
   const setMlView = useAppStore((state) => state.setMlView);
   const [pointAnalysisRunId, setPointAnalysisRunId] = useState<string | null>(null);
-  const [activePointTab, setActivePointTab] = useState<InspectorTabId>("overview");
-  const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("overview");
+  const [activePointTab, setActivePointTab] = useState<InspectorTabId>("befund");
+  const [activeBuildingTab, setActiveBuildingTab] = useState<InspectorTabId>("befund");
+  const [glossarOpen, setGlossarOpen] = useState(false);
   const [earthViewKey, setEarthViewKey] = useState<string>(EARTH_TOP_VIEW_KEY);
   const selectionKey =
     selection?.type === "point"
@@ -333,8 +284,8 @@ export default function InspectorPanel() {
       : null;
 
   useEffect(() => {
-    setActivePointTab("overview");
-    setActiveBuildingTab("overview");
+    setActivePointTab("befund");
+    setActiveBuildingTab("befund");
   }, [selectionKey]);
 
   useEffect(() => {
@@ -351,7 +302,7 @@ export default function InspectorPanel() {
 
   useEffect(() => {
     if (selectedBuildingFocusPoint && selectedBuildingFocusPoint === selectedMlBuildingFocusPoint) {
-      setActiveBuildingTab("ml");
+      setActiveBuildingTab("befund");
     }
   }, [selectedBuildingFocusPoint, selectedMlBuildingFocusPoint]);
 
@@ -904,7 +855,7 @@ export default function InspectorPanel() {
     const focusPoint = buildFocusPointFromRecord(point, cluster);
     if (focusPoint) {
       selectMlBuildingFocusPoint(focusPoint);
-      setActiveBuildingTab("ml");
+      setActiveBuildingTab("befund");
     }
   };
 
@@ -926,60 +877,6 @@ export default function InspectorPanel() {
 
 
 
-  const renderReliabilityReasons = (analysis: MlBuildingAnalysis) => {
-    const reasons = buildReliabilityReasons(analysis);
-    const trackMotion = sortTrackEntries(analysis.track_motion_mm_a);
-    return (
-      <div className="grid gap-2">
-        {reasons.length ? (
-          <div className="grid gap-2">
-            {reasons.map((reason) => (
-              <div
-                key={reason.key}
-                className="rounded-md border border-border bg-card px-3 py-2 text-xs"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={reliabilityReasonVariant(reason.tone)}>
-                    {reason.label}
-                  </Badge>
-                </div>
-                <div className="mt-1.5 leading-relaxed text-muted-foreground">
-                  {reason.detail}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="pill">Keine Reliability-Abwertung gespeichert.</div>
-        )}
-
-        {trackMotion.length > 0 && (
-          <div className="rounded-md border border-border bg-secondary/50 px-3 py-2 text-xs">
-            <div className="section-title !mt-0">Trackvergleich</div>
-            <div className="grid gap-1">
-              {trackMotion.map(([track, value]) => (
-                <div
-                  key={track}
-                  className="grid grid-cols-[auto_minmax(0,1fr)] gap-2"
-                >
-                  <span className="font-mono text-muted-foreground">T{track}</span>
-                  <span className="font-semibold text-foreground">
-                    {formatSignedTrackMotion(value)}
-                  </span>
-                </div>
-              ))}
-              <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-                <span className="font-mono text-muted-foreground">Score</span>
-                <span className="font-semibold text-foreground">
-                  Track-Uebereinstimmung {fmtNum(analysis.track_agreement_score)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
 
   const formatRunLine = (run: MlBuildingRunSummary) =>
@@ -989,7 +886,7 @@ export default function InspectorPanel() {
   const activateBuildingRun = (runId: string) => {
     setActiveRunId(runId);
     setMlView("cluster");
-    setActiveBuildingTab("ml");
+    setActiveBuildingTab("befund");
   };
 
 
@@ -1092,7 +989,7 @@ export default function InspectorPanel() {
     );
   };
 
-  const renderPointOverview = () => {
+  const renderPointIdentity = () => {
     const point = pointQuery.data;
     if (!point) return null;
     const velocity = typeof point.velocity === "number" ? point.velocity : null;
@@ -1181,11 +1078,6 @@ export default function InspectorPanel() {
           />
         </div>
 
-        <div>
-          <div className="section-title">Aktiver ML-Lauf</div>
-          {renderActiveRunSummary()}
-          {renderPointMlStatus()}
-        </div>
       </div>
     );
   };
@@ -1263,123 +1155,6 @@ export default function InspectorPanel() {
     </>
   );
 
-  const renderPointMl = () => (
-    <div>
-      <div className="section-title">Aktiver ML-Lauf</div>
-      {renderActiveRunSummary()}
-      {renderPointMlStatus()}
-      {pointAnalysisRunId === activeRunId && mlPointAnalysis && (
-        <>
-          <div className="section-title">Punktanalyse</div>
-          {renderMetric("Label", fmtStr(mlPointAnalysis.label))}
-          {renderMetric("Qualitaetswert", fmtNum(mlPointAnalysis.quality_score))}
-          {renderMetric("Anomaliewert", fmtNum(mlPointAnalysis.anomaly_score))}
-          {renderMetric("Cross-Track-Konsistenz", fmtNum(mlPointAnalysis.cross_track_consistency))}
-          {renderMetric(
-            "Gebaeude",
-            `${fmtStr(mlPointAnalysis.building_source).toUpperCase()} / ${fmtStr(mlPointAnalysis.building_id)}`
-          )}
-          {renderMetric("Abstand zum Gebaeude", `${fmtNum(mlPointAnalysis.distance_m, 1)} m`)}
-          {renderMetric(
-            "Clusterrolle / Wahrscheinlichkeit",
-            `${fmtStr(mlPointAnalysis.cluster_role)} / ${fmtNum(mlPointAnalysis.cluster_probability)}`
-          )}
-          {renderMetric("Cluster-Ausreisserwert", fmtNum(mlPointAnalysis.cluster_outlier_score))}
-          {renderMetric(
-            "Fuer Scoring genutzt",
-            mlPointAnalysis.kept_for_scoring === null
-              ? "—"
-              : mlPointAnalysis.kept_for_scoring
-                ? "ja"
-                : "nein"
-          )}
-          {renderMetric(
-            "Gate-Gruende",
-            mlPointAnalysis.gate_reasons.length > 0 ? mlPointAnalysis.gate_reasons.join(", ") : "—"
-          )}
-          <div className="section-title">Gebaeudekontext</div>
-          {renderMetric(
-            "Zuordnung",
-            fmtStr(
-              typeof mlPointAnalysis.building_context.assignment_method === "string"
-                ? mlPointAnalysis.building_context.assignment_method
-                : null
-            )
-          )}
-          {renderMetric(
-            "Track-Stuetzung",
-            fmtNum(getNumber(mlPointAnalysis.building_context.track_point_count), 0)
-          )}
-          {renderMetric("Step-Stuetzung", fmtNum(getNumber(mlPointAnalysis.building_context.step_support)))}
-          {renderMetric(
-            "Detektorwerte",
-            Object.entries(mlPointAnalysis.detector_scores)
-              .map(([key, value]) => `${key} ${fmtNum(value)}`)
-              .join(" / ") || "—"
-          )}
-          {renderMetric(
-            "Degradierungsgrund",
-            fmtStr(
-              typeof mlPointAnalysis.feature_flags.degraded_reason === "string"
-                ? mlPointAnalysis.feature_flags.degraded_reason
-                : null
-            )
-          )}
-          {showPointNeighbourhood && (
-            <>
-              <div className="section-title">Nachbarschaft</div>
-              {renderMetric(
-                "Kontext",
-                mlPointNeighbourhood?.context_available
-                  ? `${fmtNum(mlPointNeighbourhood.candidate_neighbour_count, 0)} Kandidaten / ${fmtNum(
-                      mlPointNeighbourhood.eligible_neighbour_cluster_count,
-                      0
-                    )} geeignet`
-                  : "nicht verfuegbar"
-              )}
-              {renderMetric(
-                "Bester Nachbar",
-                `${fmtStr(mlPointNeighbourhood?.best_neighbour_building_id)} / ${fmtStr(
-                  mlPointNeighbourhood?.best_neighbour_cluster_id
-                )}`
-              )}
-              {renderMetric(
-                "Fit eigen / Nachbar / Delta",
-                `${fmtNum(mlPointNeighbourhood?.own_cluster_fit_score)} / ${fmtNum(
-                  mlPointNeighbourhood?.neighbour_fit_score
-                )} / ${fmtNum(mlPointNeighbourhood?.neighbour_fit_delta)}`
-              )}
-              {renderMetric(
-                "Fehlzuordnung / schwacher Eigenfit",
-                `${fmtBool(mlPointNeighbourhood?.neighbour_misassignment_flag)} / ${fmtBool(
-                  mlPointNeighbourhood?.own_fit_weak_flag
-                )}`
-              )}
-              {renderMetric(
-                "Nachbarereignis",
-                `${fmtBool(mlPointNeighbourhood?.neighbour_event_flag)} / ${fmtNum(
-                  mlPointNeighbourhood?.neighbour_event_score
-                )} / ${fmtNum(mlPointNeighbourhood?.supporting_neighbour_count, 0)} Stuetzung`
-              )}
-            </>
-          )}
-          <div className="section-title">Wichtigste Gruende</div>
-          {mlPointAnalysis.explain_top_features.length > 0 ? (
-            mlPointAnalysis.explain_top_features.map((reason) =>
-              renderMetric(
-                reason.summary,
-                fmtNum(reason.severity),
-                "Beitrag zur Punktbewertung.",
-                `reason-${reason.key}`
-              )
-            )
-          ) : (
-            <div className="pill">Keine Hauptgruende fuer diesen Punkt gespeichert.</div>
-          )}
-        </>
-      )}
-    </div>
-  );
 
   const renderPointRaw = () => {
     const point = pointQuery.data;
@@ -1392,11 +1167,184 @@ export default function InspectorPanel() {
     );
   };
 
+  const activeRunTitle = activeRunQuery.data
+    ? deriveRunTitle(activeRunQuery.data, {
+        areaLabel: appConfig.areas.find(
+          (area) => area.id === activeRunQuery.data?.area_id
+        )?.label,
+      })
+    : activeRunId
+      ? activeRunId.slice(0, 8)
+      : "—";
+
+  const openBuildingFromPointAnalysis = () => {
+    if (!mlPointAnalysis?.building_id || !mlPointAnalysis.building_source) return;
+    const source = mlPointAnalysis.building_source;
+    if (source !== "bev" && source !== "gba" && source !== "osm") return;
+    const areaId =
+      mlPointAnalysis.area_id ??
+      (selection?.type === "point" ? selection.areaId : null);
+    if (!areaId) return;
+    setSelection({
+      type: "building",
+      source,
+      id: String(mlPointAnalysis.building_id),
+      areaId,
+    });
+  };
+
+  const pointWhyReasons: WhyReason[] = (mlPointAnalysis?.explain_top_features ?? []).map(
+    (item) => ({
+      key: `${item.key}-${item.summary}`,
+      label: formatFocusReasonKey(item.key),
+      detail: item.summary,
+      tone: item.severity >= 0.5 ? "bad" : item.severity >= 0.25 ? "warning" : "neutral",
+    })
+  );
+
+  const renderNoMlEmptyState = () => (
+    <EmptyState
+      title="Keine ML-Bewertung aktiv"
+      message="Aktivieren Sie links einen Lauf, der dieses Gebiet abdeckt, oder starten Sie eine neue Auswertung."
+      action={
+        <Button size="sm" variant="secondary" onClick={() => setActiveLeftTab("analysis")}>
+          Zur Run-Verwaltung
+        </Button>
+      }
+    />
+  );
+
+  const renderPointBefund = () => {
+    const point = pointQuery.data;
+    if (!point) return null;
+    return (
+      <div className="flex flex-col gap-4">
+        {renderPointIdentity()}
+        {pointAnalysisRunId === activeRunId && mlPointAnalysis ? (
+          <>
+            <PointVerdict
+              analysis={mlPointAnalysis}
+              runTitle={activeRunTitle}
+              onOpenBuilding={openBuildingFromPointAnalysis}
+            />
+            <WhyPanel
+              title="Warum diese Punktbewertung?"
+              reasons={pointWhyReasons}
+              maxVisible={3}
+              emptyText="Keine Bewertungsgründe für diesen Punkt gespeichert."
+              sectionKey={`point-why-${selectionKey}-${activeRunId ?? "none"}`}
+            />
+          </>
+        ) : activeRunId ? (
+          <div>
+            <div className="section-title">Aktiver ML-Lauf</div>
+            {renderActiveRunSummary()}
+            {renderPointMlStatus()}
+          </div>
+        ) : (
+          renderNoMlEmptyState()
+        )}
+      </div>
+    );
+  };
+
+  const renderPointDetails = () => {
+    const point = pointQuery.data;
+    if (!point) return null;
+    const analysis = pointAnalysisRunId === activeRunId ? mlPointAnalysis : null;
+    return (
+      <div className="flex flex-col gap-4">
+        {renderPointMetrics()}
+        {analysis && (
+          <CollapsibleSection
+            title="ML-Modellwerte"
+            defaultOpen
+            key={`pd-ml-${selectionKey}-${activeRunId ?? "none"}`}
+          >
+            <p className="text-xs leading-snug text-muted-foreground">
+              Rohgrößen der Punktbewertung im aktiven Lauf.
+            </p>
+            {renderMetric("Cross-Track-Konsistenz", fmtNum(analysis.cross_track_consistency))}
+            {renderMetric("Clusterrolle", fmtStr(analysis.cluster_role))}
+            {renderMetric("Cluster-Wahrscheinlichkeit", fmtNum(analysis.cluster_probability))}
+            {renderMetric("Cluster-Ausreisserwert", fmtNum(analysis.cluster_outlier_score))}
+            {renderMetric("Fuer Scoring genutzt", fmtBool(analysis.kept_for_scoring))}
+            {renderMetric(
+              "Gate-Gruende",
+              analysis.gate_reasons.length > 0
+                ? analysis.gate_reasons.map((reason) => formatFocusReasonKey(reason)).join(" · ")
+                : "—"
+            )}
+            {renderMetric(
+              "Zuordnung",
+              formatAssignmentMethod(
+                typeof analysis.building_context.assignment_method === "string"
+                  ? analysis.building_context.assignment_method
+                  : null
+              )
+            )}
+            {renderMetric(
+              "Track-Stuetzung",
+              fmtNum(getNumber(analysis.building_context.track_point_count), 0)
+            )}
+            {renderMetric(
+              "Step-Stuetzung",
+              fmtNum(getNumber(analysis.building_context.step_support))
+            )}
+            {Object.entries(analysis.detector_scores).map(([key, value]) =>
+              renderMetric(formatFocusDetectorKey(key), fmtNum(value), undefined, `pd-det-${key}`)
+            )}
+            {renderMetric(
+              "Degradierungsgrund",
+              fmtStr(
+                typeof analysis.feature_flags.degraded_reason === "string"
+                  ? analysis.feature_flags.degraded_reason
+                  : null
+              )
+            )}
+          </CollapsibleSection>
+        )}
+        {analysis && showPointNeighbourhood && (
+          <CollapsibleSection
+            title="Nachbarschaft"
+            defaultOpen
+            key={`pd-nb-${selectionKey}-${activeRunId ?? "none"}`}
+          >
+            <p className="text-xs leading-snug text-muted-foreground">
+              Vergleich mit Clustern benachbarter Gebäude.
+            </p>
+            {renderMetric(
+              "Kontext",
+              mlPointNeighbourhood?.context_available
+                ? `${fmtNum(mlPointNeighbourhood.candidate_neighbour_count, 0)} Kandidaten / ${fmtNum(
+                    mlPointNeighbourhood.eligible_neighbour_cluster_count,
+                    0
+                  )} geeignet`
+                : "nicht verfuegbar"
+            )}
+            {renderMetric("Bester Nachbar (Gebäude)", fmtStr(mlPointNeighbourhood?.best_neighbour_building_id))}
+            {renderMetric("Bester Nachbar (Cluster)", fmtStr(mlPointNeighbourhood?.best_neighbour_cluster_id))}
+            {renderMetric("Fit eigener Cluster", fmtNum(mlPointNeighbourhood?.own_cluster_fit_score))}
+            {renderMetric("Fit bester Nachbar", fmtNum(mlPointNeighbourhood?.neighbour_fit_score))}
+            {renderMetric("Fit-Differenz", fmtNum(mlPointNeighbourhood?.neighbour_fit_delta))}
+            {renderMetric("Fehlzuordnungs-Flag", fmtBool(mlPointNeighbourhood?.neighbour_misassignment_flag))}
+            {renderMetric("Schwacher Eigenfit", fmtBool(mlPointNeighbourhood?.own_fit_weak_flag))}
+            {renderMetric("Nachbarereignis", fmtBool(mlPointNeighbourhood?.neighbour_event_flag))}
+            {renderMetric("Ereignis-Score", fmtNum(mlPointNeighbourhood?.neighbour_event_score))}
+            {renderMetric(
+              "Stützende Nachbarn",
+              fmtNum(mlPointNeighbourhood?.supporting_neighbour_count, 0)
+            )}
+          </CollapsibleSection>
+        )}
+      </div>
+    );
+  };
+
   const renderPointContent = () => {
-    if (activePointTab === "metrics") return renderPointMetrics();
-    if (activePointTab === "ml") return renderPointMl();
+    if (activePointTab === "details") return renderPointDetails();
     if (activePointTab === "raw") return renderPointRaw();
-    return renderPointOverview();
+    return renderPointBefund();
   };
 
   const renderReliabilityBadge = (band?: string | null) => {
@@ -1482,33 +1430,6 @@ export default function InspectorPanel() {
     );
   };
 
-  const renderBuildingRunsCompact = () => {
-    if (buildingRunsQuery.isLoading) {
-      return <div className="pill">Gebaeude-Runs werden geladen...</div>;
-    }
-    if (buildingRunsQuery.isError) {
-      return <div className="pill warning">Run-Historie konnte nicht geladen werden.</div>;
-    }
-    const runs = buildingRunsQuery.data ?? [];
-    if (!runs.length) {
-      return <div className="pill">Dieses Gebaeude ist in keinem abgeschlossenen ML-Lauf enthalten.</div>;
-    }
-    const preferredRun = runs.find((run) => run.run_id === activeRunId) ?? runs[0];
-    return (
-      <div className="grid gap-2">
-        {renderBuildingRunItem(preferredRun, true)}
-        {runs.length > 1 && (
-          <button
-            type="button"
-            className="text-left text-xs font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded-sm"
-            onClick={() => setActiveBuildingTab("ml")}
-          >
-            {runs.length - 1} weitere ML-Runs in der Diagnose anzeigen
-          </button>
-        )}
-      </div>
-    );
-  };
 
   const renderBuildingRunsFull = () => {
     if (buildingRunsQuery.isLoading) {
@@ -1524,75 +1445,7 @@ export default function InspectorPanel() {
     return <div className="grid gap-2">{runs.map((run) => renderBuildingRunItem(run, true))}</div>;
   };
 
-  const renderActiveBuildingRunCompact = () => {
-    const runs = buildingRunsQuery.data ?? [];
-    const run = runs.find((candidate) => candidate.run_id === activeRunId);
-    if (run) {
-      return renderBuildingRunItem(run, true);
-    }
-    return renderActiveRunSummary();
-  };
 
-  const renderBuildingOverview = () => {
-    const building = buildingDetailQuery.data;
-    const analysis = mlBuildingAnalysis;
-    const reliabilityReasons = analysis ? buildReliabilityReasons(analysis) : [];
-    if (!building) return null;
-    return (
-      <div>
-        <div className="section-title">Gebaeude-Kurzueberblick</div>
-        {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebaeudeobjekts.")}
-        {renderMetric("Gebaeude-ID", building.id)}
-        {renderMetric("Adresse", fmtBuildingAddress(building.address), getBuildingAddressHelp(building.address))}
-        {renderMetric("Gebaeudehoehe", building.height === null ? "—" : `${building.height.toFixed(1)} m`)}
-        {building.source === "bev" && (
-          <>
-            {renderMetric(
-              "Hoehe Median / Max",
-              `${fmtNum(building.height_median_m, 1)} / ${fmtNum(building.height_max_m, 1)} m`
-            )}
-            {renderMetric("Traufhoehe", `${fmtNum(building.height_eaves_m, 1)} m`)}
-            {renderMetric("Hoehenqualitaet", fmtStr(building.height_quality))}
-            {renderMetric("Bauwerksfunktion", fmtStr(building.building_function))}
-            {renderMetric("AGWR-Objekt", fmtStr(building.agwr_object_number))}
-          </>
-        )}
-        {renderMetric("Name", fmtStr(building.name))}
-        {renderMetric("Typ", fmtStr(building.building_type))}
-        <div className="section-title">ML-Runs fuer dieses Gebaeude</div>
-        {renderBuildingRunsCompact()}
-        <div className="section-title">Aktiver ML-Befund</div>
-        {analysis ? (
-          <>
-            {renderMetric("Bewegung", `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr`)}
-            {renderMetric(
-              "Zuverlaessigkeit",
-              `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
-            )}
-            {reliabilityReasons.length > 0 && renderMetric("Hauptgrund", reliabilityReasonSummary(analysis))}
-            {renderMetric("Status", fmtStr(analysis.building_status))}
-            {renderMetric(
-              "Punkte behalten / ausgeschlossen / Rauschen",
-              `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
-            )}
-            {activeRunId && mlBuildingAnalysisQuery.isLoading && (
-              <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
-            )}
-          </>
-        ) : (
-          <>
-            {renderActiveRunSummary()}
-            {activeRunId && mlBuildingAnalysisQuery.isLoading && (
-              <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
-            )}
-            {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
-              <div className="pill warning">Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.</div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  };
 
   const renderBuildingMetrics = () => {
     const building = buildingDetailQuery.data;
@@ -1669,7 +1522,7 @@ export default function InspectorPanel() {
       },
       { preserveMlBuildingFocus: true }
     );
-    setActivePointTab("ml");
+    setActivePointTab("befund");
   };
 
   const endBuildingFocus = () => {
@@ -2022,523 +1875,8 @@ export default function InspectorPanel() {
     );
   };
 
-  const renderClusterPointList = (cluster: MlBuildingClusterSummary) => {
-    if (mlBuildingPointsQuery.isLoading) {
-      return <div className="mt-2 text-xs text-muted-foreground">Punktliste wird geladen...</div>;
-    }
-    const points = buildingPointsByCluster.get(cluster.cluster_id) ?? [];
-    if (!points.length) {
-      return <div className="mt-2 text-xs text-muted-foreground">Keine Punktliste fuer dieses Cluster geladen.</div>;
-    }
-    const labelCounts = points.reduce<Record<string, number>>((acc, point) => {
-      const label = typeof point.label === "string" && point.label ? point.label : "unlabeled";
-      acc[label] = (acc[label] ?? 0) + 1;
-      return acc;
-    }, {});
-    return (
-      <details className="mt-2 rounded-md border border-border bg-card px-2 py-1.5">
-        <summary className="cursor-pointer text-xs font-semibold text-foreground">
-          {points.length} Punkte anzeigen · {formatLabelCounts(labelCounts)}
-        </summary>
-        <div className="mt-2 grid max-h-48 gap-1 overflow-auto pr-1">
-          {points.map((point) => {
-            const code = fmtStr(point.code as string | number | null | undefined);
-            const track = fmtStr(point.track as string | number | null | undefined);
-            const quality = getNumber(point.quality_score);
-            const anomaly = getNumber(point.anomaly_score);
-            const label = fmtStr(point.label as string | number | null | undefined);
-            const isSelected = isSelectedFocusPointRecord(point);
-            return (
-              <button
-                key={`${code}-${track}`}
-                type="button"
-                className={`grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-sm border px-2 py-1 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  isSelected
-                    ? "border-primary bg-primary/10"
-                    : "border-border/70 bg-secondary hover:border-primary/50"
-                }`}
-                onClick={() => selectFocusPointFromRecord(point, cluster)}
-              >
-                <span className="min-w-0 break-all font-mono text-foreground">
-                  {code} · T{track}
-                </span>
-                <span className="font-mono text-muted-foreground">
-                  {label} · Q {fmtNum(quality)} · A {fmtNum(anomaly)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </details>
-    );
-  };
 
-  const renderBuildingClusterControls = (analysis: MlBuildingAnalysis) => {
-    if (!isActiveLocalAnomalyRun || !mlBuildingAnalysis || selection?.type !== "building") {
-      return null;
-    }
-    const clusters = analysis.clusters;
-    const isV3Model = isV3ModelSetVersion(analysis.model_set_version);
-    const hasAnnexCluster = clusters.some((cluster) => cluster.cluster_kind === "annex");
-    const clusterIds = clusters.map((cluster) => cluster.cluster_id);
-    const clusterPointCount = clusters
-      .filter((cluster) => cluster.cluster_role === "core")
-      .reduce((sum, cluster) => sum + cluster.point_count, 0);
-    const visibleSet =
-      mlBuildingVisibleClusterIds === null ? null : new Set(mlBuildingVisibleClusterIds);
-    const effectiveShowExcluded =
-      mlBuildingPointFocusMode === "scored" || mlBuildingPointFocusMode === "cluster"
-        ? false
-        : mlBuildingShowExcluded;
-    const effectiveShowNoise =
-      mlBuildingPointFocusMode === "cluster" ? false : mlBuildingShowNoise;
-    const isClusterVisible = (cluster: MlBuildingClusterSummary) =>
-      (mlBuildingPointFocusMode !== "cluster" || cluster.cluster_role === "core") &&
-      (visibleSet === null || visibleSet.has(cluster.cluster_id)) &&
-      (effectiveShowNoise || cluster.cluster_role !== "noise");
-    const visibleClusterCount = clusters.filter(isClusterVisible).length;
-    const mainClusterIds = new Set(
-      clusters.filter((cluster) => cluster.is_main_cluster).map((cluster) => cluster.cluster_id)
-    );
-    const isClusterFilterActive = mlBuildingVisibleClusterIds !== null;
-    const hasNoisePoints = analysis.noise_point_count > 0;
-    const focusOptions = buildingPointFocusOptions.map((option) => ({
-      ...option,
-      count:
-        option.id === "building"
-          ? analysis.point_count
-          : option.id === "scored"
-            ? analysis.kept_point_count
-            : option.id === "cluster"
-              ? clusterPointCount
-              : undefined,
-    }));
-    return (
-      <>
-        <div className="section-title">Gebaeude-Clusteransicht</div>
-        <div className="flex flex-wrap gap-2">
-          <div className="pill">
-            {clusters.length
-              ? `${visibleClusterCount} von ${clusters.length} Clustern sichtbar`
-              : "Keine Cluster fuer diesen aktiven Lauf vorhanden."}
-          </div>
-          {mlBuildingPointFocusMode === "run" && (
-            <div className="pill">Alle Run-Punkte im Hintergrund sichtbar</div>
-          )}
-          {mlBuildingPointFocusMode !== "run" && (
-            <div className="pill">Nur fokussierte Gebaeudepunkte sichtbar</div>
-          )}
-          {!effectiveShowNoise && <div className="pill warning">Rauschen ausgeblendet</div>}
-          {!effectiveShowExcluded && (
-            <div className="pill warning">Gate-ausgeschlossene Punkte ausgeblendet</div>
-          )}
-          {isV3Model && hasAnnexCluster && (
-            <div className="pill warning">Annex: {V3_ANNEX_CLASSIFICATION_NOTE}</div>
-          )}
-        </div>
-        <div className="space-y-1.5 my-2">
-          <UiLabel>Kartenfokus</UiLabel>
-          <SegmentedTabs
-            options={focusOptions}
-            value={mlBuildingPointFocusMode}
-            onChange={setMlBuildingPointFocusMode}
-            ariaLabel="Kartenfokus fuer Gebaeude-ML-Punkte"
-            compact
-            layout="grid"
-          />
-        </div>
-        <div className="space-y-1.5 my-2">
-          <UiLabel htmlFor="track-filter-select">Track-Filter</UiLabel>
-          <Select
-            value={mlBuildingTrackFilter}
-            onValueChange={(value) =>
-              setMlBuildingTrackFilter(value as MlBuildingTrackFilter)
-            }
-          >
-            <SelectTrigger id="track-filter-select">
-              <SelectValue placeholder="Track-Filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Alle Tracks</SelectItem>
-              {mlBuildingTrackOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="my-2 flex flex-wrap gap-2" aria-label="Legende der Cluster-Typen">
-          {(["standard", "annex", "foreign"] as const).map((kind) => (
-            <span
-              key={kind}
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-              title={ML_CLUSTER_KIND_DESCRIPTIONS[kind]}
-            >
-              <span
-                className="h-3 w-3 rounded-sm border border-white shadow-sm"
-                style={{
-                  backgroundColor:
-                    kind === "standard" ? mlPalette[0] : ML_CLUSTER_KIND_COLORS[kind],
-                }}
-                aria-hidden="true"
-              />
-              {kind === "annex" && isV3Model
-                ? `${ML_CLUSTER_KIND_LABELS[kind]} – ${V3_ANNEX_CLASSIFICATION_NOTE}`
-                : ML_CLUSTER_KIND_LABELS[kind]}
-            </span>
-          ))}
-        </div>
-        <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
-          <span className="min-w-0 text-sm leading-snug text-foreground">
-            Gate-ausgeschlossene Punkte anzeigen
-          </span>
-          <Switch
-            checked={effectiveShowExcluded}
-            onCheckedChange={setMlBuildingShowExcluded}
-            disabled={mlBuildingPointFocusMode === "scored" || mlBuildingPointFocusMode === "cluster"}
-          />
-        </label>
-        <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
-          <span className="min-w-0 text-sm leading-snug text-foreground">
-            Cluster-Huellen anzeigen
-          </span>
-          <Switch
-            checked={mlBuildingShowHulls}
-            onCheckedChange={setMlBuildingShowHulls}
-          />
-        </label>
-        {clusters.length > 0 && (
-          <div className="mt-3 grid gap-2">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={resetMlBuildingClusterVisibility}
-                disabled={
-                  !isClusterFilterActive &&
-                  (mlBuildingPointFocusMode === "cluster" || effectiveShowNoise)
-                }
-              >
-                <RotateCcw aria-hidden="true" />
-                Alle anzeigen
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() =>
-                  setMlBuildingVisibleClusterIds(
-                    clusterIds.filter((clusterId) => mainClusterIds.has(clusterId))
-                  )
-                }
-                disabled={mainClusterIds.size === 0}
-              >
-                <Star aria-hidden="true" />
-                Nur Hauptcluster
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="secondary"
-                onClick={() => setMlBuildingShowNoise(!mlBuildingShowNoise)}
-                disabled={!hasNoisePoints || mlBuildingPointFocusMode === "cluster"}
-              >
-                {effectiveShowNoise ? (
-                  <EyeOff aria-hidden="true" />
-                ) : (
-                  <Eye aria-hidden="true" />
-                )}
-                {effectiveShowNoise ? "Rauschen ausblenden" : "Rauschen anzeigen"}
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={endBuildingFocus}>
-                <X aria-hidden="true" />
-                Fokus beenden
-              </Button>
-            </div>
-            <div className="grid gap-2">
-              {clusters.map((cluster) => {
-                const isVisible = isClusterVisible(cluster);
-                return (
-                  <div
-                    key={`${cluster.track}-${cluster.cluster_id}`}
-                    className={`rounded-md border p-2.5 ${
-                      isVisible ? "border-border bg-card" : "border-border bg-secondary/60 opacity-70"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
-                        <span
-                          className="mt-1 h-3.5 w-3.5 rounded-sm border border-white shadow-sm"
-                          style={{ backgroundColor: clusterColor(cluster) }}
-                          aria-hidden="true"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                            <span className="min-w-0 break-all font-mono text-xs font-bold text-foreground">
-                              {cluster.cluster_id}
-                            </span>
-                            {cluster.is_main_cluster && <Badge>Hauptcluster</Badge>}
-                            <Badge variant="secondary">T{cluster.track}</Badge>
-                            <Badge
-                              variant="secondary"
-                              title={`${ML_CLUSTER_KIND_DESCRIPTIONS[cluster.cluster_kind]}${
-                                cluster.cluster_kind === "annex" && isV3Model
-                                  ? ` ${V3_ANNEX_CLASSIFICATION_NOTE}.`
-                                  : ""
-                              }`}
-                            >
-                              {formatMlClusterKindForModel(
-                                cluster.cluster_kind,
-                                analysis.model_set_version
-                              )}
-                            </Badge>
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {cluster.cluster_role} · Rang {fmtStr(cluster.cluster_rank)}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant={isVisible ? "outline" : "secondary"}
-                        className="h-8 w-8"
-                        onClick={() =>
-                          toggleMlBuildingClusterVisibility(cluster.cluster_id, clusterIds)
-                        }
-                        aria-label={isVisible ? "Cluster ausblenden" : "Cluster anzeigen"}
-                        title={isVisible ? "Cluster ausblenden" : "Cluster anzeigen"}
-                      >
-                        {isVisible ? (
-                          <EyeOff aria-hidden="true" className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setMlBuildingVisibleClusterIds([cluster.cluster_id]);
-                          if (cluster.cluster_role === "noise") {
-                            setMlBuildingShowNoise(true);
-                          }
-                        }}
-                      >
-                        <Star aria-hidden="true" />
-                        Nur dieses Cluster
-                      </Button>
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-                      <div className="rounded-sm bg-secondary px-2 py-1">
-                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
-                          Punkte
-                        </span>
-                        <span className="font-mono font-semibold">{cluster.point_count}</span>
-                      </div>
-                      <div className="rounded-sm bg-secondary px-2 py-1">
-                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
-                          Bewegung
-                        </span>
-                        <span className="font-mono font-semibold">
-                          {fmtNum(cluster.median_vertical_proxy_mm_a)}
-                        </span>
-                      </div>
-                      <div className="rounded-sm bg-secondary px-2 py-1">
-                        <span className="block text-[10px] uppercase tracking-[0.7px] text-muted-foreground">
-                          Rel.
-                        </span>
-                        <span className="font-mono font-semibold">
-                          {fmtNum(cluster.cluster_reliability_score)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-2 grid gap-1 text-xs text-muted-foreground">
-                      <div>
-                        Delta zum Hauptcluster:{" "}
-                        <span className="font-mono text-foreground">
-                          {fmtNum(cluster.motion_delta_to_main_mm_a)} mm/Jahr
-                        </span>
-                      </div>
-                      <div>
-                        Nachbarstuetzung:{" "}
-                        <span className="font-mono text-foreground">
-                          {cluster.supporting_neighbour_building_count} Gebaeude
-                        </span>
-                      </div>
-                    </div>
-                    {renderClusterPointList(cluster)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
 
-  const renderBuildingMl = () => {
-    const analysis = mlBuildingAnalysis;
-    const reliabilityReasons = analysis ? buildReliabilityReasons(analysis) : [];
-    const openReliabilityExplanation = Boolean(
-      analysis &&
-        (analysis.building_reliability_band === "low" ||
-          analysis.building_reliability_band === "medium" ||
-          reliabilityReasons.length > 0)
-    );
-    const runHistoryCount = buildingRunsQuery.data?.length ?? 0;
-    return (
-      <div>
-        <div className="section-title">Aktiver ML-Lauf</div>
-        {renderActiveBuildingRunCompact()}
-        {renderSelectedBuildingFocusPoint()}
-        {activeRunId && mlBuildingAnalysisQuery.isLoading && (
-          <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
-        )}
-        {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
-          <div className="pill warning">Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.</div>
-        )}
-        {analysis && (
-          <>
-            {renderBuildingClusterControls(analysis)}
-            {isActiveRunPending && (
-              <div className="pill">Diese Zusammenfassung aktualisiert sich waehrend der aktive Lauf verarbeitet wird.</div>
-            )}
-            {analysis.point_count === 0 ? (
-              <div className="pill">Keine Punkte aus dem aktiven Lauf sind diesem Gebaeude zugeordnet.</div>
-            ) : (
-              <>
-                <div className="section-title">Gebaeudebefund</div>
-                {renderMetric("Run-zugeordnete Punkte", analysis.point_count)}
-                {renderMetric(
-                  "Behalten / ausgeschlossen / Rauschen",
-                  `${analysis.kept_point_count} / ${analysis.excluded_point_count} / ${analysis.noise_point_count}`
-                )}
-                {renderMetric(
-                  "Bewegung / Status",
-                  `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr / ${fmtStr(analysis.building_status)}`
-                )}
-                {renderMetric(
-                  "Modellstand",
-                  isV3ModelSetVersion(analysis.model_set_version)
-                    ? `${fmtStr(analysis.model_set_version)} – Annex: ${V3_ANNEX_CLASSIFICATION_NOTE}`
-                    : fmtStr(analysis.model_set_version)
-                )}
-                {renderMetric(
-                  "Zuverlaessigkeit",
-                  `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
-                )}
-                {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
-                {renderMetric(
-                  "Differential-Level",
-                  formatDifferentialMotionLevel(analysis.differential_motion_level)
-                )}
-                {renderMetric(
-                  "Hauptcluster",
-                  formatTrackStringMap(analysis.main_cluster_by_track)
-                )}
-                {renderMetric(
-                  "Track-Bewegung",
-                  formatTrackNumberMap(analysis.track_motion_mm_a)
-                )}
-                {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
-                {renderMetric("Mittlere Qualitaet", fmtNum(analysis.avg_quality_score))}
-                {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
-                {renderMetric("Mittlere Cross-Track-Konsistenz", fmtNum(analysis.avg_cross_track_consistency))}
-                <CollapsibleSection
-                  title="Warum diese Zuverlaessigkeit?"
-                  defaultOpen={openReliabilityExplanation}
-                  key={`reliability-${selectionKey}-${activeRunId ?? "none"}`}
-                >
-                  {renderReliabilityReasons(analysis)}
-                  <div className="section-title">Detailmetriken</div>
-                  {renderMetric(
-                    "Retuning-Flags",
-                    formatRetuningFlags(analysis.weak_secondary_track_flag, analysis.agreement_tension_flag)
-                  )}
-                  {renderMetric("Retuning-Anpassungen", formatPenaltySummary(analysis.reliability_penalties))}
-                  {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
-                  {renderMetric(
-                    "Differenzielle Bewegung",
-                    formatDifferentialMotionLevel(analysis.differential_motion_level)
-                  )}
-                  {renderMetric(
-                    "Kontext",
-                    `${analysis.neighbour_context_available ? "ja" : "nein"} / ${
-                      analysis.neighbour_candidate_building_count
-                    } Kandidaten`
-                  )}
-                  {renderMetric(
-                    "Fehlzuordnungspunkte",
-                    `${analysis.neighbour_misassignment_point_count} / ${fmtPct(
-                      analysis.neighbour_misassignment_share,
-                      1
-                    )}`
-                  )}
-                  {renderMetric(
-                    "Nachbarereignis",
-                    `${analysis.neighbour_event_flag ? "ja" : "nein"} / ${fmtNum(
-                      analysis.neighbour_event_score
-                    )}`
-                  )}
-                  {renderMetric(
-                    "Konsistenz / Stuetzung",
-                    `${fmtNum(analysis.neighbour_consistency_score)} / ${analysis.supporting_neighbour_count} Nachb. / T${analysis.supporting_track_count}`
-                  )}
-                </CollapsibleSection>
-                <CollapsibleSection
-                  title="Verteilungen"
-                  defaultOpen={false}
-                  key={`distributions-${selectionKey}-${activeRunId ?? "none"}`}
-                >
-                  <div className="section-title">Track-Anzahlen</div>
-                  {Object.entries(analysis.track_counts).map(([key, value]) =>
-                    renderMetric(formatCountLabel(key), value, undefined, `track-${key}`)
-                  )}
-                  <div className="section-title">Label-Anzahlen</div>
-                  {Object.entries(analysis.label_counts).map(([key, value]) =>
-                    renderMetric(formatCountLabel(key), value, undefined, `label-${key}`)
-                  )}
-                  <div className="section-title">Zuordnungsmethoden</div>
-                  {Object.entries(analysis.assignment_methods).map(([key, value]) =>
-                    renderMetric(formatCountLabel(key), value, undefined, `assignment-${key}`)
-                  )}
-                </CollapsibleSection>
-                <CollapsibleSection
-                  title={`Punkte mit niedrigster Qualitaet (${analysis.top_points.length})`}
-                  defaultOpen={false}
-                  key={`top-points-${selectionKey}-${activeRunId ?? "none"}`}
-                >
-                  {analysis.top_points.map((point) =>
-                    renderMetric(
-                      `${point.code} / ${point.track} / ${fmtStr(point.cluster_role)}`,
-                      `Q ${fmtNum(point.quality_score)} / A ${fmtNum(point.anomaly_score)}`,
-                      undefined,
-                      `top-point-${point.code}-${point.track}`
-                    )
-                  )}
-                </CollapsibleSection>
-              </>
-            )}
-          </>
-        )}
-        <CollapsibleSection
-          title="Run-Historie dieses Gebaeudes"
-          defaultOpen={false}
-          key={`run-history-${selectionKey}`}
-          aside={runHistoryCount > 0 ? `${runHistoryCount}` : undefined}
-        >
-          {renderBuildingRunsFull()}
-        </CollapsibleSection>
-      </div>
-    );
-  };
 
   const renderBuildingRaw = () => {
     const building = buildingDetailQuery.data;
@@ -2554,11 +1892,200 @@ export default function InspectorPanel() {
     );
   };
 
+  const renderBuildingBefundTab = () => {
+    const building = buildingDetailQuery.data;
+    if (!building) return null;
+    const runHistoryCount = buildingRunsQuery.data?.length ?? 0;
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="rounded-lg border border-border bg-card p-3">
+          <div className="section-title !mt-0">Gebäude</div>
+          {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebaeudeobjekts.")}
+          {renderMetric("Gebaeude-ID", building.id)}
+          {renderMetric(
+            "Adresse",
+            fmtBuildingAddress(building.address),
+            getBuildingAddressHelp(building.address)
+          )}
+          {renderMetric(
+            "Gebaeudehoehe",
+            building.height === null ? "—" : `${building.height.toFixed(1)} m`
+          )}
+          {building.source === "bev" &&
+            renderMetric("Bauwerksfunktion", fmtStr(building.building_function))}
+        </div>
+
+        {renderSelectedBuildingFocusPoint()}
+
+        {activeRunId && mlBuildingAnalysisQuery.isLoading && (
+          <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
+        )}
+        {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
+          <div className="pill warning">
+            Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.
+          </div>
+        )}
+        {isActiveRunPending && (
+          <div className="pill">
+            Diese Zusammenfassung aktualisiert sich waehrend der aktive Lauf verarbeitet wird.
+          </div>
+        )}
+
+        {mlBuildingAnalysis ? (
+          mlBuildingAnalysis.point_count === 0 ? (
+            <div className="pill">
+              Keine Punkte aus dem aktiven Lauf sind diesem Gebaeude zugeordnet.
+            </div>
+          ) : (
+            <BuildingBefund
+              analysis={mlBuildingAnalysis}
+              runTitle={activeRunTitle}
+              sectionKey={`${selectionKey}-${activeRunId ?? "none"}`}
+              showClusters={isActiveLocalAnomalyRun}
+              trackOptions={mlBuildingTrackOptions}
+              pointsByCluster={buildingPointsByCluster}
+              pointsLoading={mlBuildingPointsQuery.isLoading}
+              isSelectedPoint={isSelectedFocusPointRecord}
+              onFocusPoint={selectFocusPointFromRecord}
+              onEndFocus={endBuildingFocus}
+            />
+          )
+        ) : !activeRunId ? (
+          renderNoMlEmptyState()
+        ) : null}
+
+        <CollapsibleSection
+          title="Frühere Läufe dieses Gebäudes"
+          defaultOpen={false}
+          key={`run-history-${selectionKey}`}
+          aside={runHistoryCount > 0 ? `${runHistoryCount}` : undefined}
+        >
+          {renderBuildingRunsFull()}
+        </CollapsibleSection>
+      </div>
+    );
+  };
+
+  const renderBuildingDetails = () => {
+    const building = buildingDetailQuery.data;
+    if (!building) return null;
+    const analysis = mlBuildingAnalysis;
+    return (
+      <div className="flex flex-col gap-4">
+        {renderBuildingMetrics()}
+        {analysis && (
+          <>
+            <CollapsibleSection
+              title="ML-Detailmetriken"
+              defaultOpen
+              key={`bd-ml-${selectionKey}-${activeRunId ?? "none"}`}
+            >
+              <p className="text-xs leading-snug text-muted-foreground">
+                Aggregierte Modellwerte des Gebäuderollups im aktiven Lauf.
+              </p>
+              {renderMetric(
+                "Modellstand",
+                isV3ModelSetVersion(analysis.model_set_version)
+                  ? `${fmtStr(analysis.model_set_version)} – Annex: ${V3_ANNEX_CLASSIFICATION_NOTE}`
+                  : fmtStr(analysis.model_set_version)
+              )}
+              {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
+              {renderMetric(
+                "Retuning-Flags",
+                formatRetuningFlags(
+                  analysis.weak_secondary_track_flag,
+                  analysis.agreement_tension_flag
+                )
+              )}
+              {renderMetric(
+                "Retuning-Anpassungen",
+                formatPenaltySummary(analysis.reliability_penalties)
+              )}
+              {renderMetric(
+                "Cluster / belastbar",
+                `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`
+              )}
+              {renderMetric(
+                "Differenzielle Bewegung",
+                formatDifferentialMotionLevel(analysis.differential_motion_level)
+              )}
+              {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
+              {renderMetric("Mittlere Qualitaet", fmtNum(analysis.avg_quality_score))}
+              {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
+              {renderMetric(
+                "Mittlere Cross-Track-Konsistenz",
+                fmtNum(analysis.avg_cross_track_consistency)
+              )}
+              {renderMetric(
+                "Nachbarschaftskontext",
+                analysis.neighbour_context_available ? "verfuegbar" : "nicht verfuegbar"
+              )}
+              {renderMetric(
+                "Nachbar-Kandidaten",
+                fmtNum(analysis.neighbour_candidate_building_count, 0)
+              )}
+              {renderMetric(
+                "Fehlzuordnungspunkte",
+                fmtNum(analysis.neighbour_misassignment_point_count, 0)
+              )}
+              {renderMetric(
+                "Fehlzuordnungsanteil",
+                fmtPct(analysis.neighbour_misassignment_share, 1)
+              )}
+              {renderMetric("Nachbarereignis", analysis.neighbour_event_flag ? "ja" : "nein")}
+              {renderMetric("Ereignis-Score", fmtNum(analysis.neighbour_event_score))}
+              {renderMetric("Konsistenz-Score", fmtNum(analysis.neighbour_consistency_score))}
+              {renderMetric(
+                "Stützende Nachbarn",
+                fmtNum(analysis.supporting_neighbour_count, 0)
+              )}
+              {renderMetric("Stützende Tracks", fmtNum(analysis.supporting_track_count, 0))}
+            </CollapsibleSection>
+            <CollapsibleSection
+              title="Verteilungen"
+              defaultOpen={false}
+              key={`bd-dist-${selectionKey}-${activeRunId ?? "none"}`}
+            >
+              <p className="text-xs leading-snug text-muted-foreground">
+                Punktverteilungen nach Track, Label und Zuordnungsmethode.
+              </p>
+              <div className="section-title">Track-Anzahlen</div>
+              {Object.entries(analysis.track_counts).map(([key, value]) =>
+                renderMetric(formatCountLabel(key), value, undefined, `track-${key}`)
+              )}
+              <div className="section-title">Label-Anzahlen</div>
+              {Object.entries(analysis.label_counts).map(([key, value]) =>
+                renderMetric(formatCountLabel(key), value, undefined, `label-${key}`)
+              )}
+              <div className="section-title">Zuordnungsmethoden</div>
+              {Object.entries(analysis.assignment_methods).map(([key, value]) =>
+                renderMetric(formatCountLabel(key), value, undefined, `assignment-${key}`)
+              )}
+            </CollapsibleSection>
+            <CollapsibleSection
+              title={`Punkte mit niedrigster Qualitaet (${analysis.top_points.length})`}
+              defaultOpen={false}
+              key={`bd-top-${selectionKey}-${activeRunId ?? "none"}`}
+            >
+              {analysis.top_points.map((point) =>
+                renderMetric(
+                  `${point.code} / ${point.track} / ${fmtStr(point.cluster_role)}`,
+                  `Q ${fmtNum(point.quality_score)} / A ${fmtNum(point.anomaly_score)}`,
+                  undefined,
+                  `top-point-${point.code}-${point.track}`
+                )
+              )}
+            </CollapsibleSection>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const renderBuildingContent = () => {
-    if (activeBuildingTab === "metrics") return renderBuildingMetrics();
-    if (activeBuildingTab === "ml") return renderBuildingMl();
+    if (activeBuildingTab === "details") return renderBuildingDetails();
     if (activeBuildingTab === "raw") return renderBuildingRaw();
-    return renderBuildingOverview();
+    return renderBuildingBefundTab();
   };
 
   const renderBuildingExternalActions = () => {
@@ -2620,10 +2147,22 @@ export default function InspectorPanel() {
 
   return (
     <div className="panel panel-right">
-      <div>
-        <h2>Inspektor</h2>
-        <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h2>Inspektor</h2>
+          <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
+        </div>
+        <button
+          type="button"
+          aria-label="Glossar der Fachbegriffe öffnen"
+          title="Glossar der Fachbegriffe"
+          onClick={() => setGlossarOpen(true)}
+          className="mt-1 inline-grid h-7 w-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+        </button>
       </div>
+      <GlossarSheet open={glossarOpen} onClose={() => setGlossarOpen(false)} />
 
       {!selection && inspectedRunId && <RunInspector runId={inspectedRunId} />}
 

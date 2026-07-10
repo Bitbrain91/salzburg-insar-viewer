@@ -1870,6 +1870,22 @@ export const attributeMetadataEntries: AttributeMetadata[] = definitions.map(
   })
 );
 
+/**
+ * Alle bekannten Attribut-Eintraege fuer das Glossar, dedupliziert nach
+ * Key + Label (Kontextvarianten mit identischem Label erscheinen einmal).
+ */
+export function listAttributeMetadata(): AttributeMetadata[] {
+  const seen = new Set<string>();
+  const entries: AttributeMetadata[] = [];
+  for (const entry of attributeMetadataEntries) {
+    const dedupeKey = `${entry.key}::${entry.label}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    entries.push(entry);
+  }
+  return entries.sort((a, b) => a.label.localeCompare(b.label, "de"));
+}
+
 const globalMetadata = new Map<string, AttributeMetadata>();
 const contextualMetadata = new Map<string, AttributeMetadata>();
 

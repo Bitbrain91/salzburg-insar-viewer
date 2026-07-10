@@ -125,6 +125,17 @@ export const formatLabelCounts = (counts: Record<string, number>) => {
     : "—";
 };
 
+/**
+ * Kurzform einer Cluster-ID fuer die Anzeige: Cluster-IDs sind als
+ * "{building_id}:t{track}:cluster_N" aufgebaut; sichtbar ist nur das
+ * letzte Segment (der Kontext Gebaeude/Track steht daneben).
+ */
+export const shortClusterId = (clusterId: string | null | undefined) => {
+  if (!clusterId) return "—";
+  const lastSegment = clusterId.split(":").pop();
+  return lastSegment && lastSegment !== "" ? lastSegment : clusterId;
+};
+
 export const formatRawValue = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "object") return JSON.stringify(value);
