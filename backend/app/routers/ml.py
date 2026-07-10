@@ -647,7 +647,7 @@ async def ml_building_analysis(
 
         rows = await conn.fetch(
             f"""
-            WITH cluster_color_keys AS (
+            WITH cluster_color_keys AS MATERIALIZED (
                 SELECT
                     r.run_id,
                     r.area_id,
@@ -670,7 +670,7 @@ async def ml_building_analysis(
                     r.run_id, r.area_id, r.building_source, r.building_id,
                     r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
             ),
-            cluster_colors AS (
+            cluster_colors AS MATERIALIZED (
                 SELECT
                     *,
                     (
@@ -987,7 +987,7 @@ async def ml_building_points_visualization(
 
         rows = await conn.fetch(
             f"""
-            WITH cluster_color_keys AS (
+            WITH cluster_color_keys AS MATERIALIZED (
                 SELECT
                     r.run_id,
                     r.area_id,
@@ -1010,7 +1010,7 @@ async def ml_building_points_visualization(
                     r.run_id, r.area_id, r.building_source, r.building_id,
                     r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
             ),
-            cluster_colors AS (
+            cluster_colors AS MATERIALIZED (
                 SELECT
                     *,
                     (
@@ -1414,7 +1414,7 @@ async def ml_building_context_visualization(
 
         hull_rows = await conn.fetch(
             f"""
-            WITH cluster_color_keys AS (
+            WITH cluster_color_keys AS MATERIALIZED (
                 SELECT
                     r.run_id,
                     r.area_id,
@@ -1437,7 +1437,7 @@ async def ml_building_context_visualization(
                     r.run_id, r.area_id, r.building_source, r.building_id,
                     r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
             ),
-            cluster_colors AS (
+            cluster_colors AS MATERIALIZED (
                 SELECT
                     *,
                     (
@@ -1632,7 +1632,7 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
         WITH bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
-        cluster_color_keys AS (
+        cluster_color_keys AS MATERIALIZED (
             SELECT
                 r.run_id,
                 r.area_id,
@@ -1652,7 +1652,7 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 r.run_id, r.area_id, r.building_source, r.building_id,
                 r.dataset_id, r.track, COALESCE(r.cluster_id, r.code)
         ),
-        cluster_colors AS (
+        cluster_colors AS MATERIALIZED (
             SELECT
                 *,
                 (
@@ -1777,7 +1777,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
         WITH bounds AS (
             SELECT ST_TileEnvelope($1, $2, $3) AS geom
         ),
-        building_rollups AS (
+        building_rollups AS MATERIALIZED (
             SELECT DISTINCT ON (area_id, building_source, building_id)
                 area_id,
                 building_source,

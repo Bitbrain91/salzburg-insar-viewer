@@ -14,6 +14,13 @@ Dieses Runbook beschreibt, wie `anomaly_local_v1` praktisch ausgefuehrt und inte
 ## Start
 Die Pipeline ist im linken Panel als `Anomaly Local v1 (Building Clusters)` verfuegbar.
 
+Jeder persistierte Run endet mit einem `ANALYZE ml_point_results`
+(warn-only, Fehlschlag bricht den Run nicht ab), damit Tile- und
+JSON-Abfragen fuer den neuen Run sofort frische Planer-Statistiken haben;
+zusaetzlich traegt die Tabelle aggressive Autoanalyze-Reloptions
+(`autovacuum_analyze_scale_factor=0.0`, `autovacuum_analyze_threshold=1000`)
+als Backstop.
+
 Empfohlene Start-Defaults:
 
 - `source = bev`

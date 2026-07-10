@@ -114,6 +114,11 @@ ML_SCHEMA_STATEMENTS = [
         ALTER COLUMN area_id SET NOT NULL,
         ALTER COLUMN area_id DROP DEFAULT
     """,
+    """
+    ALTER TABLE IF EXISTS ml_point_results
+        SET (autovacuum_analyze_scale_factor = 0.0,
+             autovacuum_analyze_threshold = 1000)
+    """,
 ]
 
 

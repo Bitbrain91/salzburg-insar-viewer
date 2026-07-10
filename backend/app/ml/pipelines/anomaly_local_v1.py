@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -23,6 +24,8 @@ except ImportError as exc:  # pragma: no cover - hard dependency since P7-A-W1-T
 from .base import BasePipeline
 from ..track_geometry import get_track_geometry, track_geometry_values_cte
 
+
+logger = logging.getLogger(__name__)
 
 FEATURE_SET_VERSION = "anomaly_local_v1_phase1"
 # P7-E-W1-T2 (2026-06-10): Kandidat k2x integriert (a5_crosslook +
@@ -2478,6 +2481,20 @@ class AnomalyLocalV1Pipeline(BasePipeline):
 
         async with pool.acquire() as conn:
             await conn.executemany(insert_query, payloads)
+            try:
+                # Kleine Runs erreichen die Autoanalyze-Schwelle nie; ohne
+                # frische Statistiken schaetzt der Planer fuer neue run_ids
+                # 1 Zeile und wiederholt die Farb-CTEs der Tile-Queries pro
+                # Punkt (45-s-Kacheln statt <1 s).
+                await conn.execute("ANALYZE ml_point_results")
+            except Exception:
+                logger.warning(
+                    "ANALYZE ml_point_results nach Persist von Run %s "
+                    "fehlgeschlagen; Tile-Queries koennen langsam bleiben, "
+                    "bis Autovacuum die Tabelle analysiert",
+                    run_id,
+                    exc_info=True,
+                )
 
     def _cluster_matrix(self, records: list[LocalPointRecord]) -> np.ndarray:
         matrix = np.asarray(

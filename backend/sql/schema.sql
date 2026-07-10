@@ -210,6 +210,13 @@ CREATE TABLE ml_point_results (
     PRIMARY KEY (run_id, area_id, dataset_id, code, track)
 );
 
+-- Runs schreiben kleine Batches in eine grosse Tabelle: ohne aggressives
+-- Autoanalyze bleiben neue run_ids unsichtbar fuer den Planer (Zeilenschaetzung 1)
+-- und die Farb-CTEs der Tile-Queries werden pro Punkt wiederholt.
+ALTER TABLE ml_point_results
+    SET (autovacuum_analyze_scale_factor = 0.0,
+         autovacuum_analyze_threshold = 1000);
+
 CREATE INDEX ml_point_results_run_idx ON ml_point_results (run_id);
 CREATE INDEX ml_point_results_cluster_idx ON ml_point_results (run_id, dataset_id, cluster_id);
 CREATE INDEX ml_point_results_building_idx ON ml_point_results (run_id, area_id, building_source, building_id);
