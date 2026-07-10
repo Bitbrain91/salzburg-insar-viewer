@@ -14,3 +14,8 @@ args = ["-y", "@playwright/mcp", "--config", "/home/wsl_user/.codex/playwright/c
 DISPLAY = ":0"
 NPM_CONFIG_CACHE = "/tmp/npm-cache"
 NPM_CONFIG_PREFIX = "/tmp/npm-prefix"
+
+[mcp_servers.claude-code]
+command = "/home/wsl_user/.local/bin/claude"
+args = ["--model", "fable", "--effort", "xhigh", "--permission-mode", "bypassPermissions", "mcp", "serve"]
+startup_timeout_sec = 60
