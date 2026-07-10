@@ -119,7 +119,7 @@ function dayLabel(iso: string, now: Date): string {
   return dayFormat.format(date);
 }
 
-/** Gruppiert (bereits sortierte) Laeufe nach Kalendertag. */
+/** Gruppiert (bereits sortierte) Läufe nach Kalendertag. */
 export function groupRunsByDay(runs: MlRunSummary[], now = new Date()): RunGroup[] {
   const groups: RunGroup[] = [];
   for (const run of runs) {
@@ -134,7 +134,7 @@ export function groupRunsByDay(runs: MlRunSummary[], now = new Date()): RunGroup
   return groups;
 }
 
-/** Verfuegbare Filteroptionen aus den vorhandenen Laeufen ableiten. */
+/** Verfügbare Filteroptionen aus den vorhandenen Läufen ableiten. */
 export function runFilterOptions(runs: MlRunSummary[]) {
   const areas = new Map<string, number>();
   const sensors = new Map<string, number>();

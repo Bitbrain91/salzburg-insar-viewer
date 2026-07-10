@@ -17,9 +17,9 @@ import {
 } from "./useApi";
 
 /**
- * Zentrale React-Query-Hooks fuer ML-Laeufe (Stage 4 des UX-Redesigns).
- * Query-Keys bleiben identisch zu den frueheren Inline-Hooks; neu ist das
- * konditionale Polling: 5s nur solange etwas laeuft, sonst 30s (Liste)
+ * Zentrale React-Query-Hooks für ML-Läufe (Stage 4 des UX-Redesigns).
+ * Query-Keys bleiben identisch zu den früheren Inline-Hooks; neu ist das
+ * konditionale Polling: 5s nur solange etwas läuft, sonst 30s (Liste)
  * bzw. aus (Detail).
  */
 

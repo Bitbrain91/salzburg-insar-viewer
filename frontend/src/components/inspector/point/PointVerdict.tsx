@@ -5,6 +5,7 @@ import {
   formatAssignmentMethod,
   formatFocusReasonKey,
   formatSignedTrackMotion,
+  fmtNumDe,
 } from "../../../lib/formatters";
 import { EmptyState, KindBadge, ScoreBar } from "../../ui";
 
@@ -68,7 +69,7 @@ export function PointVerdict({ analysis, runTitle, onOpenBuilding }: PointVerdic
           {formatSignedTrackMotion(analysis.velocity)}
         </span>{" "}
         · Kohärenz{" "}
-        <span className="font-mono font-semibold">{fmtNum(analysis.coherence)}</span>
+        <span className="font-mono font-semibold">{fmtNumDe(analysis.coherence)}</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -79,7 +80,7 @@ export function PointVerdict({ analysis, runTitle, onOpenBuilding }: PointVerdic
         <span>
           Cluster <span className="font-mono">{analysis.cluster_role ? analysis.cluster_role : "—"}</span>
           {analysis.cluster_probability !== null &&
-            ` · Wahrscheinlichkeit ${fmtNum(analysis.cluster_probability)}`}
+            ` · Wahrscheinlichkeit ${fmtNumDe(analysis.cluster_probability)}`}
         </span>
       </div>
 
@@ -100,7 +101,7 @@ export function PointVerdict({ analysis, runTitle, onOpenBuilding }: PointVerdic
             </span>
           )}{" "}
           ({formatAssignmentMethod(assignmentMethod)}
-          {analysis.distance_m !== null ? `, ${fmtNum(analysis.distance_m, 1)} m` : ""})
+          {analysis.distance_m !== null ? `, ${fmtNumDe(analysis.distance_m, 1)} m` : ""})
         </div>
       )}
 

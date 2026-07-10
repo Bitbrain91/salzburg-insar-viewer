@@ -14,9 +14,9 @@ export const DEFAULT_MAP_BEARING = -10;
 export const DEFAULT_MAP_PITCH = 45;
 export const TRACK_CAMERA_PITCH = 38.8;
 
-// Senkrechte Draufsicht fuer visuelle Analysen (Audit-Standard, P7):
+// Senkrechte Draufsicht für visuelle Analysen (Audit-Standard, P7):
 // Pan/Zoom bleiben frei, Rotation/Pitch werden wie bei den LOS-Presets
-// gesperrt, damit die Karte zuverlaessig von oben bleibt.
+// gesperrt, damit die Karte zuverlässig von oben bleibt.
 export const NADIR_CAMERA_PRESET: CameraPreset = {
   bearing: 0,
   pitch: 0,

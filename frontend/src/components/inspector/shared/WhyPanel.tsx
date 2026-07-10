@@ -16,7 +16,7 @@ export type WhyPanelProps = {
   emptyText?: string;
   maxVisible?: number;
   defaultOpen?: boolean;
-  /** Track-Bewegungen fuer den Vergleichs-Miniblock (optional). */
+  /** Track-Bewegungen für den Vergleichs-Miniblock (optional). */
   trackMotion?: Record<string, number | null>;
   trackAgreementScore?: number | null;
   /** Erzwingt Remount bei Selektionswechsel (analog CollapsibleSection-key). */
@@ -25,7 +25,7 @@ export type WhyPanelProps = {
 
 /**
  * "Warum diese Bewertung?" — priorisierte Grund-Karten in Klartext.
- * Mehr als maxVisible Gruende verschwinden hinter "+n weitere Gründe".
+ * Mehr als maxVisible Gründe verschwinden hinter "+n weitere Gründe".
  */
 export function WhyPanel({
   title,

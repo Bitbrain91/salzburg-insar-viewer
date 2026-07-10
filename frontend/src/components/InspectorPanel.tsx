@@ -51,6 +51,7 @@ import {
   formatCountLabel,
   formatDifferentialMotionLevel,
   formatFocusDetectorKey,
+  formatFocusReasonDetail,
   formatFocusReasonKey,
   formatLabelCounts,
   formatPenaltySummary,
@@ -98,12 +99,12 @@ const buildingTabs: InspectorTabConfig[] = [
 
 
 const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string; digits?: number }> = [
-  { key: "along_look_offset_m", label: "Look-Laengsversatz", unit: "m", digits: 1 },
+  { key: "along_look_offset_m", label: "Look-Längsversatz", unit: "m", digits: 1 },
   { key: "cross_look_offset_m", label: "Look-Querversatz", unit: "m", digits: 1 },
-  { key: "height_rank_in_building", label: "Hoehenrang im Gebaeude", digits: 2 },
+  { key: "height_rank_in_building", label: "Höhenrang im Gebäude", digits: 2 },
   { key: "velocity", label: "Geschwindigkeit", unit: "mm/Jahr", digits: 2 },
   { key: "acceleration", label: "Beschleunigung", unit: "mm/Jahr²", digits: 2 },
-  { key: "coherence_penalty", label: "Kohaerenz-Penalty", digits: 2 },
+  { key: "coherence_penalty", label: "Kohärenz-Penalty", digits: 2 },
 ];
 
 const focusAssignmentReasonKeys = new Set(["nearest_assignment"]);
@@ -542,14 +543,14 @@ export default function InspectorPanel() {
     return address.label;
   };
   const getBuildingAddressHelp = (address?: BuildingAddress | null) => {
-    if (!address) return "Keine passende lokale Adresse in den OSM-Gebaeudedaten gefunden.";
+    if (!address) return "Keine passende lokale Adresse in den OSM-Gebäudedaten gefunden.";
     if (address.match_type === "osm_nearest") {
-      return "Naechstgelegene lokale OSM-Adresse innerhalb von 25 m; sie ist als Naeherung zum GBA-Gebaeude zu lesen.";
+      return "Naechstgelegene lokale OSM-Adresse innerhalb von 25 m; sie ist als Näherung zum GBA-Gebäude zu lesen.";
     }
     if (address.match_type === "osm_intersection") {
-      return "Adresse aus einem lokalen OSM-Gebaeude, dessen Footprint das ausgewaehlte GBA-Gebaeude schneidet.";
+      return "Adresse aus einem lokalen OSM-Gebäude, dessen Footprint das ausgewählte GBA-Gebäude schneidet.";
     }
-    return "Adresse aus lokalen OSM-Tags des ausgewaehlten Gebaeudes.";
+    return "Adresse aus lokalen OSM-Tags des ausgewählten Gebäudes.";
   };
   const getNumber = (value: unknown) => {
     const parsed =
@@ -777,7 +778,7 @@ export default function InspectorPanel() {
       },
       {
         key: "along_look_offset_m",
-        label: "Look-Laengsversatz",
+        label: "Look-Längsversatz",
         selectedValue: selectedValues.along,
         values: group.map((properties) =>
           finiteOrFallback(getClusteringFeature(properties, "along_look_offset_m"))
@@ -822,10 +823,10 @@ export default function InspectorPanel() {
       const component = Math.abs(value - 0.5) * 1.4;
       items.push({
         key: "height_edge",
-        label: "Hoehenrand",
+        label: "Höhenrand",
         value,
         component,
-        detail: `Hoehenrang ${fmtNum(value)}; 0.5 ist mittig, 0 oder 1 sind Randlagen.`,
+        detail: `Höhenrang ${fmtNum(value)}; 0.5 ist mittig, 0 oder 1 sind Randlagen.`,
       });
     }
 
@@ -833,10 +834,10 @@ export default function InspectorPanel() {
     const coherenceGap = Math.max(0, (0.65 - coherence) / 0.65);
     items.push({
       key: "coherence_gap",
-      label: "Kohaerenzluecke",
+      label: "Kohärenzluecke",
       value: coherence,
       component: coherenceGap,
-      detail: `Kohaerenz ${fmtNum(coherence)}; erst unter 0.65 entsteht ein Gap.`,
+      detail: `Kohärenz ${fmtNum(coherence)}; erst unter 0.65 entsteht ein Gap.`,
     });
 
     const sorted = items.sort((a, b) => b.component - a.component);
@@ -1100,25 +1101,25 @@ export default function InspectorPanel() {
         {renderMetric("Saisonale Phase Std.", fmtNum(point.s_phs_std))}
         {renderMetric("Amplitude Mittel", fmtNum(point.amp_mean, 1))}
         {renderMetric("Amplitude Std.", fmtNum(point.amp_std, 1))}
-        {renderMetric("Effektive Flaeche", fmtNum(point.eff_area, 1))}
+        {renderMetric("Effektive Fläche", fmtNum(point.eff_area, 1))}
         {renderMetric("Einfallswinkel", `${fmtNum(point.incidence_angle)} °`)}
-        {renderMetric("Kohaerenz", fmtNum(point.coherence))}
+        {renderMetric("Kohärenz", fmtNum(point.coherence))}
         {renderMetric("Deformations-Std.", `${fmtNum(point.std_def)} mm`)}
-        {renderMetric("InSAR-Hoehe", `${fmtNum(point.height, 1)} m`)}
-        {renderMetric("Hoehe Std.", `${fmtNum(point.height_std, 1)} m`)}
-        {renderMetric("Laengengrad", lon === null || lon === undefined ? "—" : lon.toFixed(6))}
+        {renderMetric("InSAR-Höhe", `${fmtNum(point.height, 1)} m`)}
+        {renderMetric("Höhe Std.", `${fmtNum(point.height_std, 1)} m`)}
+        {renderMetric("Längengrad", lon === null || lon === undefined ? "—" : lon.toFixed(6))}
         {renderMetric("Breitengrad", lat === null || lat === undefined ? "—" : lat.toFixed(6))}
         <div className="section-title">Terrain-Kontext</div>
         {point.terrain ? (
           <>
             {renderMetric("Terrain-Quelle", fmtStr(point.terrain.source))}
-            {renderMetric("Terrain-Aufloesung", `${fmtNum(point.terrain.resolution_m, 1)} m`)}
-            {renderMetric("Gelaendehoehe", `${fmtNum(point.terrain.elevation_m, 1)} m`)}
+            {renderMetric("Terrain-Auflösung", `${fmtNum(point.terrain.resolution_m, 1)} m`)}
+            {renderMetric("Geländehöhe", `${fmtNum(point.terrain.elevation_m, 1)} m`)}
             {renderMetric("Hangneigung", `${fmtNum(point.terrain.slope_deg, 1)} °`)}
             {renderMetric("Exposition", `${fmtNum(point.terrain.aspect_deg, 1)} °`)}
           </>
         ) : (
-          <div className="pill">Kein Terrain-Kontext fuer diesen Punkt vorhanden.</div>
+          <div className="pill">Kein Terrain-Kontext für diesen Punkt vorhanden.</div>
         )}
       </div>
     );
@@ -1142,7 +1143,7 @@ export default function InspectorPanel() {
         mlPointAnalysisStatus === "missing" &&
         activeRunStatus !== "failed" && (
           <div className="pill warning">
-            {mlPointAnalysisMessage || "Keine ML-Analyse fuer diesen Punkt im aktiven Lauf."}
+            {mlPointAnalysisMessage || "Keine ML-Analyse für diesen Punkt im aktiven Lauf."}
           </div>
         )}
       {activeRunId &&
@@ -1150,7 +1151,7 @@ export default function InspectorPanel() {
         !isActiveRunPending &&
         activeRunStatus !== "failed" &&
         mlPointAnalysisQuery.isError && (
-          <div className="pill warning">ML-Analyse fuer diesen Punkt konnte nicht geladen werden.</div>
+          <div className="pill warning">ML-Analyse für diesen Punkt konnte nicht geladen werden.</div>
         )}
     </>
   );
@@ -1197,7 +1198,7 @@ export default function InspectorPanel() {
     (item) => ({
       key: `${item.key}-${item.summary}`,
       label: formatFocusReasonKey(item.key),
-      detail: item.summary,
+      detail: formatFocusReasonDetail(item.key, item.summary),
       tone: item.severity >= 0.5 ? "bad" : item.severity >= 0.25 ? "warning" : "neutral",
     })
   );
@@ -1267,10 +1268,10 @@ export default function InspectorPanel() {
             {renderMetric("Cross-Track-Konsistenz", fmtNum(analysis.cross_track_consistency))}
             {renderMetric("Clusterrolle", fmtStr(analysis.cluster_role))}
             {renderMetric("Cluster-Wahrscheinlichkeit", fmtNum(analysis.cluster_probability))}
-            {renderMetric("Cluster-Ausreisserwert", fmtNum(analysis.cluster_outlier_score))}
-            {renderMetric("Fuer Scoring genutzt", fmtBool(analysis.kept_for_scoring))}
+            {renderMetric("Cluster-Ausreißerwert", fmtNum(analysis.cluster_outlier_score))}
+            {renderMetric("Für Scoring genutzt", fmtBool(analysis.kept_for_scoring))}
             {renderMetric(
-              "Gate-Gruende",
+              "Gate-Gründe",
               analysis.gate_reasons.length > 0
                 ? analysis.gate_reasons.map((reason) => formatFocusReasonKey(reason)).join(" · ")
                 : "—"
@@ -1284,11 +1285,11 @@ export default function InspectorPanel() {
               )
             )}
             {renderMetric(
-              "Track-Stuetzung",
+              "Track-Stützung",
               fmtNum(getNumber(analysis.building_context.track_point_count), 0)
             )}
             {renderMetric(
-              "Step-Stuetzung",
+              "Step-Stützung",
               fmtNum(getNumber(analysis.building_context.step_support))
             )}
             {Object.entries(analysis.detector_scores).map(([key, value]) =>
@@ -1320,7 +1321,7 @@ export default function InspectorPanel() {
                     mlPointNeighbourhood.eligible_neighbour_cluster_count,
                     0
                   )} geeignet`
-                : "nicht verfuegbar"
+                : "nicht verfügbar"
             )}
             {renderMetric("Bester Nachbar (Gebäude)", fmtStr(mlPointNeighbourhood?.best_neighbour_building_id))}
             {renderMetric("Bester Nachbar (Cluster)", fmtStr(mlPointNeighbourhood?.best_neighbour_cluster_id))}
@@ -1433,14 +1434,14 @@ export default function InspectorPanel() {
 
   const renderBuildingRunsFull = () => {
     if (buildingRunsQuery.isLoading) {
-      return <div className="pill">Gebaeude-Runs werden geladen...</div>;
+      return <div className="pill">Gebäude-Runs werden geladen...</div>;
     }
     if (buildingRunsQuery.isError) {
       return <div className="pill warning">Run-Historie konnte nicht geladen werden.</div>;
     }
     const runs = buildingRunsQuery.data ?? [];
     if (!runs.length) {
-      return <div className="pill">Dieses Gebaeude ist in keinem abgeschlossenen ML-Lauf enthalten.</div>;
+      return <div className="pill">Dieses Gebäude ist in keinem abgeschlossenen ML-Lauf enthalten.</div>;
     }
     return <div className="grid gap-2">{runs.map((run) => renderBuildingRunItem(run, true))}</div>;
   };
@@ -1454,25 +1455,25 @@ export default function InspectorPanel() {
       <div>
         {building.source === "bev" && (
           <>
-            <div className="section-title">BEV-Hoehenattribute</div>
-            {renderMetric("Gebaeudehoehe", `${fmtNum(building.height_m, 1)} m`)}
+            <div className="section-title">BEV-Höhenattribute</div>
+            {renderMetric("Gebäudehöhe", `${fmtNum(building.height_m, 1)} m`)}
             {renderMetric(
-              "Objekthoehe Median / Max / Traufe",
+              "Objekthöhe Median / Max / Traufe",
               `${fmtNum(building.height_median_m, 1)} / ${fmtNum(building.height_max_m, 1)} / ${fmtNum(
                 building.height_eaves_m,
                 1
               )} m`
             )}
             {renderMetric(
-              "Bodenhoehe Min / Median / Max",
+              "Bodenhöhe Min / Median / Max",
               `${fmtNum(building.ground_min_m, 1)} / ${fmtNum(building.ground_median_m, 1)} / ${fmtNum(
                 building.ground_max_m,
                 1
               )} m`
             )}
-            {renderMetric("Footprint-Flaeche", `${fmtNum(building.footprint_area_m2, 1)} m2`)}
+            {renderMetric("Footprint-Fläche", `${fmtNum(building.footprint_area_m2, 1)} m2`)}
             {renderMetric("BEV-Reliefspanne", `${fmtNum(building.relief_range_m, 1)} m`)}
-            {renderMetric("Hoehenquelle", fmtStr(building.height_source))}
+            {renderMetric("Höhenquelle", fmtStr(building.height_source))}
             {renderMetric("Erfassungsart", fmtStr(building.capture_method))}
             {renderMetric("ALS-Datum / Befliegungsjahr", `${fmtStr(building.als_date)} / ${fmtNum(building.flight_year, 0)}`)}
             {renderMetric("AGWR-Typ", fmtStr(building.agwr_type))}
@@ -1483,10 +1484,10 @@ export default function InspectorPanel() {
         {building.terrain ? (
           <>
             {renderMetric("Terrain-Quelle", fmtStr(building.terrain.source))}
-            {renderMetric("Terrain-Aufloesung", `${fmtNum(building.terrain.resolution_m, 1)} m`)}
-            {renderMetric("Mittlere Gelaendehoehe", `${fmtNum(building.terrain.elevation_mean_m, 1)} m`)}
+            {renderMetric("Terrain-Auflösung", `${fmtNum(building.terrain.resolution_m, 1)} m`)}
+            {renderMetric("Mittlere Geländehöhe", `${fmtNum(building.terrain.elevation_mean_m, 1)} m`)}
             {renderMetric(
-              "Gelaendehoehe min/max",
+              "Geländehöhe min/max",
               `${fmtNum(building.terrain.elevation_min_m, 1)} / ${fmtNum(
                 building.terrain.elevation_max_m,
                 1
@@ -1502,7 +1503,7 @@ export default function InspectorPanel() {
             {renderMetric("Reliefspanne", `${fmtNum(building.terrain.relief_range_m, 1)} m`)}
           </>
         ) : (
-          <div className="pill">Kein Terrain-Kontext fuer dieses Gebaeude vorhanden.</div>
+          <div className="pill">Kein Terrain-Kontext für dieses Gebäude vorhanden.</div>
         )}
         <div className="section-title">Attribute</div>
         {renderAttributeDetails(building.attributes || {}, building.source)}
@@ -1608,7 +1609,7 @@ export default function InspectorPanel() {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="text-[11px] font-bold uppercase tracking-[0.9px] text-primary">
-              Ausgewaehlter Punkt
+              Ausgewählter Punkt
             </div>
             <div className="mt-1 break-all font-mono text-sm font-bold text-foreground">
               {point.code} · T{fmtStr(point.track)}
@@ -1637,7 +1638,7 @@ export default function InspectorPanel() {
           <div className="mt-1 grid gap-1">
             {renderMetric("Label", fmtStr(pointLabel))}
             {renderMetric("Anomaliewert", fmtNum(anomalyScore))}
-            {renderMetric("Qualitaetswert", fmtNum(qualityScore))}
+            {renderMetric("Qualitätswert", fmtNum(qualityScore))}
             {renderMetric(
               "Clusterrolle / Wahrscheinlichkeit",
               `${fmtStr(clusterRole)} / ${fmtNum(clusterProbability)}`
@@ -1647,7 +1648,7 @@ export default function InspectorPanel() {
               formatMlClusterKindForModel(clusterKind, modelSetVersion)
             )}
             {renderMetric("Cross-Track-Konsistenz", fmtNum(crossTrackConsistency))}
-            {renderMetric("Fuer Scoring genutzt", fmtBool(keptForScoring))}
+            {renderMetric("Für Scoring genutzt", fmtBool(keptForScoring))}
           </div>
         </div>
 
@@ -1656,12 +1657,12 @@ export default function InspectorPanel() {
             Messwerte
           </div>
           <div className="mt-1 grid gap-1">
-            {renderMetric("InSAR-Hoehe", `${fmtNum(height, 1)} m`)}
-            {renderMetric("Hoehe Std.", `${fmtNum(heightStd, 1)} m`)}
+            {renderMetric("InSAR-Höhe", `${fmtNum(height, 1)} m`)}
+            {renderMetric("Höhe Std.", `${fmtNum(heightStd, 1)} m`)}
             {renderMetric("Geschwindigkeit", `${fmtNum(velocity)} mm/Jahr`)}
             {renderMetric("Geschwindigkeit Std.", `${fmtNum(velocityStd)} mm/Jahr`)}
             {renderMetric("Beschleunigung", `${fmtNum(acceleration)} mm/Jahr²`)}
-            {renderMetric("Kohaerenz", fmtNum(coherence))}
+            {renderMetric("Kohärenz", fmtNum(coherence))}
           </div>
         </div>
 
@@ -1670,7 +1671,7 @@ export default function InspectorPanel() {
             Warum diese Punktbewertung?
           </div>
           <p className="mt-1 text-xs leading-snug text-muted-foreground">
-            Diese Faktoren erklaeren den Punkt-Score und die Outlier-Einstufung.
+            Diese Faktoren erklären den Punkt-Score und die Outlier-Einstufung.
           </p>
           {anomalyExplainFeatures.length > 0 ? (
             <div className="mt-2 grid gap-1.5">
@@ -1688,7 +1689,7 @@ export default function InspectorPanel() {
                     </span>
                   </div>
                   <div className="mt-0.5 break-words text-muted-foreground">
-                    {fmtStr(item.summary)}
+                    {formatFocusReasonDetail(item.key, item.summary)}
                   </div>
                   {item.key === "local_motion_deviation" && localDeviationBreakdown?.topItem && (
                     <div className="mt-2 rounded-sm border border-border bg-secondary/60 p-2 text-[11px] text-muted-foreground">
@@ -1733,27 +1734,27 @@ export default function InspectorPanel() {
               ))}
             </div>
           ) : (
-            <div className="pill mt-2">Keine Bewertungsgruende fuer diesen Punkt gespeichert.</div>
+            <div className="pill mt-2">Keine Bewertungsgründe für diesen Punkt gespeichert.</div>
           )}
         </div>
 
         <div className="mt-3 rounded-md border border-border bg-secondary/40 p-2">
           <div className="text-[11px] font-bold uppercase tracking-[0.8px] text-muted-foreground">
-            Zuordnung zum Gebaeude
+            Zuordnung zum Gebäude
           </div>
           <div className="mt-1 grid gap-1">
             {renderMetric(
-              "Gebaeude",
+              "Gebäude",
               `${fmtStr(point.buildingSource).toUpperCase()} / ${fmtStr(point.buildingId)}`
             )}
-            {renderMetric("Abstand zum Gebaeude", `${fmtNum(distanceM, 1)} m`)}
+            {renderMetric("Abstand zum Gebäude", `${fmtNum(distanceM, 1)} m`)}
             {renderMetric("Zuordnung", formatAssignmentMethod(assignmentMethod))}
           </div>
           {showAssignmentWarnings && (
             <div className="mt-2 rounded-sm border border-warning/30 bg-warning/10 px-2 py-1.5 text-xs text-warning">
               <div className="font-semibold">Zuordnungswarnung</div>
               <p className="mt-0.5 leading-snug">
-                Diese Hinweise betreffen die Zuordnung zum Gebaeude, nicht zwingend die Bewegung
+                Diese Hinweise betreffen die Zuordnung zum Gebäude, nicht zwingend die Bewegung
                 selbst.
               </p>
               <div className="mt-1.5 grid gap-1 text-warning">
@@ -1761,7 +1762,9 @@ export default function InspectorPanel() {
                   <div key={`${item.key}-${item.severity}-${item.summary}`}>
                     <span className="font-semibold">{formatFocusReasonKey(item.key)}</span>
                     <span className="font-mono"> · {fmtNum(item.severity)}</span>
-                    <span className="block break-words opacity-90">{fmtStr(item.summary)}</span>
+                    <span className="block break-words opacity-90">
+                      {formatFocusReasonDetail(item.key, item.summary)}
+                    </span>
                   </div>
                 ))}
                 {showNearestAssignmentFallback && (
@@ -1770,7 +1773,7 @@ export default function InspectorPanel() {
                       {formatFocusReasonKey("nearest_assignment")}
                     </span>
                     <span className="block break-words opacity-90">
-                      Punkt wurde nur ueber das naechstgelegene Gebaeude zugeordnet.
+                      Punkt wurde nur über das nächstgelegene Gebäude zugeordnet.
                     </span>
                   </div>
                 )}
@@ -1794,9 +1797,9 @@ export default function InspectorPanel() {
             </div>
             <div className="mt-1 grid gap-1">
               {renderMetric("Gate-ausgeschlossen", fmtBool(gateExcluded))}
-              {renderMetric("Fuer Scoring genutzt", fmtBool(keptForScoring))}
+              {renderMetric("Für Scoring genutzt", fmtBool(keptForScoring))}
               {renderMetric(
-                "Gate-Gruende",
+                "Gate-Gründe",
                 gateReasons.length > 0
                   ? gateReasons.map((reason) => formatFocusReasonKey(reason)).join(", ")
                   : "—"
@@ -1850,7 +1853,7 @@ export default function InspectorPanel() {
         )}
         {selectedBuildingFocusPointStatus === "missing" && (
           <div className="pill warning mt-2">
-            {selectedBuildingFocusPointMessage || "Keine Punktanalyse fuer diesen Lauf gefunden."}
+            {selectedBuildingFocusPointMessage || "Keine Punktanalyse für diesen Lauf gefunden."}
           </div>
         )}
         {selectedBuildingFocusPointAnalysisQuery.isError && (
@@ -1864,11 +1867,11 @@ export default function InspectorPanel() {
             onClick={() => openFocusPointAsRegularPoint(point)}
           >
             <ExternalLink aria-hidden="true" />
-            Als Punkt oeffnen
+            Als Punkt öffnen
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={endBuildingFocus}>
             <X aria-hidden="true" />
-            Gebaeude-Fokus beenden
+            Gebäude-Fokus beenden
           </Button>
         </div>
       </div>
@@ -1885,9 +1888,9 @@ export default function InspectorPanel() {
     return (
       <div>
         <div className="section-title">Rohdaten</div>
-        {renderRawDetails("Gebaeudeattribute anzeigen", building.attributes || {})}
-        {renderRawDetails("Gebaeudegeometrie anzeigen", building.geometry)}
-        {analysis && renderRawDetails("ML-Gebaeudeanalyse anzeigen", analysis)}
+        {renderRawDetails("Gebäudeattribute anzeigen", building.attributes || {})}
+        {renderRawDetails("Gebäudegeometrie anzeigen", building.geometry)}
+        {analysis && renderRawDetails("ML-Gebäudeanalyse anzeigen", analysis)}
       </div>
     );
   };
@@ -1900,15 +1903,15 @@ export default function InspectorPanel() {
       <div className="flex flex-col gap-4">
         <div className="rounded-lg border border-border bg-card p-3">
           <div className="section-title !mt-0">Gebäude</div>
-          {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebaeudeobjekts.")}
-          {renderMetric("Gebaeude-ID", building.id)}
+          {renderMetric("Quelle", building.source.toUpperCase(), "Datenquelle des Gebäudeobjekts.")}
+          {renderMetric("Gebäude-ID", building.id)}
           {renderMetric(
             "Adresse",
             fmtBuildingAddress(building.address),
             getBuildingAddressHelp(building.address)
           )}
           {renderMetric(
-            "Gebaeudehoehe",
+            "Gebäudehöhe",
             building.height === null ? "—" : `${building.height.toFixed(1)} m`
           )}
           {building.source === "bev" &&
@@ -1918,23 +1921,23 @@ export default function InspectorPanel() {
         {renderSelectedBuildingFocusPoint()}
 
         {activeRunId && mlBuildingAnalysisQuery.isLoading && (
-          <div className="pill">Gebaeudeanalyse des aktiven Laufs wird geladen...</div>
+          <div className="pill">Gebäudeanalyse des aktiven Laufs wird geladen...</div>
         )}
         {activeRunId && mlBuildingAnalysisQuery.isError && !isActiveRunPending && (
           <div className="pill warning">
-            Gebaeudeanalyse des aktiven Laufs konnte nicht geladen werden.
+            Gebäudeanalyse des aktiven Laufs konnte nicht geladen werden.
           </div>
         )}
         {isActiveRunPending && (
           <div className="pill">
-            Diese Zusammenfassung aktualisiert sich waehrend der aktive Lauf verarbeitet wird.
+            Diese Zusammenfassung aktualisiert sich während der aktive Lauf verarbeitet wird.
           </div>
         )}
 
         {mlBuildingAnalysis ? (
           mlBuildingAnalysis.point_count === 0 ? (
             <div className="pill">
-              Keine Punkte aus dem aktiven Lauf sind diesem Gebaeude zugeordnet.
+              Keine Punkte aus dem aktiven Lauf sind diesem Gebäude zugeordnet.
             </div>
           ) : (
             <BuildingBefund
@@ -1989,7 +1992,7 @@ export default function InspectorPanel() {
                   ? `${fmtStr(analysis.model_set_version)} – Annex: ${V3_ANNEX_CLASSIFICATION_NOTE}`
                   : fmtStr(analysis.model_set_version)
               )}
-              {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
+              {renderMetric("Track-Übereinstimmung", fmtNum(analysis.track_agreement_score))}
               {renderMetric(
                 "Retuning-Flags",
                 formatRetuningFlags(
@@ -2010,7 +2013,7 @@ export default function InspectorPanel() {
                 formatDifferentialMotionLevel(analysis.differential_motion_level)
               )}
               {renderMetric("Median-Abstand", `${fmtNum(analysis.median_distance_m, 1)} m`)}
-              {renderMetric("Mittlere Qualitaet", fmtNum(analysis.avg_quality_score))}
+              {renderMetric("Mittlere Qualität", fmtNum(analysis.avg_quality_score))}
               {renderMetric("Mittlere Anomalie", fmtNum(analysis.avg_anomaly_score))}
               {renderMetric(
                 "Mittlere Cross-Track-Konsistenz",
@@ -2018,7 +2021,7 @@ export default function InspectorPanel() {
               )}
               {renderMetric(
                 "Nachbarschaftskontext",
-                analysis.neighbour_context_available ? "verfuegbar" : "nicht verfuegbar"
+                analysis.neighbour_context_available ? "verfügbar" : "nicht verfügbar"
               )}
               {renderMetric(
                 "Nachbar-Kandidaten",
@@ -2063,7 +2066,7 @@ export default function InspectorPanel() {
               )}
             </CollapsibleSection>
             <CollapsibleSection
-              title={`Punkte mit niedrigster Qualitaet (${analysis.top_points.length})`}
+              title={`Punkte mit niedrigster Qualität (${analysis.top_points.length})`}
               defaultOpen={false}
               key={`bd-top-${selectionKey}-${activeRunId ?? "none"}`}
             >
@@ -2093,7 +2096,7 @@ export default function InspectorPanel() {
     if (!buildingGoogleEarthUrl) {
       return (
         <div className="pill warning mb-3">
-          Google-Earth-Link nicht verfuegbar.
+          Google-Earth-Link nicht verfügbar.
         </div>
       );
     }
@@ -2123,7 +2126,7 @@ export default function InspectorPanel() {
               href={selectedBuildingGoogleEarthUrl}
               target="_blank"
               rel="noreferrer"
-              aria-label="Ausgewaehltes Gebaeude in Google Earth oeffnen"
+              aria-label="Ausgewähltes Gebäude in Google Earth öffnen"
             >
               <ExternalLink aria-hidden="true" />
               In Google Earth öffnen
@@ -2150,7 +2153,7 @@ export default function InspectorPanel() {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2>Inspektor</h2>
-          <small>Punkt oder Gebaeude auswaehlen, um Messwerte und Diagnostik zu pruefen.</small>
+          <small>Punkt oder Gebäude auswählen, um Messwerte und Diagnostik zu prüfen.</small>
         </div>
         <button
           type="button"
@@ -2253,10 +2256,10 @@ export default function InspectorPanel() {
 
       {selection?.type === "building" && (
         <>
-          {buildingDetailQuery.isLoading && <div className="pill">Gebaeude wird geladen...</div>}
+          {buildingDetailQuery.isLoading && <div className="pill">Gebäude wird geladen...</div>}
           {buildingDetailQuery.data && (
             <>
-              {renderTabs(buildingTabs, activeBuildingTab, setActiveBuildingTab, "Gebaeude-Inspektor")}
+              {renderTabs(buildingTabs, activeBuildingTab, setActiveBuildingTab, "Gebäude-Inspektor")}
               {renderBuildingExternalActions()}
               {renderBuildingContent()}
             </>

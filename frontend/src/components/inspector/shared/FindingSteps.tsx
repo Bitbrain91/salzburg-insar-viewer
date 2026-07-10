@@ -1,6 +1,7 @@
 import type { MlBuildingAnalysis } from "../../../hooks/useApi";
 import {
   fmtNum,
+  fmtNumDe,
   formatSignedTrackMotion,
   shortClusterId,
   sortTrackEntries,
@@ -66,13 +67,13 @@ function verdictSentence(analysis: MlBuildingAnalysis): string {
   const band = bandWords[analysis.building_reliability_band ?? ""] ?? "unbekannt";
   const penaltyCount = analysis.reliability_penalties.length;
   if (penaltyCount === 0) {
-    return `Aus den Hauptclustern ergibt sich ${motion}. Keine Abzüge — die Zuverlässigkeit liegt bei ‚${band}' (${fmtNum(
+    return `Aus den Hauptclustern ergibt sich ${motion}. Keine Abzüge — die Zuverlässigkeit liegt bei ‚${band}' (${fmtNumDe(
       analysis.building_reliability_score
     )}).`;
   }
   return `Aus den Hauptclustern ergibt sich ${motion}. ${penaltyCount} ${
     penaltyCount === 1 ? "Abzug senkte" : "Abzüge senkten"
-  } die Zuverlässigkeit auf ‚${band}' (${fmtNum(analysis.building_reliability_score)}).`;
+  } die Zuverlässigkeit auf ‚${band}' (${fmtNumDe(analysis.building_reliability_score)}).`;
 }
 
 export type FindingStepsProps = {

@@ -37,6 +37,7 @@ import {
   isV3ModelSetVersion,
   type MlClusterKind,
 } from "../lib/mlClusterKind";
+import { tokens } from "../lib/designTokens";
 import { useAppStore } from "../lib/store";
 import type {
   BuildingSource,
@@ -159,7 +160,7 @@ const clusterPaletteExpression: any[] = [
   "match",
   ["get", "cluster_color_index"],
   ...mlPalette.flatMap((color, idx) => [idx, color]),
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
 ];
 
 const clusterKindColorExpression: any[] = [
@@ -175,13 +176,13 @@ const clusterKindColorExpression: any[] = [
 const mlClusterColorExpression: any[] = [
   "case",
   ["==", ["get", "gate_excluded"], true],
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
   ["==", ["get", "cluster_role"], "excluded"],
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
   ["==", ["get", "cluster_role"], "noise"],
-  "#c6372a",
+  tokens.clusterRole.noise,
   ["==", ["get", "cluster_role"], "insufficient_support"],
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   clusterKindColorExpression,
 ];
 
@@ -189,7 +190,7 @@ const mlBuildingColorExpression: any[] = [
   "match",
   ["get", "building_color_index"],
   ...mlPalette.flatMap((color, idx) => [idx, color]),
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
 ];
 
 const mlBuildingHeightExpression: any[] = [
@@ -207,7 +208,7 @@ const qualityExpression: any[] = [
   0.4,
   "#d97b29",
   0.7,
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   1,
   "#1b9e77",
 ];
@@ -219,7 +220,7 @@ const anomalyExpression: any[] = [
   0,
   "#1b9e77",
   0.4,
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   0.7,
   "#d97b29",
   1,
@@ -229,7 +230,7 @@ const anomalyExpression: any[] = [
 const crossTrackExpression: any[] = [
   "case",
   ["==", ["get", "cross_track_consistency"], null],
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
   [
     "interpolate",
     ["linear"],
@@ -237,7 +238,7 @@ const crossTrackExpression: any[] = [
     0,
     "#8e0f2f",
     0.5,
-    "#f2c14e",
+    tokens.clusterRole.insufficientSupport,
     1,
     "#1b9e77",
   ],
@@ -249,10 +250,10 @@ const pointReliabilityExpression: any[] = [
   "normal",
   "#1b9e77",
   "suspect",
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   "outlier",
-  "#c6372a",
-  "#9aa0a6",
+  tokens.clusterRole.noise,
+  tokens.clusterRole.excluded,
 ];
 
 const buildingReliabilityScoreExpression: any[] = [
@@ -264,7 +265,7 @@ const buildingReliabilityScoreExpression: any[] = [
   0.4,
   "#d97b29",
   0.7,
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   1,
   "#1b9e77",
 ];
@@ -274,11 +275,11 @@ const buildingMotionExpression: any[] = [
   ["coalesce", ["get", "building_motion_mm_a"], 0],
   "#8e0f2f",
   -5,
-  "#c6372a",
+  tokens.clusterRole.noise,
   -2,
   "#e67f1c",
   -1,
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   1,
   "#2c9f7a",
   2,
@@ -292,7 +293,7 @@ const buildingMotionExpression: any[] = [
 const buildingCrossTrackExpression: any[] = [
   "case",
   ["==", ["get", "track_agreement_score"], null],
-  "#9aa0a6",
+  tokens.clusterRole.excluded,
   [
     "interpolate",
     ["linear"],
@@ -300,7 +301,7 @@ const buildingCrossTrackExpression: any[] = [
     0,
     "#8e0f2f",
     0.5,
-    "#f2c14e",
+    tokens.clusterRole.insufficientSupport,
     1,
     "#1b9e77",
   ],
@@ -312,10 +313,10 @@ const buildingReliabilityBandExpression: any[] = [
   "high",
   "#1b9e77",
   "medium",
-  "#f2c14e",
+  tokens.clusterRole.insufficientSupport,
   "low",
-  "#c6372a",
-  "#9aa0a6",
+  tokens.clusterRole.noise,
+  tokens.clusterRole.excluded,
 ];
 
 const focusCandidateColorExpression: any[] = [
@@ -933,7 +934,7 @@ export default function MapView() {
 
     // Deep-Link-Kamera robust anwenden: Der beim App-Boot eingefrorene
     // URL-Hash gewinnt gegen Konstruktor-Defaults - auch wenn eine
-    // StrictMode-Vorgaenger-Instanz den Live-Hash bereits ueberschrieben
+    // StrictMode-Vorgaenger-Instanz den Live-Hash bereits überschrieben
     // hat (P7-D-W1-T3-Fix, Regression aus dem Run-Auto-Fokus-Umbau).
     const bootCamera = initialHashCamera();
     if (bootCamera) {
@@ -944,7 +945,7 @@ export default function MapView() {
         pitch: bootCamera.pitch,
       });
       // Auch als "freie Kamera" verankern: der cameraMode-Mount-Effekt
-      // east bearing/pitch sonst auf den Default (-10/45) zurueck, weil
+      // east bearing/pitch sonst auf den Default (-10/45) zurück, weil
       // das moveend des jumpTo vor der Handler-Registrierung feuert.
       lastFreeCameraRef.current = {
         bearing: bootCamera.bearing,
@@ -1024,8 +1025,8 @@ export default function MapView() {
     mapRef.current = map;
 
     // Expliziter Resize-Fallback: Im resizable Shell-Layout (PanelGroup)
-    // greift MapLibres eigenes trackResize nicht zuverlaessig, wenn der
-    // Container waehrend der Panel-Vermessung montiert wurde.
+    // greift MapLibres eigenes trackResize nicht zuverlässig, wenn der
+    // Container während der Panel-Vermessung montiert wurde.
     let resizeFrame: number | null = null;
     const resizeObserver = new ResizeObserver(() => {
       if (resizeFrame !== null) return;
@@ -1468,7 +1469,7 @@ export default function MapView() {
     styleVersion,
   ]);
 
-  // Hervorhebung der Cluster-Huelle beim Hover ueber eine Cluster-Karte
+  // Hervorhebung der Cluster-Huelle beim Hover über eine Cluster-Karte
   // im Inspector (hoveredClusterId).
   useEffect(() => {
     const map = mapRef.current;
@@ -1489,7 +1490,7 @@ export default function MapView() {
     map.triggerRepaint();
   }, [hoveredClusterId, styleVersion]);
 
-  // Gestrichelte BBox-Vorschau beim Hover ueber eine Run-Karte.
+  // Gestrichelte BBox-Vorschau beim Hover über eine Run-Karte.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || styleVersion === 0 || !map.getStyle()) return;
@@ -1534,8 +1535,8 @@ export default function MapView() {
     map.triggerRepaint();
   }, [hoveredRunBBox, styleVersion]);
 
-  // Deep-Link-Auto-Fit (P7-B-W2-T0): wurde ein Gebaeude per URL angefordert
-  // und liegt kein Kamera-Hash vor, einmalig auf die Gebaeudegeometrie
+  // Deep-Link-Auto-Fit (P7-B-W2-T0): wurde ein Gebäude per URL angefordert
+  // und liegt kein Kamera-Hash vor, einmalig auf die Gebäudegeometrie
   // zoomen. Standard ist die Nadir-Auditansicht (pitch=0, Nord oben);
   // `pitch`/`bearing`-Query-Parameter erlauben einen expliziten Override.
   useEffect(() => {
@@ -1571,9 +1572,9 @@ export default function MapView() {
     });
   }, [focusContextData]);
 
-  // Auto-Fokus auf die Run-Area: Waehlt der User einen anderen Run aus,
+  // Auto-Fokus auf die Run-Area: Wählt der User einen anderen Run aus,
   // fliegt die Karte auf dessen BBox. Der Ref startet mit dem Mount-Wert,
-  // damit Seitenstart/Deep-Link (Gebaeude-Auto-Fit bzw. Kamera-Hash haben
+  // damit Seitenstart/Deep-Link (Gebäude-Auto-Fit bzw. Kamera-Hash haben
   // Vorrang) keinen Flug ausloesen. Perspektive (Nadir/LOS) bleibt erhalten.
   const runFocusRef = useRef<string | null>(useAppStore.getState().activeRunId);
   useEffect(() => {
@@ -1658,9 +1659,9 @@ export default function MapView() {
     selectedMlBuildingFocusPoint,
   ]);
 
-  // Interaktiver Gebaeude-Fokus-Flug. Beim Deep-Link-Boot MIT Kamera-Hash
+  // Interaktiver Gebäude-Fokus-Flug. Beim Deep-Link-Boot MIT Kamera-Hash
   // darf die erste Ausloesung (URL-Selection + async Focus-Kontext) die
-  // Hash-Kamera nicht ueberschreiben (P7-D-W1-T3-Fix).
+  // Hash-Kamera nicht überschreiben (P7-D-W1-T3-Fix).
   const bootFocusFitSkippedRef = useRef(false);
   useEffect(() => {
     if (!mapRef.current || !focusContextData?.bounds?.length || !focusBuildingSelection) return;
@@ -1954,7 +1955,7 @@ export default function MapView() {
       source: "ml_focus_points",
       paint: {
         "circle-radius": 8,
-        "circle-color": "#c6372a",
+        "circle-color": tokens.clusterRole.noise,
         "circle-opacity": 0.98,
         "circle-stroke-width": 1.4,
         "circle-stroke-color": "#ffffff",
@@ -1967,7 +1968,7 @@ export default function MapView() {
       source: "ml_focus_points",
       paint: {
         "circle-radius": 6,
-        "circle-color": "#9aa0a6",
+        "circle-color": tokens.clusterRole.excluded,
         "circle-opacity": 0.4,
         "circle-stroke-width": 1,
         "circle-stroke-color": "#f9fafb",

@@ -25,7 +25,7 @@ const PIPELINE_NAME = "anomaly_local_v1";
 /**
  * Run-Verwaltung im linken Panel (ersetzt PipelinePanel): einklappbares
  * Start-Formular, aktiver Lauf mit Darstellungssteuerung, Filterleiste und
- * Tages-gruppierte Run-Karten. Run-Details oeffnen im Inspector.
+ * Tages-gruppierte Run-Karten. Run-Details öffnen im Inspector.
  */
 export default function RunManagerPanel() {
   const activeRunId = useAppStore((state) => state.activeRunId);
@@ -68,7 +68,7 @@ export default function RunManagerPanel() {
   const activeRun = pipelineRuns.find((run) => run.run_id === activeRunId) ?? null;
 
   const openRun = (run: MlRunSummary) => {
-    // Details immer im Inspector zeigen; abgeschlossene Laeufe zusaetzlich
+    // Details immer im Inspector zeigen; abgeschlossene Läufe zusätzlich
     // aktivieren (Karteneinfaerbung), wie im alten Panel.
     if (run.status === "succeeded" && run.run_id !== activeRunId) {
       setActiveRunIdClearingFocus(run.run_id);

@@ -8,7 +8,7 @@ import { StatusBadge } from "../ui";
 
 /**
  * Kompakter Chip oben mittig auf der Karte: beantwortet jederzeit
- * "welcher Lauf faerbt gerade meine Karte?". Klick oeffnet die
+ * "welcher Lauf färbt gerade meine Karte?". Klick öffnet die
  * Run-Verwaltung, x deaktiviert den Lauf.
  */
 export function ActiveRunChip() {

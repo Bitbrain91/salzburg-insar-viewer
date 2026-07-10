@@ -1,5 +1,5 @@
 /**
- * Semantische Farbtoken — einzige Quelle fuer Bewertungs-, Status- und
+ * Semantische Farbtoken — einzige Quelle für Bewertungs-, Status- und
  * Serienfarben. Konsumiert von Tailwind (tailwind.config.ts), MapLibre-Paint
  * (MapView), ECharts (TimeseriesPanel) und den UI-Primitives.
  *
@@ -7,7 +7,7 @@
  * - Teal (primary #0c766e) ist Marke/Aktiv-Zustand, nie Bewertungssemantik.
  * - Differential-Level bewusst orange statt rot, um eine "Schaden"-Lesart
  *   zu vermeiden (Forschungsbefund, keine Schadensaussage).
- * - Kartografische Rampen (Velocity-/Hoehenskala) bleiben in pointStyling.ts.
+ * - Kartografische Rampen (Velocity-/Höhenskala) bleiben in pointStyling.ts.
  */
 export const tokens = {
   reliability: {
@@ -16,7 +16,7 @@ export const tokens = {
     low: "#c0362a",
     unknown: "#9aa0a6",
   },
-  // Punktlabels nutzen bewusst dieselbe Ampel wie die Zuverlaessigkeit.
+  // Punktlabels nutzen bewusst dieselbe Ampel wie die Zuverlässigkeit.
   pointLabel: {
     normal: "#059669",
     suspect: "#d97706",

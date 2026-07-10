@@ -1,5 +1,5 @@
 /**
- * Abgeleitete Anzeigenamen fuer ML-Laeufe. Primaer gilt das vom Nutzer
+ * Abgeleitete Anzeigenamen für ML-Läufe. Primaer gilt das vom Nutzer
  * vergebene `label`; ohne Label wird ein sprechender Titel aus Gebiet,
  * Sensor und Track abgeleitet ("{AOI} · {Sensor} T{Track}").
  */
@@ -62,7 +62,7 @@ export function deriveRunTitle(
   return parts.filter(Boolean).join(" · ");
 }
 
-/** Kurz-ID zur Disambiguierung optisch identischer Laeufe. */
+/** Kurz-ID zur Disambiguierung optisch identischer Läufe. */
 export function shortRunId(runId: string | null | undefined): string {
   return runId ? runId.slice(0, 8) : "—";
 }

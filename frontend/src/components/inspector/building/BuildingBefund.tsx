@@ -15,7 +15,7 @@ export type BuildingBefundProps = {
   analysis: MlBuildingAnalysis;
   runTitle: string;
   sectionKey: string;
-  /** ClusterSection nur fuer lokale Anomaly-Laeufe anzeigen. */
+  /** ClusterSection nur für lokale Anomaly-Läufe anzeigen. */
   showClusters?: boolean;
   trackOptions: Array<{ value: MlBuildingTrackFilter; label: string }>;
   pointsByCluster: Map<string, PointRecord[]>;

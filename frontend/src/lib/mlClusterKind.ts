@@ -12,13 +12,13 @@ export const ML_CLUSTER_KIND_LABELS: Record<MlClusterKind, string> = {
 };
 
 export const ML_CLUSTER_KIND_DESCRIPTIONS: Record<MlClusterKind, string> = {
-  standard: "Regulaerer lokaler Cluster; seine individuelle Farbe stammt aus der Clusterpalette.",
+  standard: "Regulärer lokaler Cluster; seine individuelle Farbe stammt aus der Clusterpalette.",
   annex: "Separierter, baulich verbundener Bauteil- oder Anbau-Cluster.",
-  foreign: "Separierter Fremdreflektor; dieser Cluster darf den Gebaeudebefund nicht praegen.",
+  foreign: "Separierter Fremdreflektor; dieser Cluster darf den Gebäudebefund nicht prägen.",
 };
 
 export function formatMlClusterKind(kind: MlClusterKind | null | undefined) {
-  return kind ? ML_CLUSTER_KIND_LABELS[kind] : "Cluster-Typ nicht verfuegbar";
+  return kind ? ML_CLUSTER_KIND_LABELS[kind] : "Cluster-Typ nicht verfügbar";
 }
 
 export const V3_ANNEX_CLASSIFICATION_NOTE =

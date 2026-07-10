@@ -63,11 +63,11 @@ export function ReliabilityMeter({ score, band, label, className }: ReliabilityM
           {label ?? "Zuverlässigkeit der Einschätzung"}
         </span>
         <span className="font-mono font-semibold text-foreground">
-          {clamped === null ? "—" : clamped.toFixed(2)}
+          {clamped === null ? "—" : clamped.toFixed(2).replace(".", ",")}
         </span>
       </div>
       <div className="relative flex h-2.5 w-full gap-0.5" role="img"
-        aria-label={`Zuverlässigkeit ${clamped === null ? "unbekannt" : clamped.toFixed(2)} (${reliabilityBandLabels[resolvedBand]})`}
+        aria-label={`Zuverlässigkeit ${clamped === null ? "unbekannt" : clamped.toFixed(2).replace(".", ",")} (${reliabilityBandLabels[resolvedBand]})`}
       >
         {segments.map((segment) => (
           <div
@@ -105,14 +105,14 @@ export function ReliabilityMeter({ score, band, label, className }: ReliabilityM
 export type ScoreBarProps = {
   label: ReactNode;
   value: number | null | undefined;
-  /** "higher-better" faerbt hohe Werte gruen, "higher-worse" rot (z. B. Anomalie). */
+  /** "higher-better" färbt hohe Werte grün, "higher-worse" rot (z. B. Anomalie). */
   direction?: "higher-better" | "higher-worse";
   /** Optionaler Schwellenmarker (0..1). */
   threshold?: number;
   className?: string;
 };
 
-/** Kompakter 0..1-Balken mit Wert — fuer Qualitaets-/Anomalie-Minimeter. */
+/** Kompakter 0..1-Balken mit Wert — für Qualitäts-/Anomalie-Minimeter. */
 export function ScoreBar({
   label,
   value,
@@ -138,7 +138,7 @@ export function ScoreBar({
       <div className="flex items-baseline justify-between gap-2 text-xs">
         <span className="text-muted-foreground">{label}</span>
         <span className="font-mono font-semibold text-foreground">
-          {clamped === null ? "—" : clamped.toFixed(2)}
+          {clamped === null ? "—" : clamped.toFixed(2).replace(".", ",")}
         </span>
       </div>
       <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -170,7 +170,7 @@ export type KindBadgeProps = {
 
 /**
  * Cluster-Typ-Chip: neutraler Badge mit Farbpunkt (nie Petrol/Violett als
- * Flaeche, damit keine Kollision mit der Markenfarbe entsteht).
+ * Fläche, damit keine Kollision mit der Markenfarbe entsteht).
  */
 export function KindBadge({ kind, modelSetVersion, className, style }: KindBadgeProps) {
   if (!kind) return null;
@@ -214,7 +214,7 @@ const runStatusIcons: Record<RunStatusToken, typeof Clock3> = {
 
 export type StatusBadgeProps = {
   status: string | null | undefined;
-  /** Kompakt: nur Icon + Farbe (fuer enge Zeilen). */
+  /** Kompakt: nur Icon + Farbe (für enge Zeilen). */
   iconOnly?: boolean;
   className?: string;
 };
@@ -261,7 +261,7 @@ export type FindingCardProps = {
   className?: string;
 };
 
-/** Grund-Karte fuer "Warum diese Bewertung?": Ton-Punkt, fettes Label, Klartext. */
+/** Grund-Karte für "Warum diese Bewertung?": Ton-Punkt, fettes Label, Klartext. */
 export function FindingCard({
   label,
   detail,

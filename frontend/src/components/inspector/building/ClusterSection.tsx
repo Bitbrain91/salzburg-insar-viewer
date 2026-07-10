@@ -7,6 +7,7 @@ import type {
 import { clusterColor } from "../../../lib/clusterColor";
 import {
   fmtNum,
+  fmtNumDe,
   formatLabelCounts,
   formatSignedTrackMotion,
   shortClusterId,
@@ -215,7 +216,7 @@ export function ClusterSection({
                   {code} · T{track}
                 </span>
                 <span className="font-mono text-muted-foreground">
-                  {label} · Q {fmtNum(quality)} · A {fmtNum(anomaly)}
+                  {label} · Q {fmtNumDe(quality)} · A {fmtNumDe(anomaly)}
                 </span>
               </button>
             );
@@ -286,7 +287,7 @@ export function ClusterSection({
                     {formatSignedTrackMotion(cluster.median_vertical_proxy_mm_a)}
                   </span>{" "}
                   · {cluster.point_count} Punkte · Zuverlässigkeit{" "}
-                  <span className="font-mono">{fmtNum(cluster.cluster_reliability_score)}</span>
+                  <span className="font-mono">{fmtNumDe(cluster.cluster_reliability_score)}</span>
                 </div>
               ) : (
                 <div className="mt-1.5 text-xs text-muted-foreground">

@@ -43,12 +43,12 @@ export type RunCardProps = {
   run: MlRunSummary;
   isActive: boolean;
   areaLabel?: string;
-  /** Karte klicken: aktivieren (falls abgeschlossen) + Details oeffnen. */
+  /** Karte klicken: aktivieren (falls abgeschlossen) + Details öffnen. */
   onOpen: (run: MlRunSummary) => void;
   onShowOnMap: (run: MlRunSummary) => void;
   onDelete: (run: MlRunSummary) => void;
   onHoverChange?: (run: MlRunSummary | null) => void;
-  /** Kompaktvariante fuer den "Aktiver Lauf"-Slot (ohne Aktiv-Badge-Doppelung). */
+  /** Kompaktvariante für den "Aktiver Lauf"-Slot (ohne Aktiv-Badge-Doppelung). */
   variant?: "list" | "active-slot";
 };
 

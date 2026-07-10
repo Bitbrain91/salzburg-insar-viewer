@@ -2,6 +2,7 @@ import { useState } from "react";
 import ReactECharts from "echarts-for-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppStore } from "../lib/store";
+import { tokens } from "../lib/designTokens";
 import { getPointTimeseries } from "../hooks/useApi";
 import { Badge, EmptyState, Switch } from "./ui";
 import { cn } from "@/lib/utils";
@@ -138,7 +139,7 @@ export default function TimeseriesPanel() {
               type: "line",
               data: displacementData,
               smooth: true,
-              lineStyle: { color: "#0c766e", width: 2 },
+              lineStyle: { color: tokens.series.displacement, width: 2 },
               areaStyle: { color: "rgba(12, 118, 110, 0.15)" },
               symbol: "none",
             },
@@ -152,7 +153,7 @@ export default function TimeseriesPanel() {
               data: amplitudeData,
               smooth: true,
               yAxisIndex: 1,
-              lineStyle: { color: "#c4632d", width: 2 },
+              lineStyle: { color: tokens.series.amplitude, width: 2 },
               symbol: "none",
             },
           ]
@@ -178,14 +179,14 @@ export default function TimeseriesPanel() {
           <div className="timeseries-toggles">
             <SeriesToggle
               label="Verschiebung"
-              swatch="#0c766e"
+              swatch={tokens.series.displacement}
               checked={showDisplacement && hasDisplacementData}
               disabled={!hasDisplacementData}
               onChange={setShowDisplacement}
             />
             <SeriesToggle
               label="Amplitude"
-              swatch="#c4632d"
+              swatch={tokens.series.amplitude}
               checked={showAmplitude && hasAmplitudeData}
               disabled={!hasAmplitudeData}
               onChange={setShowAmplitude}

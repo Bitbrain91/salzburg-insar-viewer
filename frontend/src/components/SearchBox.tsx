@@ -10,14 +10,36 @@ import {
 } from "lucide-react";
 import { searchTargets, type SearchResult, type SearchResultSelection } from "../hooks/useApi";
 import { useAppStore, type SearchFocus, type Selection } from "../lib/store";
-import { Button, Input } from "./ui";
+import { Badge, Button, Input } from "./ui";
+import { cn } from "@/lib/utils";
 
 function resultTypeLabel(result: SearchResult) {
   if (result.result_type === "point") return "Punkt";
   if (result.result_type === "building" && result.source === "bev") return "BEV";
   if (result.result_type === "building") return result.source === "gba" ? "GBA" : "Gebäude";
-  if (result.result_type === "ml_run") return "ML Run";
+  if (result.result_type === "ml_run") return "ML-Lauf";
   return result.external ? "Adresse" : "OSM";
+}
+
+function SearchMessage({
+  children,
+  warning = false,
+}: {
+  children: React.ReactNode;
+  warning?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-md border px-2 py-[7px] text-[11px] leading-snug [overflow-wrap:anywhere]",
+        warning
+          ? "border-warning/30 bg-warning/15 text-warning"
+          : "border-border bg-secondary text-muted-foreground"
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 function ResultIcon({ result }: { result: SearchResult }) {
@@ -164,20 +186,26 @@ export default function SearchBox() {
   const showEmptyState = !isLoading && !error && lastQuery && results.length === 0;
 
   return (
-    <div className="search-panel">
-      <div className="search-panel-header">
-        <span className="badge">Salzburg InSAR Viewer</span>
+    <div className="grid min-w-0 gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+        <Badge>Salzburg InSAR Viewer</Badge>
         <span className="text-muted-foreground">Multi-Source-Bewegungsanalytik</span>
       </div>
-      <form className="search-form" onSubmit={handleSubmit}>
-        <div className="search-input-wrap">
-          <Search aria-hidden="true" className="search-input-icon" />
+      <form
+        className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1.5"
+        onSubmit={handleSubmit}
+      >
+        <div className="relative min-w-0">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="ID, ML Run oder Adresse"
-            aria-label="ID, ML Run oder Adresse suchen"
-            className="search-input"
+            placeholder="ID, ML-Lauf oder Adresse"
+            aria-label="ID, ML-Lauf oder Adresse suchen"
+            className="pl-[34px]"
           />
         </div>
         {hasQuery && (
@@ -197,31 +225,35 @@ export default function SearchBox() {
       </form>
 
       {(results.length > 0 || error || showEmptyState) && (
-        <div className="search-results">
-          {error && <div className="search-message warning">{error}</div>}
+        <div className="grid max-h-[min(380px,calc(100vh-170px))] gap-1.5 overflow-y-auto overscroll-contain pt-0.5">
+          {error && <SearchMessage warning>{error}</SearchMessage>}
           {showEmptyState && (
-            <div className="search-message">Keine Treffer für {lastQuery}</div>
+            <SearchMessage>Keine Treffer für {lastQuery}</SearchMessage>
           )}
           {fallbackUsed && results.length > 0 && (
-            <div className="search-message">Externer Adresstreffer</div>
+            <SearchMessage>Externer Adresstreffer</SearchMessage>
           )}
           {results.map((result) => (
             <button
               key={`${result.result_type}:${result.id}`}
               type="button"
-              className="search-result"
+              className="grid w-full min-w-0 grid-cols-[30px_minmax(0,1fr)] items-start gap-2 rounded-md border border-border bg-card/95 p-2 text-left text-foreground shadow-sm transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => applyResult(result)}
             >
-              <span className="search-result-icon">
+              <span className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-md bg-secondary text-primary [&_svg]:h-4 [&_svg]:w-4">
                 <ResultIcon result={result} />
               </span>
-              <span className="search-result-body">
-                <span className="search-result-title">
-                  <span>{result.label}</span>
-                  <span className="search-result-kind">{resultTypeLabel(result)}</span>
+              <span className="grid min-w-0 gap-0.5">
+                <span className="flex min-w-0 items-baseline justify-between gap-2 text-[13px] font-bold leading-tight">
+                  <span className="min-w-0 [overflow-wrap:anywhere]">{result.label}</span>
+                  <span className="flex-none text-[10px] uppercase leading-tight tracking-[0.6px] text-muted-foreground">
+                    {resultTypeLabel(result)}
+                  </span>
                 </span>
                 {result.subtitle && (
-                  <span className="search-result-subtitle">{result.subtitle}</span>
+                  <span className="min-w-0 text-[11px] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+                    {result.subtitle}
+                  </span>
                 )}
               </span>
             </button>

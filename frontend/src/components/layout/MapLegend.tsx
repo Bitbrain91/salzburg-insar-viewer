@@ -27,8 +27,8 @@ const velocityLegendItems = [
 const LEGEND_OPEN_STORAGE_KEY = "insar.legend.open";
 
 /**
- * Kontextabhaengige Legende als Karten-Overlay unten links (ersetzt die
- * Legenden-Sektion im LayerPanel): zeigt genau das, was gerade faerbt.
+ * Kontextabhängige Legende als Karten-Overlay unten links (ersetzt die
+ * Legenden-Sektion im LayerPanel): zeigt genau das, was gerade färbt.
  */
 export function MapLegend() {
   const pointColorMode = useAppStore((state) => state.pointColorMode);

@@ -16,6 +16,9 @@ import {
 } from "../lib/pointStyling";
 import { useAppStore } from "../lib/store";
 import {
+  Badge,
+  CollapsibleSection,
+  HelpButton,
   Label,
   Select,
   SelectContent,
@@ -41,27 +44,8 @@ function ToggleRow({ label, checked, onChange }: ToggleSpec) {
   );
 }
 
-function Section({
-  title,
-  children,
-  description,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-2">
-      <div>
-        <div className="section-title">{title}</div>
-        {description && (
-          <p className="-mt-1 text-xs leading-snug text-muted-foreground">{description}</p>
-        )}
-      </div>
-      <div className="space-y-1.5">{children}</div>
-    </section>
-  );
-}
+const CAMERA_HELP_TEXT =
+  "LOS-Blickrichtungen werden exakt geführt; die Kamera ist grob nach Ost oder West ausgerichtet. Kandidatenflächen liegen sensorseitig, also entgegen der Blickrichtung.";
 
 export default function LayerPanel() {
   const layers = useAppStore((state) => state.layers);
@@ -112,7 +96,8 @@ export default function LayerPanel() {
         <small>Kartengrundlage, Datenebenen und Filter. Die Legende liegt unten links auf der Karte.</small>
       </div>
 
-      <Section title="Kartengrundlage">
+      <section className="space-y-2">
+        <div className="section-title">Gebiet &amp; Ansicht</div>
         <div className="space-y-1.5">
           <Label htmlFor="area-select">AOI</Label>
           <Select
@@ -147,9 +132,35 @@ export default function LayerPanel() {
             </SelectContent>
           </Select>
         </div>
-      </Section>
+        <div className="space-y-1.5">
+          <span className="inline-flex items-center gap-1.5">
+            <Label htmlFor="camera-select">Perspektive</Label>
+            <HelpButton
+              metadata={{ label: "Perspektive", description: CAMERA_HELP_TEXT }}
+              label="Erklärung zur Kameraführung"
+            />
+          </span>
+          <Select
+            value={cameraMode}
+            onValueChange={(value) => setCameraMode(value as CameraMode)}
+          >
+            <SelectTrigger id="camera-select">
+              <SelectValue placeholder="Perspektive wählen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Standardansicht</SelectItem>
+              <SelectItem value="nadir">Senkrecht von oben (Nadir)</SelectItem>
+              {cameraOptions.map((option) => (
+                <SelectItem key={option.mode} value={option.mode}>
+                  {option.preset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </section>
 
-      <Section title="InSAR-Tracks">
+      <CollapsibleSection title="Datenebenen" defaultOpen>
         {selectedAreaDatasets.map((dataset) => (
           <div key={dataset.id} className="space-y-1">
             <div className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
@@ -175,63 +186,39 @@ export default function LayerPanel() {
             })}
           </div>
         ))}
-      </Section>
-
-      <Section title="Gebäude und Kontext">
-        <ToggleRow
-          label="BEV Bauwerke (amtliche Hoehen)"
-          checked={layers.bev}
-          onChange={(checked) => setLayer("bev", checked)}
-        />
-        <ToggleRow
-          label="Global Building Atlas (3D)"
-          checked={layers.gba}
-          onChange={(checked) => setLayer("gba", checked)}
-        />
-        <ToggleRow
-          label="OSM-Gebäudegrundrisse"
-          checked={layers.osm}
-          onChange={(checked) => setLayer("osm", checked)}
-        />
-        <ToggleRow
-          label="SRTM-Relief"
-          checked={layers.reliefHillshade}
-          onChange={(checked) => setLayer("reliefHillshade", checked)}
-        />
-        <ToggleRow
-          label="SRTM-Hangneigung"
-          checked={layers.reliefSlope}
-          onChange={(checked) => setLayer("reliefSlope", checked)}
-        />
-      </Section>
-
-      <Section
-        title="Kamera"
-        description="LOS-Blickrichtungen werden exakt geführt; die Kamera ist grob nach Ost oder West ausgerichtet. Kandidatenflächen liegen sensorseitig, also entgegen der Blickrichtung."
-      >
-        <div className="space-y-1.5">
-          <Label htmlFor="camera-select">Perspektive</Label>
-          <Select
-            value={cameraMode}
-            onValueChange={(value) => setCameraMode(value as CameraMode)}
-          >
-            <SelectTrigger id="camera-select">
-              <SelectValue placeholder="Perspektive wählen" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Standardansicht</SelectItem>
-              <SelectItem value="nadir">Senkrecht von oben (Nadir)</SelectItem>
-              {cameraOptions.map((option) => (
-                <SelectItem key={option.mode} value={option.mode}>
-                  {option.preset.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-1 border-t border-border/60 pt-2">
+          <div className="text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
+            Gebäude und Kontext
+          </div>
+          <ToggleRow
+            label="BEV-Bauwerke (amtliche Höhen)"
+            checked={layers.bev}
+            onChange={(checked) => setLayer("bev", checked)}
+          />
+          <ToggleRow
+            label="Global Building Atlas (3D)"
+            checked={layers.gba}
+            onChange={(checked) => setLayer("gba", checked)}
+          />
+          <ToggleRow
+            label="OSM-Gebäudegrundrisse"
+            checked={layers.osm}
+            onChange={(checked) => setLayer("osm", checked)}
+          />
+          <ToggleRow
+            label="SRTM-Relief"
+            checked={layers.reliefHillshade}
+            onChange={(checked) => setLayer("reliefHillshade", checked)}
+          />
+          <ToggleRow
+            label="SRTM-Hangneigung"
+            checked={layers.reliefSlope}
+            onChange={(checked) => setLayer("reliefSlope", checked)}
+          />
         </div>
-      </Section>
+      </CollapsibleSection>
 
-      <Section title="Punktdarstellung">
+      <CollapsibleSection title="Punktdarstellung" defaultOpen={false}>
         <div className="space-y-1.5">
           <Label htmlFor="point-color-select">Einfärbung</Label>
           <Select
@@ -278,9 +265,13 @@ export default function LayerPanel() {
             </p>
           </div>
         )}
-      </Section>
+      </CollapsibleSection>
 
-      <Section title="Filter">
+      <CollapsibleSection
+        title="Filter"
+        defaultOpen={false}
+        aside={filtersEnabled ? <Badge variant="secondary">aktiv</Badge> : undefined}
+      >
         <ToggleRow
           label="Grenzwerte verwenden"
           checked={filtersEnabled}
@@ -334,8 +325,7 @@ export default function LayerPanel() {
             onValueChange={([v]) => setFilter("coherenceMin", v)}
           />
         </div>
-      </Section>
-
+      </CollapsibleSection>
     </div>
   );
 }

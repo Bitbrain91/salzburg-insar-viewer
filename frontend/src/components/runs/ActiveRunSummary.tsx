@@ -63,9 +63,9 @@ function ToggleRow({
 }
 
 /**
- * Darstellungssteuerung fuer den aktiven Lauf (aus PipelinePanel extrahiert,
+ * Darstellungssteuerung für den aktiven Lauf (aus PipelinePanel extrahiert,
  * inkl. der mlView-erzwingenden Effekte: Nicht-Anomaly-Runs und "kein Lauf"
- * fallen auf die Cluster-Ansicht zurueck).
+ * fallen auf die Cluster-Ansicht zurück).
  */
 export function ActiveRunDisplayControls() {
   const activeRunId = useAppStore((state) => state.activeRunId);

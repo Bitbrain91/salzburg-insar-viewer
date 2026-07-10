@@ -22,8 +22,8 @@ import {
 import { RunRenameControl } from "./RunRenameControl";
 
 /**
- * Lauf-Detailansicht im Inspector (verdraengt durch jede Karten-Selektion).
- * Uebernimmt die frueheren Detail-Sektionen des linken Panels:
+ * Lauf-Detailansicht im Inspector (verdrängt durch jede Karten-Selektion).
+ * Übernimmt die früheren Detail-Sektionen des linken Panels:
  * Ergebnis-Kennzahlen, Konfiguration/Transparenz, Fehlertext.
  */
 export function RunInspector({ runId }: { runId: string }) {

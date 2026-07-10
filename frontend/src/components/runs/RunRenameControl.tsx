@@ -12,7 +12,7 @@ type RunRenameControlProps = {
 
 /**
  * Inline-Umbenennen eines Laufs: Enter speichert (leer = Label entfernen,
- * Titel faellt auf den abgeleiteten Namen zurueck), Escape bricht ab.
+ * Titel fällt auf den abgeleiteten Namen zurück), Escape bricht ab.
  */
 export function RunRenameControl({
   runId,

@@ -6,12 +6,12 @@ import {
   type Selection,
 } from "./store";
 
-// Deep-Link-Unterstuetzung fuer den Visual-Audit (P7-B-W2-T0):
+// Deep-Link-Unterstützung für den Visual-Audit (P7-B-W2-T0):
 // Query-Parameter werden SYNCHRON vor dem ersten React-Render in den Store
 // geschrieben, damit weder der Area-fitBounds noch der Selection-Reset von
 // setSelectedAreaId mit dem Deep-Link konkurrieren. Die Kamera kommt
 // weiterhin aus dem MapLibre-Hash; ohne Hash zoomt MapView einmalig auf das
-// per `building` angeforderte Gebaeude (Nadir, pitch=0).
+// per `building` angeforderte Gebäude (Nadir, pitch=0).
 
 const ML_VIEWS: readonly AppState["mlView"][] = [
   "cluster",
@@ -80,8 +80,8 @@ export function applyUrlStateToStore(
   hash: string = window.location.hash
 ): void {
   // Boot-Hash VOR jedem Map-Leben einfrieren: Unter React.StrictMode
-  // (Dev-Doppelmount) kann die erste, sofort wieder zerstoerte
-  // Map-Instanz den URL-Hash ueberschreiben, bevor die zweite ihn liest.
+  // (Dev-Doppelmount) kann die erste, sofort wieder zerstörte
+  // Map-Instanz den URL-Hash überschreiben, bevor die zweite ihn liest.
   // MapView wendet die eingefrorene Kamera nach der Konstruktion
   // explizit per jumpTo an (P7-D-W1-T3-Fix).
   bootHashCamera = parseHashCamera(hash);
@@ -175,7 +175,7 @@ export function applyUrlStateToStore(
     ...(bearing !== undefined ? { bearing } : {}),
   };
 
-  // Ohne Kamera-Hash uebernimmt MapView den einmaligen Zoom auf das Gebaeude.
+  // Ohne Kamera-Hash übernimmt MapView den einmaligen Zoom auf das Gebäude.
   autoFitUrlBuildingPending = Boolean(selection) && hash.length <= 1;
 
   if (Object.keys(next).length > 0) {

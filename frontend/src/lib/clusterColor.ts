@@ -4,7 +4,7 @@ import { ML_CLUSTER_KIND_COLORS } from "./mlClusterKind";
 import { mlPalette } from "./mlPalette";
 
 /**
- * Farbe eines Clusters fuer UI-Chips: Rolle schlaegt Kind, Kind schlaegt
+ * Farbe eines Clusters für UI-Chips: Rolle schlägt Kind, Kind schlägt
  * Palette (verbatim aus InspectorPanel extrahiert, Stage 5).
  */
 export function clusterColor(

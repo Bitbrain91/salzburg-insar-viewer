@@ -8,9 +8,9 @@ import {
 } from "./formatters";
 
 /**
- * Uebersetzt Reliability-Penalties und Flags des Gebaeude-Rollups in
- * priorisierte, erklaerte Gruende. Verbatim aus InspectorPanel extrahiert
- * (Stage 2 des UX-Redesigns) — Domaenenlogik, Verhalten unveraendert.
+ * Übersetzt Reliability-Penalties und Flags des Gebäude-Rollups in
+ * priorisierte, erklärte Gründe. Verbatim aus InspectorPanel extrahiert
+ * (Stage 2 des UX-Redesigns) — Domaenenlogik, Verhalten unverändert.
  */
 
 export type ReliabilityReasonTone = "neutral" | "warning" | "bad";
@@ -54,8 +54,8 @@ export const buildReliabilityReasons = (
     );
     reasons.push({
       key: "weak_secondary_track",
-      label: `Schwacher Sekundaertrack${trackSuffix([...new Set(tracks)])}`,
-      detail: "Ein Track hat zu wenig belastbare Hauptcluster-Stuetzung.",
+      label: `Schwacher Sekundärtrack${trackSuffix([...new Set(tracks)])}`,
+      detail: "Ein Track hat zu wenig belastbare Hauptcluster-Stützung.",
       tone: "warning",
       priority: 85,
     });
@@ -67,7 +67,7 @@ export const buildReliabilityReasons = (
         key: penalty.key,
         label: `Bandgrenze ${penalty.cap_band || "low"}`,
         detail:
-          "Die Zuverlaessigkeit wurde wegen sehr niedriger Track-Uebereinstimmung gedeckelt.",
+          "Die Zuverlässigkeit wurde wegen sehr niedriger Track-Übereinstimmung gedeckelt.",
         tone: "bad",
         priority: 95,
       });
@@ -78,7 +78,7 @@ export const buildReliabilityReasons = (
       const threshold = penalty.threshold_max_score ?? 0.25;
       reasons.push({
         key: penalty.key,
-        label: "Niedrige Track-Uebereinstimmung",
+        label: "Niedrige Track-Übereinstimmung",
         detail: `Track-Agreement ${fmtNum(observed)}, Grenzwert ${fmtNum(threshold)}${
           penalty.score_delta === null ? "" : `, Score ${penalty.score_delta.toFixed(2)}`
         }.`,
@@ -91,7 +91,7 @@ export const buildReliabilityReasons = (
       reasons.push({
         key: penalty.key,
         label: `Bandgrenze ${penalty.cap_band || "medium"}${trackSuffix(penalty.tracks)}`,
-        detail: "Ein schwacher Sekundaertrack begrenzt das Zuverlaessigkeitsband.",
+        detail: "Ein schwacher Sekundärtrack begrenzt das Zuverlässigkeitsband.",
         tone: "warning",
         priority: 82,
       });
@@ -100,7 +100,7 @@ export const buildReliabilityReasons = (
     if (penalty.key === "weak_main_cluster_support") {
       reasons.push({
         key: penalty.key,
-        label: `Schwache Hauptcluster-Stuetzung${trackSuffix(penalty.tracks)}`,
+        label: `Schwache Hauptcluster-Stützung${trackSuffix(penalty.tracks)}`,
         detail: `Zu wenig belastbare Punkte im Hauptcluster${
           penalty.threshold_min_points === null
             ? "."
@@ -114,7 +114,7 @@ export const buildReliabilityReasons = (
     reasons.push({
       key: penalty.key,
       label: formatPenalty(penalty),
-      detail: "Pipeline-Anpassung beeinflusst den Zuverlaessigkeitswert.",
+      detail: "Pipeline-Anpassung beeinflusst den Zuverlässigkeitswert.",
       tone: "warning",
       priority: 50,
     });
@@ -128,8 +128,8 @@ export const buildReliabilityReasons = (
       key: "differential_motion",
       label: `Differenzielle Bewegung (${levelText})`,
       detail: confirmed
-        ? "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor; die Differenz ist statistisch abgesichert."
-        : "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor (Kandidat).",
+        ? "Mehrere belastbare Bewegungsmuster liegen am Gebäude vor; die Differenz ist statistisch abgesichert."
+        : "Mehrere belastbare Bewegungsmuster liegen am Gebäude vor (Kandidat).",
       tone: "warning",
       priority: confirmed ? 90 : 88,
     });
@@ -137,17 +137,17 @@ export const buildReliabilityReasons = (
 
   if (analysis.building_status && !["ok", "—"].includes(analysis.building_status)) {
     const statusDetails: Record<string, string> = {
-      insufficient_support: "Zu wenige nutzbare Punkte fuer einen belastbaren Gebaeuderollup.",
+      insufficient_support: "Zu wenige nutzbare Punkte für einen belastbaren Gebäuderollup.",
       noise_dominated: "Mehr als die Haelfte der behaltenen Punkte ist Rauschen.",
-      small_n: "Der Hauptcluster hat nur eine kleine Punktstuetzung.",
-      single_track_only: "Es gibt nur einen belastbaren Track fuer dieses Gebaeude.",
+      small_n: "Der Hauptcluster hat nur eine kleine Punktstützung.",
+      single_track_only: "Es gibt nur einen belastbaren Track für dieses Gebäude.",
     };
     reasons.push({
       key: `status_${analysis.building_status}`,
       label: `Status: ${analysis.building_status}`,
       detail:
         statusDetails[analysis.building_status] ||
-        "Der Gebaeudestatus reduziert die Aussagekraft der Zusammenfassung.",
+        "Der Gebäudestatus reduziert die Aussagekraft der Zusammenfassung.",
       tone: analysis.building_reliability_band === "high" ? "neutral" : "warning",
       priority: 75,
     });

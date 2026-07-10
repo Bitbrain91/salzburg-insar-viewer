@@ -33,7 +33,7 @@ const sortLabels: Record<RunSortOrder, string> = {
   area: "Gebiet A–Z",
 };
 
-/** Suchfeld + kompakte Filter-Chips fuer die schmale linke Spalte. */
+/** Suchfeld + kompakte Filter-Chips für die schmale linke Spalte. */
 export function RunListFilters({
   filters,
   onFiltersChange,

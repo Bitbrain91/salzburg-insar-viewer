@@ -130,11 +130,11 @@ export type AppState = {
   searchFocus: SearchFocus;
   /** Zeitreihen-Dock manuell eingeklappt (Selektion bleibt erhalten). */
   timeseriesCollapsed: boolean;
-  /** Aktiver Tab der linken Spalte; im Store, damit Karte/Inspector ihn oeffnen koennen. */
+  /** Aktiver Tab der linken Spalte; im Store, damit Karte/Inspector ihn öffnen können. */
   activeLeftTab: "map" | "analysis";
   /** BBox eines gehoverten Laufs (gestrichelte Vorschau auf der Karte). */
   hoveredRunBBox: [number, number, number, number] | null;
-  /** Im Inspector geoeffneter Lauf; jede Karten-Selektion verdraengt ihn. */
+  /** Im Inspector geöffneter Lauf; jede Karten-Selektion verdrängt ihn. */
   inspectedRunId: string | null;
   /** In der ClusterSection gehoverter Cluster (Hervorhebung der Huelle). */
   hoveredClusterId: string | null;
@@ -259,7 +259,7 @@ export const useAppStore = create<AppState>((set) => ({
   setSelection: (selection, options) =>
     set((state) => {
       const keepFocus = options?.preserveMlBuildingFocus ?? false;
-      // Jede echte Karten-Selektion verdraengt den Run-Inspector.
+      // Jede echte Karten-Selektion verdrängt den Run-Inspector.
       const inspectedRunId = selection ? null : state.inspectedRunId;
       if (selection?.type === "building") {
         return {

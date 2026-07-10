@@ -3,7 +3,7 @@ import TimeseriesPanel from "../TimeseriesPanel";
 import { useAppStore } from "../../lib/store";
 
 /**
- * Dock fuer die Zeitreihe innerhalb der Kartenspalte. Ersetzt die fruehere
+ * Dock für die Zeitreihe innerhalb der Kartenspalte. Ersetzt die frühere
  * Grid-Zeile (app-has-timeseries): Seitenspalten bewegen sich nicht mehr,
  * nur der Karten-Viewport wird vertikal kleiner.
  */
