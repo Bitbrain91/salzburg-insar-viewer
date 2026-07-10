@@ -1,9 +1,9 @@
+import { tokens } from "./designTokens";
+
 export type MlClusterKind = "standard" | "annex" | "foreign";
 
-export const ML_CLUSTER_KIND_COLORS: Record<Exclude<MlClusterKind, "standard">, string> = {
-  annex: "#7c3aed",
-  foreign: "#00a6a6",
-};
+export const ML_CLUSTER_KIND_COLORS: Record<Exclude<MlClusterKind, "standard">, string> =
+  tokens.clusterKind;
 
 export const ML_CLUSTER_KIND_LABELS: Record<MlClusterKind, string> = {
   standard: "Standardcluster",

@@ -75,6 +75,14 @@ export {
   TooltipContent,
   TooltipProvider,
 } from "./tooltip";
+export {
+  FindingCard,
+  KindBadge,
+  ReliabilityMeter,
+  ScoreBar,
+  StatusBadge,
+  runStatusLabel,
+} from "./insights";
 
 /* ---------------- SegmentedTabs compatibility API ---------------- */
 

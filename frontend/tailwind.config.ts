@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
+import { tokens } from "./src/lib/designTokens";
 
 const config: Config = {
   darkMode: ["class"],
@@ -48,6 +49,10 @@ const config: Config = {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        reliability: tokens.reliability,
+        "run-status": tokens.runStatus,
+        "cluster-kind": tokens.clusterKind,
+        differential: tokens.differential,
       },
       borderRadius: {
         lg: "var(--radius)",

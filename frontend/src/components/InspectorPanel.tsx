@@ -46,6 +46,33 @@ import {
   type AttributeMetadata,
 } from "../lib/attributeMetadata";
 import {
+  differentialMotionLevelLabels,
+  fmtBool,
+  fmtNum,
+  fmtPct,
+  fmtStr,
+  formatAssignmentMethod,
+  formatCountLabel,
+  formatDifferentialMotionLevel,
+  formatFocusDetectorKey,
+  formatFocusReasonKey,
+  formatLabelCounts,
+  formatPenaltySummary,
+  formatRawValue,
+  formatRetuningFlags,
+  formatRunTimestamp,
+  formatSignedTrackMotion,
+  formatTrackNumberMap,
+  formatTrackStringMap,
+  sortTrackEntries,
+} from "../lib/formatters";
+import { metricAttributeHints, type AttributeHint } from "../lib/metricHints";
+import {
+  buildReliabilityReasons,
+  reliabilityReasonSummary,
+  reliabilityReasonVariant,
+} from "../lib/reliabilityReasons";
+import {
   getTrackVisibilityKey,
   normalizeAppConfig,
 } from "../lib/configMetadata";
@@ -118,38 +145,7 @@ const clusteringFeatureLabels: Array<{ key: string; label: string; unit?: string
   { key: "coherence_penalty", label: "Kohaerenz-Penalty", digits: 2 },
 ];
 
-const focusReasonLabels: Record<string, string> = {
-  local_motion_deviation: "Lokaler Punktkontext weicht ab",
-  noise_cluster: "Kein stabiler Cluster",
-  nearest_assignment: "Unsichere Gebaeudezuordnung",
-};
-
-const focusDetectorLabels: Record<string, string> = {
-  rule_penalty: "Regel-Penalty",
-  cluster_outlier: "Cluster-Ausreisser",
-  local_deviation: "Lokale Abweichung",
-};
-
 const focusAssignmentReasonKeys = new Set(["nearest_assignment"]);
-
-function formatFocusReasonKey(key: string | null | undefined) {
-  if (!key) return "Unbekannter Hinweis";
-  return focusReasonLabels[key] ?? key.split("_").join(" ");
-}
-
-function formatFocusDetectorKey(key: string) {
-  return focusDetectorLabels[key] ?? key.split("_").join(" ");
-}
-
-function formatAssignmentMethod(method: string | null | undefined) {
-  if (!method) return "—";
-  const labels: Record<string, string> = {
-    within: "within - innerhalb des Gebaeudes",
-    nearest: "nearest - naechstes Gebaeude",
-    directional_buffer: "directional_buffer - Blickrichtungs-Puffer",
-  };
-  return labels[method] ?? method.split("_").join(" ");
-}
 
 function clusterColor(
   cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role" | "cluster_kind">
@@ -189,16 +185,6 @@ type LocalDeviationBreakdown = {
   note?: string;
 };
 
-type ReliabilityReasonTone = "neutral" | "warning" | "bad";
-
-type ReliabilityReason = {
-  key: string;
-  label: string;
-  detail: string;
-  tone: ReliabilityReasonTone;
-  priority: number;
-};
-
 const EARTH_LOS_FALLBACK_INCIDENCE_DEG = 45;
 const EARTH_LOS_MIN_DISTANCE_M = 120;
 const EARTH_LOS_MAX_DISTANCE_M = 360;
@@ -225,103 +211,6 @@ function matchesSelectedBuildingRunData(
   );
 }
 
-type AttributeHint = {
-  key: string;
-  context: AttributeContext;
-};
-
-const differentialMotionLevelLabels: Record<Exclude<DifferentialMotionLevel, null>, string> = {
-  none: "keine",
-  candidate: "Kandidat",
-  significant: "signifikant",
-  confirmed: "bestaetigt",
-};
-
-const HISTORICAL_DIFFERENTIAL_LEVEL_MESSAGE =
-  "historischer Modellstand – Differential-Level nicht verfügbar";
-
-function formatDifferentialMotionLevel(level: DifferentialMotionLevel | undefined) {
-  return level === null || level === undefined
-    ? HISTORICAL_DIFFERENTIAL_LEVEL_MESSAGE
-    : `${level} – ${differentialMotionLevelLabels[level]}`;
-}
-
-const metricAttributeHints: Record<string, AttributeHint> = {
-  "Punktcode": { key: "code", context: "insar-point" },
-  "Track / LOS": { key: "los", context: "insar-point" },
-  "Geschwindigkeit": { key: "velocity", context: "insar-point" },
-  "Geschwindigkeit Std.": { key: "velocity_std", context: "insar-point" },
-  "Kohaerenz": { key: "coherence", context: "insar-point" },
-  "Deformations-Std.": { key: "std_def", context: "insar-point" },
-  "InSAR-Hoehe": { key: "height", context: "insar-point" },
-  "Hoehe Std.": { key: "height_std", context: "insar-point" },
-  "Beschleunigung": { key: "acceleration", context: "insar-point" },
-  "Beschleunigung Std.": { key: "acceleration_std", context: "insar-point" },
-  "Saisonale Amplitude": { key: "season_amp", context: "insar-point" },
-  "Saisonale Amplitude Std.": { key: "s_amp_std", context: "insar-point" },
-  "Saisonale Phase": { key: "season_phs", context: "insar-point" },
-  "Saisonale Phase Std.": { key: "s_phs_std", context: "insar-point" },
-  "Amplitude Mittel": { key: "amp_mean", context: "insar-point" },
-  "Amplitude Std.": { key: "amp_std", context: "insar-point" },
-  "Effektive Flaeche": { key: "eff_area", context: "insar-point" },
-  "Einfallswinkel": { key: "incidence_angle", context: "insar-point" },
-  "Laengengrad": { key: "lon", context: "insar-point" },
-  "Breitengrad": { key: "lat", context: "insar-point" },
-  "Terrain-Quelle": { key: "source", context: "terrain" },
-  "Terrain-Aufloesung": { key: "resolution_m", context: "terrain" },
-  "Gelaendehoehe": { key: "elevation_m", context: "terrain" },
-  "Mittlere Gelaendehoehe": { key: "elevation_mean_m", context: "terrain" },
-  "Gelaendehoehe min/max": { key: "elevation_min_m", context: "terrain" },
-  "Hangneigung": { key: "slope_deg", context: "terrain" },
-  "Hangneigung Mittel / Max": { key: "slope_mean_deg", context: "terrain" },
-  "Exposition": { key: "aspect_deg", context: "terrain" },
-  "Reliefspanne": { key: "relief_range_m", context: "terrain" },
-  "Aktiver Lauf": { key: "run_id", context: "ml-run" },
-  "Run-Status": { key: "status", context: "ml-run" },
-  "Pipeline": { key: "pipeline", context: "ml-run" },
-  "Label": { key: "label", context: "ml-point" },
-  "Qualitaetswert": { key: "quality_score", context: "ml-point" },
-  "Anomaliewert": { key: "anomaly_score", context: "ml-point" },
-  "Cross-Track-Konsistenz": { key: "cross_track_consistency", context: "ml-point" },
-  "Gebaeude": { key: "building_id", context: "ml-point" },
-  "Abstand zum Gebaeude": { key: "distance_m", context: "ml-point" },
-  "Clusterrolle / Wahrscheinlichkeit": { key: "cluster_role", context: "ml-point" },
-  "Cluster-Ausreisserwert": { key: "cluster_outlier_score", context: "ml-point" },
-  "Cluster-Ausreisser": { key: "cluster_outlier", context: "ml-point" },
-  "Lokale Abweichung": { key: "local_deviation", context: "ml-point" },
-  "Regel-Penalty": { key: "rule_penalty", context: "ml-point" },
-  "Fuer Scoring genutzt": { key: "kept_for_scoring", context: "ml-point" },
-  "Gate-Gruende": { key: "gate_reasons", context: "ml-point" },
-  "Zuordnung": { key: "assignment_method", context: "ml-point" },
-  "Track-Stuetzung": { key: "track_point_count", context: "ml-point" },
-  "Detektorwerte": { key: "detector_scores", context: "ml-point" },
-  "Degradierungsgrund": { key: "degraded_reason", context: "ml-point" },
-  "Quelle": { key: "source", context: "building" },
-  "Gebaeude-ID": { key: "building_id", context: "building" },
-  "Gebaeudehoehe": { key: "height", context: "building" },
-  "Name": { key: "name", context: "building" },
-  "Typ": { key: "building_type", context: "building" },
-  "Bewegung": { key: "building_motion_mm_a", context: "ml-building" },
-  "Zuverlaessigkeit": { key: "building_reliability_score", context: "ml-building" },
-  "Status": { key: "building_status", context: "ml-building" },
-  "Run-zugeordnete Punkte": { key: "point_count", context: "ml-building" },
-  "Behalten / ausgeschlossen / Rauschen": { key: "kept_point_count", context: "ml-building" },
-  "Bewegung / Status": { key: "building_motion_mm_a", context: "ml-building" },
-  "Retuning-Flags": { key: "reliability_penalties", context: "ml-building" },
-  "Track-Uebereinstimmung": { key: "track_agreement_score", context: "ml-building" },
-  "Retuning-Anpassungen": { key: "reliability_penalties", context: "ml-building" },
-  "Cluster / belastbar": { key: "cluster_count", context: "ml-building" },
-  "Differenzielle Bewegung": { key: "differential_motion_level", context: "ml-building" },
-  "Hauptcluster": { key: "main_cluster_by_track", context: "ml-building" },
-  "Track-Bewegung": { key: "track_motion_mm_a", context: "ml-building" },
-  "Median-Abstand": { key: "median_distance_m", context: "ml-building" },
-  "Mittlere Qualitaet": { key: "avg_quality_score", context: "ml-building" },
-  "Mittlere Anomalie": { key: "avg_anomaly_score", context: "ml-building" },
-  "Mittlere Cross-Track-Konsistenz": {
-    key: "avg_cross_track_consistency",
-    context: "ml-building",
-  },
-};
 
 export default function InspectorPanel() {
   const selection = useAppStore((state) => state.selection);
@@ -692,12 +581,6 @@ export default function InspectorPanel() {
     return groups;
   }, [mlBuildingPointsData]);
 
-  const fmtNum = (value?: number | null, digits = 2) =>
-    value === null || value === undefined ? "—" : value.toFixed(digits);
-  const fmtPct = (value?: number | null, digits = 0) =>
-    value === null || value === undefined ? "—" : `${(value * 100).toFixed(digits)}%`;
-  const fmtStr = (value?: string | number | null) =>
-    value === null || value === undefined || value === "" ? "—" : String(value);
   const fmtBuildingAddress = (address?: BuildingAddress | null) => {
     if (!address) return "Keine lokale Adresse gefunden";
     if (address.match_type === "osm_nearest" && address.distance_m !== null) {
@@ -715,8 +598,6 @@ export default function InspectorPanel() {
     }
     return "Adresse aus lokalen OSM-Tags des ausgewaehlten Gebaeudes.";
   };
-  const fmtBool = (value?: boolean | null) =>
-    value === null || value === undefined ? "—" : value ? "ja" : "nein";
   const getNumber = (value: unknown) => {
     const parsed =
       typeof value === "number" ? value : typeof value === "string" ? Number(value) : null;
@@ -1036,220 +917,12 @@ export default function InspectorPanel() {
       (!datasetId || datasetId === selectedBuildingFocusPoint.datasetId)
     );
   };
-  const formatCountLabel = (key: string) => {
-    if (/^\d+$/.test(key)) return `Track ${key}`;
-    return key.split("_").join(" ");
-  };
-  const sortTrackEntries = <T,>(values: Record<string, T>) =>
-    Object.entries(values).sort(([left], [right]) => {
-      const leftNumber = Number(left);
-      const rightNumber = Number(right);
-      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
-        return leftNumber - rightNumber;
-      }
-      return left.localeCompare(right);
-    });
-  const formatTrackStringMap = (values: Record<string, string | null>) => {
-    const entries = sortTrackEntries(values);
-    if (!entries.length) return "—";
-    return entries.map(([track, value]) => `T${track} ${fmtStr(value)}`).join(" / ");
-  };
-  const formatTrackNumberMap = (values: Record<string, number | null>) => {
-    const entries = sortTrackEntries(values);
-    if (!entries.length) return "—";
-    return entries.map(([track, value]) => `T${track} ${fmtNum(value)}`).join(" / ");
-  };
-  const formatRetuningFlags = (
-    weakSecondaryTrackFlag: boolean,
-    agreementTensionFlag: boolean
-  ) => {
-    const flags = [
-      weakSecondaryTrackFlag ? "schwacher Sekundaertrack" : null,
-      agreementTensionFlag ? "Track-Spannung" : null,
-    ].filter(Boolean);
-    return flags.length ? flags.join(" / ") : "—";
-  };
-  const formatPenalty = (penalty: MlReliabilityPenalty) => {
-    const trackSuffix = penalty.tracks.length ? ` T${penalty.tracks.join("/T")}` : "";
-    const deltaSuffix =
-      penalty.score_delta === null ? "" : ` (${penalty.score_delta.toFixed(2)})`;
-    if (penalty.key === "weak_main_cluster_support") {
-      return `schwache Hauptcluster-Stuetzung${trackSuffix}${deltaSuffix}`;
-    }
-    if (penalty.key === "weak_secondary_track_band_cap") {
-      return `Bandgrenze ${penalty.cap_band || "—"}${trackSuffix}`;
-    }
-    if (penalty.key === "low_track_agreement") {
-      return `niedrige Track-Uebereinstimmung${deltaSuffix}`;
-    }
-    if (penalty.key === "very_low_track_agreement_band_cap") {
-      return `Bandgrenze ${penalty.cap_band || "—"}`;
-    }
-    return penalty.key.split("_").join(" ");
-  };
-  const formatPenaltySummary = (penalties: MlReliabilityPenalty[]) =>
-    penalties.length ? penalties.map(formatPenalty).join(" / ") : "—";
 
-  const formatSignedTrackMotion = (value: number | null) => {
-    if (value === null || value === undefined) return "—";
-    return `${value > 0 ? "+" : ""}${fmtNum(value)} mm/Jahr`;
-  };
 
-  const formatTrackMotionDetail = (values: Record<string, number | null>) => {
-    const entries = sortTrackEntries(values);
-    if (!entries.length) return "";
-    return entries
-      .map(([track, value]) => `T${track} ${formatSignedTrackMotion(value)}`)
-      .join(" / ");
-  };
 
-  const reliabilityReasonVariant = (tone: ReliabilityReasonTone) =>
-    tone === "bad" ? "destructive" : tone === "warning" ? "warning" : "secondary";
 
-  const trackSuffix = (tracks: string[]) =>
-    tracks.length ? ` T${tracks.join("/T")}` : "";
 
-  const buildReliabilityReasons = (analysis: MlBuildingAnalysis): ReliabilityReason[] => {
-    const reasons: ReliabilityReason[] = [];
-    const isLow = analysis.building_reliability_band === "low";
-    const motionDetail = formatTrackMotionDetail(analysis.track_motion_mm_a);
 
-    if (analysis.agreement_tension_flag) {
-      reasons.push({
-        key: "agreement_tension",
-        label: "Track-Spannung",
-        detail: motionDetail
-          ? `Tracks widersprechen sich deutlich: ${motionDetail}.`
-          : "Die Haupttracks passen nur schwach zueinander.",
-        tone: isLow ? "bad" : "warning",
-        priority: 100,
-      });
-    }
-
-    if (analysis.weak_secondary_track_flag) {
-      const tracks = analysis.reliability_penalties.flatMap((penalty) =>
-        penalty.key === "weak_secondary_track_band_cap" ||
-        penalty.key === "weak_main_cluster_support"
-          ? penalty.tracks
-          : []
-      );
-      reasons.push({
-        key: "weak_secondary_track",
-        label: `Schwacher Sekundaertrack${trackSuffix([...new Set(tracks)])}`,
-        detail: "Ein Track hat zu wenig belastbare Hauptcluster-Stuetzung.",
-        tone: "warning",
-        priority: 85,
-      });
-    }
-
-    for (const penalty of analysis.reliability_penalties) {
-      if (penalty.key === "very_low_track_agreement_band_cap") {
-        reasons.push({
-          key: penalty.key,
-          label: `Bandgrenze ${penalty.cap_band || "low"}`,
-          detail: "Die Zuverlaessigkeit wurde wegen sehr niedriger Track-Uebereinstimmung gedeckelt.",
-          tone: "bad",
-          priority: 95,
-        });
-        continue;
-      }
-      if (penalty.key === "low_track_agreement") {
-        const observed = penalty.observed_score ?? analysis.track_agreement_score;
-        const threshold = penalty.threshold_max_score ?? 0.25;
-        reasons.push({
-          key: penalty.key,
-          label: "Niedrige Track-Uebereinstimmung",
-          detail: `Track-Agreement ${fmtNum(observed)}, Grenzwert ${fmtNum(threshold)}${
-            penalty.score_delta === null ? "" : `, Score ${penalty.score_delta.toFixed(2)}`
-          }.`,
-          tone: isLow ? "bad" : "warning",
-          priority: 90,
-        });
-        continue;
-      }
-      if (penalty.key === "weak_secondary_track_band_cap") {
-        reasons.push({
-          key: penalty.key,
-          label: `Bandgrenze ${penalty.cap_band || "medium"}${trackSuffix(penalty.tracks)}`,
-          detail: "Ein schwacher Sekundaertrack begrenzt das Zuverlaessigkeitsband.",
-          tone: "warning",
-          priority: 82,
-        });
-        continue;
-      }
-      if (penalty.key === "weak_main_cluster_support") {
-        reasons.push({
-          key: penalty.key,
-          label: `Schwache Hauptcluster-Stuetzung${trackSuffix(penalty.tracks)}`,
-          detail: `Zu wenig belastbare Punkte im Hauptcluster${
-            penalty.threshold_min_points === null
-              ? "."
-              : `; erwartet mindestens ${penalty.threshold_min_points}.`
-          }`,
-          tone: "warning",
-          priority: 80,
-        });
-        continue;
-      }
-      reasons.push({
-        key: penalty.key,
-        label: formatPenalty(penalty),
-        detail: "Pipeline-Anpassung beeinflusst den Zuverlaessigkeitswert.",
-        tone: "warning",
-        priority: 50,
-      });
-    }
-
-    if (analysis.differential_motion_level && analysis.differential_motion_level !== "none") {
-      const level = analysis.differential_motion_level;
-      const levelText = differentialMotionLevelLabels[level];
-      const confirmed = level === "significant" || level === "confirmed";
-      reasons.push({
-        key: "differential_motion",
-        label: `Differenzielle Bewegung (${levelText})`,
-        detail: confirmed
-          ? "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor; die Differenz ist statistisch abgesichert."
-          : "Mehrere belastbare Bewegungsmuster liegen am Gebaeude vor (Kandidat).",
-        tone: "warning",
-        priority: confirmed ? 90 : 88,
-      });
-    }
-
-    if (
-      analysis.building_status &&
-      !["ok", "—"].includes(analysis.building_status)
-    ) {
-      const statusDetails: Record<string, string> = {
-        insufficient_support: "Zu wenige nutzbare Punkte fuer einen belastbaren Gebaeuderollup.",
-        noise_dominated: "Mehr als die Haelfte der behaltenen Punkte ist Rauschen.",
-        small_n: "Der Hauptcluster hat nur eine kleine Punktstuetzung.",
-        single_track_only: "Es gibt nur einen belastbaren Track fuer dieses Gebaeude.",
-      };
-      reasons.push({
-        key: `status_${analysis.building_status}`,
-        label: `Status: ${analysis.building_status}`,
-        detail:
-          statusDetails[analysis.building_status] ||
-          "Der Gebaeudestatus reduziert die Aussagekraft der Zusammenfassung.",
-        tone: analysis.building_reliability_band === "high" ? "neutral" : "warning",
-        priority: 75,
-      });
-    }
-
-    const seen = new Set<string>();
-    return reasons
-      .sort((a, b) => b.priority - a.priority)
-      .filter((reason) => {
-        if (seen.has(reason.key)) return false;
-        seen.add(reason.key);
-        return true;
-      });
-  };
-
-  const reliabilityReasonSummary = (analysis: MlBuildingAnalysis) => {
-    const reasons = buildReliabilityReasons(analysis);
-    return reasons.length ? reasons.slice(0, 2).map((reason) => reason.label).join(" / ") : "—";
-  };
 
   const renderReliabilityReasons = (analysis: MlBuildingAnalysis) => {
     const reasons = buildReliabilityReasons(analysis);
@@ -1306,31 +979,10 @@ export default function InspectorPanel() {
     );
   };
 
-  const formatRunTimestamp = (value?: string | null) => {
-    if (!value) return "—";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("de-AT", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(date);
-  };
 
   const formatRunLine = (run: MlBuildingRunSummary) =>
     `${fmtStr(run.dataset_id)} / ${run.track === null || run.track === undefined ? "alle Tracks" : `T${run.track}`}`;
 
-  const formatLabelCounts = (counts: Record<string, number>) => {
-    const orderedKeys = ["normal", "suspect", "outlier", "unlabeled"];
-    const entries = [
-      ...orderedKeys
-        .filter((key) => counts[key] !== undefined)
-        .map((key) => [key, counts[key]] as const),
-      ...Object.entries(counts).filter(([key]) => !orderedKeys.includes(key)),
-    ];
-    return entries.length
-      ? entries.map(([key, value]) => `${formatCountLabel(key)} ${value}`).join(" / ")
-      : "—";
-  };
 
   const activateBuildingRun = (runId: string) => {
     setActiveRunId(runId);
@@ -1338,11 +990,6 @@ export default function InspectorPanel() {
     setActiveBuildingTab("ml");
   };
 
-  const formatRawValue = (value: unknown) => {
-    if (value === null || value === undefined || value === "") return "—";
-    if (typeof value === "object") return JSON.stringify(value);
-    return String(value);
-  };
 
   const renderMetric = (
     label: string,
