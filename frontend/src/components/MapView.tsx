@@ -1021,7 +1021,22 @@ export default function MapView() {
 
     mapRef.current = map;
 
+    // Expliziter Resize-Fallback: Im resizable Shell-Layout (PanelGroup)
+    // greift MapLibres eigenes trackResize nicht zuverlaessig, wenn der
+    // Container waehrend der Panel-Vermessung montiert wurde.
+    let resizeFrame: number | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeFrame !== null) return;
+      resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        mapRef.current?.resize();
+      });
+    });
+    resizeObserver.observe(mapContainer.current);
+
     return () => {
+      resizeObserver.disconnect();
+      if (resizeFrame !== null) cancelAnimationFrame(resizeFrame);
       map.remove();
       mapRef.current = null;
       basemapRef.current = null;

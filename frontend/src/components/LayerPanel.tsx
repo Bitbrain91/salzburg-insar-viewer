@@ -10,12 +10,7 @@ import {
   normalizeAppConfig,
 } from "../lib/configMetadata";
 import {
-  HEIGHT_PALETTE,
-  getHeightCycleLength,
-  formatHeightLegendValue,
   formatHeightSensitivity,
-  getHeightLegendAnchors,
-  getTrackOutlineColor,
   heightSensitivityToSlider,
   sliderToHeightSensitivity,
 } from "../lib/pointStyling";
@@ -30,15 +25,6 @@ import {
   Slider,
   Switch,
 } from "./ui";
-
-const velocityLegendItems = [
-  { color: "#8e0f2f", label: "Starke Senkung (< -5)" },
-  { color: "#e67f1c", label: "Moderate Senkung (-5 bis -2)" },
-  { color: "#f2c14e", label: "Leichte Senkung (-2 bis -1)" },
-  { color: "#2c9f7a", label: "Stabil (-1 bis 1)" },
-  { color: "#4aa5d5", label: "Hebung (1 bis 5)" },
-  { color: "#1c2f4a", label: "Starke Hebung (> 5)" },
-];
 
 type ToggleSpec = {
   label: string;
@@ -117,22 +103,13 @@ export default function LayerPanel() {
         Boolean(option.preset)
     );
 
-  const heightLegendAnchors = getHeightLegendAnchors(heightSensitivityM);
-  const heightCycleLength = getHeightCycleLength(heightSensitivityM);
-  const heightLegendItems = HEIGHT_PALETTE.map((color, index) => ({
-    color,
-    label: `${formatHeightLegendValue(heightLegendAnchors[index])} bis ${formatHeightLegendValue(
-      heightLegendAnchors[index] + heightSensitivityM
-    )} m`,
-  }));
   const heightSliderValue = heightSensitivityToSlider(heightSensitivityM);
-  const legendItems = pointColorMode === "height" ? heightLegendItems : velocityLegendItems;
 
   return (
     <div className="panel panel-left">
       <div>
         <h2>Karte</h2>
-        <small>Kartengrundlage, Datenebenen, Filter und Legende.</small>
+        <small>Kartengrundlage, Datenebenen und Filter. Die Legende liegt unten links auf der Karte.</small>
       </div>
 
       <Section title="Kartengrundlage">
@@ -359,42 +336,6 @@ export default function LayerPanel() {
         </div>
       </Section>
 
-      <Section title="Legende">
-        <div className="legend">
-          {legendItems.map((item) => (
-            <div className="legend-item" key={item.label}>
-              <span className="legend-swatch" style={{ background: item.color }} />
-              {item.label}
-            </div>
-          ))}
-        </div>
-        {pointColorMode === "height" && (
-          <p className="text-xs leading-snug text-muted-foreground">
-            Die Höhenklassen starten bei 450 m und wiederholen sich alle{" "}
-            {formatHeightLegendValue(heightCycleLength)} m.
-          </p>
-        )}
-        {showTrackOutlines && (
-          <div className="legend mt-3">
-            {selectedTracks.map(({ dataset, track }, index) => (
-              <div
-                className="legend-item"
-                key={getTrackVisibilityKey(dataset.id, track.track)}
-              >
-                <span
-                  className="legend-swatch"
-                  style={{
-                    background: "#fbfaf7",
-                    border: `2px solid ${getTrackOutlineColor(index)}`,
-                    boxShadow: "0 0 0 1px rgba(251, 250, 247, 0.95)",
-                  }}
-                />
-                {track.sensor} T{track.track}
-              </div>
-            ))}
-          </div>
-        )}
-      </Section>
     </div>
   );
 }

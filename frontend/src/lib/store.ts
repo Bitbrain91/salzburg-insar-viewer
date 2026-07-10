@@ -128,6 +128,10 @@ export type AppState = {
   mlTileVersion: number;
   mapBBox: [number, number, number, number] | null;
   searchFocus: SearchFocus;
+  /** Zeitreihen-Dock manuell eingeklappt (Selektion bleibt erhalten). */
+  timeseriesCollapsed: boolean;
+  /** Aktiver Tab der linken Spalte; im Store, damit Karte/Inspector ihn oeffnen koennen. */
+  activeLeftTab: "map" | "analysis";
   setLayer: (key: SimpleLayerVisibilityKey, value: boolean) => void;
   setSelectedAreaId: (areaId: string) => void;
   setInsarTrackVisibility: (
@@ -164,6 +168,8 @@ export type AppState = {
   bumpMlTileVersion: () => void;
   setMapBBox: (bbox: [number, number, number, number] | null) => void;
   setSearchFocus: (focus: SearchFocus) => void;
+  setTimeseriesCollapsed: (collapsed: boolean) => void;
+  setActiveLeftTab: (tab: "map" | "analysis") => void;
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -203,6 +209,8 @@ export const useAppStore = create<AppState>((set) => ({
   mlTileVersion: 0,
   mapBBox: null,
   searchFocus: null,
+  timeseriesCollapsed: false,
+  activeLeftTab: "map",
   setLayer: (key, value) =>
     set((state) => ({ layers: { ...state.layers, [key]: value } })),
   setSelectedAreaId: (areaId) =>
@@ -356,4 +364,6 @@ export const useAppStore = create<AppState>((set) => ({
   bumpMlTileVersion: () => set((state) => ({ mlTileVersion: state.mlTileVersion + 1 })),
   setMapBBox: (bbox) => set(() => ({ mapBBox: bbox })),
   setSearchFocus: (focus) => set(() => ({ searchFocus: focus })),
+  setTimeseriesCollapsed: (collapsed) => set(() => ({ timeseriesCollapsed: collapsed })),
+  setActiveLeftTab: (tab) => set(() => ({ activeLeftTab: tab })),
 }));
