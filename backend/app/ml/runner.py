@@ -112,7 +112,18 @@ async def run_pipeline_async(
                 with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
                     json.dump(summary, tmp, indent=2)
                     tmp_path = tmp.name
-                mlflow.log_artifact(tmp_path, artifact_path="summary")
+                try:
+                    # Der MLflow-Server meldet /mlruns als Artefaktpfad; vom
+                    # Host aus (WSL) ist der Pfad nicht beschreibbar. Ein
+                    # fehlgeschlagener Summary-Upload darf einen erfolgreich
+                    # persistierten Run nicht als failed markieren.
+                    mlflow.log_artifact(tmp_path, artifact_path="summary")
+                except Exception as exc:  # pylint: disable=broad-except
+                    logger.warning(
+                        "MLflow-Artefakt-Upload fuer Run %s fehlgeschlagen: %s",
+                        config.run_id,
+                        exc,
+                    )
                 os.unlink(tmp_path)
         else:
             metrics = await pipeline.run(pool, config)
