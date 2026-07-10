@@ -1,5 +1,13 @@
 # `anomaly_local_v1` Runbook
 
+**Stand:** 2026-07-10
+
+**Status:** aktives Runbook fuer Modellset `local_hdbscan_rulegate_v4_k2xhf_diffv2`
+
+**Autoritativ fuer:** Ausfuehrung, Pflicht-AOIs und praktische Interpretation von Pipeline-Runs
+
+**Aktualisieren wenn:** Start-Defaults, Pflicht-AOIs, Gates, UI-Pruefung oder aktive Ergebnissemantik aendert sich
+
 ## Zweck
 Dieses Runbook beschreibt, wie `anomaly_local_v1` praktisch ausgefuehrt und interpretiert wird.
 
@@ -8,7 +16,7 @@ Die Pipeline ist im linken Panel als `Anomaly Local v1 (Building Clusters)` verf
 
 Empfohlene Start-Defaults:
 
-- `source = gba`
+- `source = bev`
 - `track = all`
 - `buffer_multiplier = 1.0`
 - `min_buffer_m = 3.0`
@@ -67,7 +75,7 @@ Die Entwicklung und Verifikation soll nicht mit beliebigen Kartenausschnitten pa
   - gemischte Gebaeudestrukturen und unruhigere lokale Situationen mitnehmen
 
 ### Schleife 3: gezielter Stress-Check
-- Nach Logik-Aenderungen an Assignment, Clustering, `main_cluster`, `differential_motion_flag` oder Building-Score muss derselbe Stand auch auf dem `Osthang-Stressbereich` laufen.
+- Nach Logik-Aenderungen an Assignment, Clustering, `main_cluster`, `differential_motion_level` oder Building-Score muss derselbe Stand auch auf dem `Osthang-Stressbereich` laufen.
 - Ziel:
   - Topografie- und Relief-Stress sichtbar machen
   - echte Grenzfaelle fuer Multi-Cluster und Cross-Track-Spannungen pruefen
@@ -95,7 +103,7 @@ Die Entwicklung und Verifikation soll nicht mit beliebigen Kartenausschnitten pa
 - Assignment-/Buffer-/Cluster-Logik:
   - immer `Mirabell`, `Moosstrasse` und `Osthang-Stressbereich`
   - zusaetzlich Spot-Check auf mindestens einem Gebaeude pro AOI
-- Building-Level-Score / `main_cluster` / `differential_motion_flag`:
+- Building-Level-Score / `main_cluster` / `differential_motion_level`:
   - alle drei festen AOIs
   - dokumentierter Vorher/Nachher-Vergleich
 - Evaluation / Calibration:
@@ -114,6 +122,8 @@ Die Entwicklung und Verifikation soll nicht mit beliebigen Kartenausschnitten pa
 - farbige Kernpunkte
 - rote Noise-Punkte
 - graue Gate-ausgeschlossene Punkte
+- getrennte Darstellung der Clusterarten `standard`, `annex` und `foreign`
+- Differential-Level `none`, `candidate`, `significant` oder `confirmed`
 
 ## Building Cluster View
 Im Inspector gibt es fuer `anomaly_local_v1` drei Steuerungen:
@@ -129,7 +139,22 @@ Interpretation:
 - `Show gate-excluded points`: zeigt, welche Punkte schon vor der Clusterung rausgefallen sind
 - `Show cluster hulls`: zeigt die raeumliche Gruppierung besser als reine Punktdarstellung
 
-### Neue Punktrollen/-gruende seit `local_hdbscan_rulegate_v2_k2x` (P7-E-W1-T2, 2026-06-10)
+### Aktuelle Punktrollen und Clusterarten in v4
+
+- `cluster_kind=standard`: normaler Gebaeudecluster; ein belastbarer
+  Standard-Core kann Main-Cluster werden.
+- `cluster_kind=annex`: strukturell plausibler Anbaucluster; bleibt vom Main
+  getrennt, kann bei ausreichender Stuetzung aber eine Differentialaussage
+  tragen.
+- `cluster_kind=foreign`: Fremdreflektor-Evidenz; nie Main-Cluster und nie
+  Quelle einer Differentialaussage.
+- `cluster_role` bleibt davon getrennt und beschreibt `core`, `noise`,
+  `weak_support`, `excluded` oder `insufficient_support`.
+- `differential_motion_level` ist `none`, `candidate`, `significant` oder
+  `confirmed`. Bei Runs vor Einfuehrung des Levels liefert die API `null`; das
+  bedeutet **historischer Modellstand ohne Level**, nicht `none`.
+
+### Weiterhin relevante Punktrollen/-gruende seit v2
 
 - `nearest`-Punkte koennen zusaetzlich zu den klassischen Gates demotiert
   sein (gate-excluded, grau). Gruende im Inspector:
@@ -152,7 +177,7 @@ Interpretation:
 - Experiment-Runs aus dem Phase-7-Harness tragen ein violettes Badge
   in "Letzte Auswertungen"; ihre vollstaendige Konfiguration steht im
   Transparenz-Panel (params.experiment_config).
-- **Bekannte Grenze von v2_k2x (2026-06-12, Fall 96959851):** Die
+- **Historischer v2-Befund (2026-06-12, Fall 96959851):** Die damalige
   a5-Politik prueft nur den QUER-Versatz zur Blickrichtung.
   Fremdstrukturen, die LAENGS der Blickachse liegen - insbesondere
   unkartierte Objekte, die weder in GBA noch in OSM existieren
@@ -161,7 +186,9 @@ Interpretation:
   des Footprints daher nie unbesehen als Dachpunkte lesen:
   Survivors-Pass (`phase7_survivors_scan.py`) + Luftbild-Pruefung,
   siehe `artifacts/phase7_visual_audit_report.md` (Workflow v2).
-  Abhilfe-Kandidaten sind als P7-N5 in `next_steps.md` spezifiziert.
+  v4 adressiert diesen Befund mit der getrennten Annex-/Foreign-Evidenz und
+  kartierungsfreien Anti-Layover-/Reichweiten-/Hoehenprofilchecks. Der Fall
+  bleibt ein verpflichtendes Gegenbeispiel im Harness.
 
 ## Woran gute Ergebnisse erkennbar sind
 - Punkte eines Gebaeudes liegen ueberwiegend in 1-2 plausiblen lokalen Clustern.
@@ -208,12 +235,13 @@ Was pruefen:
 ### Kandidatenflaeche wirkt falsch
 Was pruefen:
 
-- Gebaeudehoehe im GBA
+- Gebaeudehoehe der im Run gespeicherten Quelle (Standard: BEV)
 - Track-Filter im Inspector
 - ob die meisten Punkte ueber `directional_buffer` oder nur ueber `nearest` kommen
 
-## Phase-1-Interpretationsregel
-Die Pipeline liefert in Phase 1 keine endgueltige Wahrheit, sondern eine lokale, visuell pruefbare Hypothese:
+## Forschungs-Interpretationsregel
+Die Pipeline liefert keine endgueltige Wahrheit, sondern eine lokale, visuell
+pruefbare Hypothese:
 
 - Welche Punkte gehoeren wahrscheinlich zum Gebaeude
 - welche davon bilden konsistente Teilgruppen

@@ -48,6 +48,15 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 - Supervisor sessions should be bootstrappable from a single prompt file: the new session should usually only need to be told to read `docs/<...>_supervisor_prompt.md` and execute it fully.
 - Keep supervisor context small and let delegated agents verify and refine their own work before reporting back. Delegated agents inherit the current session model (and reasoning effort) unless the plan explicitly specifies otherwise; no silent downgrades to smaller/faster variants. If the session model is unavailable or unsuitable for a ticket, stop and report the blocker instead of silently switching. (Revised 2026-07-07; previously hardcoded to gpt-5.5/xhigh.)
 
+## Documentation Workflow for AI Agents
+- Start documentation work at `docs/README.md`. Its routing table names the single authoritative document for each kind of project information; read that source before editing dependent documents.
+- Maintain information only in its authoritative document. Other documents should link to it and add only their own local context; do not copy current status, thresholds, model semantics, or open-work lists into multiple active documents.
+- Central active documents must begin with `Stand`, `Status`, `Autoritativ fuer`, and `Aktualisieren wenn`; add `Abgeloest durch` when a document is superseded.
+- Every implementation ticket must include a `Dokumentationsimpact`: list the authoritative documents that need an update, or explicitly state `kein Dokumentationsimpact` with a reason. Documentation is part of the ticket DoD, not a later cleanup.
+- When code, schemas, model versions, defaults, gates, datasets, or accepted research findings change, update the routed source of truth in the same change and check all documents that link to it for contradictions.
+- Preserve historical evidence. Do not silently rewrite old plans, reports, baselines, or experiment artifacts as if they described the current system. Mark them as historical/frozen or move superseded narrative documents to `docs/archive/`, then link to the replacement.
+- Before completing documentation work, check links and search active docs for replaced field names, model versions, defaults, and phase labels. Historical artifacts may retain their original vocabulary if their status is unambiguous.
+
 ## Commit & Pull Request Guidelines
 - Current history uses short, imperative summaries (e.g., “Add InSAR documentation PDFs”). Keep messages concise and descriptive.
 - PRs should include: what changed, how to run/verify, and screenshots for UI changes. Note any data regeneration steps (pipelines, tiles) explicitly.
@@ -63,7 +72,7 @@ python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/in
 - Runs are tracked in MLflow and stored in PostGIS tables `ml_runs`, `ml_point_results`, `ml_run_metrics`.
 - Start runs in the left UI panel or via CLI:
   ```bash
-  python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source gba --track 44 \
+  python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source bev --track 44 \
     --bbox 12.98,47.75,13.12,47.85
   ```
 - Delete a run (DB + MLflow):

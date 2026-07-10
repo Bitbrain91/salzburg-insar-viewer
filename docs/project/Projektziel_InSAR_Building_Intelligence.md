@@ -1,97 +1,169 @@
-# Projektziel: InSAR Building Intelligence Pipeline
+# Projektziel: InSAR Building Intelligence
 
-**Projekt:** Co-Innovation Stadt Salzburg – InSAR-basierte Gebäudebewegungsanalyse
-**Partner:** AUGMENTERRA GmbH, FH Salzburg
-**Stand:** März 2026
+**Stand:** 2026-07-10
 
----
+**Status:** aktives Living Document
 
-## Ausgangslage
+**Autoritativ fuer:** Projektziel, Rolle des Viewers, aktueller Reifegrad, fachliche Aussagegrenzen und offene Forschung
 
-AUGMENTERRA betreibt eine InSAR-basierte Plattform (AUGMENTERRA Observer), die Bauwerks- und Bodenbewegungen satellitengestützt erfasst. Der Sentinel-1-Satellit liefert alle 12 Tage Radaraufnahmen, aus denen über den SqueeSAR®-Algorithmus millimetergenaue Verschiebungsmessungen gewonnen werden. Über den MatchSAR®-Algorithmus werden diese Messpunkte physischen Objekten – insbesondere Gebäuden – zugeordnet.
+**Aktualisieren wenn:** sich Zielbild, aktiver Modell-/Datenstand, Reifegrad oder priorisierte offene Forschung aendert
 
-Für die Stadt Salzburg liegen aktuell rund 550.000 InSAR-Messpunkte vor, die sich auf zwei unabhängige Satellitengeometrien verteilen (Ascending Track 44 und Descending Track 95). Über Gebäudepolygone (OSM und Global Building Atlas) sind diese Punkte mit ca. 31.000 Gebäuden verknüpft.
+## Zentrales Projektergebnis
 
-### Das Problem
+Das zentrale Projektergebnis ist eine **validierbare
+Building-Intelligence-Methodik**, die InSAR-Messpunkte zuverlaessig Gebaeuden
+und Gebaeudeteilen zuordnet, Fremdreflektoren erkennt und nachvollziehbare
+Bewegungsbewertungen erzeugt.
 
-Die bisherige Bewertung von Gebäudebewegungen beruht auf einfachen Filtern (z.B. Kohärenz > 0.7) und einer globalen Aggregation aller einem Gebäude zugeordneten Messpunkte. Dieser Ansatz hat wesentliche Schwächen:
+Die Methodik soll fuer ein betrachtetes Gebaeude vier Fragen beantworten:
 
-**Fehlende Outlier-Erkennung.** Messpunkte, die nicht vom Gebäude selbst stammen (z.B. von Terrassen, Wintergärten, parkenden Autos oder Nachbargebäuden), fließen ungefiltert in die Gebäudebewertung ein und verzerren das Ergebnis.
+1. Welche Messpunkte sind diesem Gebaeude plausibel zuzuordnen?
+2. Welche Punkte bilden Hauptbau, baulich plausiblen Anbau oder Fremdreflektor?
+3. Welche Bewegung wird von den belastbaren Punkten beziehungsweise
+   Gebaeudeteilen getragen?
+4. Wie stark ist die Evidenz, und welche Unsicherheiten oder widerspruechlichen
+   Tracks bleiben sichtbar?
 
-**Keine Berücksichtigung des lokalen Kontexts.** Jedes Gebäude hat eigene Reflexionseigenschaften, eine individuelle Umgebung und unterschiedlich viele Messpunkte. Ein globales Modell über alle Punkte einer Stadt kann diese lokale Vielfalt nicht abbilden. Ein erster Versuch mit einem global trainierten Isolation Forest hat dies bestätigt.
+## Rolle des InSAR Viewers
 
-**Besonders kritisch bei kleinen Gebäuden.** Einfamilienhäuser haben oft nur 2–5 Messpunkte. Wenn davon einer ein Outlier ist, kippt die gesamte Gebäudebewertung – ein Hausbesitzer erhält möglicherweise eine falsche Risikoeinschätzung.
+Der InSAR Viewer ist ein **internes Forschungswerkzeug**, kein vorgesehenes
+Endkundenprodukt. Er dient dazu, Daten, Modellentscheidungen und Grenzfaelle zu
+entwickeln, zu visualisieren, zu vergleichen und fachlich zu validieren.
 
-**Keine unabhängige Validierung.** Die beiden Satellitengeometrien (Ascending und Descending) bieten grundsätzlich eine Möglichkeit zur Kreuzvalidierung: Bei rein vertikaler Senkung sollten beide Tracks konsistente Ergebnisse liefern. Dieses Potenzial wird bisher nicht genutzt.
+Ob und welche validierten Ergebnisse spaeter in ein AUGMENTERRA-Produkt
+uebernommen werden, wird erst anhand der Forschungsergebnisse entschieden.
+Produkttransfer ist derzeit kein eigener Arbeitsstrang dieses Repositories.
 
----
+## Projektkontext
 
-## Ziel
+Ausgangspunkt war die im SP-AI-Forschungsantrag formulierte Idee, InSAR-Daten
+mit raeumlichen, visuellen und semantischen Informationen zu verbinden und die
+Punkt-zu-Objekt-Zuordnung zu verbessern. Diese erste Idee wurde im Projekt durch
+Code, Datenanalysen, Experimente und visuelle Befunde zur heutigen
+Building-Intelligence-Methodik konkretisiert. Fuer die laufende Arbeit sind der
+tatsaechliche Implementierungsstand und die aktuelle Methodik massgeblich; der
+Antrag ist historischer Ursprung, kein operatives Pflichtenheft.
 
-Entwicklung einer **Machine-Learning-Pipeline**, die InSAR-Messpunkte auf Gebäudeebene analysiert und für jedes Gebäude eine fundierte, datengestützte Bewegungsbewertung liefert.
+## Aktueller Reifegrad
 
-Im Kern geht es darum, für ein beliebiges Gebäude folgende Fragen beantworten zu können:
+Aktiver Forschungsstand ist `anomaly_local_v1` mit dem Modellset
+`local_hdbscan_rulegate_v4_k2xhf_diffv2`. BEV ist die Standard-Gebaeudequelle;
+GBA und OSM bleiben Vergleichs- beziehungsweise Kontextquellen. Der Viewer und
+die Pipeline unterstuetzen Salzburg sowie Bad Gastein mit den jeweils
+verfuegbaren Sensoren und Tracks.
 
-1. **Welche Messpunkte gehören zuverlässig zu diesem Gebäude?** Zuordnung über adaptiven Buffer und räumlich-geometrische Analyse, um Punkte von Nachbarobjekten oder unzuverlässige Reflexionen auszuschließen.
+Der Stand ist ein fortgeschrittener, end-to-end integrierter
+Forschungsprototyp. Er ist nicht gleichbedeutend mit einer extern validierten,
+allgemein uebertragbaren oder produktreifen Methode. Das laufende
+Release-Candidate-Gate ist im
+[`P0 Execution Plan`](p0_documentation_v4_rc_execution_plan.md) definiert; nach
+Abschluss verweist die Dokumentations-Routingseite auf den zugehoerigen
+RC-Bericht.
 
-2. **Welche Struktur haben die Messpunkte dieses Gebäudes?** Lokales Clustering, das verschiedene Reflexionszonen erkennt (z.B. Dach, Fassade, Balkon) – und Outlier identifiziert, die keinem Cluster zuordenbar sind.
+### Umgesetzt
 
-3. **Wie bewegt sich dieses Gebäude?** Ein Bewegungs-Score pro Gebäude, der auf den zuverlässigen Messpunkten basiert und eine Konfidenzaussage ermöglicht.
+- Datenaufbereitung, PostGIS-Persistenz, API und kartenbasierte Inspektion fuer
+  InSAR-, Gebaeude-, Zeitreihen-, Amplituden- und Terrain-Kontextdaten.
+- Richtungs- und hoehenabhaengige lokale Punktzuordnung je Gebaeude und Track.
+- Lokale Clusterbildung, Small-N-Behandlung, Qualitaetsgates, Punkt- und
+  Gebaeuderollups sowie Cross-Track-Plausibilisierung.
+- v4-Trennung der semantischen Clusterarten `standard`, `annex` und `foreign`;
+  Fremdcluster beeinflussen weder Hauptbewegung noch Differentialaussage.
+- Differenzielle Bewegung als Stufenmodell `none`, `candidate`, `significant`
+  und `confirmed`, inklusive Evidenz- und Plausibilitaetsinformationen.
+- Forschungs-Harness mit festen AOIs, Referenzfaellen, Label-Korpus,
+  Scorecards, No-op-Baselines, Visual Audits und Survivors-Pass.
+- Vergleichsgebiete und -daten in Salzburg und Bad Gastein; BEV-, GBA- und
+  OSM-Gebaeudekontext sowie SNT- und TSX/PAZ-Daten, soweit je Gebiet vorhanden.
 
-4. **Ist diese Bewertung konsistent?** Kreuzvalidierung zwischen Ascending- und Descending-Track als unabhängige Qualitätskontrolle.
+### Intern geprueft
 
----
+- Zehn v4-Baseline-AOIs (sieben GBA-, drei BEV-Konfigurationen) wurden beim
+  v4-Integrationsstand per No-op-Vergleich reproduziert.
+- Der interne v4-Label-Korpus umfasst zehn Gebaeude und 46 Punkte; die
+  dokumentierten v4-Reinheitsgates ergaben `foreign_in_annex=0` und
+  `annex_in_foreign=0`.
+- Referenzfaelle, automatische Scorecards und wiederholte visuelle Audits
+  pruefen unter anderem Small-N, Multi-Cluster, Fremdreflektoren, Hanglagen und
+  Main-Cluster-Kontamination.
+- Die v4-Korrektur wurde durch einen visuellen Nutzerbefund ausgeloest: technisch
+  erkannte Fremdpunkte duerfen nicht als Anbau klassifiziert und dadurch als
+  differenzielle Gebaeudebewegung interpretiert werden.
 
-## Phasenplanung
+Diese Pruefungen sind interne Silver-Ground-Truth-Evidenz. Sie ersetzen keine
+unabhaengige fachliche Ground Truth.
 
-### Phase 1 – Fundament (aktuell)
+### Offen
 
-Eine funktionsfähige Python-Pipeline, die für den Raum Salzburg das lokale Gebäude-Clustering mit Outlier-Erkennung umsetzt.
+- P0-v4-Release-Candidate-Gate einschliesslich Watch-Items, Visual Audit und
+  Survivors-Pass abschliessen und nachvollziehbar protokollieren.
+- Label-Korpus stratifiziert erweitern und unabhaengige Expertenlabels sowie
+  echte Holdout-Faelle aufbauen.
+- Zuverlaessigkeits- und Unsicherheitsmasse empirisch kalibrieren.
+- Generalisierung auf weitere Gebiete, Sensorkonfigurationen und
+  Gebaeuderegime testen.
+- 1-m-DGM/DOM kontrolliert ableiten, laden und als eigenen Datenstandswechsel
+  re-baselinen; das vorhandene SRTM bleibt bis dahin aktiver Terrain-Stand.
+- Motion-Ablation mit zeitlich ueberlappender Referenzdatenbasis durchfuehren;
+  die benoetigte SNT/TSX-Ueberlappung liegt noch nicht vor.
+- Offene Phase-8-Feature-, Label- und Terrain-Arbeiten nach dem aktuellen
+  [`next_steps.md`](../pipelines/anomaly_local_v1/next_steps.md) priorisieren.
 
-Erwartetes Ergebnis: Für ein Gebäude können die zugeordneten InSAR-Punkte geladen, in Cluster eingeteilt und Outlier markiert werden. Die Ergebnisse sind visuell überprüfbar und plausibel. Der ASC/DSC-Track-Vergleich dient als erste Validierungsschicht. Es existiert ein dokumentiertes Iterationsprotokoll über Modellentscheidungen und Parameteranpassungen.
+## Fachliche Aussagegrenzen
 
-Phase 1 darf pragmatisch mit harten Regeln (z.B. Kohärenz-Schwellwerten) arbeiten, um die Zusammenhänge in den Daten zu verstehen – aber diese müssen klar isoliert und dokumentiert sein.
+### Was die Plattform heute aussagen kann
 
-### Phase 2 – Scoring und Konfidenz
+Die Plattform kann fuer den aktiven Modell- und Datenstand nachvollziehbar
+ausweisen:
 
-Aggregation der Clustering-Ergebnisse zu einem Gebäude-Bewegungs-Score mit Konfidenzintervall. Zielaussage: „Gebäude X hat eine Senkung von Y mm/a mit Z% Konfidenz." Integration der 2D-Dekomposition (Zerlegung der LOS-Messungen in vertikale und horizontale Komponenten) für Gebäude, bei denen beide Tracks verfügbar sind. Differenzielle Bewegungsanalyse innerhalb eines Gebäudes (z.B. eine Seite senkt sich, die andere ist stabil – ein typischer Rissindikator).
+- warum ein Punkt einem Gebaeude zugeordnet, ausgeschlossen oder als
+  Fremdreflektor behandelt wurde;
+- welche Punkte einen Haupt-, Anbau-, Fremd-, Noise- oder Weak-Support-Kontext
+  bilden;
+- welche robuste LOS-Bewegung die akzeptierten Hauptcluster tragen;
+- ob Evidenz fuer eine `candidate`, `significant` oder `confirmed`
+  differenzielle Bewegung vorliegt;
+- wie Tracks, Signalqualitaet, Punktstuetzung und Zuordnungsart die
+  Zuverlaessigkeit der Bewertung beeinflussen.
 
-### Phase 3 – Skalierung und Generalisierung
+Diese Aussagen gelten fuer den konkreten Run, Modellstand, Datenstand und die
+angezeigte Evidenz. Sie sind Forschungsbefunde, keine allgemeingueltige
+Tatsachenbehauptung ueber das Bauwerk.
 
-Überführung der Pipeline von Salzburg auf weltweite Anwendbarkeit. Systematische Ablösung harter Regeln durch datengetriebene, adaptive Mechanismen. Ziel: Die Pipeline funktioniert auf einem neuen Gebiet ohne manuelle Schwellwert-Anpassung. Integration zusätzlicher Datenquellen (ältere Prozessierungszeiträume für längere Zeitreihen, Terrain-Modelle, ggf. In-situ-Referenzdaten wo verfügbar).
+### Was die Plattform heute nicht aussagen darf
 
----
+- keine Diagnose eines Gebaeudeschadens oder Risses;
+- keine statische oder bautechnische Begutachtung;
+- keine empirisch kalibrierte Schadenswahrscheinlichkeit;
+- keine garantierte Prognose kuenftiger Bewegung;
+- keine ungepruefte Uebertragbarkeit auf beliebige Gebiete oder Sensoren.
 
-## Datenbasis
+Insbesondere ist `building_reliability_score` ein internes Evidenz- und
+Zuverlaessigkeitsmass, keine prozentuale Schadenswahrscheinlichkeit.
 
-Die Pipeline arbeitet auf folgender Datenbasis (vollständig im Repository vorhanden):
+## Aktuelle Erfolgskriterien
 
-**InSAR-Bewegungsdaten:** ~550.000 Messpunkte über Stadt Salzburg, zwei unabhängige Tracks (ASC/DSC), jeweils ~90 Zeitschritte über 3 Jahre (April 2022 – März 2025). Pro Punkt: Geschwindigkeit, Beschleunigung, Kohärenz, Höhe, saisonale Parameter, Einfallswinkel, vollständige Verschiebungszeitreihe.
+Die Forschung macht belastbaren Fortschritt, wenn:
 
-**InSAR-Amplitudendaten:** Rückstreuintensitäten für beide Tracks, als Indikator für Reflexionsstabilität nutzbar.
+- Punkt- und Clusterentscheidungen in festen Kontroll- und Problemfaellen
+  fachlich nachvollziehbar bleiben;
+- Fremdreflektoren Hauptbewegung und Differentialbewertung nicht kontaminieren;
+- legitime Dach- und Anbaupunkte nicht durch Hygiene-Regeln verloren gehen;
+- Änderungen gegen eingefrorene Baselines, Referenzfaelle, Labels und Visual
+  Audits reproduzierbar geprueft werden;
+- Unsicherheit, fehlender Support und inkonklusive Faelle sichtbar bleiben;
+- neue Gebiete und Datenstaende ohne stilles Nachjustieren der Erfolgskriterien
+  getestet werden koennen.
 
-**Gebäudedaten:** ~57.000 GBA-Gebäude und ~49.000 OSM-Gebäude, jeweils mit Polygon-Geometrie. Zusätzlich der Global Building Atlas (TU München) mit weltweiten Gebäudehöhen.
+## Verweise auf die operativen Sources of Truth
 
-**Verknüpfungen:** InSAR-Punkte sind zu ~87% mit Gebäuden verknüpft (via spatial matching). Terrain-Kontext (SRTM, 25m Auflösung) liegt für alle Punkte und Gebäude vor.
-
----
-
-## Erfolgskriterien
-
-Die Pipeline ist erfolgreich, wenn:
-
-**Plausibilität:** Bei manueller Inspektion von Gebäuden mit bekanntem Verhalten (z.B. Riedenburg, U-Bahn-Baugebiete Wien) liefert das Clustering nachvollziehbare Ergebnisse – Outlier werden erkannt, Cluster entsprechen physikalisch sinnvollen Gebäudezonen.
-
-**ASC/DSC-Konsistenz:** Bei stabilen Gebäuden in ebenem Gelände liegt die Differenz zwischen Ascending- und Descending-Bewertung im Bereich von unter 1 mm/a (Referenz: Schloss Mirabell im Meeting mit 0.6 mm/a Differenz).
-
-**Robustheit bei wenigen Punkten:** Auch bei Gebäuden mit nur 5–10 Messpunkten liefert die Pipeline sinnvolle Ergebnisse (kein Kollabieren des Clustering, keine Übersensitivität).
-
-**Nachvollziehbarkeit:** Jede Designentscheidung, jeder Parameterwechsel und jede Iteration ist dokumentiert und begründet.
-
----
-
-## Einordnung und Mehrwert
-
-AUGMENTERRA verarbeitet bereits heute hunderte Millionen InSAR-Messpunkte und ordnet sie Bauwerken zu. Die Qualität dieser Zuordnung und die Zuverlässigkeit der daraus abgeleiteten Bewegungsbewertungen ist der zentrale Differenzierungsfaktor am Markt.
-
-Dieses Projekt adressiert die „letzten fünf Prozent" – die systematische Trennung zuverlässiger von unzuverlässigen Messpunkten, die bisher manuell oder über einfache Filter erfolgt. Eine funktionierende ML-Pipeline hierfür hat direkten Einfluss auf die Qualität des AUGMENTERRA Observer und damit auf die Entscheidungsgrundlagen, die Gebäudeeigentümer, Kommunen und Versicherungen erhalten.
+- Aktive Modelllogik: [`methodik.md`](../pipelines/anomaly_local_v1/methodik.md)
+- Verifikation und Pflicht-AOIs: [`runbook.md`](../pipelines/anomaly_local_v1/runbook.md)
+- Aktuelle offene Forschung: [`next_steps.md`](../pipelines/anomaly_local_v1/next_steps.md)
+- Phase-8-Status und Historie:
+  [`phase8_bev_hygiene_plan.md`](../pipelines/anomaly_local_v1/phase8_bev_hygiene_plan.md)
+  und
+  [`phase8_integration_report.md`](../pipelines/anomaly_local_v1/artifacts/phase8_integration_report.md)
+- Chronologische Modelliterationen:
+  [`iterations.md`](../pipelines/anomaly_local_v1/iterations.md)
+- Dokumentrouting und Pflegeverantwortung: [`docs/README.md`](../README.md)

@@ -1,236 +1,114 @@
-# `anomaly_local_v1` Phase 8: BEV-Integration + Assignment-Hygiene 2
+# `anomaly_local_v1` Phase 8: BEV und Assignment-Hygiene
 
-Stand: 2026-07-06
-Status: geplant (Vorarbeiten erledigt, siehe "Startpunkt")
-Kurzname: `phase8_bev_hygiene`
+**Stand:** 2026-07-10
 
-Dieser Plan buendelt die nach Phase 7 offenen Punkte (P7-N4, P7-N5, P7-N7,
-Teile von P7-N3/N6) mit den Meeting-Beschluessen vom 2026-06-19 (BEV statt
-GBA; Feature-Bewertung; Hanglagen-Research) und den Befunden vom 2026-07-06
-(BEV-Recheck, BEV-vs-GBA-Validierung, TSX-Decision-Record).
+**Status:** teilweise abgeschlossen; v4 integriert, RC geprueft und nicht akzeptiert
+
+**Autoritativ fuer:** Ticketstatus, Abhaengigkeiten und Restumfang von Phase 8
+
+**Aktualisieren wenn:** ein Phase-8-Ticket abgeschlossen, verworfen, neu geschnitten oder extern entblockt wird
+
+## Ziel und aktueller Endpunkt
+
+Phase 8 hat den Wechsel zu BEV als Standard-Gebaeudequelle mit einer zweiten
+Stufe der Assignment-Hygiene verbunden. Aktiver Endpunkt ist
+`local_hdbscan_rulegate_v4_k2xhf_diffv2`:
+
+- quellenabhaengige BEV-Hoehen fuer Buffer und Plausibilitaet;
+- kartierungsfreie Trennung von Hauptbau, Anbau und Fremdreflektor;
+- `cluster_kind = standard | annex | foreign`;
+- differenzielle Bewegung als `none | candidate | significant | confirmed`;
+- Reinheitsgates, Punkt-Pins, Label-Metriken, Visual Audit und Survivors-Pass.
+
+Der detaillierte Entscheidungs- und Gate-Verlauf steht im
+[`phase8_integration_report.md`](artifacts/phase8_integration_report.md). Die
+aktive Modelllogik steht ausschliesslich in [`methodik.md`](methodik.md).
+
+Der formale RC-Lauf ist abgeschlossen und wegen zwei roten Befunden nicht
+akzeptiert. Details:
+[`phase8_v4_rc_gate_results.md`](artifacts/phase8_v4_rc_gate_results.md),
+[`phase8_v4_rc_gate_results.json`](artifacts/phase8_v4_rc_gate_results.json) und
+[`phase8_v4_rc_visual_audit.md`](artifacts/phase8_v4_rc_visual_audit.md).
 
 ## Rahmenbedingungen
 
-- KEINE zeitliche SNT/TSX-Ueberlappung -> Bewegungsvergleiche bleiben
-  qualitativ; die Motion-Ablation (Phase P8-E) wartet auf die
-  Overlap-Datenlieferung.
-- KEINE Experten-Labels kurzfristig -> Evaluation stuetzt sich auf den
-  internen Label-Korpus (`reference_labels.md`), Referenzfaelle, Scorecards,
-  Cross-Track (flach) und Visual-Audits mit Survivors-Pass.
-- Zwei Research-Berichte (Features/Zeitreihen, Hanglage/Terrain) laufen;
-  ihre Ergebnisse fliessen in P8-C bzw. das Hanglagen-Followup ein.
+- Es gibt keine ausreichende zeitliche SNT/TSX-Ueberlappung fuer eine belastbare
+  Motion-Ablation. P8-E-W2 bleibt extern blockiert.
+- Es gibt noch keine unabhaengige Experten-Ground-Truth. Die Evaluation nutzt
+  internen Label-Korpus, Referenzfaelle, Scorecards, flache Cross-Track-Faelle
+  und Visual Audits.
+- Der 1-m-DGM/DOM-Datenstand ist vorbereitet, aber nicht produktiv abgeleitet,
+  geladen oder re-baselined.
 
-## Startpunkt (Vorarbeiten 2026-07-06, bereits committet/gelaufen)
+## Statusmatrix
 
-- BEV-Quelle end-to-end integriert (`--source bev`, UI-Layer, Detail-API);
-  Harness/Baselines bleiben gba-gepinnt (Commit "Harness: Gebaeudequelle
-  aus AOI-Spec pinnen").
-- BEV-Recheck 96959851: Nebengebaeude in BEV kartiert
-  (`artifacts/bev_footprint_recheck_96959851.md`).
-- BEV-vs-GBA-Validierungslaeufe mit Metriken gegen den Label-Korpus
-  (`artifacts/bev_gba_reference_case_comparison.md`). Kernbefunde:
-  foreign-Recall 4/10 -> 6/10, aber 1 roof-Verlust, 2 Anti-Layover-Cores im
-  Main, differential_flag-Kipp, Schein-Dekontamination (Reliability steigt
-  bei unveraendert kontaminierter Motion).
-- TSX-Entscheidung: kein Punkt-Overlay-Support-Score; P7-N3 gekoppelt an
-  `artifacts/hr_offset_recon.md` (`tsx_structural_reference_decision.md`).
-- Label-Korpus v1 (20 Punkte, 2 Gebaeude) als `artifacts/reference_labels.json`.
-- BEV-Konzept mit Hoehen-Mapping-Empfehlung
-  (`bev_building_source_concept.md`).
+| Ticket | Ergebnis | Status | Evidenz / Restpunkt |
+|---|---|---|---|
+| P8-A-W1-T1 Hoehen-Mapping | BEV nutzt `height_max_m` fuer Candidate Area und `height_median_m` fuer Plausibilitaet; Fallback jeweils `height_m` | erledigt | aktive Methodik und v4-Pipeline |
+| P8-A-W1-T2 GBA->BEV-Referenzmapping | Referenzfaelle koennen BEV-Gebaeuden zugeordnet werden | erledigt | `artifacts/phase7_reference_cases.json` |
+| P8-A-W1-T3 BEV-Abdeckungs-Audit | Abdeckung und Footprint-Unterschiede dokumentiert | erledigt | `artifacts/phase8_bev_coverage_audit.md` |
+| P8-A-W2-T1 BEV als Standard | BEV ist Produktiv-/UI-Default; v4-Baselinekette enthaelt sieben GBA- und drei BEV-AOIs | teilweise erledigt | weitere BEV-Pflichtfaelle, besonders Bad Gastein, bleiben offen |
+| P8-B-W1-T1 Anti-Layover | laeuft fuer alle Zuordnungsmethoden; v4 routet Evidenz nach `foreign` | erledigt | v4-Scorecard und Punkt-Pins |
+| P8-B-W1-T2 Layover-Reichweite | quellenabhaengiger Reichweitencheck integriert | erledigt | bei GBA Annex-Evidenz, bei BEV unplausible Reichweite Foreign-Evidenz |
+| P8-B-W1-T3 Polygon-aware Cross-Look-Excess | als eigener polygonbewusster Ersatz der Zentroidlogik vorgesehen | offen | braucht gezielte lange/breite Footprint-Gegenbeispiele |
+| P8-B-W1-T4 Checks fuer alle Zuordnungsarten | Component Separator laeuft auch fuer `within` und `directional_buffer` | erledigt | v4-Referenzpins |
+| P8-B-W2-T1 Komposit `k2xh` | Bauteil-Trenner integriert und spaeter durch v4-Evidenzklassen korrigiert | erledigt | Integrationsreport v3/v4 |
+| P8-B-W2-T2 Visual Audit + Survivors-Pass | fuer die Integrationsshortlist durchgefuehrt | erledigt | Phase-7-/Phase-8-Audit-Artefakte; neue v4-Watch-Items bleiben offen |
+| P8-B-W2-T3 Integration | v4 ist aktives Modellset | erledigt | `MODEL_SET_VERSION` und v4-Baselines |
+| P8-B-W2-T4 Differential Motion v2 | Level, Evidenz, Mindeststuetzung und Downgrades integriert | erledigt | 96959851 bleibt Kandidat; Fremdcluster sind keine Quelle |
+| P8-C-W1 Feature-Achsen/Ablation | Research-Berichte liegen vor; kontrollierte Injection-/Ablationsmatrix fehlt | offen | keine produktive Feature-Aenderung ohne Gates |
+| P8-D-W1-T1 Label-Korpus-Ausbau | v4-Stand: zehn Gebaeude, 46 Punkte | teilweise erledigt | auf 20-40 stratifizierte Gebaeude und unabhaengige Gegenlabels erweitern |
+| P8-D-W1-T2 Label-Metriken | automatischer Scorecard-Block inklusive Reinheitsgates | erledigt | bei jeder neuen semantischen Kategorie erweitern |
+| P8-E-W1 Motion-Ablationsdesign/Tooling | Bad-Gastein-SNT/TSX-Vergleich vorhanden, aber noch gebietsspezifisch | teilweise erledigt | auf beliebige gebiets-/datasetkompatible Paare generalisieren |
+| P8-E-W2 Motion-Ablation | belastbare Overlap-Daten fehlen | extern blockiert | erst nach Datenlieferung re-baselinen und auswerten |
+| P8-F Annex/Foreign-Korrektur | getrennte Evidenzklassen, `foreign`-Routing, Reinheitsgates und v4-Re-Baseline | erledigt | RC bestaetigt Paritaet und Reinheit; rote Folgepunkte sind 96637447 und R9 |
+| P8-RC Release-Candidate-Gate | Smoke, 10/10 No-op, Paritaet und Visual Audit ausgefuehrt | geprueft, nicht akzeptiert | autoritative Gate-Artefakte; zwei rote Befunde |
+| P8-RC Harness-Performance | Geometrie-Extras um semantikgleiche indexierbare BBox ergaenzt | erledigt | sieben Quellen-/AOI-Kombinationen, null Kandidatenausschluss, EXPLAIN-Kosten ca. 24,5x niedriger |
 
-## Zielbild
+## Verbindliche v4-Gegenbeispiele
 
-1. Die Pipeline nutzt BEV-Footprints und -Hoehen korrekt (Hoehen-Mapping,
-   Quellen-Metadaten), ohne die unter GBA kalibrierte Hygiene zu verlieren.
-2. Kartierungsfreie physikalische Checks (Anti-Layover, Layover-Reichweite)
-   fangen Fremdreflektoren UNABHAENGIG von der Zuordnungsmethode — auch
-   within/directional-Punkte verschmolzener BEV-Footprints.
-3. Der Label-Korpus macht Hygiene-Fortschritt quantitativ (Precision/
-   Recall/F1 + roof-Verluste als Scorecard-Block).
-4. Multi-Cluster-/Differential-Semantik uebersteht den Footprint-Wechsel
-   (Fall 96637447: differential_flag darf nicht kippen).
+- **96959851:** Die baulich verbundenen Punkte NTC3CYZ01/NTDA86J01 muessen
+  getrennt vom Main als `annex` erhalten bleiben; Hauptdachpunkte bleiben im
+  Main, O2HC2XV01 nicht. Differential-Level erwartet: `candidate`.
+- **96637447:** Anti-Layover-/Foreign-Punkte duerfen keine
+  Differentialaussage tragen; echte Dachkerne bleiben erhalten. Im RC blieb
+  das Level ohne neue visuelle Evidenz `candidate` statt des erwarteten `none`;
+  der Fall ist deshalb rot und fachlich neu zu entscheiden.
+- **113309836:** Status- oder Vorzeichenwechsel nur mit geprueftem Motion-Pfad;
+  bleibt Watch-Item fuer TSX-/Motion-Aufwertungen.
+- **v4-Reinheit:** `foreign_in_annex=0`, `annex_in_foreign=0`; keine neue
+  semantische Kategorie ohne Kompositionsstatistik und maschinelle Punkt-Pins.
 
-## Evaluationsstrategie
+## Offene Phase-8-Arbeit
 
-Bestehende Schichten (Scorecards vs. eingefrorene Baselines, Referenzfaelle,
-Cross-Track flach, Visual-Audit v2 mit Survivors-Pass, HR-Gebaeude-Guardrail)
-PLUS neu:
+Die Priorisierung und fachliche Beschreibung dieser Punkte steht in
+[`next_steps.md`](next_steps.md); hier wird nur ihr Phase-8-Status gefuehrt:
 
-- Label-Korpus-Metriken pro Kandidat (siehe `reference_labels.md`,
-  Abschnitt "Verwendung in der Evaluation").
-- BEV-vs-GBA-Paarlaeufe auf den Pflicht-AOIs als eigene Vergleichsachse.
+1. `96637447` fachlich klaeren und die Level-Erwartung maschinell pinnen.
+2. R9 beheben: Referenzlabels/Punkt-Pins nach `building_source` trennen und das
+   absolute Roof-Loss-Gate fuer `NSVF80S01` erneut auswerten.
+3. Point-MVT-Latenz aus dem Smoke (rund 57,6 s) separat profilieren.
+4. Polygon-aware Cross-Look-Excess gegen lange, breite und unregelmaessige
+   Footprints evaluieren.
+5. Feature-Achsen aus Zeitreihen-/Terrain-Research per Injection und Ablation
+   testen, ohne voreilige Produktionsintegration.
+6. Label-Korpus stratifiziert erweitern und eine unabhaengige Gegenpruefung
+   etablieren.
+7. Motion-Vergleichstooling generalisieren; volle Ablation bleibt bis zur
+   Overlap-Datenlieferung blockiert.
+8. 1-m-DGM/DOM als ausdruecklichen Datenstandswechsel verarbeiten und alle
+   betroffenen Baselines neu aufbauen.
 
-Pruefsteine (Pflicht-Gegenbeispiele fuer jeden Kandidaten):
+## Gate-Vertrag
 
-- 96959851 (REVIDIERT 2026-07-07, Google-Earth-Befund: baulich verbundener
-  Anbau, kein Nebengebaeude): NTC3CYZ01 + NTDA86J01 duerfen den
-  MAIN-Cluster nicht praegen — Zielverhalten ist TRENNUNG (eigener
-  Cluster/annex-Rolle) + differential_motion, NICHT Entfernung. Demotion
-  zaehlt als suboptimal-akzeptabel, Verschmelzung in den Main als Fehler.
-  NTF2IZV01/NTG9E7F01 (Hauptdach) duerfen nicht verloren gehen;
-  O2HC2XV01 (anti-layover) darf nicht zugeordnet bleiben. Damit steigt
-  die Prioritaet von Multi-Cluster-/Differential-Handling (next_steps §2)
-  innerhalb von P8: Hoehenprofil-Checks wirken hier als BAUTEIL-TRENNER,
-  nicht als Wegwerf-Regel.
-- 96637447: alle 4 Anti-Layover-t44-Cores raus; Differential-Semantik und
-  echte Dachkerne (NSVF80S01, NSXSYFW01) unveraendert. Unter BEV zusaetzlich:
-  NSVF80S01 darf NICHT excluded sein (aktueller bev-Lauf verliert ihn).
-- 113309836: Statuswechsel nur mit menschlich geprueftem Motion-Pfad
-  (P7-N4-Watch bleibt offen; BEV-Kontext -0.27 -> -0.59 dokumentiert).
+Jede weitere Integration braucht:
 
-## Plan -> Phase -> Welle -> Ticket
+- No-op-Vergleich gegen den passenden eingefrorenen Daten-/Modellstand;
+- Referenzfall- und Punkt-Pin-Gates;
+- Label-, Reinheits- und Roof-Loss-Metriken;
+- Visual Audit plus Survivors-Pass;
+- eindeutige Entscheidung `green`, `red` oder `inconclusive` mit Eintrag in
+  [`iterations.md`](iterations.md).
 
-### Phase P8-A: BEV produktionsreif machen
-
-Welle W1 (parallelisierbar, disjunkte Write-Sets):
-
-- **P8-A-W1-T1 Hoehen-Mapping**: `BUILDING_SOURCE_SPECS` auf getrennte
-  Ausdruecke erweitern (`buffer_height`: bev `COALESCE(height_max_m, height_m)`,
-  `plausibility_height`: bev `COALESCE(height_median_m, height_m)`; gba/osm
-  unveraendert identisch zur heutigen Spalte). DoD: gba-Noop bleibt
-  punktidentisch (verify-noop gruen auf allen 7 AOIs); bev-Laeufe nutzen
-  height_max fuer Candidate Area (Stichproben-SQL auf 113309836: Buffer
-  aus 14.9 m).
-- **P8-A-W1-T2 Referenzfall-ID-Mapping**: max-overlap-Mapping GBA->BEV als
-  wiederverwendbare Query/Funktion + `bev_building_id`-Feld in
-  `phase7_reference_cases.json` (nur additiv). DoD: alle Katalog-Faelle
-  gemappt oder explizit `no_bev_match`.
-- **P8-A-W1-T3 BEV-Abdeckungs-Audit**: Anteil InSAR-Punkte mit
-  BEV-Kandidat vs. GBA-Kandidat je Pflicht-AOI + Gebietsstatistik
-  (Footprint-Anzahl, Flaechenverteilung, Verschmelzungsgrad BEV:GBA).
-  DoD: Artefakt `artifacts/phase8_bev_coverage_audit.md`.
-
-Welle W2 (nach W1):
-
-- **P8-A-W2-T1 Vollzug Produktions-Default BEV** (User-Entscheidung
-  2026-07-07: BEV IST der Standard; die Entscheidung ist gefallen, dieses
-  Ticket ist der technische Vollzug): BEV-Baselines einfrieren (AOIS
-  erhaelt `source: "bev"`-Varianten, gba-Baselines bleiben als legacy),
-  Referenzfall-Erwartungen fuer bev formulieren (Fall 18: Erwartung wird
-  Multi-Cluster/Differential statt nearest-Demotion). DoD: neue
-  Baseline-Runs + verify-noop gruen auf den bev-AOIS-Varianten +
-  Decision-Log-Eintrag.
-
-### Phase P8-B: Assignment-Hygiene 2 (kartierungsfrei)
-
-Vorbild: Vorsortier-Versionen existieren im Survivors-Scan-Tooling
-(`phase7_survivors_scan.py`) und sind am Fall validiert.
-
-Welle W1:
-
-- **P8-B-W1-T1 Anti-Layover-Check als Pipeline-Politik**: Punkte ausserhalb
-  des Footprints mit Versatz ENTGEGEN range_dx/dy (Anti-Komponente >
-  Geocoding-Toleranz) demotieren. Harness-Achse `a6_antilayover`.
-  DoD: Pruefsteine; Label-Korpus-Metriken; Scorecard vs. Baseline.
-- **P8-B-W1-T2 Layover-Reichweiten-Check**: implizite Reflektorhoehe
-  `d_fp/tan(inc)` gegen plausible Hoehe (bev height_max + Marge; gba
-  h/0.735 + Marge). Achse `a7_reach`. DoD: faengt NTC3CYZ01-Typ
-  (10.2 m noetig vs. 6.1 m BEV-max) ohne roof-Verluste.
-- **P8-B-W1-T3 Polygon-aware Cross-Look-Excess**: `cross_excess_m` gegen
-  die Polygon-Projektionsspanne statt Zentroid; Zentroid-Offset bleibt
-  Diagnose. Achse `a5p_polyaware`. DoD: lange/breite Testfaelle; keine
-  falschen Demotions am Gebaeuderand; bekannte Fremdpunkte bleiben gefangen.
-- **P8-B-W1-T4 Wichtig — Checks auch fuer within/directional**: T1/T2
-  duerfen nicht auf nearest beschraenkt sein (BEV-Befund: Fremdpunkte sind
-  dort within!). DoD: NTC3CYZ01/NTDA86J01 werden im bev-Lauf demotiert.
-
-Welle W2:
-
-- **P8-B-W2-T1 Komposit `k2xh`**: a5_crosslook + Hoehenprofil + smalln_strict
-  + beste Achsen aus W1; voller Kandidaten-Sweep + Scorecards.
-- **P8-B-W2-T2 Visual-Audit + Survivors-Pass** der Shortlist (Pflicht v2).
-- **P8-B-W2-T3 Entscheidung/Integration** analog P7-E (nur bei gruenen
-  Guardrails; sonst dokumentiertes no_integrate).
-- **P8-B-W2-T4 Differential-Motion-Kriterium v2** (beantwortet die offene
-  Frage aus next_steps §2 "ab welcher Differenz?"; Diskussion 2026-07-07).
-  Ist-Zustand: Flag bei Delta >= max(1.5, 1.0+0.15*slope) mm/a zwischen
-  belastbaren Clustern (je >=2 Punkte). Zielbild dreistufig:
-  (a) `differential_candidate` = heutige Regel;
-  (b) `differential_significant` = zusaetzlich Delta > 2*sigma_Delta mit
-      sigma aus Bootstrap-CI der Cluster-Mediane (nutzt v_stdev/Stuetzung;
-      lokale Differenzen sind praeziser als Absolutwerte, da Atmosphaere/
-      Orbit/REF-Fehler gebaeudeintern herausfallen);
-  (c) `differential_confirmed` = zusaetzlich Bestaetigung durch zweite
-      Geometrie (gleiches Vorzeichen der Differenz) ODER persistenter
-      Trend der Differenz-Zeitreihe (nicht nur Endpunkt-Fit).
-  Plausibilitaets-Downgrades vor (b)/(c): grosse season_amp-Differenz
-  (thermische Ausdehnung Blechdach) und instabile Amplitude (Korrosion ->
-  Phasenzentrum-Drift = Scheinbewegung) druecken auf candidate.
-  DoD: Kriterium implementiert + an 96959851 (erwartet: candidate, nicht
-  confirmed - nur t95, n=2/Seite) und 96637447 validiert; UI zeigt Stufe.
-
-### Phase P8-C: Feature-Achsen + Hygiene-Ablation (nach Research-Bericht 1)
-
-- **P8-C-W1-T1 Amplituden-Achsen**: amp_mean-Rang im Gebaeudekontext,
-  Amplituden-Konsistenz pro Cluster, amp_ts_cv als Anker-Gewicht
-  (Hypothese Blechdach-Indikator, P7-N6). Nur Harness, keine Produktion.
-- **P8-C-W1-T2 Zeitreihen-Achsen**: Kandidaten aus dem Research-Bericht
-  (docs/research/), z. B. Form-/Distanzmasse fuer kurze, unregelmaessige
-  Reihen. Nur Harness.
-- **P8-C-W1-T3 Hygiene-Ablation Runde 1**: Achsen einzeln vs. Komposit
-  gegen Label-Korpus + Scorecards + Pruefsteine; Ergebnis als
-  `artifacts/phase8_ablation_round1.md`. Endgueltiges Feature-Pruning
-  bewusst NICHT hier (wartet auf Motion-Referenz, P8-E).
-
-### Phase P8-D: Label-Korpus-Ausbau
-
-- **P8-D-W1-T1**: Korpus auf 20-40 Gebaeude erweitern (stratifiziert nach
-  `next_steps.md` §6: flach/Hang, viele/wenige Punkte, Problemtypen;
-  BG-Faelle einschliessen). Jede Erweiterung mit Evidenz + Datum.
-- **P8-D-W1-T2**: Label-Metriken als Scorecard-Block im Harness
-  (automatisch pro Kandidat).
-
-### Phase P8-E: Motion-Ablation (WARTET auf Overlap-Daten)
-
-- **P8-E-W1-T1 Design-Doc**: Metriken (Overlap-Fenster-Slopes, Bias/MAE/
-  Sign-Agreement je Filtergruppe wie im BG-Vergleich), AOI-Set inkl.
-  Salzburg, Akzeptanzkriterien. Kann sofort geschrieben werden.
-- **P8-E-W1-T2 Harness-Generalisierung**: `bad_gastein_motion_compare.py`
-  auf Salzburg/beliebige Dataset-Paare parametrisieren (geometrie-gematcht
-  DESC<->DESC; Salzburg-TSX single-track beachten).
-- **P8-E-W2 (bei Datenlieferung)**: Re-Baseline (Datenstands-Wechsel), volle
-  Ablationsmatrix, Feature-Pruning, ggf. TSX-Aufwertungs-Review (P7-N4).
-
-### Offen uebernommen aus P7 (unveraendert)
-
-- P7-N1 (alternative Clusterer) — verschoben, braucht benannten Schwachpunkt.
-- P7-N2 (regime-konditionale High-N-/TSX-Strategie) — braucht P7-N3-Ersatz
-  bzw. hr_offset_recon-Ergebnis.
-- P7-N7 (Kartensignatur demotierter Punkte) — klein, additiv, jederzeit.
-- Track-22-Ost-Diagnose (Datenthema).
-
-## Abhaengigkeiten
-
-- P8-B-W2 braucht P8-B-W1; P8-A-W2 braucht P8-A-W1 und P8-B-W1-Ergebnis.
-- P8-C braucht Research-Bericht 1 (soft) und P8-B-W1-Achsen (hard).
-- P8-E-W2 braucht externe Overlap-Daten (hard, extern).
-- Hanglagen-Methodik (2D-Dekomposition etc.) haengt am Research-Bericht 2
-  und wird nach dessen Vorliegen als eigene Phase geplant.
-
-## Pflichtartefakte
-
-- Scorecards je Kandidat, Label-Korpus-Metriken, Visual-Audit-Report,
-  Survivors-Scan, Decision-Log-Eintraege, iterations.md-Zeilen pro Lauf.
-
-## Anhang: Reproduktions-SQL (BEV-vs-GBA-Punktvergleich)
-
-```sql
-SELECT CASE run_id WHEN '<RUN_GBA>'::uuid THEN 'gba' ELSE 'bev' END AS src,
-       code, track, building_id, label,
-       meta->'visual_context'->>'assignment_method' AS assign,
-       meta->'cluster'->>'cluster_role'             AS role,
-       (meta->'cluster'->>'is_main_cluster')        AS main
-FROM ml_point_results
-WHERE run_id IN ('<RUN_GBA>'::uuid, '<RUN_BEV>'::uuid)
-  AND code = ANY(SELECT jsonb_array_elements_text(...))  -- Label-Korpus-Codes
-ORDER BY code, src;
-```
-
-GBA->BEV-ID-Mapping:
-
-```sql
-SELECT b.bev_id FROM gba_buildings g
-JOIN bev_buildings b ON b.area_id = g.area_id AND ST_Intersects(b.geom, g.geom)
-WHERE g.gba_id = $1
-ORDER BY ST_Area(ST_Intersection(b.geom, g.geom)::geography) DESC LIMIT 1;
-```
+Historische v3-Experimente und ihre damalige Begrifflichkeit bleiben in den
+eingefrorenen Artefakten erhalten. Sie beschreiben nicht die aktive Methodik.

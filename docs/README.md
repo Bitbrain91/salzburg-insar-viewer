@@ -1,117 +1,93 @@
-# Docs Overview
+# Dokumentationsrouting
 
-Dieser Ordner ist nach Themen statt nach Einzeldateien organisiert. Neue Doku sollte moeglichst in die passende Unterstruktur gelegt werden statt direkt in `docs/`.
+**Stand:** 2026-07-10
 
-## Struktur
+**Status:** aktive Einstiegs- und Routingseite
 
-- `docs/workflows/`
-  - repo-weite Arbeitsweisen, z. B. der AI-Supervisor-Workflow
-- `docs/pipelines/`
-  - pipeline-spezifische Methodik, Plaene, Runbooks und Supervisor-Artefakte
-  - aktueller Fokus: `docs/pipelines/anomaly_local_v1/`
-- `docs/research/`
-  - fachliche Analyse, externe Grundlagen und Rohdaten-Auswertung
-- `docs/project/`
-  - Projektziele, Antraege und uebergeordnete Produktdokumente
-- `docs/architecture/`
-  - Diagramme und Systemdarstellungen
-- `docs/archive/`
-  - alte oder ersetzte Doku, die nicht mehr aktiver Arbeitsstand ist
+**Autoritativ fuer:** Ablage, Zustaendigkeit und Navigation der Repository-Dokumentation
 
-## Wichtige Einstiege
+**Aktualisieren wenn:** eine Source of Truth, Dokumentklasse oder Ablageregel hinzukommt, umbenannt oder abgeloest wird
 
-- Workflow-Standard: `docs/workflows/ai_supervisor_workflow.md`
-- Aktueller Umsetzungsplan fuer `anomaly_local_v1`: `docs/pipelines/anomaly_local_v1/phase2_execution_plan.md`
-- Aktuelle Forschungsphase (BEV + Assignment-Hygiene 2): `docs/pipelines/anomaly_local_v1/phase8_bev_hygiene_plan.md`
-- Supervisor-Startprompt Phase 8: `docs/pipelines/anomaly_local_v1/phase8_supervisor_prompt.md`
-- Abgeschlossene Clustering-Optimierung (P7): `docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_plan.md`
-- Supervisor-Startprompt fuer die Clustering-Optimierung: `docs/pipelines/anomaly_local_v1/phase7_clustering_optimization_supervisor_prompt.md`
-- Referenzlabel-Korpus (interne Silver Ground Truth): `docs/pipelines/anomaly_local_v1/reference_labels.md`
-- Supervisor-Startprompt fuer `anomaly_local_v1`: `docs/pipelines/anomaly_local_v1/supervisor_prompt.md`
-- Runbook mit festen Test-AOIs: `docs/pipelines/anomaly_local_v1/runbook.md`
-- Fachliche Methodik der aktiven Pipeline: `docs/pipelines/anomaly_local_v1/methodik.md`
-- Rohdatenanalyse: `docs/research/Datenanalyse_InSAR_Salzburg.md`
+Diese Seite ist der erste Einstieg fuer Menschen und KI-Agenten. Sie benennt
+fuer jede wiederkehrende Frage genau **eine aktive Source of Truth**. Andere
+Dokumente verlinken auf diese Quelle und wiederholen ihren aktuellen Inhalt
+nicht.
 
-## Area-aware Datenpipeline
+## Frage -> autoritatives Dokument -> Update-Trigger
 
-Gebiets- und Dataset-Metadaten stehen in `pipeline/areas_manifest.json`. Neue
-InSAR-Ausgaben liegen unter `data/parquet/<area_id>/<dataset_id>/`, Gebaeude
-zusaetzlich unter `data/parquet/<area_id>/`. Kombinierte Gebaeude-Parquets bleiben
-unter `data/parquet/gba_buildings.parquet` und `data/parquet/osm_buildings.parquet`
-und enthalten `area_id`.
+| Frage | Autoritatives Dokument | Aktualisieren wenn |
+|---|---|---|
+| Was ist das zentrale Projektergebnis, welche Rolle hat der Viewer und was ist heute fachlich aussagbar? | [`project/Projektziel_InSAR_Building_Intelligence.md`](project/Projektziel_InSAR_Building_Intelligence.md) | Zielbild, aktiver Reifegrad, Aussagegrenze oder priorisierte offene Forschung aendert sich |
+| Wie funktioniert die aktive `anomaly_local_v1`-Modelllogik? | [`pipelines/anomaly_local_v1/methodik.md`](pipelines/anomaly_local_v1/methodik.md) | Features, Regeln, Cluster-/Differentialsemantik, Modell- oder Datenquellenvertrag aendert sich |
+| Wie werden Runs ausgefuehrt und welche Pflicht-AOIs/Gates gelten? | [`pipelines/anomaly_local_v1/runbook.md`](pipelines/anomaly_local_v1/runbook.md) | Befehle, AOI-Katalog, Gate-Vertrag oder Betriebsablauf aendert sich |
+| Welche Forschungsarbeiten sind als Naechstes offen? | [`pipelines/anomaly_local_v1/next_steps.md`](pipelines/anomaly_local_v1/next_steps.md) | ein Punkt umgesetzt, verworfen, neu priorisiert oder durch Evidenz blockiert wird |
+| Was ist in Phase 8 erledigt, teilweise erledigt oder offen? | [`pipelines/anomaly_local_v1/phase8_bev_hygiene_plan.md`](pipelines/anomaly_local_v1/phase8_bev_hygiene_plan.md) | sich Ticketstatus oder Abhaengigkeit der Phase aendert |
+| Welche v3/v4-Entscheidungen und Gates fuehrten zum integrierten Stand? | [`pipelines/anomaly_local_v1/artifacts/phase8_integration_report.md`](pipelines/anomaly_local_v1/artifacts/phase8_integration_report.md) | ein Integrationsnachtrag oder eine Korrektur der Evidenz erforderlich ist |
+| Welche Modelliteration geschah wann und warum? | [`pipelines/anomaly_local_v1/iterations.md`](pipelines/anomaly_local_v1/iterations.md) | ein Experiment oder produktiver Modellwechsel abgeschlossen ist |
+| Welche internen Referenzlabels gelten? | [`pipelines/anomaly_local_v1/reference_labels.md`](pipelines/anomaly_local_v1/reference_labels.md) | Labels, Evidenz, Version oder Einsatz im Harness aendert sich |
+| Wie wird das Repository installiert, gestartet und technisch bedient? | [`../README.md`](../README.md) | Architektur, Datenquellen, Setup, CLI oder Laufzeitkonfiguration aendert sich |
+| Wie arbeiten Supervisor und Subagenten? | [`workflows/ai_supervisor_workflow.md`](workflows/ai_supervisor_workflow.md) | der repo-weite AI-Arbeitsvertrag aendert sich |
+| Wo stehen verbindliche Regeln fuer alle Repository-Agenten? | [`../AGENTS.md`](../AGENTS.md) | Coding-, Git-, Daten- oder Dokumentationsregeln aendern sich |
+| Was ist Umfang und Gate-Vertrag des aktuellen P0-Pakets? | [`project/p0_documentation_v4_rc_execution_plan.md`](project/p0_documentation_v4_rc_execution_plan.md) | Umfang, Gate-Status, Integrationsweg oder Blocker aendert sich |
 
-Bad Gastein vorbereiten:
-```bash
-python pipeline/download_gba.py --area bad_gastein
-python pipeline/prepare_insar.py --area bad_gastein --dataset bad_gastein_snt --track 22
-python pipeline/prepare_insar.py --area bad_gastein --dataset bad_gastein_snt --track 44
-python pipeline/prepare_insar.py --area bad_gastein --dataset bad_gastein_snt --track 95
-python pipeline/prepare_insar.py --area bad_gastein --dataset bad_gastein_tsx_paz --track 70
-python pipeline/prepare_insar.py --area bad_gastein --dataset bad_gastein_tsx_paz --track 93
-python pipeline/prepare_buildings.py --area all --osm-source local
-python pipeline/prepare_terrain.py --area all --overwrite
-```
+## Dokumentklassen
 
-### Terrain-Quellen
+- `docs/project/`: aktives Zielbild, Projektkontext und repo-weite
+  Execution Plans. Der Forschungsantrag ist Ursprungsdokument, nicht operativer
+  Status.
+- `docs/pipelines/<pipeline>/`: aktive Methodik, Runbook, offene Arbeit,
+  phasenspezifische Plaene und Supervisor-Prompts.
+- `docs/pipelines/<pipeline>/artifacts/`: eingefrorene Run-, Gate-, Scorecard-
+  und Audit-Evidenz. Artefakte dokumentieren ihren damaligen Stand und sind
+  nicht automatisch aktuelle Methodik.
+- `docs/research/`: fachliche Analysen und externe Grundlagen. Research wird
+  erst durch eine dokumentierte Entscheidung Teil der aktiven Methodik.
+- `docs/workflows/`: repo-weite Arbeitsprozesse.
+- `docs/architecture/`: Systemdiagramme und Architekturentscheidungen.
+- `docs/archive/`: abgeloeste narrative Dokumente, die aus
+  Nachvollziehbarkeitsgruenden erhalten bleiben.
 
-`prepare_terrain.py` ist ueber `--terrain-source` parametrisiert (Default `srtm`,
-rueckwaertskompatibel). Die Quelle bestimmt das Rohdaten-Verzeichnis
-`data/terrain/<source>/raw/` (Unterordner je Gemeinde erlaubt, wird rekursiv
-eingelesen), die `<source>_*`-Praefixe der abgeleiteten Raster in
-`data/terrain/derived/` und den Wert der Spalte `terrain_source`.
+### Historische Pipeline-Dokumente
 
-- `srtm` — grobes 30m-Hoehenmodell (Bestand), Rohdaten `data/terrain/srtm/raw/*.hgt`.
-- `dgm1m` / `dom1m` — 1m Digitales Gelaende-/Oberflaechenmodell des Landes Salzburg
-  (Airborne Laserscanning), gemeindeweise als GeoTIFF (TFW) oder ASCII. Bezug ueber
-  das OGD-Downloadportal (SAGIS ALS-Download,
-  `https://www.salzburg.gv.at/api5/datalinq/report/vektorpublik@alsdownload@alsdownload`),
-  Lizenz **CC BY 4.0** (Land Salzburg, Referat Geodateninfrastruktur). Direkte
-  Gemeinde-ZIPs: `https://static.salzburg.gv.at/sagisdaten_download/SAGIS_DATEN/ALS/<Gemeindenr>_DGM_tif.zip`
-  (bzw. `_DOM_tif.zip`); Gemeindenummern z. B. Salzburg 50101, Bad Gastein 50403,
-  Bad Hofgastein 50402.
-- Bezugssysteme der 1m-Daten: horizontal **MGI / Austria GK M31 (EPSG:31258)** —
-  im GeoTIFF eingebettet und per `gdalinfo` verifiziert. Der GeoTIFF traegt nur das
-  horizontale CRS (2D); das Hoehensystem ist weder in der Datei noch auf der
-  OGD-Datensatzseite explizit angegeben. Fuer oesterreichische ALS-Hoehenprodukte
-  gilt konventionsgemaess das orthometrische Hoehensystem **Gebrauchshoehen ueber
-  Adria (GHA, EPSG:5778)** (nicht ellipsoidisch) — fuer diesen Datensatz aus
-  Sekundaerquellen abgeleitet, beim Datenhalter zu bestaetigen. Beim Verschneiden
-  mit ellipsoidischen bzw. anderen Hoehen ist die Datumsdifferenz zu beachten.
+Die Dateien mit Praefix `phase1_` bis `phase7_` unter
+`docs/pipelines/anomaly_local_v1/` sowie ihre zugehoerigen Supervisor-Prompts,
+Verification-/Calibration-/Decision- und Harness-Berichte dokumentieren den
+damaligen Modell- und Schnittstellenstand. Sie sind **eingefrorene historische
+Evidenz**, auch wenn sie aus Linkstabilitaetsgruenden noch neben den aktiven
+Pipeline-Dokumenten liegen. Darin vorkommende alte Feldnamen, Defaults und
+Bewertungsregeln duerfen nicht als aktueller Vertrag gelesen und nicht
+rueckwirkend umgeschrieben werden.
 
-`build_tiles.sh` / `build_terrain_tiles.sh` erwarten weiterhin die `srtm_*`-Raster;
-ein Wechsel des Terrain-Datenstands (inkl. Tile-/DB-Load) ist ein Folge-Ticket.
+Aktive Sources of Truth in diesem Ordner sind ausschliesslich die oben
+gerouteten Dokumente `methodik.md`, `runbook.md`, `next_steps.md`, der aktuelle
+Phase-8-Status, `iterations.md` und `reference_labels.md`. Die aktiven Diagramme
+`diagrams/pipeline.drawio` und `diagrams/pipeline_simple.drawio` folgen der
+aktuellen Methodik; Dateien mit `.deprecated.drawio` sind historisch.
 
-PostGIS und Tiles:
-```bash
-python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar
-python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar \
-  --skip-schema --area-id bad_gastein --only points
-python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar \
-  --skip-schema --area-id bad_gastein --only timeseries
-python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar \
-  --skip-schema --area-id bad_gastein --only gba
-python pipeline/load_terrain_context.py --dsn postgresql://insar:insar@localhost:5432/insar
-SKIP_TIPPECANOE=1 ./pipeline/build_tiles.sh  # nur GeoJSONL pruefen
-./pipeline/build_tiles.sh                    # erzeugt MBTiles via Docker/Tippecanoe
-```
+## Pflegevertrag fuer KI-Agenten
 
-Der erste `load_postgis.py`-Befehl ist fuer eine frische DB. Bei einer bereits
-geladenen Salzburg-DB zuerst die SQL-Migrationen anwenden und danach die scoped
-Bad-Gastein-Befehle mit `--skip-schema --area-id bad_gastein` verwenden.
-
-Tiles: `insar_points.mbtiles` mit Layer `insar_points`, `gba.mbtiles` mit
-Layer `gba`, `osm.mbtiles` mit Layer `osm`.
-
-Bad-Gastein-GBA wird ueber den TUM GlobalBuildingAtlas WFS geladen:
-`https://tubvsig-so2sat-vm1.srv.mwn.de/geoserver/ows`, Feature-Type
-`global3D:lod1_global`. In WSL-Setups ohne Docker kann `build_tiles.sh` auch mit
-einem lokalen Tippecanoe-Binary laufen:
-`TIPPECANOE_BIN=/path/to/tippecanoe ./pipeline/build_tiles.sh`.
+1. Vor einer Aenderung die Frage in der Routing-Tabelle suchen und die dort
+   genannte Source of Truth lesen.
+2. Aktuelle Information nur dort pflegen. In anderen Dokumenten einen Link plus
+   lokalen Kontext setzen, keine zweite Status- oder Methodikbeschreibung.
+3. Im Ticket den `Dokumentationsimpact` benennen. Aenderungen an Code, Schema,
+   Modell, Defaults, Datenstand oder Gates muessen im selben Ticket in der
+   autoritativen Doku nachvollzogen werden.
+4. Zentrale aktive Dokumente tragen `Stand`, `Status`, `Autoritativ fuer` und
+   `Aktualisieren wenn`; abgeloeste Dokumente zusaetzlich `Abgeloest durch`.
+5. Historische Plaene, Reports, Baselines und Audit-Artefakte nicht rueckwirkend
+   auf aktuelle Semantik umschreiben. Als historisch/eingefroren kennzeichnen
+   oder narrative Dokumente nach `docs/archive/` verschieben.
+6. Vor Abschluss Links pruefen und aktive Dokumente auf veraltete Feldnamen,
+   Modellversionen, Defaults und Phasenstatus durchsuchen.
 
 ## Ablageregeln
 
-- Neue pipeline-spezifische Dokumente unter `docs/pipelines/<pipeline_name>/`.
-- Neue supervisorbezogene Artefakte immer neben dem zugehoerigen Pipeline-Plan ablegen.
-- Externe oder abgeloeste Dokumente nicht loeschen, sondern nach `docs/archive/` verschieben.
-- Diagramme nach Moeglichkeit in den thematisch passenden Unterordner legen, z. B. `docs/architecture/` oder `docs/pipelines/<pipeline_name>/diagrams/`.
-- Root-Dateien direkt unter `docs/` nur fuer Uebersichten wie diese `README.md`.
+- Pipeline-spezifische Dokumente unter `docs/pipelines/<pipeline_name>/`.
+- Supervisor-Prompt direkt neben den zugehoerigen Plan; repo-weite
+  P0-/Projektplaene unter `docs/project/`.
+- Neue Gate-, Screenshot- und Laufartefakte unter dem zugehoerigen
+  `artifacts/`-Ordner mit phasen- und versionsspezifischem Namen.
+- Root-Dateien direkt unter `docs/` nur fuer echte Querschnittseinstiege.
+- Ersetzte narrative Dokumente nicht loeschen, sondern mit Verweis auf den
+  Nachfolger archivieren.

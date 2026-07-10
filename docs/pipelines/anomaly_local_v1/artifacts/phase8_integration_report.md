@@ -1,164 +1,164 @@
-# Phase 8 - Integrationsreport (v3_k2xh_diffv2)
+# Phase 8: Integrationsreport v4 (`k2xhf_diffv2`)
 
-> **NACHTRAG P8-F (2026-07-08): v4_k2xhf_diffv2 ist produktiv.**
-> Der v3-Bauteil-Trenner routete ALLE separation_candidates in
-> annex-Cluster - auch anti_layover-Fremdpunkte (User-Befund {A9A7E442}
-> t44). 65-86 % der annex-Cluster waren Fremdpunkt-Faelle; 14 candidate-
-> und 3 significant-Differentials hingen daran. Fix: Evidenzklassen-
-> Routing `separation_classes="anti_foreign"` (anti -> `:foreign`/
-> weak_support, bev-Kontext auch reach; Rekrutierung nur annex-Klasse),
-> Gate-Nachschaerfung (foreign_in_annex/annex_in_foreign rote Gates,
-> maschinelle Punkt-Pins, separation_composition-Statistik), Korpus v4,
-> Re-Baseline aller 10 AOIs. Details: Abschnitt "P8-F" unten und
-> `phase7_scorecard_sepcls.md`. Die restlichen v3-Abschnitte bleiben als
-> historischer Stand erhalten.
+**Stand:** 2026-07-10
 
-Stand: 2026-07-07
-Entscheidung: Integration bei gruenen Gates (User-Freigabe, automatisch).
-Plan: `../phase8_bev_hygiene_plan.md`. Supervisor-Session mit delegierten
-Claude-Subagenten (Modell-Konvention: erben vom Session-Modell).
+**Status:** v4 integriert; Release Candidate geprueft, nicht akzeptiert
 
-## Was produktiv ist (MODEL_SET_VERSION `local_hdbscan_rulegate_v3_k2xh_diffv2`)
+**Autoritativ fuer:** Integrationsentscheidung, Evidenz und Lessons Learned des Phase-8-v4-Modellwechsels
 
-1. **Bauteil-Trenner (Separation statt Demotion):** kartierungsfreie Checks
-   `a8_heightprofile` (einseitiges 1-8-m-Anbau-Band unter >=2 unabhaengigen
-   Dach-Ankern), `a6_antilayover` (Anti-Range-Komponente > 1.5 m, planares
-   az_from_fp aus der Haupt-Query), `a7_reach` (implizite Reflektorhoehe vs.
-   Plausibilitaetshoehe; gba saturierungskorrigiert, bev gemessen) - laufen
-   nach a5_crosslook auf ALLEN Zuordnungsmethoden. Kandidaten werden als
-   Sekundaercluster `annex_0` (>=2 velocity-konsistente; kinematische
-   Rekrutierung ab 2 m Footprint-Abstand) bzw. `annex_weak` getrennt.
-   **Annex-Cluster sind von der Main-Wahl ausgeschlossen** (praegen weder
-   Motion noch Status).
-2. **Differential-Motion v2:** dreistufiges Level candidate/significant/
-   confirmed (analytisches SE, deterministisch; Mindest-Support n>=3 je
-   Cluster fuer Signifikanz; Downgrades season_amp/amp_ts_cv; confirmed nur
-   mit gleichsigniertem Zweit-Track). Reliability -0.15 erst ab significant.
-   Level+Evidence in building_rollup, API, Tiles und Inspector.
-3. **Hoehen-Mapping:** bev nutzt height_max (Buffer) / height_median
-   (Plausibilitaet); gba unveraendert.
+**Aktualisieren wenn:** neue Evidenz die v4-Integrationsentscheidung korrigiert oder ein formaler Integrationsnachtrag erforderlich wird
 
-## Gates (alle gruen)
+**Aktives Modellset:** `local_hdbscan_rulegate_v4_k2xhf_diffv2`
 
-- verify-noop: 10/10 AOIs bitidentisch gegen frische v3-Baselines
-  (7 gba + 3 bev; Kette in `phase7_baseline_summary.md`).
-- Pruefsteine: 96959851 - NTC3CYZ01+NTDA86J01 in `annex_0`, Dach-Keeps im
-  Main, O2HC2XV01 nicht zugeordnet; 96637447 - alle 4 Anti-Layover-Cores
-  gefangen, NSVF80S01/NSXSYFW01 erhalten.
-- Label-Korpus (44 Punkte): roof_lost 0, foreign 8/8 gefangen (k2x: 4),
-  annex 2/2 separiert.
-- Scorecard k2xh: candidate_inconclusive - kein rotes Gate; einzige
-  Restgruende sind die per Design audit-pflichtigen Status-Aufwertungen.
-- End-to-End: persistierter Lauf `79dd1468`, API liefert fuer 96959851
-  motion -0.22 mm/a (statt -0.64 kontaminiert), Level candidate,
-  Reliability 0.61/medium (ehrlich statt 0.78/0.86).
+**Phase-8-Plan:** [`../phase8_bev_hygiene_plan.md`](../phase8_bev_hygiene_plan.md)
 
-## A/B-Beleg Separation vs. Demotion
+**Aktive Methodik:** [`../methodik.md`](../methodik.md)
 
-`k2xh_demote` (identische Checks, klassische Demotion) verliert 2
-bestaetigte Dachpunkte, glaettet robuste Multi-Cluster weg (moos 40<0.8*60)
-und verletzt Referenzfaelle -> die Trennungs-Semantik ist der Demotion
-messbar ueberlegen (w2_full_scorecard.md).
+## Entscheidung
 
-## Audit-Notizen und Watch-Items
+v4 ist der integrierte Forschungsstand. Die Version korrigiert die semantische
+Fehlablage aus v3: technisch richtig erkannte Fremdpunkte werden nicht mehr in
+einer allgemeinen Anbaukategorie gesammelt, sondern nach Evidenz als `annex`
+oder `foreign` getrennt. Das P0-v4-Release-Candidate-Gate hat diesen Stand
+end-to-end geprueft. Ergebnis: **v4 RC geprueft, nicht akzeptiert**. Das aendert
+nicht rueckwirkend die Integrationsentscheidung, ist aber die verbindliche
+aktuelle Freigabeaussage.
 
-1. **14 Status-Aufwertungen** ueber die 7 AOIs (w2_full_scorecard.json,
-   reasons je AOI): Muster = Dekontamination hebt noise_dominated/
-   insufficient auf ok/small_n. Exemplarisch auditiert: 96637515 (Main
-   danach 6-8 within-Dachkerne; nearest 4.5-9.1 m in annex) - legitim.
-   Die uebrigen sind Watch-Items fuer das naechste Visual-Audit.
-2. **Hang-Pins:** osthang_low_agreement (54773363) und
-   bg_slope_noise_low_agreement (238057563) fuer k2xh auf
-   ["ok","noise_dominated"] gepinnt - Daten-Audit: Flips ausschliesslich
-   anti-layover/reach-getrieben (u. a. ein -5.8-mm/a-Punkt entfernt);
-   Hang-Diagnose bleibt im niedrigen Agreement sichtbar.
-3. **96637447 differential level=none unter v3:** Das alte Differential
-   (noop: significant, Delta 3.14) hing am Fremdcluster - genau davor
-   warnte der Katalog-Fall. Nach Trennung verbleibt Delta 1.22 < 1.5.
-   Fachlich korrekte Aufloesung; unter Beobachtung.
-4. **a6-Azimutquelle planar vs. geodaetisch:** Produktions-az (planar) vs.
-   Harness-x_az (geodaetisch) differenziert 50/1692 Punkte auf moos in
-   historischen k2xh-Vergleichen; Zielpunkte unbeeinflusst. Falls exakte
-   Aequivalenz gewuenscht: `::geography`-Cast (Klein-Ticket).
-5. **MapView stylt Gebaeude weiter am bool-Flag** - Level-Styling ist ein
-   additives UI-Folge-Ticket (P7-N7-Familie).
+Autoritative RC-Evidenz:
 
-## P8-F (2026-07-08): annex/foreign-Evidenzklassen-Fix (v4_k2xhf_diffv2)
+- [`phase8_v4_rc_gate_results.md`](phase8_v4_rc_gate_results.md)
+- [`phase8_v4_rc_gate_results.json`](phase8_v4_rc_gate_results.json)
+- [`phase8_v4_rc_visual_audit.md`](phase8_v4_rc_visual_audit.md)
+- [`phase8_v4_rc_automated_smoke.md`](phase8_v4_rc_automated_smoke.md)
 
-Ausloeser: User-Befund im Viewer - bev-Lauf 85953608, Gebaeude
-{A9A7E442-...}: die t44-Punkte O2G57QB01 (8.54 m ausserhalb) und
-O2GQNC301 (2.56 m) lagen auf der Anti-Layover-Seite von t44 und waren
-trotzdem als `:t44:annex_0` etikettiert. Die Checks hatten korrekt
-gefeuert; der Fehler war die EINE Auffang-Kategorie "annex" fuer alle
-separation_candidates.
+Der RC bestaetigte 17 Smoke-Checks, 10/10 bitidentische No-op-AOIs, null
+Paritaetsmismatches, null fehlende v4-Level sowie den
+`cluster_kind`-/Foreign-Vertrag. Rot bleiben `96637447` (`candidate` statt
+erwartetem `none`, ohne neue visuelle Evidenz) und das absolute Roof-Loss-Gate
+fuer `NSVF80S01` in `moosstrasse_bev` (bekannter R9-Quell-Mismatch).
 
-**Warum die v3-Gates das nicht sahen (Lessons Learned):**
-1. Die Label-Metrik zaehlte foreign-im-annex als `foreign_caught`
-   (Erfolg) - die semantische Fehlablage wurde metrisch belohnt.
-2. Referenzfaelle pinnten nur Gebaeude-STATUS; die Anbau-Erwartung des
-   Flaggschiffs existierte nur als Prosa.
-3. Es gab keine Kompositions-Statistik der annex-Cluster (65-86 % ohne
-   Struktur-Evidenz blieben unsichtbar).
-   Konsequenz als Regel: Jede neue semantische Ergebnis-Kategorie bekommt
-   ab Tag 1 (a) eine Reinheits-/Kompositions-Statistik im Scorecard,
-   (b) Fehlablage-zwischen-Kategorien als eigenen Failure-State,
-   (c) maschinell gepinnte Punkt-Erwartungen statt Prosa.
+## Was v4 produktiv macht
 
-**Fix (produktiv):** `separation_classes="anti_foreign"` in
-`_assign_side_group`: anti_layover-Kandidaten -> ein `:foreign`-Cluster
-je Gebaeude x Track (cluster_role weak_support, flags foreign_suspect;
-nie Main, nie Differential-Quelle, kein reliable_cluster_count, kein
-Hull). Im bev-Kontext zusaetzlich reach_height_excess -> foreign (BEV
-kartiert Anbauten als eigene Footprints - die unkartierter-Anbau-Ausrede
-des gba-Kontexts existiert dort nicht). Die annex-Klasse (height_outlier,
-gba-reach) laeuft unveraendert durch Rekrutierung + Konsistenz; die
-kinematische Rekrutierung startet damit nie mehr an Fremd-Seeds
-(Zirkularitaets-Fall {C34B199D}: 1 Anti-Seed hatte 3 Punkte in ein
-Schein-annex rekrutiert).
+### 1. BEV und Hoehenvertrag
 
-**Design-Absicherung:** Vergleichsvariante `sepcls_strict` (nur
-height_outlier bleibt annex) laeuft dauerhaft im Harness und ist wie
-vorhergesagt ROT (annex_in_foreign=1: sie zerbricht den GE-3D-bestaetigten
-Flaggschiff-Anbau 96959851, dessen Evidenz reach-only+growth ist) -
-maschinell dokumentierter Beleg fuer die anti_foreign-Regel.
+- BEV ist Standard-Gebaeudequelle.
+- BEV nutzt `height_max_m` (Fallback `height_m`) fuer Candidate Area und
+  Layover-Reichweite sowie `height_median_m` (Fallback `height_m`) fuer
+  Plausibilitaet.
+- GBA bleibt Vergleichsquelle mit dem davor gueltigen Hoehenvertrag.
 
-**Gates (phase7_scorecard_sepcls.md):** sepcls_foreign
-candidate_inconclusive, refcases_ok=True (inkl. neuer Punkt-Pins fuer
-Flaggschiff-gba und bev-Fall moosstrasse_bev_foreign_separation);
-foreign_in_annex=0, annex_in_foreign=0, foreign 10/10 (Korpus v4, +2
-foreign mit GE-3D-Beleg ge_A9A7E442_t44_foreign.png), annex 2/2,
-roof_lost ohne Regression (1 vorbestehender bev-Doppel-Grading-Fall
-NSVF80S01, R9). verify-noop 10/10 gegen frische v4-Baselines
-(Kette in phase7_baseline_summary.md).
+### 2. Component Separator
 
-**Differential-Bereinigung:** 21 statt 50 aktive Bewertungen ueber die
-10 Baselines; 32 Schein-Differentials an Fremdpunkt-Clustern entfallen
-(darunter 3 significant mit -0.15-Reliability-Wirkung); 0 Bewertungen
-haengen an foreign-Clustern oder Clustern mit anti-Punkten; Flaggschiff
-96959851 bleibt candidate. NEU/verstaerkt (strukturell evidenziert,
-Watch-Items fuers naechste Visual-Audit): 96637447 t44 (reach-only,
-11.8-12.8 m), 96639519 t44 (reach+growth), 96955335 (candidate->
-significant, t95 reach+growth), 238100082 t70 (Hoehenband on-footprint -
-plausibelster echter Neu-Fund). Audit {C34B199D}: small_n ->
-single_track_only = legitime Dekontamination.
+Kartierungsfreie Checks laufen nach der Quer-Versatz-Politik fuer alle
+Zuordnungsmethoden:
 
-**Offene P8-F-Folge-Punkte:**
-- Watch-Items oben beim naechsten Visual-Audit pruefen (insb. die
-  reach-only-gba-Differentials >10 m).
-- R9 Label-Doppel-Grading gba/bev (gleiche dataset_id): building_source-
-  Filter fuer Label-Grading als Klein-Ticket.
-- UI: `cluster_kind`-Feld (annex/foreign visuell unterscheidbar) +
-  MlLogicExplainer-Kapitel Bauteil-Trenner/foreign.
-- Optionaler a9-Check "Nachbar-Footprint am Punkt" (BEV-Topologie als
-  Evidenzquelle fuer annex/foreign in Grenzfaellen).
+- `a6_antilayover`: Versatz entgegen der physikalischen Layover-Richtung;
+- `a7_reach`: implizite Reflektorhoehe gegen quellenabhaengige plausible Hoehe;
+- `a8_heightprofile`: relatives einseitiges Hoehenband unter gestuetzten
+  Dachankern.
 
-## Offene Phase-8-Punkte (unveraendert im Plan)
+Die v4-Evidenzklassen werden als `cluster_kind = standard | annex | foreign`
+ausgegeben:
 
-- P8-C Feature-Achsen + Hygiene-Ablation Runde 1 (Research-Berichte liegen
-  vor; Injection-Achse empfohlen).
-- P8-D Label-Korpus-Ausbau Fortsetzung (Stand v4: 10 Gebaeude/46 Punkte)
-  + Label-Metriken automatisch je Kandidat (bereits im Scorecard-Block).
-- P8-E Motion-Ablation: wartet auf SNT/TSX-Overlap-Daten.
-- Terrain-Datenstands-Wechsel (1m-DGM/DOM liegen bereit, `--terrain-source`).
-- Referenzfall-Erwartungen fuer bev-Varianten (bg_slope) formulieren
-  (moosstrasse_bev hat seit P8-F einen eigenen Fall mit Punkt-Pins).
+- `annex`: strukturell plausibler, kinematisch gestuetzter Anbaucluster; nie
+  Main, aber moegliche Differentialquelle.
+- `foreign`: Anti-Layover beziehungsweise im BEV-Kontext unplausible
+  Reichweitenevidenz; nie Main, nie verlaesslicher Cluster und nie
+  Differentialquelle.
+
+### 3. Differenzielle Bewegung v2
+
+Die aktive Semantik ist ausschliesslich
+`none | candidate | significant | confirmed`. Signifikanz verlangt analytische
+Unsicherheitspruefung und mindestens drei Punkte pro beteiligtem Cluster;
+`confirmed` zusaetzlich eine gleichgerichtete zweite Geometrie. Saisonale und
+Amplituden-Plausibilitaet koennen downgraden. Ein Reliability-Abzug von `0.15`
+greift erst bei `significant` oder `confirmed`.
+
+## Integrationsgates
+
+### Baseline und Referenzfaelle
+
+- No-op: 10/10 AOIs bitidentisch gegen die frischen v4-Baselines (sieben GBA,
+  drei BEV); Kette in `phase7_baseline_summary.md`.
+- 96959851: baulich verbundene Punkte getrennt im Anbaucluster,
+  Hauptdachpunkte im Main, O2HC2XV01 nicht zugeordnet; Level bleibt
+  `candidate`.
+- 96637447: vier Anti-Layover-Cores gefangen und echte Dachkerne erhalten;
+  der reproduzierte RC-Stand bleibt dennoch `candidate` statt erwartetem
+  `none`. Ohne neue visuelle Evidenz ist dies ein roter fachlicher Befund.
+- v4-Label-Korpus: zehn Gebaeude/46 Punkte, Foreign 10/10 erkannt, Annex 2/2
+  getrennt. Das absolute Gate meldet `NSVF80S01` in `moosstrasse_bev` als
+  Roof-Loss. Der bekannte BEV/GBA-Doppel-Grading-Fall R9 erklaert die
+  Quelleninkonsistenz, neutralisiert das rote Gate aber nicht.
+
+### Semantische Reinheit
+
+- `foreign_in_annex=0`
+- `annex_in_foreign=0`
+- keine Differentialaussage aus Foreign-Clustern oder Clustern mit
+  Anti-Layover-Punkten
+- Referenzfaelle enthalten maschinelle Punkt-Pins statt nur Prosaerwartungen
+
+Die Vergleichsvariante `sepcls_strict` (nur Hoehenausreisser als Anbau) ist
+bewusst rot: Sie zerbricht den durch Google-Earth-3D-Evidenz gestuetzten
+Anbaufall 96959851. Dieser Gegenversuch stuetzt die v4-Regel
+`anti_foreign` statt einer pauschal strengeren Trennung.
+
+## Wirkung der Korrektur
+
+- 21 statt 50 aktive Differentialbewertungen ueber die zehn Baselines.
+- 32 Schein-Differentials an Fremdpunkt-Clustern entfallen, darunter drei zuvor
+  signifikante Befunde mit Reliability-Wirkung.
+- Kein aktiver Befund haengt an einem `foreign`-Cluster oder Anti-Layover-Punkt.
+- 96959851 bleibt als strukturell gestuetzter Anbaufall `candidate`.
+
+## Ausloeser und Lessons Learned
+
+Ausloeser war ein Viewer-Befund am BEV-Lauf `85953608`, Gebaeude
+`{A9A7E442-...}`: Die t44-Punkte O2G57QB01 und O2GQNC301 lagen auf der
+Anti-Layover-Seite, waren technisch erkannt, aber in v3 trotzdem als Anbau
+etikettiert. Die Detektion war richtig, die Ergebnissemantik falsch.
+
+Warum v3-Gates das nicht erkannten:
+
+1. Die alte Label-Metrik wertete „Foreign erkannt, aber als Annex abgelegt“ als
+   Erfolg.
+2. Referenzfaelle pinnten ueberwiegend Gebaeudestatus statt konkreter
+   Punkt-/Kategorienerwartungen.
+3. Es fehlte eine Kompositionsstatistik der neuen Kategorie.
+
+Verbindliche Folgerung:
+
+- Jede neue semantische Kategorie erhaelt ab Tag 1 eine
+  Reinheits-/Kompositionsmetrik.
+- Fehlablage zwischen Kategorien ist ein eigener Failure State.
+- Kritische Erwartungen werden als maschinelle Punkt-Pins gefuehrt.
+- Visual Audit und Survivors-Pass bleiben Pflicht, auch bei gruenen
+  aggregierten Scorecards.
+
+## RC-Folgepunkte
+
+Die priorisierte Beschreibung steht ausschliesslich in
+[`../next_steps.md`](../next_steps.md): fachliche Klaerung von `96637447`,
+quellenspezifische Reference Labels fuer R9 und Point-MVT-Performance. Der
+Smoke beobachtete fuer ein korrektes Point-MVT rund 57,6 s Antwortzeit.
+
+Der Harness-Flaschenhals in der Geometrie-Extras-Abfrage wurde ohne
+Semantikaenderung indexierbar gemacht: Eine konservative BBox-Vorbedingung
+schliesst in sieben eindeutigen Quellen-/AOI-Kombinationen keinen Kandidaten
+aus; das exakte Geography-`ST_DWithin` und die Sortierung bleiben bestehen.
+Die EXPLAIN-Gesamtkosten im BEV-Moosstrasse-Fall sanken um etwa Faktor 24,5.
+Diese Optimierung wirkt auf kuenftige Harness-Laeufe und loest nicht
+automatisch die Point-MVT-Warnung.
+
+## Historischer v3-Stand
+
+`local_hdbscan_rulegate_v3_k2xh_diffv2` integrierte erstmals den
+Bauteil-Trenner und das Differential-Level. Alle Separation Candidates liefen
+damals in eine gemeinsame Anbaukategorie. Je nach AOI bestanden 65-86 % dieser
+Cluster jedoch aus Fremdpunktfaellen; dadurch entstanden 14 Kandidaten und drei
+signifikante Scheinbefunde. v4 ersetzt diese Semantik vollstaendig.
+
+Die zugehoerigen v3-Baselines, Scorecards und Screenshots bleiben eingefrorene
+historische Artefakte. Sie werden nicht auf v4-Begriffe umgeschrieben.

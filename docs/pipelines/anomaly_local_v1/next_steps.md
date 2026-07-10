@@ -1,373 +1,178 @@
-# Next Steps: anomaly_local_v1 → Phase 2+
+# `anomaly_local_v1`: priorisierte naechste Schritte
 
-**Stand:** März 2026
-**Basis:** Laufende Phase-1-Pipeline `anomaly_local_v1`
+**Stand:** 2026-07-10
 
----
+**Status:** aktive Forschungs-Backlog-Uebersicht
 
-## 1. Gebäude-Scoring mit Track-übergreifender Konfidenz
+**Autoritativ fuer:** priorisierte offene Forschung nach dem integrierten v4-Stand
 
-### Status quo
-Die Cross-Validation beeinflusst aktuell nur den Qualitätsscore und das Label einzelner InSAR-Punkte. Es gibt kein aggregiertes Gebäudeergebnis.
+**Aktualisieren wenn:** ein Punkt gestartet, abgeschlossen, verworfen, neu priorisiert oder durch neue Evidenz blockiert wird
 
-### Ziel
-Ein Gebäude-Level-Ergebnis der Form: **„Gebäude X hat eine Senkung von Y mm/a, Konfidenz Z%."**
+## Ausgangspunkt
 
-### Ansatz
-Die Konfidenz soll sich aus dem Track-übergreifenden Vergleich ableiten: Für jedes Gebäude werden die bereinigten Punkte (nach Outlier-Entfernung) pro Track separat aggregiert (z.B. robuster Median der vertikalen Proxies). Dann wird geprüft, wie gut ASC und DSC übereinstimmen. Hohe Übereinstimmung → hohe Konfidenz. Starke Abweichung → niedrige Konfidenz oder Warnung. Das Endergebnis ist ein einziger Bewegungswert pro Gebäude mit Konfidenzintervall, nicht mehr nur ein Punkt-Level-Label.
+Aktiver Stand ist `local_hdbscan_rulegate_v4_k2xhf_diffv2` mit BEV als
+Standard-Gebaeudequelle, getrennten `standard`-/`annex`-/`foreign`-Clustern und
+dem Differential-Level `none | candidate | significant | confirmed`.
 
-### Offene Fragen
-- Welche Aggregationsstrategie pro Track (Median, gewichteter Mittelwert nach Kohärenz, inverser Varianz)?
-- Wie wird das Konfidenzintervall formal berechnet (Bootstrap, Bayes, propagierte Standardfehler)?
-- Ab wie vielen bereinigten Punkten pro Track ist eine Aussage belastbar?
+Bereits umgesetzt und deshalb **nicht** mehr Teil dieser Backlog-Liste sind
+Gebaeuderollups, Nachbarschaftskontext, Multi-Cluster-Grundlogik,
+Anbau-/Fremdreflektortrennung, Differential Motion v2, BEV-Hoehenmapping,
+Bad-Gastein-Grundintegration, Amplituden-Load fuer SNT 44/95 sowie der
+Phase-7/8-Harness. Der Ticketstatus von Phase 8 steht in
+[`phase8_bev_hygiene_plan.md`](phase8_bev_hygiene_plan.md).
 
----
+Das v4-Release-Candidate-Gate ist abgeschlossen; Ergebnis:
+**v4 RC geprueft, nicht akzeptiert**. Die vollstaendige Evidenz steht in
+[`phase8_v4_rc_gate_results.md`](artifacts/phase8_v4_rc_gate_results.md),
+[`phase8_v4_rc_gate_results.json`](artifacts/phase8_v4_rc_gate_results.json)
+und
+[`phase8_v4_rc_visual_audit.md`](artifacts/phase8_v4_rc_visual_audit.md).
 
-## 2. Multi-Cluster-Handling und differenzielle Bewegung
+## Prioritaet P0: rote RC-Befunde klaeren
 
-### Problem
-Ein Gebäude kann mehrere legitime Cluster haben, die sich auf unterschiedlichen Höhenebenen oder Gebäudeteilen befinden – z.B. Dach, Balkon, Vorgarten, Wintergarten oder ein kleiner Anbau. Diese Cluster können deutlich unterschiedliche Absenkungswerte zeigen.
+### P0-1 Differentialfall `96637447`
 
-Das ist kein Fehler, sondern ein fachlich wichtiger Befund: Differenzielle Bewegung innerhalb eines Gebäudes ist oft genau der Problemfall, der zu Rissen und Schäden führt.
+Der Fall bleibt im reproduzierten v4-Stand `candidate`, obwohl ohne neue
+visuelle Evidenz `none` erwartet war. Fachlich klaeren und die begruendete
+Erwartung maschinell pinnen; keine Schwelle nur fuer ein gruenes Gate aendern.
 
-### Ziel
-- **Erkennung** von Multi-Cluster-Situationen mit unterschiedlichem Bewegungsverhalten.
-- **Flagging**: Wenn zwei oder mehr zuverlässige Cluster existieren, aber signifikant unterschiedliche Absenkungen zeigen, soll das explizit markiert werden (z.B. `differential_motion_flag`).
-- **Entscheidungslogik** für die Cross-Validation: Welche Cluster fließen in das Gebäude-Scoring ein? Sollen alle Cluster gleich behandelt werden, oder wird der „Hauptcluster" (z.B. Dachcluster mit den meisten Punkten und höchster Kohärenz) bevorzugt? Cluster, die offensichtlich von Nebengebäuden oder Anbauten stammen, sollten möglicherweise separat bewertet oder aus dem Hauptscoring ausgeschlossen werden.
-- **Visualisierung**: In der UI sollte erkennbar sein, welche Cluster einem Gebäude zugeordnet sind, welche als Hauptcluster gelten und wo differenzielle Bewegung vorliegt.
+### P0-2 Quellenspezifische Referenzlabels (R9)
 
-### Offene Fragen
-- Ab welcher Differenz zwischen Clustern wird `differential_motion_flag` gesetzt?
-- Wie trennt man „Dach vs. Balkon desselben Gebäudes" von „Gebäude vs. angrenzender Wintergarten mit eigenem Fundament"?
-- Sollen Cluster nach Höhenebene, räumlicher Position oder Bewegungsverhalten hierarchisch gruppiert werden?
+`NSVF80S01` loest in `moosstrasse_bev` das absolute Roof-Loss-Gate aus. Der
+bekannte GBA/BEV-Quell-Mismatch erklaert den Befund, hebt das rote Gate aber
+nicht auf. Label-Grading und Punkt-Pins muessen `building_source` explizit
+beruecksichtigen.
 
----
+### P0-3 Point-MVT-Performance
 
-## 3. Hangexposition und Aspect-Berücksichtigung
+Der Smoke lieferte den korrekten MVT-Vertrag, benoetigte aber rund 57,6 s.
+Queryplan, Tile-Ausschnitt und Cache-Verhalten separat profilieren und einen
+reproduzierbaren Latenz-Grenzwert festlegen. Die Harness-BBox-Optimierung
+beschleunigt nicht automatisch den Point-MVT-Endpunkt.
 
-### Problem
-Aktuell wird die Geländeneigung (slope) berücksichtigt, aber nicht die Ausrichtung des Hangs (Aspect / Exposition). Für InSAR macht es einen wesentlichen Unterschied, ob ein Hang nach Norden, Süden, Osten oder Westen ausgerichtet ist, weil der Satellit in ASC-Geometrie nach Osten und in DSC-Geometrie nach Westen blickt.
+## Prioritaet P1: Validierung und Ground Truth
 
-Ein Südhang und ein Nordhang mit gleicher Neigung erzeugen unterschiedliche Sichtbarkeiten, Abschattungseffekte und LOS-Projektionen. Das beeinflusst sowohl die Messpunktdichte als auch die Zuverlässigkeit der Messungen.
+### P1-1 Label-Korpus erweitern
 
-### Ziel
-- Aspect/Exposition aus dem Terrain-Kontext in die Pipeline einbeziehen – nicht nur als Feature, sondern als Kontextinformation für die Interpretation der Cross-Track-Toleranz und der erwarteten Messpunktdichte.
-- Prüfen, ob die bestehenden Terrain-Daten (SRTM, 25m Auflösung) Aspect ausreichend genau liefern oder ob ein feineres DEM benötigt wird.
+Den internen Stand von zehn Gebaeuden/46 Punkten auf mindestens 20-40
+stratifizierte Gebaeude erweitern:
 
----
+- Salzburg und Bad Gastein;
+- flach und Hanglage;
+- Small-N und High-N;
+- stabile Hauptcluster, Anbau, Fremdreflektor, Noise und Weak Support;
+- SNT und TSX/PAZ, soweit fachlich vergleichbar.
 
-## 4. Dokumentation des AUGMENTERRA MatchSAR®-Algorithmus
+Jedes Label braucht Quelle, Evidenz, Datum, Modell-/Datenstand und die Option
+`unclear`. BEV- und GBA-Grading derselben Beobachtung muss im Harness
+quellenspezifisch gefiltert werden (offener R9-Fall).
 
-### Bedarf
-Für die weitere Entwicklung der Pipeline wird eine genaue Beschreibung benötigt, wie der MatchSAR®-Algorithmus bei AUGMENTERRA die Zuordnung von InSAR-Messpunkten zu physischen Objekten (insbesondere Gebäuden) durchführt.
+### P1-2 Unabhaengige Gegenpruefung
 
-### Konkret benötigt
-- Welche Buffer-Strategie verwendet MatchSAR® (isotrop, richtungsabhängig, höhenabhängig)?
-- Welche Qualitätskriterien werden bei der Zuordnung angewendet?
-- Wie werden Konflikte gelöst (Punkt liegt im Überlappungsbereich zweier Gebäude)?
-- Welche Rolle spielen Gebäudehöhe, Einfallswinkel und Geländemodell in der Zuordnung?
-- In welchem Umfang ist MatchSAR® an OSM-Polygone vs. andere Gebäudequellen gebunden?
+- Domänenexperten fuer eine unabhaengige Teilstichprobe gewinnen.
+- Inter-Rater-Abweichungen und unklare Faelle explizit erhalten.
+- Echte Holdout-Gebaeude und mindestens ein Holdout-Gebiet definieren, die nicht
+  zum Parametertuning verwendet werden.
+- Precision/Recall/F1 fuer Foreign-/Annex-Trennung sowie Roof-Loss und
+  Main-Cluster-Kontamination berichten.
 
-Diese Information hilft, die eigene Pipeline-Zuordnung mit dem Produktionsalgorithmus von AUGMENTERRA abzugleichen und systematische Unterschiede zu verstehen.
+### P1-3 Zuverlaessigkeit kalibrieren
 
-**Aktion:** Detaillierte Beschreibung bei AUGMENTERRA anfordern.
+`building_reliability_score` ist derzeit ein internes Evidenzmass. Zu pruefen
+sind Kalibrierung gegen Experten-/Holdout-Evidenz, Konfidenzintervalle der
+robusten Clusterbewegung und Mindeststuetzung je Aussageklasse. Bis dahin keine
+prozentuale Schadens- oder Trefferwahrscheinlichkeit kommunizieren.
 
----
+## Prioritaet P1: Feature- und Zuordnungsevidenz
 
-## 5. Vergleich mit autonomem KI-Agenten
+### P1-4 Kontrollierte Feature-Ablation
 
-### Idee
-Einen autonomen KI-Agenten (z.B. Claude, GPT-4 mit Vision, oder ein spezialisiertes Modell) auf die gleichen Gebäude-Daten ansetzen und unabhängig eine Cluster- und Outlier-Klassifizierung durchführen lassen. Die Ergebnisse werden dann systematisch mit der Pipeline verglichen.
+Die vorhandenen Research-Berichte zu Zeitreihen, Amplitude und Terrain in eine
+reproduzierbare Ablationsmatrix ueberfuehren:
 
-### Zweck
-- **Unabhängige Zweitmeinung**: Erkennt der Agent Outlier oder Cluster, die die Pipeline übersieht – oder umgekehrt?
-- **Schwachstellen-Analyse**: Wo stimmen Pipeline und Agent überein (hohe Konfidenz), wo divergieren sie (genauer hinschauen)?
-- **Skalierungstest**: Kann ein LLM-basierter Ansatz als ergänzende Qualitätssicherung für Grenzfälle dienen, die regelbasiert schwer zu lösen sind?
+- Features einzeln und als Komposit gegen dieselben Baselines/Labels testen;
+- synthetische Trend-, Step-, Noise-, Saison- und Fremdreflektor-Injections als
+  zusaetzliche kontrollierte Evidenz verwenden;
+- keine produktive Integration ohne No-op-, Label-, Reinheits-, Roof-Loss- und
+  Visual-Audit-Gates;
+- Feature-Pruning erst nach einer belastbaren Motion-Referenz entscheiden.
 
-### Umsetzung
-- Ausgewählte Gebäude mit verschiedenen Schwierigkeitsgraden (wenige Punkte, viele Punkte, Multi-Cluster, klare Outlier, Grenzfälle).
-- Dem Agenten die gleichen Rohdaten bereitstellen (Punktliste mit Attributen, Gebäudepolygon, Zeitreihen).
-- Ergebnisse strukturiert vergleichen: Übereinstimmungsrate, Kappa-Score, qualitative Analyse der Divergenzen.
+### P1-5 Polygon-aware Cross-Look-Excess
 
----
+Die bestehende Zentroid-/Ankerheuristik fuer `nearest`-Punkte gegen die
+tatsaechliche Projektion des Gebaeudepolygons auf die Cross-Look-Achse testen.
+Pflichtfaelle sind lange, breite und unregelmaessige Footprints. Legitime
+Randpunkte duerfen nicht verloren gehen; echte Punkte ausserhalb der
+Polygonspanne muessen weiterhin erkannt werden.
 
-## 6. Experten-Referenzklassifizierung (Ground Truth)
+### P1-6 Topologie als zusaetzliche Evidenz
 
-### Bedarf
-Die Pipeline arbeitet unsupervised – es gibt aktuell keine Ground-Truth-Labels, gegen die man die Ergebnisse objektiv messen kann. Für eine belastbare Evaluierung wäre eine Soll-Klassifizierung durch Domänenexperten von AUGMENTERRA sehr hilfreich.
+Optionalen Nachbar-Footprint-Check untersuchen: Liegt ein vermeintlicher
+Gebaeudepunkt in/nahe einem anderen BEV-Footprint, kann das `annex`/`foreign`
+stuetzen. Die Evidenz darf kartierungsfreie v4-Checks nur ergaenzen, nicht
+ersetzen, und Zuordnungen nicht zirkulaer umschreiben.
 
-### Konkret angefragt
-Eine Auswahl von Gebäuden (z.B. 50–100), bei denen AUGMENTERRA-Experten manuell klassifizieren:
-- Welche InSAR-Punkte sind diesem Gebäude zuverlässig zuordenbar?
-- Welche Punkte sind Outlier (Nachbargebäude, Reflexionsfehler, instabile Signale)?
-- Welche Cluster sind fachlich plausibel?
-- Wie ist die Gesamtbewertung des Gebäudes (Senkung ja/nein, ungefähre Größenordnung)?
+## Prioritaet P1: Terrain und Hanglagen
 
-### Zweck
-- **Quantitative Evaluierung** der Pipeline (Precision, Recall, F1 für Outlier-Erkennung).
-- **Iterationsgrundlage**: Gezieltes Nachsteuern von Parametern und Rules basierend auf konkreten Fehlklassifizierungen.
-- **Benchmarking**: Vergleich Pipeline vs. KI-Agent vs. Experte.
+### P1-7 1-m-DGM/DOM-Datenstandswechsel
 
-### Ideale Zusammensetzung der Stichprobe
-- Gebäude mit vielen Punkten (≥20) und wenigen Punkten (3–10).
-- Gebäude mit bekannter Bewegung und stabile Gebäude.
-- Gebäude in ebenem Gelände und in Hanglage.
-- Gebäude mit bekannten Problemfällen (Wintergarten, Anbau, Nachbarreflexion).
+- DGM/DOM reproduzierbar ableiten und Quelle, Lizenz, CRS, Vertikaldatum und
+  Checksums festhalten.
+- Terrain-Kontext, PostGIS und Rastertiles kontrolliert laden.
+- Vertikaldatum mit InSAR-Punkthoehen klaeren, bevor absolute Hoehendifferenzen
+  als harte Regel verwendet werden.
+- alle betroffenen AOIs als expliziten Datenstandswechsel re-baselinen und
+  flach/Hang getrennt auswerten.
 
-**Aktion:** Stichprobe definieren und bei AUGMENTERRA anfragen.
+### P1-8 Hanglagenmethodik
 
----
+Aspect/Exposition und sichtgeometrische Effekte gegen die neuen Terrain-Daten
+bewerten. Cross-Track bleibt bis zu einer belastbaren 2D-Dekomposition ein
+Plausibilitaetsmass. Hangregeln duerfen nicht aus wenigen Salzburg-/Bad-Gastein-
+Einzelfaellen globalisiert werden.
 
-## 7. Abgleich der Pipeline mit dem Deep-Research-Report
+## Prioritaet P1: Motion-Referenz und Generalisierung
 
-### Hintergrund
-Parallel zur Implementierung der Phase-1-Pipeline wurde ein umfassender Deep Research durchgeführt, der die aktuelle Literatur zu InSAR-Gebäude-Clustering, Outlier Detection, Feature-Engineering, Cross-Track-Validierung und Scoring-Methoden systematisch aufgearbeitet hat.
+### P1-9 SNT/TSX-Motion-Ablation
 
-### Ziel
-Ein strukturierter Vergleich zwischen dem, was die Pipeline aktuell tut, und dem, was der Research als State of the Art empfiehlt. Konkret:
+Das bestehende Bad-Gastein-Vergleichstooling auf beliebige kompatible
+Gebiets-/Dataset-Paare generalisieren. Metriken: Overlap-Fenster-Slopes,
+Bias/MAE, Vorzeichenuebereinstimmung und Filtergruppen nach Support,
+Zuverlaessigkeit und Clusterart.
 
-- **Algorithmenwahl:** Bestätigt die Literatur HDBSCAN als geeignetste Methode für unsere Randbedingungen (wenige Punkte, unbekannte Clusterzahl, simultane Outlier-Erkennung)? Gibt es Alternativen, die der Research als überlegen bewertet, die wir noch nicht getestet haben?
-- **Feature-Set:** Verwendet die Pipeline die richtigen Features? Gibt es aus der Literatur Features, die wir übersehen haben, oder solche, die wir verwenden, aber die laut Research wenig Informationsgehalt haben?
-- **Buffer-Strategie:** Wie vergleicht sich unser richtungsabhängiger Buffer mit den Ansätzen in der Literatur? Gibt es bessere Modelle für die Punkt-Gebäude-Zuordnung?
-- **Scoring und Konfidenz:** Schlägt der Research andere Aggregations- oder Konfidenz-Methoden vor als das, was wir für Phase 2 geplant haben?
-- **Gate-Rules:** Sind unsere harten Schwellwerte (Kohärenz, Epochenzahl) durch die Literatur gestützt? Gibt es datengetriebene Alternativen, die wir früher einführen sollten als geplant?
-- **Validierungsstrategie:** Gibt es in der Literatur Ansätze zum ASC/DSC-Vergleich, die über unseren vertikalen Proxy hinausgehen?
+Die volle Aussage bleibt blockiert, bis zeitlich ausreichend ueberlappende
+Referenzdaten vorliegen. Nicht ueberlappende Zeitraeume duerfen nur als
+qualitative Strukturreferenz verwendet werden.
 
-### Erwartetes Ergebnis
-Ein Dokument, das Punkt für Punkt festhält: Was macht die Pipeline, was empfiehlt der Research, wo gibt es Übereinstimmung, wo Abweichungen, und welche konkreten Änderungen oder Ergänzungen sich daraus für Phase 2+ ableiten lassen.
+### P1-10 Gebiets- und Sensor-Holdouts
 
-### Aktion
-Nach Abschluss des Deep Research: Ergebnisse systematisch gegen die aktuelle `anomaly_local_v1`-Methodik legen und Handlungsempfehlungen ableiten.
+Nach Stabilisierung der v4-Gates einen unveraenderten Modellstand auf neuen
+Gebieten und Sensorkonfigurationen testen. Erfolgskriterien vor dem Lauf
+festlegen; keine gebietsspezifischen Schwellen still nachziehen. Track 22 Ost
+bleibt ein Datenabdeckungsproblem, kein Algorithmusfehler.
 
----
+## Prioritaet P2: Alternative Modellfamilien
 
-## 8. Nachbargebäude-Kontext in die Pipeline einbeziehen
-
-### Problem
-Die Pipeline analysiert aktuell jedes Gebäude isoliert. Dabei gehen zwei wichtige Informationsquellen verloren:
-
-**Fehlzuordnungen erkennen:** Ein InSAR-Punkt, der im Polygon von Gebäude A liegt, kann in Wirklichkeit eine Reflexion von Gebäude B nebenan sein – er „passt" geometrisch und kinematisch besser zu einem Cluster des Nachbargebäudes als zu Gebäude A. Ohne den Nachbar-Kontext wird dieser Punkt entweder fälschlich als Outlier markiert oder verzerrt das Ergebnis von Gebäude A.
-
-**Nachbarschafts-Konsistenz prüfen:** Wenn ein Punkt am betrachteten Gebäude einen abrupten Sprung in der Zeitreihe zeigt, sieht das zunächst nach einem Outlier aus. Wenn aber Punkte an den Nachbargebäuden den gleichen Sprung zur gleichen Zeit zeigen, ist es kein Punktfehler, sondern ein reales lokales Ereignis (z.B. Bauarbeiten, Grundwasserentnahme, U-Bahn-Vortrieb). Der Punkt „passt ins Bild" und sollte nicht entfernt werden.
-
-### Ziel
-- **Cluster-Zugehörigkeitsvergleich:** Für jeden Punkt am Gebäude prüfen, ob er möglicherweise besser zu einem Cluster eines direkten Nachbargebäudes passt (ähnliche Höhe, ähnliche Geschwindigkeit, räumliche Nähe zum Nachbar-Cluster). Wenn ja, den Punkt als potenzielle Fehlzuordnung flaggen.
-- **Zeitreihen-Konsistenz im Nachbarschaftskontext:** Wenn auffällige Muster (Sprünge, abrupte Trendwechsel) in den Zeitreihen eines Gebäudes auftreten, prüfen, ob diese Muster auch bei benachbarten Gebäuden vorhanden sind. Wenn ja: kein lokaler Outlier, sondern ein Nachbarschafts-Event – als solches kennzeichnen statt entfernen.
-- **Nachbarschafts-Scoring:** Optional ein Nachbarschafts-Konsistenz-Score, der angibt, wie gut das Bewegungsverhalten eines Gebäudes zu seiner unmittelbaren Umgebung passt. Starke Abweichungen von der Nachbarschaft können entweder auf ein echtes Gebäudeproblem hindeuten – oder auf systematische Zuordnungsfehler.
-
-### Umsetzung
-- Definition des Nachbarschaftsradius (z.B. direkt angrenzende Gebäude oder alle Gebäude innerhalb eines bestimmten Abstands).
-- Zugriff auf die Cluster-Ergebnisse der Nachbargebäude, nachdem deren lokale Analyse abgeschlossen ist (erfordert einen zweiten Pass oder eine Nachverarbeitungsstufe).
-- Zeitreihen-Vergleich über Korrelation, Sprung-Koinzidenz oder ähnliche Metriken.
-
-### Offene Fragen
-- Wie groß soll der Nachbarschaftsradius sein? Direkte Polygon-Nachbarn oder Meter-basiert?
-- Wird der Nachbarschafts-Kontext als zusätzlicher Postprocessing-Schritt nach der Gebäude-Level-Analyse eingeführt, oder soll er in die Hauptpipeline integriert werden?
-- Wie verhindert man, dass zirkuläre Abhängigkeiten entstehen (Gebäude A beeinflusst Gebäude B beeinflusst Gebäude A)?
-
----
-
-## 9. Geländemodell-Evaluation: DTM vs. DSM vs. nDSM
-
-### Status quo
-Die Pipeline verwendet aktuell SRTM-Daten mit 25m Auflösung als Terrain-Kontext. SRTM ist ein Digital Surface Model (DSM) – es bildet die sichtbare Oberfläche ab, also inklusive Gebäude und Vegetation. Für die Pipeline wird daraus bisher nur slope, aspect und relief abgeleitet, keine absolute Höhendifferenz Punkt vs. Gelände (weil das Vertikaldatum nicht harmonisiert ist).
-
-### Problem
-Je nachdem, welches Höhenmodell man verwendet, ergeben sich unterschiedliche Aussagen:
-
-**DTM (Digital Terrain Model / Geländemodell):** Bildet die nackte Geländeoberfläche ab, ohne Gebäude und Vegetation. Vorteil: Wenn man die Höhe eines InSAR-Punktes gegen das DTM rechnet, erhält man die Höhe über Grund – also ob der Punkt vom Dach, vom Erdgeschoss oder vom Gelände vor dem Gebäude stammt. Nachteil: Gute DTMs sind nicht überall frei verfügbar.
-
-**DSM (Digital Surface Model / Oberflächenmodell):** Bildet die sichtbare Oberfläche ab, inklusive Gebäude und Vegetation. SRTM ist ein DSM. Vorteil: Global verfügbar. Nachteil: In bebauten Gebieten liegt die DSM-Oberfläche auf Dachniveau – die Differenz InSAR-Punkt vs. DSM sagt dann wenig über die Reflexionsposition am Gebäude aus.
-
-**nDSM (normalisiertes DSM):** Die Differenz DSM minus DTM, also die Höhe der Objekte über Grund (Gebäude, Bäume). Nützlich, um Gebäudehöhen zu validieren oder Vegetationsbereiche zu identifizieren.
-
-### Zu klären
-- Welches Modell ist für die Pipeline am nützlichsten? Für die Höhenschichtung von InSAR-Punkten innerhalb eines Gebäudes (Dach vs. Boden) wäre ein DTM ideal, weil man dann die Höhe über Grund berechnen kann. Für die Identifikation von Vegetationsflächen oder die Validierung von Gebäudehöhen wäre ein nDSM besser.
-- Welche Auflösung wird benötigt? SRTM mit 25m ist für gebäudescharfe Analyse zu grob. Alternativen wie Copernicus DEM (GLO-30, 30m), ALOS World 3D (AW3D30, 30m) oder hochauflösende nationale Modelle (z.B. ALS-basierte Geländemodelle mit 1m Auflösung, in Österreich über Open Data verfügbar) bieten deutlich mehr Detail.
-- Gibt es für Salzburg oder Österreich ein freies, hochauflösendes DTM, das als Upgrade zum SRTM dienen kann?
-- Ist das Vertikaldatum-Problem lösbar? SRTM und die InSAR-Punkthöhen liegen in unterschiedlichen Bezugssystemen (EGM96 vs. WGS84 ellipsoidisch). Für eine sinnvolle absolute Höhendifferenz muss eine Geoid-Korrektur angewendet werden.
-- Welches Modell verwendet AUGMENTERRA intern für die SqueeSAR®-Prozessierung? Falls bekannt, sollte idealerweise dasselbe oder ein kompatibles Modell in der Pipeline verwendet werden.
-
-### Aktion
-- Verfügbare Höhenmodelle für Salzburg recherchieren (insbesondere Open-Data-Quellen aus Österreich).
-- Testweise ein hochauflösendes DTM einbinden und prüfen, ob die Höhenschichtung der InSAR-Punkte damit plausiblere Ergebnisse liefert als mit SRTM.
-- Bei AUGMENTERRA nachfragen, welches Geländemodell in der InSAR-Prozessierung verwendet wird.
-
----
+Andere Clusterer oder regime-konditionale High-N-Strategien erst untersuchen,
+wenn ein konkreter, durch Labels/Audit benannter v4-Schwachpunkt vorliegt.
+Fruehere HDBSCAN-Sweeps und OPTICS-Varianten zeigten, dass Parameteroptimierung
+allein nicht der zentrale Engpass war. Eine Alternative braucht deshalb vorab
+Hypothese, Zielmetrik und Gegenbeispiel.
 
 ## Priorisierung
 
-| Nr. | Thema | Abhängigkeit | Priorität |
-|-----|-------|-------------|-----------|
-| 1 | Gebäude-Scoring mit Konfidenz | Phase-1-Pipeline stabil | Hoch |
-| 2 | Multi-Cluster-Handling | Phase-1-Clustering läuft | Hoch |
-| 3 | Hangexposition / Aspect | Terrain-Daten vorhanden | Mittel |
-| 4 | MatchSAR®-Dokumentation | AUGMENTERRA-Input nötig | Mittel |
-| 5 | KI-Agenten-Vergleich | Pipeline + Testgebäude definiert | Mittel |
-| 6 | Experten-Referenzlabels | AUGMENTERRA-Input nötig | Hoch |
-| 7 | Abgleich Pipeline vs. Deep Research | Deep Research abgeschlossen | Hoch |
-| 8 | Nachbargebäude-Kontext | Phase-1-Clustering pro Gebäude stabil | Mittel |
-| 9 | Geländemodell-Evaluation (DTM/DSM) | Recherche + ggf. AUGMENTERRA-Input | Mittel |
+| Reihenfolge | Arbeit | Startbedingung | Erfolgssignal |
+|---|---|---|---|
+| 1 | P0-1 `96637447` klaeren | sofort | fachlich begruendetes Level und gepinnte Erwartung |
+| 2 | P0-2 R9/source-aware Labels | sofort | absolutes Roof-Loss-Gate fachlich eindeutig |
+| 3 | P0-3 Point-MVT-Profiling | parallel | reproduzierbarer Latenzbefund und Zielwert |
+| 4 | P1-1/P1-2 Labels und Gegenpruefung | nach source-aware Labelvertrag | stratifizierter Korpus und echte Holdouts |
+| 5 | P1-7/P1-8 Terrain/Hang | Datenprovenienz und Vertikaldatum geklaert | kontrollierter Datenstandsvergleich |
+| 6 | P1-4/P1-5 Feature-/Geometrieablation | rote RC-Befunde getrennt verstanden | Verbesserung ohne Reinheits-/Roof-Regression |
+| 7 | P1-9 Motion-Ablation | zeitliche Overlap-Daten geliefert | belastbarer sensoruebergreifender Motion-Vergleich |
+| 8 | P1-10 Generalisierung | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
+| 9 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
 
----
-
-# Phase-7-Folgepunkte (Stand 2026-06-10, nach Integration k2x)
-
-Phase 7 / Optimierungsphase 1 ist abgeschlossen: Kandidat `k2x`
-(Quer-Versatz-Politik fuer nearest + striktes Small-N) ist produktiv
-integriert (`MODEL_SET_VERSION local_hdbscan_rulegate_v2_k2x`,
-Evidenz: `phase7_clustering_optimization_report.md`). Daraus ergeben
-sich folgende, bewusst NICHT in Phase 7 umgesetzte Punkte:
-
-## P7-N1: Weitere Clustering-Algorithmen (per User-Entscheidung 2026-06-10 verschoben)
-
-`P7-C-W2-T3` (GMM, PAM/k-Medoids, robuste/Constraint-Clusterer) wurde
-auf User-Wunsch in eine eigene spaetere Optimierungsphase verschoben.
-Startpunkt dann: HDBSCAN-Sweep- und OPTICS-Befunde (alle Varianten
-candidate_red; "Parameter sind nicht der Engpass") - ein neuer
-Algorithmus muss einen konkreten, benannten Schwachpunkt adressieren.
-
-## P7-N2: Regime-konditionale High-N-/TSX-Strategie
-
-`leaf` reduziert TSX-Noise um ~86% und verbessert TSX-Cross-Track,
-degradiert aber SNT und loescht die noise_dominated-Diagnoseklasse
-pauschal (S5-T2). Eine leaf-Strategie NUR fuer >50-Punkt-Gruppen waere
-ein struktureller Eingriff (regime-konditionale Konfiguration) und
-braucht die feinere HR-Verifikation (P7-N3).
-
-## P7-N3: Feinere HR-Pseudo-Referenz
-
-Das Struktur-Matching auf Gebaeudeebene saettigt bei match_rate 1.0
-und diskriminiert Kandidaten nicht mehr. Naechste Stufe:
-Cluster-/Patch-Ebene (TSX-Clusterzentren vs SNT-Cluster-Footprints),
-optional Bewegungs-Rangkorrelation (weiterhin qualitativ wegen
-temporal_overlap_days=232).
-
-## P7-N4: Watch-Item 113309836 + TSX-Aufwertungs-Review
-
-Unter k2x kippen vereinzelt TSX-Gebaeude von noise_dominated auf ok;
-227901743 ist als legitime Dekontamination auditiert (Motion
-unveraendert), 113309836 zeigt einen Vorzeichenwechsel (+1.00 ->
--0.27 mm/a, Band medium) und braucht menschliche Pruefung. Die
-Scorecard zaehlt solche Aufwertungen jetzt maschinell
-(status_upgrades_vs_baseline) - bei kuenftigen Kandidaten Pflichtblick.
-
-## P7-N5: Assignment-Hygiene 2 - along-look, Hoehe, unkartierte Strukturen (erweitert 2026-06-16)
-
-**Neue Fehlerklasse (User-Befund 2026-06-11, Fall 96959851): Fremdpunkte
-unkartierter Strukturen.** Ein Nebengebaeude mit Blechdach, das weder in
-GBA noch in OSM existiert, traegt 3 stabile PS-Punkte, von denen 2 als
-t95-Cores den Motion-Score praegen (Blechdaecher = starke Reflektoren).
-Footprint-/OSM-basierte Fremdobjekt-Checks (a4) koennen diese Klasse
-PRINZIPIELL nie fangen - das Objekt fehlt in den Daten. Die produktive
-a5-Politik ist zusaetzlich strukturell blind, weil sie nur die QUER-Achse
-prueft und die Struktur fuer beide Tracks laengs der Blickachse liegt.
-Evidenz: `artifacts/phase7_reference_cases.json` (residual_contamination),
-`artifacts/phase7_survivors_scan_s6.md`, Visual-Audit-Report v2.
-
-Drei generische, kartierungsfreie Check-Kandidaten (alle selbstkalibrierend,
-keine Gebietskonstanten; Vorsortier-Versionen existieren bereits im
-Survivors-Scan-Tooling und sind dort am Fall validiert):
-
-1. **Anti-Layover-Vorzeichen-Check (hart, physikalisch):** Punkte ausserhalb
-   des Footprints, deren Versatz ENTGEGEN der Range-Verschiebungsrichtung
-   (range_dx/dy) liegt (Anti-Komponente > Geocoding-Toleranz), sind als
-   Dachpunkte nicht erklaerbar -> demote. Faengt O2HC2XV01-Typ; null Risiko
-   fuer echte Dachpunkte. Survivors-Scan-Beifang: auch Fall 96637447
-   (4 anti-layover-t44-Cores am Differential-Anker).
-2. **Layover-Reichweiten-Check:** implizite Reflektorhoehe d_fp/tan(inc)
-   gegen plausible Gebaeudehoehe (GBA/0.735 + Marge; Saturierungs-Ratio aus
-   P7-A-W1-T6). Faengt NTC3CYZ01-Typ (10.2 m noetig bei 3.6-m-Haus) und
-   96856632 (12.5-16.6 m). VORSICHT: bei stark gesaettigten Hoehen grosser
-   Gebaeude (105022686) ist der Check Hoehenfehler-Diagnostik - Kopplung an
-   die Hoehenoptionen O1-O4 des Hoehen-Audits noetig.
-3. **Anker-Plausibilisierung auf directional ausweiten + Hoehenprofil:**
-   gleiche MAD-Logik wie a5 auf directional-Punkte (NTDA86J01-Typ ist
-   geometrisch unentscheidbar, faellt aber im Hoehenprofil auf: -3.6 m
-   unter Dach-Anker als staerkster Beweger). Das nie getestete Komposit
-   **k2xh = a5_crosslook + a3_height + smalln_strict** ist der natuerliche
-   naechste Harness-Kandidat, erweitert um Checks 1-2 als eigene Varianten.
-
-**Ergaenzung (User-Befund 2026-06-16): Polygon-aware cross-look fuer
-nearest-Punkte.** Die produktive `nearest_crosslook`-Logik ist aktuell
-zentroidbasiert: `along_look_offset_m` und `cross_look_offset_m` werden
-aus dem Vektor Gebaeude-Zentroid -> InSAR-Punkt berechnet. Das ist als
-grobe, selbstkalibrierende Heuristik nuetzlich, kann bei langen, breiten
-oder unregelmaessigen Gebaeuden aber falsche Demotions erzeugen. Ein
-Punkt kann quer zum Zentroid weit versetzt sein und trotzdem geometrisch
-plausibel vom Gebaeude stammen, wenn seine Projektion noch innerhalb der
-tatsaechlichen Gebaeudeausdehnung quer zur Blickrichtung liegt. Kritisch
-ist nicht der rohe Querabstand zum Mittelpunkt, sondern der Querueberstand
-ueber die Polygonkante bzw. ueber die cross-look-Spanne des Footprints.
-
-Forschungskandidat: die centroidbasierte `nearest_crosslook`-Pruefung
-durch einen polygonbewussten Cross-Look-Excess ergaenzen oder ersetzen:
-
-1. Gebaeudepolygon im lokalen metrischen CRS auf die cross-look-Achse des
-   jeweiligen Tracks projizieren (nicht nur den Zentroid).
-2. InSAR-Punkt auf dieselbe Achse projizieren.
-3. `cross_excess_m` als Abstand ausserhalb der Polygon-Projektionsspanne
-   berechnen (`0`, wenn der Punkt innerhalb dieser Spanne liegt).
-4. `nearest_crosslook_outlier` nur auf Basis dieses Excess-Werts und der
-   bestehenden Anker-/MAD-Toleranz setzen; der rohe Zentroid-Offset bleibt
-   Diagnosefeature, aber kein alleiniger harter Demotion-Grund.
-5. Optional zusaetzlich: beobachteten InSAR-Punkt entlang der Look-Richtung
-   rueckprojizieren und pruefen, ob ein plausibler Original-Reflektor auf
-   oder nahe dem Gebaeude-Footprint liegen koennte (ggf. mit Hoehenlimit).
-
-Validierung: Testfaelle mit langen/breiten Footprints gezielt aufnehmen.
-Erwartetes Verhalten: legitime Punkte am Gebaeuderand duerfen trotz hohem
-Zentroid-Cross-Offset nicht demotiert werden; echte Fremd-/Nachbarpunkte
-ausserhalb der Polygon-Cross-Spanne muessen weiterhin auffallen. Die
-bestehende `max_distance_m`-Nearest-Grenze bleibt davon getrennt: sie misst
-weiterhin den kuerzesten Abstand vom Punkt zum Gebaeudepolygon und ist nur
-das Eintrittskriterium fuer den nearest-Fallback.
-
-**Pruefstein fuer jeden Kandidaten:** Fall 96959851 - NTC3CYZ01 und
-NTDA86J01 muessen demotiert werden, OHNE NTF2IZV01/NTG9E7F01 zu verlieren;
-O2HC2XV01 darf nicht zugeordnet bleiben (residual_contamination-Block).
-Zweitpruefstein 96637447 (anti-layover-Cores raus, Differential-Semantik
-und echte Dachkerne unveraendert). Watch-Item 113309836 (P7-N4) mitziehen:
-die 3 ueber-Anker-Cores (+13.7-15 m) erklaeren moeglicherweise den
-Vorzeichenwechsel.
-
-Hinweis Amplituden (siehe P7-N6): hohe, stabile Amplitude koennte die
-Blechdach-/Fremdstruktur-Hypothese als ZUSATZSIGNAL stuetzen - als
-Feature-Experiment in derselben Mini-Phase pruefbar.
-
-## P7-N6: Track-22-Ost-Diagnose + Bad-Gastein-Amplituden (aktualisiert 2026-06-12)
-
-**Bad-Gastein-Amplituden: ERLEDIGT (Datenbeschaffung).** Integration durch
-parallele Session (areas_manifest amplitude_path + prepare_insar +
-PostGIS-Load), verifiziert 2026-06-12: `insar_amplitude_timeseries` hat
-fuer bad_gastein_snt t44 17.0 Mio Zeilen (185 283 Punkte) und t95 13.5 Mio
-(149 861); `insar_points.amp_mean` ist zu 63.0 % (t44) bzw. 53.4 % (t95)
-befuellt - die Amplituden-Exports decken den Talkorridor ab, Teilabdeckung
-ist erwartet. Track 22 und TSX/PAZ weiterhin ohne Amplituden.
-
-Konsequenzen fuer die naechste Mini-Phase:
-
-- **Re-Baseline der BG-AOIs als Pflicht-Erstschritt:** Die Pipeline nutzt
-  Amplituden-Features produktiv (amp_ts_cv-Gate `unstable_amplitude`,
-  amp_quality im Scoring). Die persistierten v2_k2x-Baselines der BG-AOIs
-  entstanden OHNE Amplituden-Input; frische BG-Laeufe weichen jetzt ab ->
-  `--verify-noop` bricht auf bg_* erwartungsgemaess, bis neue Baselines
-  persistiert sind (Datenstands-Wechsel dokumentieren, alte Baselines als
-  legacy behalten). Salzburg ist unbetroffen (Amplituden seit Januar).
-- **Amplituden-Feature-Kandidaten fuer den Harness:** amp_ts_* wirken
-  bisher nur als Qualitaets-Gate/-Score, nie als Hygiene-Signal. Hypothese
-  "hohe + stabile Amplitude ausserhalb des Footprints = Blechdach-/
-  Fremdstruktur-Indikator" (Fall 96959851); Erstbefund siehe
-  `artifacts/phase7_amplitude_recon.md`. Moegliche Achsen: amp_mean-Rang
-  im Gebaeudekontext, amp_ts_cv als Anker-Gewicht, Amplituden-Konsistenz
-  pro Cluster.
-
-**Track-22-Ost-Diagnose: unveraendert offen** (Track 22 deckt die Ost-AOIs
-nicht; reines Datenthema, kein Algorithmus-Blocker).
-
-## P7-N7: UI-Kennzeichnung demotierter Punkte
-
-Demotierte nearest-Punkte tragen gate_reasons
-(`nearest_crosslook_outlier` etc.) und sind im Inspector sichtbar;
-eine eigene Kartensignatur (z. B. eigene Form statt nur grau) wuerde
-die Forschungs-Lesbarkeit weiter erhoehen. Klein, additiv.
+Abgeschlossene Punkte werden aus dieser Liste entfernt und in
+[`iterations.md`](iterations.md) beziehungsweise einem phasenspezifischen
+Integrationsreport mit Evidenz festgehalten.

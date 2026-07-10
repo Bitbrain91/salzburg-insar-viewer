@@ -1,428 +1,275 @@
-# `anomaly_local_v1` Methodik
+# `anomaly_local_v1`: aktive Methodik
 
-## Ziel
-`anomaly_local_v1` ist die neue Phase-1-Pipeline fuer die Gebaeude-nahe Analyse von InSAR-Punkten. Sie ersetzt den fachlich unzureichenden globalen `IsolationForest` nicht im System, sondern fuegt parallel eine lokalere Alternative hinzu.
+**Stand:** 2026-07-10
 
-Die Kernfrage lautet nicht mehr: `Ist dieser Punkt in der gesamten Stadt ungewoehnlich?`
+**Status:** aktive Methodik, Modellset `local_hdbscan_rulegate_v4_k2xhf_diffv2`
 
-Sondern: `Passt dieser Punkt geometrisch, signaltechnisch und zeitlich zu genau diesem Gebaeude und zu den anderen Punkten dieses Gebaeudes?`
+**Autoritativ fuer:** fachliche Logik, Ergebnissemantik und aktive Datenquellen der Pipeline
 
-## Warum ein lokaler Ansatz
-Der erste Implementierungsversuch (`anomaly_v1`) arbeitet track-weit ueber alle Punkte in der gewaehlten BBox. Das ist fuer die eigentliche Fragestellung zu grob:
+**Aktualisieren wenn:** Features, Regeln, Schwellen, Quellenvertrag, Modellversion oder Ergebnissemantik aendert sich
 
-- Ein Punkt kann global unauffaellig, aber fuer sein Gebaeude ein klarer Ausreisser sein.
-- Mehrere konsistente Teilcluster an einem Gebaeude sind fachlich plausibel, z. B. Dach vs. Balkon.
-- Viele Gebaeude haben nur sehr wenige Punkte. Der relevante Kontext ist deshalb der lokale Gebaeudeverband, nicht die ganze Stadt.
-- Das Projektmeeting hat explizit gefordert, dass Nachbargebaeude-Reflexionen, Wintergaerten, Terrassen oder Hinterhofpunkte getrennt betrachtet werden.
+## Zweck und Einordnung
 
-Deshalb verarbeitet `anomaly_local_v1` jedes `Gebaeude x Track` separat.
+`anomaly_local_v1` analysiert InSAR-Punkte lokal je `Gebaeude x Track`. Die
+Kernfrage lautet:
 
-## InSAR-Kontext
-Die wichtigsten Annahmen aus dem Handbook, die direkt in die Pipeline einfliessen:
+> Passt ein Punkt geometrisch, signaltechnisch und zeitlich zu diesem Gebaeude
+> und zu dessen anderen Punkten?
 
-- InSAR misst primär Bewegung in Blickrichtung (`LOS`), nicht direkt vertikal.
-- Track 44 ist in Salzburg aufsteigend (`ASC`), Track 95 absteigend (`DSC`).
-- Track 44/A blickt mit Look-Bearing `81.4 deg` ostwaerts, Track 95/D mit `281.5 deg` westwaerts.
-- Negative `velocity`- oder Displacement-Werte bedeuten Bewegung vom Satelliten weg; positive Werte bedeuten Bewegung zum Satelliten hin.
-- Aufsteigende und absteigende Tracks sehen die Szene aus unterschiedlichen 2D-Richtungen; dieselbe Gebaeudestruktur kann deshalb seitlich versetzt erscheinen.
-- Niedrige Kohärenz deutet oft auf unzuverlaessige Reflexionen hin.
-- Punkt-`height` liegt im ellipsoidischen Bezugssystem; SRTM-Gelaende ist nicht direkt ohne Datumsharmonisierung abziehbar.
-- Steile Hänge, Vegetation, Mehrwegeffekte und geometrische Verzerrungen erzeugen systematische Problemfaelle.
+Die Pipeline ist Teil einer validierbaren Building-Intelligence-Methodik. Sie
+liefert Forschungsbefunde zur Zuordnung, Clusterstruktur, LOS-Bewegung und
+Evidenz. Sie diagnostiziert keine Gebaeudeschäden. Projektziel und
+Aussagegrenzen stehen im
+[`Projektziel`](../../project/Projektziel_InSAR_Building_Intelligence.md).
 
-Konsequenz fuer Phase 1:
+## Aktiver Daten- und Modellvertrag
 
-- Punkt-zu-Gelaende-Hoehen als absolute Differenz werden nicht direkt verwendet.
-- Terrain geht ueber `slope_mean_deg`, `slope_max_deg` und `relief_range_m` ein.
-- Cross-Track-Konsistenz wird nur als robuster Plausibilisierungsmechanismus benutzt, nicht als harte Wahrheit.
+- **Modellset:** `local_hdbscan_rulegate_v4_k2xhf_diffv2`
+- **Standard-Gebaeudequelle:** BEV (`bev_buildings`)
+- **Vergleichs-/Kontextquellen:** GBA und OSM; ein Run speichert seine
+  tatsaechliche `building_source`.
+- **Gebiete:** Salzburg und Bad Gastein.
+- **Salzburg:** SNT Tracks 44 (ASC) und 95 (DSC), inklusive
+  Amplitudenzeitreihen.
+- **Bad Gastein:** SNT Tracks 22/44/95 und TSX/PAZ Tracks 70/93;
+  Amplitudenzeitreihen liegen nur fuer SNT 44/95 und nur im abgedeckten
+  Talkorridor vor.
+- **Terrain:** aktiver Bestand ist SRTM-Kontext. 1-m-DGM/DOM ist beschafft und
+  pipeline-seitig vorbereitet, aber noch nicht als aktiver Datenstand geladen
+  und re-baselined.
 
-## Datenkontext im Repository
-Relevante Tabellen und Datensaetze:
+Quellenspezifische Gebaeudehoehen:
 
-- `insar_points`
-- `insar_timeseries`
-- `insar_amplitude_timeseries`
-- `gba_buildings`
-- `building_terrain_context`
-- `insar_point_terrain`
-- `ml_runs`
-- `ml_point_results`
+- BEV: `height_max_m` (Fallback `height_m`) fuer Candidate Area und
+  Layover-Reichweite; `height_median_m` (Fallback `height_m`) fuer
+  Plausibilitaetschecks.
+- GBA: `height` fuer beide Zwecke, mit dokumentierter
+  Saturierungskorrektur in der Reichweitenpruefung.
+- OSM: keine belastbare Standardhoehe; konfigurierter Fallback.
 
-Wichtige empirische Beobachtungen aus Salzburg:
+## Physikalische Leitplanken
 
-- Viele Gebaeude haben nur sehr wenige Punkte; kleine Stichproben sind der Normalfall.
-- Ein grosser Anteil der bisherigen Zuordnungen kam nur ueber `nearest`, nicht ueber polygoninterne Treffer.
-- `eff_area` ist in den Salzburg-Testdaten praktisch nicht brauchbar.
-- Amplitudenfeatures fehlen fuer Track 95 teilweise; sie bleiben optional.
-- Die Hoehenbeziehung Punkt vs. Terrain ist ohne Vertikal-Datumsharmonisierung nicht robust genug fuer harte Schlussfolgerungen.
+- InSAR misst Bewegung in Radar-Blickrichtung (LOS), nicht direkt vertikal.
+- Negative Geschwindigkeiten/Verschiebungen bedeuten Bewegung vom Satelliten
+  weg, positive zum Satelliten hin.
+- ASC und DSC sehen ein Objekt aus verschiedenen Richtungen; seitlicher
+  Punktversatz ist deshalb erwartbar.
+- `vertical_proxy = velocity / cos(incidence_angle)` ist nur eine robuste
+  Naeherung bei dominant vertikaler Bewegung, keine 3D-Dekomposition.
+- Punkt-Hoehen sind ellipsoidisch; Terrainhoehen duerfen ohne harmonisiertes
+  Vertikaldatum nicht als harte absolute Hoehendifferenz verwendet werden.
+- Hang, Vegetation, Layover, Abschattung, Mehrwegeffekte und wechselnde
+  Phasenzentren bleiben relevante Failure Modes.
 
-## Pipeline-Ueberblick
-Die Pipeline besteht aus sechs fachlichen Kernschritten:
+## Pipelineablauf
 
-1. Lokale Punktzuordnung an GBA-Gebaeude.
-2. Zeitreihen- und Qualitaetsfeatures pro Punkt.
-3. Gate-Rules fuer harte Ausschluesse.
-4. Lokale Clusterung pro `Gebaeude x Track`.
-5. Outlier- und Qualitaetsscore.
-6. Cross-Track-Validierung zwischen `ASC` und `DSC`.
+### 1. Lokale Punktzuordnung
 
-Danach werden die Ergebnisse fuer Gebaeude, Cluster, Nachbarschaftskontext und UI/DB-Ausgabe aufbereitet. Diese nachgelagerte Schicht ist keine zusaetzliche Detektionslogik im engeren Sinn, sondern macht die lokalen Entscheidungen interpretierbar, vergleichbar und visualisierbar.
+Fuer jedes Gebaeude erzeugt die Pipeline pro Track eine richtungssensitive
+Candidate Area:
 
-## 1. Punktzuordnung
-### Richtungssensitiver Buffer
-Fuer jedes GBA-Gebaeude wird eine richtungsabhaengige Kandidatenflaeche gebaut:
+`range_offset = clamp(height * tan(incidence_angle) * buffer_multiplier, min_buffer, max_buffer)`
 
-- Ausgangspunkt ist das Originalpolygon.
-- Dann wird das Polygon in UTM 33N entlang des aus dem track-spezifischen 2D-Look abgeleiteten Sensorseitenvektors verschoben.
-- Die Kandidatenflaeche wird sensorseitig erweitert, also in die Gegenrichtung des jeweiligen Looks.
-- Fuer Track 44/A ist das bei Look `81.4 deg` die Gegenrichtung um `261.4 deg`; fuer Track 95/D bei Look `281.5 deg` die Gegenrichtung um `101.5 deg`.
-- Aus Originalpolygon und verschobenem Polygon wird eine vereinigte Kandidatenflaeche erzeugt.
-- Darauf kommt ein kleiner lateraler Slack-Buffer.
+Das Gebaeudepolygon wird entlang des aus der Track-Geometrie abgeleiteten
+Sensorseitenvektors verschoben, mit dem Original vereinigt und um einen kleinen
+lateralen Slack erweitert. Die Zuordnungsart bleibt am Punkt sichtbar:
 
-Die finale Keep-Entscheidung fuer diese 2D-Vektor-Geometrie bleibt bis zur W3-Verifikation offen.
+1. `within`
+2. `directional_buffer`
+3. `nearest` bis maximal 15 m als Fallback
 
-Formel:
+`nearest`-Punkte tragen nur zum Clustering und Motion-Score bei, wenn ihr
+Quer-Versatz zur Blickrichtung plausibel ist. Die selbstkalibrierte Toleranz
+wird aus Median und MAD der `within`-/`directional_buffer`-Anker plus
+Geocoding- und Punktflaechenmarge gebildet. Fehlen geometrische Anker, werden
+`nearest`-Punkte konservativ demotiert. Die Gate-Gruende bleiben sichtbar.
 
-`range_offset = clamp(height_m * tan(incidence_angle) * buffer_multiplier, min_buffer_m, max_buffer_m)`
+### 2. Punktfeatures
 
-### Warum diese Strategie
-- Sie ist fachlich naeher an der InSAR-Geometrie als ein isotroper Kreisbuffer.
-- Sie bildet den typischen Layover-Versatz erhoehter Scatterer zur Sensor- bzw. Near-Range-Seite ab.
-- Sie erklaert den haeufigen seitlichen Versatz von Gebaeudereflektionen.
-- Sie ist generalisierbarer als Salzburg-spezifische Starroffsets.
+Clustering-Features:
 
-### Fallback
-Wenn weder `within` noch `directional_buffer` greift, wird nur noch `nearest <= 15 m` verwendet.
-
-Wichtig:
-
-- `nearest` ist bewusst nur Fallback.
-- Die Zuordnungsart wird fuer jeden Punkt gespeichert und visualisiert.
-
-### Quer-Versatz-Politik fuer nearest-Punkte (seit P7-E-W1-T2, 2026-06-10)
-
-`nearest`-Punkte tragen seit Phase 7 nur dann zu Clustering und
-Motion-Score bei, wenn ihr Quer-Versatz zur Blickrichtung geometrisch
-plausibel ist. Physikalische Begruendung: Radarprojektion (Layover)
-verschiebt Dachreflexionen nur LAENGS der Blickrichtung - genau das
-deckt die Candidate-Area ab. Ein grosser QUER-Versatz ist nicht durch
-die Radargeometrie erklaerbar und deutet auf ein Fremdobjekt (Carport,
-Nebengebaeude; bestaetigter Referenzfall 96959851).
-
-Selbstkalibrierende Toleranz je Gebaeude x Track (keine
-gebietsspezifischen Schwellen):
-
-```
-limit = median(|cross_look_offset| der within/directional-Anker)
-        + 3 * 1.4826 * MAD + 3 m Geocoding-Marge
-        + sqrt(eff_area) des Kandidatenpunkts
-```
-
-- Median/MAD statt Perzentil, weil die Candidate-Area selbst vereinzelt
-  Fremdpunkte als `directional` fangen kann (vergiftete Anker).
-- Ohne `within`/`directional`-Anker existiert keine geometrische
-  Referenz: alle `nearest`-Punkte der Gruppe werden demotiert
-  (Asymmetrie-Prinzip: lieber einen Punkt zu viel ausschliessen als
-  einen fremden aufnehmen).
-- Demotion = `gate_excluded` mit Grund `nearest_crosslook_outlier` /
-  `nearest_no_geometric_anchor` / `nearest_crosslook_unknown`: sichtbar
-  und geflaggt, aber weder Cluster-Mitglied noch Score-Beitrag.
-
-## 2. Features
-### Clustering-Features
-Diese Features bestimmen die lokale Gruppierung:
-
-- `along_look_offset_m`
-- `cross_look_offset_m`
+- `along_look_offset_m`, `cross_look_offset_m`
 - `height_rank_in_building`
-- `velocity`
-- `acceleration`
+- `velocity`, `acceleration`
 - `coherence_penalty`
 
-Warum:
+Diagnose- und Scoring-Features umfassen insbesondere Zeitreihenstabilitaet,
+Geschwindigkeitsunsicherheit, Saisonalitaet, Amplitudenstabilitaet,
+Gebaeudehoehe, lokale Dichte sowie Hang- und Reliefkontext. Fehlende
+Amplitudendaten sind zulaessig und werden nicht durch erfundene Werte ersetzt.
 
-- Die ersten drei Features modellieren die geometrische Lage relativ zum Gebaeude.
-- `velocity` und `acceleration` erfassen das Bewegungsverhalten.
-- `coherence_penalty` bestraft signaltechnisch schwache Punkte.
+### 3. Qualitaetsgates
 
-### Scoring-Features
-Diese Features beeinflussen Outlier- und Qualitaetsbewertung:
+Aktive harte Grundregeln:
 
-- `velocity_std`
-- `season_amp`
-- `ts_slope`
-- `ts_residual_std`
-- `ts_max_abs_delta`
-- `ts_roughness`
-- `ts_missing_rate`
-- `amp_ts_cv`
-- `amp_ts_spike_rate`
-- `building_height`
-- `slope_mean_deg`
-- `slope_max_deg`
-- `relief_range_m`
-- `local_density`
+- keine Gebaeudezuordnung;
+- weniger als 24 gueltige Displacement-Epochen;
+- weniger als 50 % der erwarteten Track-Epochen;
+- `coherence < max(0.45, track_p05)`.
 
-Warum:
+Ausgeschlossene Punkte bleiben als `gate_excluded` mit `gate_reasons` in
+Persistenz und Viewer nachvollziehbar.
 
-- Diese Groessen bewerten Stabilitaet, Signalqualitaet und topografischen Kontext.
-- Sie sind fuer Soft-Penalties geeigneter als fuer harte Clusterbildung.
+### 4. Lokales Clustering und Small-N
 
-## 3. Gate-Rules
-Phase 1 darf pragmatisch harte Regeln nutzen, aber nur zentral, dokumentiert und spaeter ersetzbar.
+- Ab sechs behaltenen Punkten: HDBSCAN mit `allow_single_cluster=True`,
+  `cluster_selection_method="eom"`, adaptiver `min_cluster_size` und
+  `min_samples`.
+- Drei bis fuenf Punkte: konservativer Small-N-Fallback mit robustem
+  Raum-/Bewegungs-/Kohaerenzscore. Ein Pseudo-Core erfordert mindestens zwei
+  velocity-konsistente Punkte; andernfalls `weak_support`.
+- Weniger als drei Punkte: kein Clustering, Status `insufficient_support`.
 
-### Aktive Hard Rules
-1. Kein Gebaeude gefunden
-2. Weniger als `24` gueltige Displacement-Epochen
-3. Weniger als `50%` der erwarteten Track-Epochen
-4. `coherence < max(0.45, track_p05)`
+HDBSCAN ist Pflichtdependency. Einen stillen Algorithmus-Fallback gibt es nicht;
+alternative Clusterer werden nur als explizite Harness-Varianten untersucht.
 
-### Begruendung
-1. Ohne Gebaeudezuordnung gibt es keinen lokalen Kontext.
-2. Mit extrem kurzer Zeitreihe sind Trend- und Step-Features nicht belastbar.
-3. Hohe Missingness verfälscht lokale Vergleiche.
-4. Sehr niedrige Kohärenz ist in InSAR typischerweise ein starkes Warnsignal.
+### 5. v4-Bauteil- und Fremdreflektortrennung
 
-### Einordnung
-- `24` Epochen und `50%` Ratio sind pragmatische Phase-1-Schwellen und spaeter lernbar.
-- Die Kohärenzregel ist teils universell, teils datengetrieben, weil ein Track-Perzentil einbezogen wird.
+Nach der Grundzuordnung prueft der Component Separator unabhaengig von der
+Zuordnungsmethode:
 
-## 4. Clustering und Outlier-Erkennung
-### Standardfall: HDBSCAN
-Ab `>= 6` behaltenen Punkten wird lokal pro `Gebaeude x Track` mit HDBSCAN geclustert.
+- Quer-Versatz-Plausibilitaet (`a5_crosslook`),
+- Anti-Layover-Richtung (`a6_antilayover`),
+- physikalisch plausible Layover-Reichweite (`a7_reach`),
+- relatives Hoehenprofil (`a8_heightprofile`).
 
-Parameterlogik:
+v4 routet Evidenzklassen getrennt:
 
-- `allow_single_cluster=True`
-- `cluster_selection_method="eom"`
-- `min_cluster_size = max(2, ceil(0.2 * n))`, gedeckelt bei `8`
-- `min_samples = max(1, floor(min_cluster_size / 2))`
+- strukturell plausibler, kinematisch gestuetzter Gebaeudeteil -> `annex`;
+- Anti-Layover und im BEV-Kontext unplausible Reichweite -> `foreign`;
+- keine solche Seitenevidenz -> `standard`.
 
-Warum HDBSCAN:
+Das oeffentliche Feld lautet:
 
-- Unbekannte Clusterzahl
-- robuste Behandlung von Noise
-- lokale Dichteunterschiede besser als klassisches DBSCAN
-- sinnvoll fuer heterogene Punktdichten innerhalb einzelner Gebaeude
+`cluster_kind = standard | annex | foreign`
 
-`hdbscan` ist eine harte Pflicht-Dependency: Fehlt das Paket, schlaegt der
-Import der Pipeline mit einer klaren Fehlermeldung fehl. Der fruehere stille
-OPTICS-Runtime-Fallback wurde am 2026-06-10 entfernt (`P7-A-W1-T5`), weil er
-je nach Environment unbemerkt einen anderen Algorithmus mit anderen
-Ergebnissen aktivierte. OPTICS bleibt ausschliesslich als explizit waehlbare
-Vergleichsvariante im Phase-7-Experiment-Harness verfuegbar.
+`cluster_kind` beschreibt die semantische Art und ist nicht mit
+`cluster_role` (`core`, `noise`, `weak_support`, `excluded`,
+`insufficient_support`) zu verwechseln. Es wird zentral aus der Clusterkennung
+abgeleitet; bei widerspruechlicher Kennung hat `foreign` Prioritaet.
 
-### Small-N-Fallback
-Fuer `3-5` behaltene Punkte ist Phase 1 explizit konservativer:
+- `standard` kann Main-Cluster sein.
+- `annex` bleibt vom Main-Cluster ausgeschlossen, kann bei ausreichender
+  Stuetzung aber eine Differentialaussage tragen.
+- `foreign` ist nie Main-Cluster, nie verlaesslicher Gebaeudecluster und nie
+  Quelle einer Differentialaussage; es erhaelt keine Clusterhuelle.
 
-- Es wird von einer Ein-Cluster-Hypothese ausgegangen.
-- Ein robuster Lokalscore auf Raumlage, Bewegung und Kohärenz trennt Kernpunkte von Noise.
+Fuer historische v3-Runs ist eine damalige `annex`-Klassifikation nur Aussage
+des damaligen Modells und keine rueckwirkende v4-Bestaetigung.
 
-Warum:
+### 6. Punkt- und Clusterbewertung
 
-- Bei sehr kleinen Stichproben sind dichtebasierte Entscheidungen instabil.
-- Das Meeting hat genau diese kleinen Gebaeude als Praxisfall benannt.
+Punkt-Anomalie:
 
-Verschaerfung seit P7-E-W1-T2 (2026-06-10, smalln_strict): Der
-Pseudo-Core wird nur noch gebildet, wenn mindestens 2 Punkte
-velocity-konsistent sind (`|v - median| <= max(1 mm/a, 2 *
-velocity_std)`). Andernfalls erhaelt die Gruppe den ehrlichen Status
-`weak_support` (Rolle `weak_support`, Wahrscheinlichkeit 0.30) statt
-eines kuenstlichen Kerns. 2-Punkt-Cluster bleiben ausdruecklich
-legitim, solange sie konsistent sind.
+`anomaly_score = 0.60 * cluster_outlier + 0.25 * local_deviation + 0.15 * rule_penalty`
 
-### Insufficient Support
-Bei `< 3` behaltenen Punkten wird nicht geclustert.
+Punktqualitaet:
 
-Dann gilt:
+`quality_score = 0.45 * (1-anomaly) + 0.25 * cross_track + 0.20 * support + 0.10 * signal`
 
-- Status `insufficient_support`
-- Label mindestens `suspect`
-- visuelle Kennzeichnung bleibt trotzdem erhalten
+Labels:
 
-## 5. Scoring
-### Teilkomponenten
-- `cluster_outlier_score`
-- `local_deviation_score`
-- `rule_penalty`
+- `normal`: `quality_score >= 0.70`
+- `suspect`: `0.40 <= quality_score < 0.70`
+- `outlier`: `quality_score < 0.40` oder harter Gate-Ausschluss
 
-### Endscore
-`anomaly_score = 0.60 * cluster_outlier_score + 0.25 * local_deviation_score + 0.15 * rule_penalty`
+Cluster-Rollups enthalten unter anderem Track, Punktzahl, Rolle, Art,
+Medianbewegung, Median-Kohaerenz, Hoehenrang, Zuverlaessigkeit und Delta zum
+Main-Cluster. Der Main-Cluster wird deterministisch unter zulaessigen
+Core-Clustern nach Stuetzung, Kohaerenz, Hoehenrang und Cluster-ID gewaehlt.
 
-### Qualitaet
-`quality_score = 0.45 * (1 - anomaly_score) + 0.25 * cross_track_consistency_or_neutral + 0.20 * kept_support_ratio + 0.10 * signal_quality`
+### 7. Gebaeudebewegung und Cross-Track-Plausibilisierung
 
-### Labels
-- `normal >= 0.70`
-- `suspect 0.40-0.69`
-- `outlier < 0.40`
-- harte Gate-Ausschluesse werden ebenfalls als `outlier` markiert
-
-## 6. Cross-Track-Validierung
-Die Pipeline vergleicht `ASC` und `DSC` nach dem lokalen Filtern erneut.
-
-Verwendet wird ein robuster vertikaler Proxy:
-
-`vertical_proxy = velocity / cos(incidence_angle)`
-
-Das Vorzeichen bleibt dabei erhalten: negative Proxy-Werte bleiben Bewegung vom Satelliten weg, positive Proxy-Werte Bewegung zum Satelliten hin. `vertical_proxy` ist keine echte Vertikalkomponente, sondern nur eine Naeherung fuer Faelle, in denen vertikale Bewegung dominiert und horizontale Bewegungsanteile klein sind.
-
-Die Toleranz steigt mit der Hangneigung:
+Pro Track traegt der Main-Cluster die robuste Bewegungsbewertung. Fuer Tracks
+44/95 wird die Differenz ihrer vertikalen Proxies gegen eine hangabhaengige
+Toleranz geprueft:
 
 `allowed_diff_mm_a = 1.0 + 0.15 * slope_mean_deg`
 
-Warum:
+Der Vergleich ist ein Plausibilitaetsindikator, kein Ground Truth. Das
+Gebaeuderollup enthaelt Bewegung, Trackwerte, Status, Support,
+`track_agreement_score`, Zuverlaessigkeit und Main-Cluster-IDs.
 
-- In Hanglagen und komplexer Topografie ist ein enger Vergleich unplausibel.
-- Cross-Track-Uebereinstimmung ist ein starker Vertrauensindikator, aber kein perfekter Ground Truth.
+Moegliche Statuswerte sind `ok`, `single_track_only`, `small_n`,
+`noise_dominated` und `insufficient_support`.
 
-## Nachgelagerte Rollups und Kontextbewertung
-Nach den sechs Kernschritten werden Punkt-, Cluster- und Gebaeudeinformationen zusammengefuehrt. Ziel ist, aus einzelnen Punktlabels eine interpretierbare Gebaeudeperspektive zu erzeugen.
+### 8. Differenzielle Bewegung
 
-### Cluster-Rollups
-Fuer jedes Cluster werden zusammengefasst:
+Die einzige aktuelle Schnittstelle ist:
 
-- `cluster_role` (`core`, `noise`, `insufficient_support`, `excluded`)
-- Punktanzahl
-- Median-`velocity`
-- Median-`vertical_proxy`
-- Cluster-Schwerpunkt in UTM
-- Median-`coherence`
-- Median-`height_rank_in_building`
-- `cluster_reliability_score`
-- Abstand der Bewegung zum Main-Cluster (`motion_delta_to_main_mm_a`)
+`differential_motion_level = none | candidate | significant | confirmed`
 
-Der Main-Cluster je Track wird unter den verlaesslichen Core-Clustern gewaehlt. Prioritaet haben:
+Die Pipeline berechnet je zulaessigem Sekundaercluster das **signierte** Delta
+zum Main-Cluster genau einmal und leitet daraus Betrag, Level und Evidenz ab.
+Die Kandidatenschwelle ist:
 
-1. mehr Punkte
-2. hoehere Median-Kohärenz
-3. hoeherer Median-Hoehenrang
-4. stabile deterministische Cluster-ID als Tie-Breaker
+`max(1.5, allowed_diff_mm_a)`
 
-### Gebaeude-Rollup
-Pro Gebaeude werden die Track-Rollups zusammengefuehrt. Daraus entstehen:
+- `none`: kein zulaessiges Sekundaercluster ueberschreitet die Schwelle.
+- `candidate`: Schwelle ueberschritten, aber Signifikanz oder Stuetzung reicht
+  nicht weiter.
+- `significant`: zusaetzlich `abs(delta) >= 2 * sigma_delta` und mindestens
+  drei Punkte in Main- und Sekundaercluster.
+- `confirmed`: ein signifikantes Ergebnis wird durch eine zweite Geometrie mit
+  gleichgerichtetem signiertem Delta bestaetigt.
 
-- `building_motion_mm_a`
-- `track_agreement_score`
-- `building_reliability_score`
-- `building_reliability_band` (`high`, `medium`, `low`)
-- `differential_motion_flag`
-- Main-Cluster-IDs fuer Track 44 und Track 95
-- Zaehlwerte fuer Punkte, behaltene Punkte, Noise, Ausschluesse und Cluster
+Plausibilitaets-Downgrades fuer stark verschiedene saisonale Amplitude oder
+instabile Amplitude koennen das Level reduzieren, aber einen gueltigen Kandidaten
+nicht unter `candidate` druecken. `differential_motion_evidence` nennt Track,
+Cluster, signiertes Delta, Unsicherheit, Schwelle, Downgrades und gegebenenfalls
+bestaetigenden Track.
 
-Der Gebaeudestatus beschreibt die Belastbarkeit der Aussage:
+Ein Zuverlaessigkeitsabzug von `0.15` greift erst bei `significant` oder
+`confirmed`. Fuer historische Runs vor Einfuehrung des Levels ist der Wert
+`null`; aktuelle Oberflaechen kennzeichnen ihn als historischen Modellstand
+ohne Differential-Level.
 
-- `ok`: ausreichend lokaler und track-uebergreifender Support
-- `single_track_only`: nur ein Track liefert verwertbaren Main-Cluster-Support
-- `small_n`: nur wenige Punkte stuetzen die Aussage
-- `noise_dominated`: mehr als die Haelfte der behaltenen Punkte ist Noise
-- `insufficient_support`: zu wenig verwertbare Punkte oder kein Main-Cluster
+### 9. Nachbarschaftskontext
 
-Die Gebaeude-Zuverlaessigkeit kombiniert Support, Signalqualitaet, Zuordnungsqualitaet und Cross-Track-Uebereinstimmung. Sie wird reduziert bei Single-Track-Lage, schwachem Main-Cluster-Support, Noise-Dominanz, schlechter Track-Uebereinstimmung oder differentieller Bewegung.
+Bis zu acht Nachbargebaeude innerhalb von 25 m werden als Diagnosekontext
+betrachtet. Clusterprofile vergleichen Bewegung, Along-/Cross-Look-Lage,
+Hoehenrang und Zeitreihenschritt. Daraus koennen Hinweise auf moegliche
+Fehlzuordnung oder ein gemeinsam gestuetztes Nachbarschaftsereignis entstehen.
+Diese Hinweise schreiben die Punktzuordnung nicht automatisch um.
 
-### Nachbarschaftskontext
-Nachbargebaeude werden genutzt, um Grenzfaelle sichtbar zu machen, nicht um Punktzuordnungen automatisch umzuschreiben.
+## Persistenz und Viewer-Vertrag
 
-Aktuelle Logik:
+`ml_point_results` speichert numerische Kernwerte und ein breites `meta`-Objekt
+mit Feature-Flags, Building Context, Cross-Track-, Cluster-, Gebaeude- und
+Nachbarschaftsrollups sowie Erklaergruenden. API, MVT und Frontend stellen
+`cluster_kind` und `differential_motion_level` konsistent bereit.
 
-- Kandidaten sind benachbarte Gebaeude innerhalb von `25 m`.
-- Maximal `8` Nachbargebaeude werden betrachtet.
-- Verglichen werden nur verwertbare Core-Cluster mit ausreichendem Support.
-- Clusterprofile bestehen aus Bewegungsproxy, Along-/Cross-Look-Lage, Hoehenrang und groesstem Zeitreihen-Step.
-- Ein Punkt kann als moegliche Fehlzuordnung markiert werden, wenn er schlecht zum eigenen Cluster, aber deutlich besser zu einem Nachbarcluster passt.
-- Ein Gebaeude kann als nachbarschaftlich gestuetztes Ereignis markiert werden, wenn mehrere Nachbargebaeude konsistente Bewegungsmuster zeigen.
+Die Gebaeudeansicht zeigt Originalpolygon, track-spezifische Candidate Areas,
+Clusterhuellen, Main-/Annex-/Foreign-/Noise-/Weak-Support-Kontext und
+Gate-Ausschluesse. Die visuelle Pruefung ist Teil der Methode, nicht nur UI.
 
-Wichtige Ergebnisfelder:
+## Verifikation und Aenderungsregeln
 
-- `best_neighbour_building_id`
-- `best_neighbour_cluster_id`
-- `own_cluster_fit_score`
-- `neighbour_fit_score`
-- `neighbour_fit_delta`
-- `neighbour_misassignment_flag`
-- `neighbour_event_score`
-- `neighbour_event_flag`
-- `supporting_neighbour_count`
+Jede fachliche Modelländerung wird gegen die im
+[`runbook.md`](runbook.md) definierten Pflicht-AOIs geprueft:
 
-Diese Werte sind Diagnose- und Interpretationshilfen. Sie dienen vor allem dazu, Nachbargebaeude-Reflexionen, gemeinsam bewegte Bereiche und moegliche Randzuordnungen im Inspector nachvollziehbar zu machen.
+- eingefrorener No-op-Vergleich;
+- Referenzfaelle und maschinelle Punkt-Pins;
+- Label- und Reinheitsmetriken, insbesondere `foreign_in_annex=0` und
+  `annex_in_foreign=0`;
+- Visual Audit einschliesslich Survivors-Pass auf akzeptierte Main-Punkte;
+- dokumentierte Entscheidung und Eintrag in [`iterations.md`](iterations.md).
 
-## Persistenz und Ergebnisstruktur
-Die Pipeline schreibt pro Punkt einen Datensatz in `ml_point_results`.
+Eine neue semantische Ergebnisart benoetigt ab ihrer Einfuehrung
+Kompositionsstatistik, explizite Fehlablage-Gates und maschinell gepinnte
+Gegenbeispiele. Baselines duerfen nicht neu geschrieben werden, um eine
+Regression zu verdecken.
 
-Gespeichert werden die numerischen Kernwerte:
+## Bekannte Grenzen
 
-- `score` / `quality_score`
-- `anomaly_score`
-- `cross_track_consistency`
-- `label`
-- `cluster_id`
-- `building_source`
-- `building_id`
-- `distance_m`
-- `feature_set_version`
-- `model_set_version`
+- kleine oder eintrackige Punktmengen;
+- Hanglagen und fehlende echte 2D-/3D-Dekomposition;
+- nicht harmonisierte Hoehenbezuege;
+- teilweise fehlende Amplitudenzeitreihen;
+- unkartierte oder topologisch verschmolzene Bauwerke;
+- kleiner interner Label-Korpus und keine unabhaengige Ground Truth;
+- keine nachgewiesene Generalisierung ueber die untersuchten Gebiete hinaus.
 
-Zusaetzlich enthaelt `meta` die interpretierbaren Kontextdaten:
-
-- `feature_flags`
-- `building_context`
-- `cross_track_summary`
-- `cluster_rollup`
-- `building_rollup`
-- `neighbour_context`
-- `detector_scores`
-- `explain_top_features`
-- `visual_context`
-
-Die Persistenz ist bewusst breit, damit die UI nicht nur ein Label zeigt, sondern die Methodik pruefbar macht: Zuordnung, Gate-Entscheidungen, Clusterrolle, Cross-Track-Kontext, Nachbarschaftskontext und wichtigste Erklaergruende bleiben pro Punkt nachvollziehbar.
-
-## Visualisierung
-Phase 1 sieht bewusst eine visuelle Gebaeudeansicht vor.
-
-Fuer ein selektiertes Gebaeude zeigt die UI:
-
-- Originalpolygon
-- richtungsabhaengige Kandidatenflaechen fuer `ASC` und `DSC`
-- Cluster-Huellen
-- Clusterpunkte
-- Noise-Punkte
-- Gate-ausgeschlossene Punkte
-
-Diese Ansicht ist kein Nice-to-have, sondern Teil der Methodik. Ohne sie lassen sich Fehlzuordnungen und fachliche Grenzfaelle nicht sauber beurteilen.
-
-## Failure Modes
-Bekannte Grenzfaelle:
-
-- sehr kleine Gebaeude mit nur 1-2 Punkten
-- nur ein vorhandener Track
-- Hanglagen mit starker Reliefwirkung
-- verschobene Reflexionen an Dachkanten
-- Wintergaerten, Terrassen, Nebengebaeude
-- fehlende Amplitudendaten
-
-Die Pipeline versucht diese Faelle sichtbar und nachvollziehbar zu machen, nicht sie in Phase 1 vollautomatisch perfekt zu loesen.
-
-## Hard-Rule-Register
-| Rule | Zweck | Typ |
-|---|---|---|
-| `no_building_assignment` | kein lokaler Gebaeudekontext | spaeter lernbar |
-| `too_few_valid_epochs` | instabile Zeitreihenbasis vermeiden | spaeter lernbar |
-| `too_sparse_timeseries` | fehlende Beobachtungen begrenzen | spaeter lernbar |
-| `low_coherence` | signaltechnisch schlechte Punkte ausschliessen | teils universell, teils datengetrieben |
-
-## Warum diese Methodik verwendet wurde
-Kurz gesagt:
-
-- Sie passt zur fachlichen Frage auf Gebaeudeebene.
-- Sie verarbeitet kleine Stichproben besser als ein globales Modell.
-- Sie laesst mehrere legitime Teilcluster zu.
-- Sie trennt harte Ausschluesse von weichen Penalties.
-- Sie ist fuer spaetere lernbare Schritte offen, ohne in Phase 1 ueberengineert zu sein.
-
-## Ausblick Phase 2+
-Naechste sinnvolle Schritte:
-
-- lernbare Gebaeudezuordnung statt fixer Buffer-Formel
-- adaptivere Gate-Schwellen pro Stadt/Track
-- clusterweises statt nur gebaeudeweises Cross-Track-Matching
-- schwach ueberwachte Labels aus stabilen Asc/Desc-Uebereinstimmungen
-- spaetere Verdichtung zu einem Gebaeude-Scoring mit Konfidenzintervall
+Die priorisierte offene Forschung steht ausschliesslich in
+[`next_steps.md`](next_steps.md); historische Integrationsentscheidungen in
+[`artifacts/phase8_integration_report.md`](artifacts/phase8_integration_report.md).

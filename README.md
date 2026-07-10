@@ -1,12 +1,29 @@
 # Salzburg InSAR Viewer (React + FastAPI)
 
-Dieses Repository ist die neue React-/FastAPI-Architektur des Salzburg InSAR Viewers. Ziel ist eine performante, analytische GIS-Anwendung, die InSAR-Messpunkte, Gebaeudedaten (GBA) und OSM-Gebaeude in einer Oberflaeche zusammenfuehrt und vergleichbar macht.
+**Stand:** 2026-07-10
+
+**Status:** aktive technische Einstiegs- und Betriebsdokumentation
+
+**Autoritativ fuer:** Architektur, Datenaufbereitung, lokales Setup und Bedienung des Repositories
+
+**Aktualisieren wenn:** Komponenten, Datenquellen, Setup, CLI, Laufzeitkonfiguration oder aktive Pipeline-Schnittstellen aendern
+
+Dieses Repository enthaelt die React-/FastAPI-Forschungsplattform fuer die
+InSAR Building Intelligence. Der Viewer ist ein internes Forschungswerkzeug:
+Er verbindet InSAR-, Gebaeude- und Terrain-Daten, macht Modellentscheidungen
+visuell pruefbar und unterstuetzt reproduzierbare Experimente. Das fachliche
+Zielbild und die Aussagegrenzen stehen in
+[`docs/project/Projektziel_InSAR_Building_Intelligence.md`](docs/project/Projektziel_InSAR_Building_Intelligence.md).
 
 ## 1) Worum geht es in diesem Repository?
-Der Salzburg InSAR Viewer stellt bodenbasierte Deformationsmessungen (InSAR) visuell und analytisch dar und verknuepft diese mit Gebaeudeinformationen aus dem Global Building Atlas (GBA) sowie OSM-Gebaeudedaten. Die Anwendung erlaubt:
-- Visualisierung grosser Punktwolken (InSAR Tracks 44/95)
+Der InSAR Viewer stellt satellitenbasierte Deformationsmessungen visuell und
+analytisch dar und verknuepft sie mit BEV-, GBA- und OSM-Gebaeudedaten. Die
+Anwendung erlaubt:
+- Visualisierung grosser Punktwolken in Salzburg und Bad Gastein
 - Abfrage von Attributen und Zeitreihen einzelner Punkte
-- Gebaeude-Selektion und Zuordnung der naechstgelegenen InSAR-Punkte
+- Gebaeude-Selektion und lokale Building-Intelligence-Analyse
+- Pruefung von Haupt-, Anbau-, Fremd-, Noise- und Weak-Support-Clustern
+- Vergleich von Runs, Tracks, Gebaeudequellen und Differential-Levels
 - schnelle, kachelbasierte Kartenanzeige (MBTiles + MapLibre)
 
 ## 2) Daten: Herkunft, Formate, Beziehungen
@@ -33,7 +50,21 @@ Aufbereitung:
   - `insar_timeseries_t{track}.parquet`
   - `insar_amplitude_timeseries_t{track}.parquet`
 
-### Global Building Atlas (GBA)
+### BEV-Bauwerke (Standardquelle)
+
+Quelle und Layer sind gebietsbezogen in `pipeline/areas_manifest.json`
+definiert. Der aktuelle Download ist das BEV-DLM-Bauwerke-GPKG; die
+Aufbereitung schneidet es auf Salzburg und Bad Gastein zu.
+
+Aufbereitung:
+- `pipeline/prepare_buildings.py` erzeugt je Gebiet und kombiniert
+  `bev_buildings.parquet`.
+- Neben Footprints werden insbesondere Median-/Maximalhoehe, Traufhoehe,
+  Bodenhoehen und Provenienzattribute erhalten.
+- Die aktive ML-Pipeline nutzt BEV standardmaessig. GBA und OSM bleiben
+  Vergleichs- und Kontextquellen.
+
+### Global Building Atlas (GBA, Vergleichsquelle)
 Quelle: lokales GeoJSON
 `data/gba/salzburg_gba.geojson`
 
@@ -59,7 +90,7 @@ abbilden.
 
 Datenfluss (vereinfacht):
 ```
-GeoPackage + GBA + OSM
+GeoPackage + BEV + GBA + OSM
         |
         v
 Pipeline (GeoParquet + ML-Kontext)
@@ -90,7 +121,7 @@ React + MapLibre Frontend
 - Datenbank (PostGIS in Docker)
   - Schema: `backend/sql/schema.sql`
   - Tabellen: `insar_points`, `insar_timeseries`, `insar_amplitude_timeseries`,
-    `gba_buildings`, `osm_buildings`, Terrain- und ML-Tabellen
+    `bev_buildings`, `gba_buildings`, `osm_buildings`, Terrain- und ML-Tabellen
 
 - Pipeline (`pipeline/`)
   - konvertiert Rohdaten -> GeoParquet
@@ -137,13 +168,20 @@ Falls du einen anderen Speicherort verwenden willst, setze `RASTER_TILES_DIR`
 im Backend-Environment.
 
 ## Dokumentation
-- Analysebericht der Rohdaten: `docs/research/Datenanalyse_InSAR_Salzburg.md`
-- Methodik der aktuellen lokalen Anomalie-Pipeline: `docs/pipelines/anomaly_local_v1/methodik.md`
+
+Start fuer Menschen und KI-Agenten ist das
+[`Dokumentationsrouting`](docs/README.md). Wichtige Sources of Truth:
+
+- Projektziel und Reifegrad:
+  [`Projektziel_InSAR_Building_Intelligence.md`](docs/project/Projektziel_InSAR_Building_Intelligence.md)
+- aktive Methodik: [`methodik.md`](docs/pipelines/anomaly_local_v1/methodik.md)
+- Runbook und Pflicht-AOIs: [`runbook.md`](docs/pipelines/anomaly_local_v1/runbook.md)
+- offene Forschung: [`next_steps.md`](docs/pipelines/anomaly_local_v1/next_steps.md)
 
 ## 4) Verwendung / Inbetriebnahme
 
 ### Voraussetzungen
-- Python 3.12 empfohlen (Python 3.13 benoetigt lokale Builds fuer pyarrow)
+- Python 3.13 bevorzugt
 - Node.js 18+ (Windows-Nutzung empfohlen, um OS-Mismatch zu vermeiden)
 - Docker Desktop
 
@@ -182,8 +220,9 @@ python pipeline/prepare_buildings.py --osm-source overpass
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar
 ```
 
-Nur Teilbereiche laden (z. B. OSM/GBA):
+Nur Teilbereiche laden (z. B. BEV/GBA/OSM):
 ```bash
+python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only bev
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only osm
 python pipeline/load_postgis.py --dsn postgresql://insar:insar@localhost:5432/insar --skip-schema --only gba
 ```
@@ -279,7 +318,10 @@ und lassen sich im Frontend als zusaetzliche Layer darstellen. MLflow speichert 
 und Artefakte (keine Geodaten).
 
 Aktiv gepflegt und im Frontend auswählbar ist nur noch:
-- `anomaly_local_v1` fuer gebaeudelokale Zuordnung, lokale Clusterbildung und Cross-Track-Qualifizierung auf GBA-Basis
+- `anomaly_local_v1` mit Modellset `local_hdbscan_rulegate_v4_k2xhf_diffv2`
+  fuer gebaeudelokale Zuordnung, `standard`-/`annex`-/`foreign`-Cluster,
+  Cross-Track-Plausibilisierung und das Differential-Level
+  `none | candidate | significant | confirmed`; Standardquelle ist BEV
 
 ### ML-Tabellen anlegen (bestehende DB behalten)
 Wenn du die bestehenden Daten behalten willst, lege nur die neuen Tabellen an:
@@ -330,7 +372,7 @@ CREATE TABLE IF NOT EXISTS ml_run_metrics (
 
 CLI-Beispiel:
 ```bash
-python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source gba --track 44 \\
+python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source bev --track 44 \\
   --bbox 12.98,47.75,13.12,47.85 \\
   --params '{"max_distance_m":30,"buffer_multiplier":1.0}'
 ```
