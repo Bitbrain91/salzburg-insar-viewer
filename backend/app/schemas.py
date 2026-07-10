@@ -247,6 +247,7 @@ class MLPointAnalysis(BaseModel):
     building_context: dict[str, Any] = Field(default_factory=dict)
     cross_track_summary: dict[str, Any] = Field(default_factory=dict)
     neighbour_context: dict[str, Any] = Field(default_factory=dict)
+    cluster_kind: Literal["standard", "annex", "foreign"] = "standard"
     cluster_role: Optional[str] = None
     cluster_probability: Optional[float] = None
     cluster_outlier_score: Optional[float] = None
@@ -264,6 +265,7 @@ class MLBuildingPointSummary(BaseModel):
     code: str
     track: int
     cluster_id: Optional[str] = None
+    cluster_kind: Literal["standard", "annex", "foreign"] = "standard"
     cluster_role: Optional[str] = None
     label: Optional[str] = None
     quality_score: Optional[float] = None
@@ -286,6 +288,7 @@ class MLBuildingClusterSummary(BaseModel):
     dataset_id: str
     sensor: Optional[str] = None
     cluster_id: str
+    cluster_kind: Literal["standard", "annex", "foreign"] = "standard"
     building_source: str
     building_id: str
     track: int
@@ -324,6 +327,7 @@ class MLBuildingAnalysis(BaseModel):
     run_id: str
     pipeline: str
     run_type: str
+    model_set_version: Optional[str] = None
     area_id: str
     building_source: str
     building_id: str
@@ -340,8 +344,8 @@ class MLBuildingAnalysis(BaseModel):
     weak_secondary_track_flag: bool = False
     agreement_tension_flag: bool = False
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
-    differential_motion_flag: bool = False
-    differential_motion_level: str = "none"
+    differential_motion_level: Optional[Literal["none", "candidate", "significant", "confirmed"]] = None
+    differential_motion_evidence: Optional[dict[str, Any]] = None
     building_status: Optional[str] = None
     main_cluster_by_track: dict[str, Optional[str]] = Field(default_factory=dict)
     neighbour_context_available: bool = False
@@ -386,6 +390,7 @@ class MLBuildingVisualizationPointsResponse(BaseModel):
     run_id: str
     pipeline: str
     run_type: str
+    model_set_version: Optional[str] = None
     building_source: str
     building_id: str
     point_count: int = 0
@@ -407,8 +412,8 @@ class MLBuildingVisualizationSummary(BaseModel):
     agreement_tension_flag: bool = False
     reliability_penalties: List[MLReliabilityPenalty] = Field(default_factory=list)
     building_status: Optional[str] = None
-    differential_motion_flag: bool = False
-    differential_motion_level: str = "none"
+    differential_motion_level: Optional[Literal["none", "candidate", "significant", "confirmed"]] = None
+    differential_motion_evidence: Optional[dict[str, Any]] = None
     neighbour_context_available: bool = False
     neighbour_candidate_building_count: int = 0
     neighbour_misassignment_point_count: int = 0
@@ -424,6 +429,7 @@ class MLBuildingVisualizationContextResponse(BaseModel):
     run_id: str
     pipeline: str
     run_type: str
+    model_set_version: Optional[str] = None
     building_source: str
     building_id: str
     bounds: List[float] = Field(default_factory=list)

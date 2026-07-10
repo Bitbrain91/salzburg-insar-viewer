@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AppConfigResponse } from "../lib/configMetadata";
+import type { MlClusterKind } from "../lib/mlClusterKind";
 import type { BuildingSource } from "../lib/store";
 
 export const apiBase =
@@ -274,6 +275,7 @@ export type MlPointAnalysis = {
   cross_track_summary: Record<string, unknown>;
   neighbour_context: MlPointNeighbourContext;
   cluster_role: string | null;
+  cluster_kind: MlClusterKind | null;
   cluster_probability: number | null;
   cluster_outlier_score: number | null;
   gate_excluded: boolean | null;
@@ -297,6 +299,7 @@ export type MlBuildingPointSummary = {
   track: number;
   cluster_id: string | null;
   cluster_role: string | null;
+  cluster_kind: MlClusterKind | null;
   label: string | null;
   quality_score: number | null;
   anomaly_score: number | null;
@@ -322,6 +325,7 @@ export type MlBuildingClusterSummary = {
   building_id: string;
   track: number;
   cluster_role: string;
+  cluster_kind: MlClusterKind;
   is_main_cluster: boolean;
   cluster_rank: number | null;
   cluster_color_index: number | null;
@@ -356,7 +360,8 @@ export type DifferentialMotionLevel =
   | "none"
   | "candidate"
   | "significant"
-  | "confirmed";
+  | "confirmed"
+  | null;
 
 export type MlBuildingNeighbourhoodSummary = {
   neighbour_context_available: boolean;
@@ -375,6 +380,7 @@ export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
   run_id: string;
   pipeline: string;
   run_type: string;
+  model_set_version: string | null;
   building_source: string;
   building_id: string;
   point_count: number;
@@ -390,8 +396,8 @@ export type MlBuildingAnalysis = MlBuildingNeighbourhoodSummary & {
   weak_secondary_track_flag: boolean;
   agreement_tension_flag: boolean;
   reliability_penalties: MlReliabilityPenalty[];
-  differential_motion_flag: boolean;
   differential_motion_level: DifferentialMotionLevel;
+  differential_motion_evidence: Record<string, unknown> | null;
   building_status: string | null;
   main_cluster_by_track: Record<string, string | null>;
   track_motion_mm_a: Record<string, number | null>;
@@ -421,6 +427,7 @@ export type MlBuildingVisualizationPointsResponse = {
   run_id: string;
   pipeline: string;
   run_type: string;
+  model_set_version: string | null;
   building_source: string;
   building_id: string;
   point_count: number;
@@ -442,14 +449,15 @@ export type MlBuildingVisualizationSummary = MlBuildingNeighbourhoodSummary & {
   agreement_tension_flag: boolean;
   reliability_penalties: MlReliabilityPenalty[];
   building_status: string | null;
-  differential_motion_flag: boolean;
   differential_motion_level: DifferentialMotionLevel;
+  differential_motion_evidence: Record<string, unknown> | null;
 };
 
 export type MlBuildingVisualizationContextResponse = {
   run_id: string;
   pipeline: string;
   run_type: string;
+  model_set_version: string | null;
   building_source: string;
   building_id: string;
   bounds: number[];

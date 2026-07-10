@@ -26,9 +26,17 @@ import {
   getMlBuildingPoints,
   getMlRunDetail,
 } from "../hooks/useApi";
+import type { DifferentialMotionLevel } from "../hooks/useApi";
 import { getTrackVisibilityKey, normalizeAppConfig } from "../lib/configMetadata";
 import type { NormalizedAppConfig, TrackMetadata } from "../lib/configMetadata";
 import { mlPalette } from "../lib/mlPalette";
+import {
+  ML_CLUSTER_KIND_COLORS,
+  V3_ANNEX_CLASSIFICATION_NOTE,
+  formatMlClusterKindForModel,
+  isV3ModelSetVersion,
+  type MlClusterKind,
+} from "../lib/mlClusterKind";
 import { useAppStore } from "../lib/store";
 import type {
   BuildingSource,
@@ -154,6 +162,16 @@ const clusterPaletteExpression: any[] = [
   "#9aa0a6",
 ];
 
+const clusterKindColorExpression: any[] = [
+  "match",
+  ["get", "cluster_kind"],
+  "annex",
+  ML_CLUSTER_KIND_COLORS.annex,
+  "foreign",
+  ML_CLUSTER_KIND_COLORS.foreign,
+  clusterPaletteExpression,
+];
+
 const mlClusterColorExpression: any[] = [
   "case",
   ["==", ["get", "gate_excluded"], true],
@@ -164,7 +182,7 @@ const mlClusterColorExpression: any[] = [
   "#c6372a",
   ["==", ["get", "cluster_role"], "insufficient_support"],
   "#f2c14e",
-  clusterPaletteExpression,
+  clusterKindColorExpression,
 ];
 
 const mlBuildingColorExpression: any[] = [
@@ -404,6 +422,44 @@ function readStringFeatureProperty(
   return undefined;
 }
 
+function readDifferentialMotionLevel(
+  properties: Record<string, unknown>
+): DifferentialMotionLevel {
+  const value = readFeatureProperty(properties, "differential_motion_level");
+  return value === "none" ||
+    value === "candidate" ||
+    value === "significant" ||
+    value === "confirmed"
+    ? value
+    : null;
+}
+
+function formatDifferentialMotionLevel(level: DifferentialMotionLevel) {
+  if (level === null) {
+    return "historischer Modellstand – Differential-Level nicht verfügbar";
+  }
+  const labels: Record<Exclude<DifferentialMotionLevel, null>, string> = {
+    none: "none – keine differenzielle Bewegung",
+    candidate: "candidate – Kandidat",
+    significant: "significant – signifikant",
+    confirmed: "confirmed – bestätigt",
+  };
+  return labels[level];
+}
+
+function readMlClusterKind(properties: Record<string, unknown>): MlClusterKind | null {
+  const value = readFeatureProperty(properties, "cluster_kind");
+  return value === "standard" || value === "annex" || value === "foreign" ? value : null;
+}
+
+function formatModelSetVersion(properties: Record<string, unknown>) {
+  const modelSetVersion = readStringFeatureProperty(properties, "model_set_version");
+  if (!modelSetVersion) return "—";
+  return isV3ModelSetVersion(modelSetVersion)
+    ? `${modelSetVersion} – Annex: ${V3_ANNEX_CLASSIFICATION_NOTE}`
+    : modelSetVersion;
+}
+
 function readStringArrayFeatureProperty(
   properties: Record<string, unknown>,
   ...keys: string[]
@@ -604,10 +660,7 @@ function formatMlBuildingTooltip(properties: Record<string, unknown>, title: str
   const reliabilityBand = readFeatureProperty(properties, "building_reliability_band");
   const buildingStatus = readFeatureProperty(properties, "building_status");
   const trackAgreement = readNumberFeatureProperty(properties, "track_agreement_score");
-  const differentialMotion = readBooleanFeatureProperty(
-    properties,
-    "differential_motion_flag"
-  );
+  const differentialMotionLevel = readDifferentialMotionLevel(properties);
   const clusterCount = readNumberFeatureProperty(properties, "cluster_count");
   const reliableClusterCount = readNumberFeatureProperty(properties, "reliable_cluster_count");
 
@@ -615,6 +668,7 @@ function formatMlBuildingTooltip(properties: Record<string, unknown>, title: str
         <strong>${title}</strong><br/>
         Source: ${buildingSource === undefined || buildingSource === null ? "—" : String(buildingSource)}<br/>
         ID: ${buildingId === undefined || buildingId === null ? "—" : String(buildingId)}<br/>
+        Modell: ${formatModelSetVersion(properties)}<br/>
         Height: ${heightM === null ? "—" : `${heightM.toFixed(1)} m`}<br/>
         Motion: ${motion === null ? "—" : `${motion.toFixed(2)} mm/yr`}<br/>
         Reliability: ${reliabilityScore === null ? "—" : reliabilityScore.toFixed(2)} (${
@@ -622,7 +676,7 @@ function formatMlBuildingTooltip(properties: Record<string, unknown>, title: str
         })<br/>
         Status: ${buildingStatus === undefined || buildingStatus === null ? "—" : String(buildingStatus)}<br/>
         Track agreement: ${trackAgreement === null ? "—" : trackAgreement.toFixed(2)}${formatRetuningTooltipLine(properties)}<br/>
-        Differential motion: ${formatTooltipYesNo(differentialMotion)}<br/>
+        Differential level: ${formatDifferentialMotionLevel(differentialMotionLevel)}<br/>
         Clusters: ${clusterCount === null ? "—" : clusterCount.toFixed(0)} / Reliable: ${
           reliableClusterCount === null ? "—" : reliableClusterCount.toFixed(0)
         }${formatNeighbourBuildingTooltipLines(properties)}
@@ -1759,7 +1813,7 @@ export default function MapView() {
       type: "fill",
       source: "ml_focus_hulls",
       paint: {
-        "fill-color": clusterPaletteExpression,
+        "fill-color": clusterKindColorExpression,
         "fill-opacity": 0.16,
       },
     });
@@ -1769,7 +1823,7 @@ export default function MapView() {
       type: "line",
       source: "ml_focus_hulls",
       paint: {
-        "line-color": clusterPaletteExpression,
+        "line-color": clusterKindColorExpression,
         "line-width": 3,
         "line-opacity": 0.95,
       },
@@ -1781,7 +1835,7 @@ export default function MapView() {
       source: "ml_focus_hulls",
       paint: {
         "circle-radius": 9,
-        "circle-color": clusterPaletteExpression,
+        "circle-color": clusterKindColorExpression,
         "circle-opacity": 0.98,
         "circle-stroke-width": 2,
         "circle-stroke-color": "#ffffff",
@@ -2711,6 +2765,10 @@ export default function MapView() {
         Cluster: ${props.cluster_id || props.cluster_role || "—"}${
           props.is_main_cluster ? " (main)" : ""
         }<br/>
+        Cluster-Typ: ${formatMlClusterKindForModel(
+          readMlClusterKind(props),
+          readStringFeatureProperty(props, "model_set_version")
+        )}<br/>
         Rank: ${props.cluster_rank ?? "—"}<br/>
         Quality: ${
           props.quality_score !== undefined && props.quality_score !== null
@@ -2742,6 +2800,10 @@ export default function MapView() {
         <strong>ML Result</strong><br/>
         Label: ${props.label || props.cluster_id || "—"}<br/>
         Building: ${props.building_id || "—"}<br/>
+        Cluster-Typ: ${formatMlClusterKindForModel(
+          readMlClusterKind(props),
+          readStringFeatureProperty(props, "model_set_version")
+        )}<br/>
         Main cluster: ${props.is_main_cluster ? "yes" : "no"}<br/>
         Quality: ${
           props.quality_score !== undefined && props.quality_score !== null
@@ -2865,6 +2927,7 @@ export default function MapView() {
       coherence: readNumberFeatureProperty(props, "coherence"),
       clusterId: readStringFeatureProperty(props, "cluster_id"),
       clusterRole: readStringFeatureProperty(props, "cluster_role"),
+      clusterKind: readMlClusterKind(props),
       clusterRank: readNumberFeatureProperty(props, "cluster_rank"),
       isMainCluster: readBooleanFeatureProperty(props, "is_main_cluster"),
       label: readStringFeatureProperty(props, "label"),
@@ -2949,7 +3012,7 @@ export default function MapView() {
         setSelection({
           type: "point",
           code: String(props.code),
-          track,
+          track: track ?? undefined,
           areaId,
           datasetId,
           sensor: readStringFeatureProperty(props, "sensor", "platform"),

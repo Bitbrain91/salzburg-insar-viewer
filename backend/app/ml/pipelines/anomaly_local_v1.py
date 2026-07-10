@@ -1412,11 +1412,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                     record.building_context["building_reliability_band"] = building_rollup.get(
                         "building_reliability_band"
                     )
-                    record.building_context["differential_motion_flag"] = building_rollup.get(
-                        "differential_motion_flag"
-                    )
                     record.building_context["differential_motion_level"] = building_rollup.get(
                         "differential_motion_level"
+                    )
+                    record.building_context["differential_motion_evidence"] = building_rollup.get(
+                        "differential_motion_evidence"
                     )
 
         return {
@@ -1449,6 +1449,10 @@ class AnomalyLocalV1Pipeline(BasePipeline):
         # P8-B-W2-T4: Punktlisten je (track, cluster_id) fuer die analytische
         # Sigma-Schaetzung des Differential-Motion-Levels aufheben.
         cluster_point_records: dict[tuple[int, str], list[LocalPointRecord]] = {}
+        # Das signierte Delta wird nach der Main-Wahl genau einmal berechnet.
+        # Der bestehende Betrag im Cluster-Rollup und die Level-Evidenz leiten
+        # sich beide aus diesem kanonischen Wert ab.
+        cluster_motion_delta_signed: dict[tuple[int, str], float] = {}
         reliable_cluster_count = 0
         cluster_count = 0
 
@@ -1589,9 +1593,9 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 elif cluster["is_main_cluster"]:
                     cluster["motion_delta_to_main_mm_a"] = 0.0
                 else:
-                    cluster["motion_delta_to_main_mm_a"] = float(
-                        abs(float(cluster["median_vertical_proxy_mm_a"]) - main_cluster_motion)
-                    )
+                    signed_delta = float(cluster["median_vertical_proxy_mm_a"]) - main_cluster_motion
+                    cluster_motion_delta_signed[(track, str(cluster["cluster_id"]))] = signed_delta
+                    cluster["motion_delta_to_main_mm_a"] = abs(signed_delta)
                 cluster_rollups[(track, str(cluster["cluster_id"]))] = {
                     key: value
                     for key, value in cluster.items()
@@ -1646,37 +1650,11 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             and motion_95 is not None
         )
 
-        differential_motion_flag = False
-        for track, track_rollup in track_rollups.items():
-            main_cluster_id = track_rollup.get("main_cluster_id")
-            main_cluster_motion = track_rollup.get("track_motion_mm_a")
-            if main_cluster_id is None or main_cluster_motion is None:
-                continue
-            reliable_clusters = [
-                cluster
-                for cluster in cluster_rollups.values()
-                if cluster["track"] == track
-                and cluster["cluster_role"] == "core"
-                and int(cluster["point_count"]) >= 2
-            ]
-            if len(reliable_clusters) < 2:
-                continue
-            threshold = max(1.5, allowed_diff)
-            for cluster in reliable_clusters:
-                if cluster["cluster_id"] == main_cluster_id:
-                    continue
-                delta = cluster.get("motion_delta_to_main_mm_a")
-                if delta is not None and float(delta) >= threshold:
-                    differential_motion_flag = True
-                    break
-            if differential_motion_flag:
-                break
-
         # P8-B-W2-T4: dreistufiges Differential-Motion-Level (deterministisch,
-        # kein RNG). candidate == exakt die Flag-Regel oben (Level>none <=> Flag);
+        # kein RNG). candidate bildet die physikalische Delta-Schwelle ab;
         # significant/confirmed verschaerfen ueber analytisches Sigma bzw. eine
-        # zweite Geometrie, Plausibilitaets-Downgrades druecken zurueck (Floor
-        # candidate). Das bool differential_motion_flag bleibt unberuehrt.
+        # zweite Geometrie. Plausibilitaets-Downgrades druecken bis zum Floor
+        # candidate zurueck. Das Level ist die einzige aktive Gebaeudesemantik.
         level_rank = {"none": 0, "candidate": 1, "significant": 2, "confirmed": 3}
         rank_to_level = {rank: level for level, rank in level_rank.items()}
         candidate_threshold = max(1.5, allowed_diff)
@@ -1701,10 +1679,13 @@ class AnomalyLocalV1Pipeline(BasePipeline):
                 proxy = cluster.get("median_vertical_proxy_mm_a")
                 if proxy is None:
                     continue
+                delta_signed = cluster_motion_delta_signed.get((track, cluster_id))
+                if delta_signed is None:
+                    continue
                 secondaries.append(
                     {
                         "cluster_id": cluster_id,
-                        "delta_signed": float(proxy) - float(main_cluster_motion),
+                        "delta_signed": delta_signed,
                         "annex": bool(cluster.get("annex_flag")),
                     }
                 )
@@ -1925,7 +1906,6 @@ class AnomalyLocalV1Pipeline(BasePipeline):
             "weak_secondary_track_flag": weak_secondary_track_flag,
             "agreement_tension_flag": agreement_tension_flag,
             "reliability_penalties": reliability_penalties,
-            "differential_motion_flag": differential_motion_flag,
             "differential_motion_level": differential_motion_level,
             "differential_motion_evidence": differential_motion_evidence,
             "main_cluster_by_track": {

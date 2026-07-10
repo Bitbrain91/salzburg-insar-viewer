@@ -535,6 +535,14 @@ const definitions: AttributeMetadataDefinition[] = [
     contexts: ["ml-point", "ml-building"],
   },
   {
+    key: "cluster_kind",
+    label: "Cluster-Typ",
+    description:
+      "Semantischer Cluster-Typ: standard fuer regulaere Cluster, annex fuer getrennte Bauteile oder Anbauten und foreign fuer separierte Fremdreflektoren.",
+    source: SOURCE_ML_POINT,
+    contexts: ["ml-point", "ml-building"],
+  },
+  {
     key: "cluster_probability",
     label: "Cluster-Wahrscheinlichkeit",
     description: "Konfidenz, dass der Punkt zum zugewiesenen Cluster passt.",
@@ -1193,16 +1201,9 @@ const definitions: AttributeMetadataDefinition[] = [
     contexts: ["ml-building"],
   },
   {
-    key: "differential_motion_flag",
-    label: "Differentielle Bewegung",
-    description: "Flag, wenn mehrere verlaessliche Cluster innerhalb eines Gebaeudes deutlich unterschiedliche Bewegungen zeigen.",
-    source: SOURCE_ML_BUILDING,
-    contexts: ["ml-building", "ml-point"],
-  },
-  {
     key: "differential_motion_level",
     label: "Differentielle Bewegung (Stufe)",
-    description: "Dreistufige Bewertung der differentiellen Bewegung: keine, Kandidat (Delta ueberschreitet Schwelle), signifikant (Delta > 2*Sigma) oder bestaetigt (zweite Geometrie bestaetigt das Vorzeichen). Plausibilitaets-Downgrades (Saisonamplitude, instabile Amplitude) druecken zurueck auf Kandidat.",
+    description: "Vierstufige Bewertung der differentiellen Bewegung: keine, Kandidat (Delta ueberschreitet Schwelle), signifikant (Delta > 2*Sigma) oder bestaetigt (zweite Geometrie bestaetigt das Vorzeichen). Ein leerer Wert kennzeichnet einen historischen Modellstand ohne Differential-Level. Plausibilitaets-Downgrades (Saisonamplitude, instabile Amplitude) druecken zurueck auf Kandidat.",
     source: SOURCE_ML_BUILDING,
     contexts: ["ml-building", "ml-point"],
   },

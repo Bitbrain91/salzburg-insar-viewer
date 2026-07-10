@@ -6,6 +6,7 @@ import {
   getTrackVisibilityKey,
 } from "./configMetadata";
 import type { PointColorMode } from "./pointStyling";
+import type { MlClusterKind } from "./mlClusterKind";
 
 export type BuildingSource = "bev" | "gba" | "osm";
 
@@ -48,6 +49,7 @@ export type MlBuildingFocusPoint = {
   coherence?: number | null;
   clusterId?: string | null;
   clusterRole?: string | null;
+  clusterKind?: MlClusterKind | null;
   clusterRank?: number | null;
   isMainCluster?: boolean | null;
   label?: string | null;

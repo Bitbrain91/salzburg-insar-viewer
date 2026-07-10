@@ -22,6 +22,7 @@ import {
   type MlBuildingClusterSummary,
   type MlBuildingRunSummary,
   type MlReliabilityPenalty,
+  type DifferentialMotionLevel,
 } from "../hooks/useApi";
 import {
   Badge,
@@ -50,6 +51,15 @@ import {
 } from "../lib/configMetadata";
 import { buildGoogleEarthUrlForGeometry } from "../lib/googleEarth";
 import { mlPalette } from "../lib/mlPalette";
+import {
+  ML_CLUSTER_KIND_COLORS,
+  ML_CLUSTER_KIND_DESCRIPTIONS,
+  ML_CLUSTER_KIND_LABELS,
+  V3_ANNEX_CLASSIFICATION_NOTE,
+  formatMlClusterKindForModel,
+  isV3ModelSetVersion,
+  type MlClusterKind,
+} from "../lib/mlClusterKind";
 
 type InspectorTabId = "overview" | "metrics" | "ml" | "raw";
 
@@ -141,10 +151,14 @@ function formatAssignmentMethod(method: string | null | undefined) {
   return labels[method] ?? method.split("_").join(" ");
 }
 
-function clusterColor(cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role">) {
+function clusterColor(
+  cluster: Pick<MlBuildingClusterSummary, "cluster_color_index" | "cluster_role" | "cluster_kind">
+) {
   if (cluster.cluster_role === "excluded") return "#9aa0a6";
   if (cluster.cluster_role === "noise") return "#c6372a";
   if (cluster.cluster_role === "insufficient_support") return "#f2c14e";
+  if (cluster.cluster_kind === "annex") return ML_CLUSTER_KIND_COLORS.annex;
+  if (cluster.cluster_kind === "foreign") return ML_CLUSTER_KIND_COLORS.foreign;
   const index = cluster.cluster_color_index ?? 0;
   return mlPalette[((index % mlPalette.length) + mlPalette.length) % mlPalette.length];
 }
@@ -216,12 +230,21 @@ type AttributeHint = {
   context: AttributeContext;
 };
 
-const differentialMotionLevelLabels: Record<string, string> = {
+const differentialMotionLevelLabels: Record<Exclude<DifferentialMotionLevel, null>, string> = {
   none: "keine",
   candidate: "Kandidat",
   significant: "signifikant",
   confirmed: "bestaetigt",
 };
+
+const HISTORICAL_DIFFERENTIAL_LEVEL_MESSAGE =
+  "historischer Modellstand – Differential-Level nicht verfügbar";
+
+function formatDifferentialMotionLevel(level: DifferentialMotionLevel | undefined) {
+  return level === null || level === undefined
+    ? HISTORICAL_DIFFERENTIAL_LEVEL_MESSAGE
+    : `${level} – ${differentialMotionLevelLabels[level]}`;
+}
 
 const metricAttributeHints: Record<string, AttributeHint> = {
   "Punktcode": { key: "code", context: "insar-point" },
@@ -826,6 +849,8 @@ export default function InspectorPanel() {
       coherence: getNumber(point.coherence),
       clusterId: getString(point.cluster_id) ?? cluster?.cluster_id ?? null,
       clusterRole: getString(point.cluster_role) ?? cluster?.cluster_role ?? null,
+      clusterKind:
+        (getString(point.cluster_kind) as MlClusterKind | null) ?? cluster?.cluster_kind ?? null,
       clusterRank: getNumber(point.cluster_rank) ?? cluster?.cluster_rank ?? null,
       isMainCluster: getBoolean(point.is_main_cluster) ?? cluster?.is_main_cluster ?? null,
       label: getString(point.label) ?? null,
@@ -1175,9 +1200,9 @@ export default function InspectorPanel() {
       });
     }
 
-    if (analysis.differential_motion_flag) {
-      const level = analysis.differential_motion_level ?? "candidate";
-      const levelText = differentialMotionLevelLabels[level] ?? level;
+    if (analysis.differential_motion_level && analysis.differential_motion_level !== "none") {
+      const level = analysis.differential_motion_level;
+      const levelText = differentialMotionLevelLabels[level];
       const confirmed = level === "significant" || level === "confirmed";
       reasons.push({
         key: "differential_motion",
@@ -2012,6 +2037,8 @@ export default function InspectorPanel() {
         ? point.gateReasons
         : analysis?.gate_reasons ?? [];
     const clusterRole = point.clusterRole ?? analysis?.cluster_role ?? null;
+    const clusterKind = point.clusterKind ?? analysis?.cluster_kind ?? null;
+    const modelSetVersion = analysis?.model_set_version ?? null;
     const clusterProbability = analysis?.cluster_probability ?? null;
     const pointLabel = point.label ?? analysis?.label ?? null;
     const qualityScore = point.qualityScore ?? analysis?.quality_score ?? null;
@@ -2112,6 +2139,10 @@ export default function InspectorPanel() {
             {renderMetric(
               "Clusterrolle / Wahrscheinlichkeit",
               `${fmtStr(clusterRole)} / ${fmtNum(clusterProbability)}`
+            )}
+            {renderMetric(
+              "Cluster-Typ",
+              formatMlClusterKindForModel(clusterKind, modelSetVersion)
             )}
             {renderMetric("Cross-Track-Konsistenz", fmtNum(crossTrackConsistency))}
             {renderMetric("Fuer Scoring genutzt", fmtBool(keptForScoring))}
@@ -2398,6 +2429,8 @@ export default function InspectorPanel() {
       return null;
     }
     const clusters = analysis.clusters;
+    const isV3Model = isV3ModelSetVersion(analysis.model_set_version);
+    const hasAnnexCluster = clusters.some((cluster) => cluster.cluster_kind === "annex");
     const clusterIds = clusters.map((cluster) => cluster.cluster_id);
     const clusterPointCount = clusters
       .filter((cluster) => cluster.cluster_role === "core")
@@ -2450,6 +2483,9 @@ export default function InspectorPanel() {
           {!effectiveShowExcluded && (
             <div className="pill warning">Gate-ausgeschlossene Punkte ausgeblendet</div>
           )}
+          {isV3Model && hasAnnexCluster && (
+            <div className="pill warning">Annex: {V3_ANNEX_CLASSIFICATION_NOTE}</div>
+          )}
         </div>
         <div className="space-y-1.5 my-2">
           <UiLabel>Kartenfokus</UiLabel>
@@ -2482,6 +2518,27 @@ export default function InspectorPanel() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="my-2 flex flex-wrap gap-2" aria-label="Legende der Cluster-Typen">
+          {(["standard", "annex", "foreign"] as const).map((kind) => (
+            <span
+              key={kind}
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+              title={ML_CLUSTER_KIND_DESCRIPTIONS[kind]}
+            >
+              <span
+                className="h-3 w-3 rounded-sm border border-white shadow-sm"
+                style={{
+                  backgroundColor:
+                    kind === "standard" ? mlPalette[0] : ML_CLUSTER_KIND_COLORS[kind],
+                }}
+                aria-hidden="true"
+              />
+              {kind === "annex" && isV3Model
+                ? `${ML_CLUSTER_KIND_LABELS[kind]} – ${V3_ANNEX_CLASSIFICATION_NOTE}`
+                : ML_CLUSTER_KIND_LABELS[kind]}
+            </span>
+          ))}
         </div>
         <label className="flex items-center justify-between gap-3 py-1.5 cursor-pointer">
           <span className="min-w-0 text-sm leading-snug text-foreground">
@@ -2575,6 +2632,19 @@ export default function InspectorPanel() {
                             </span>
                             {cluster.is_main_cluster && <Badge>Hauptcluster</Badge>}
                             <Badge variant="secondary">T{cluster.track}</Badge>
+                            <Badge
+                              variant="secondary"
+                              title={`${ML_CLUSTER_KIND_DESCRIPTIONS[cluster.cluster_kind]}${
+                                cluster.cluster_kind === "annex" && isV3Model
+                                  ? ` ${V3_ANNEX_CLASSIFICATION_NOTE}.`
+                                  : ""
+                              }`}
+                            >
+                              {formatMlClusterKindForModel(
+                                cluster.cluster_kind,
+                                analysis.model_set_version
+                              )}
+                            </Badge>
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
                             {cluster.cluster_role} · Rang {fmtStr(cluster.cluster_rank)}
@@ -2706,10 +2776,20 @@ export default function InspectorPanel() {
                   `${fmtNum(analysis.building_motion_mm_a)} mm/Jahr / ${fmtStr(analysis.building_status)}`
                 )}
                 {renderMetric(
+                  "Modellstand",
+                  isV3ModelSetVersion(analysis.model_set_version)
+                    ? `${fmtStr(analysis.model_set_version)} – Annex: ${V3_ANNEX_CLASSIFICATION_NOTE}`
+                    : fmtStr(analysis.model_set_version)
+                )}
+                {renderMetric(
                   "Zuverlaessigkeit",
                   `${fmtNum(analysis.building_reliability_score)} / ${fmtStr(analysis.building_reliability_band)}`
                 )}
                 {renderMetric("Track-Uebereinstimmung", fmtNum(analysis.track_agreement_score))}
+                {renderMetric(
+                  "Differential-Level",
+                  formatDifferentialMotionLevel(analysis.differential_motion_level)
+                )}
                 {renderMetric(
                   "Hauptcluster",
                   formatTrackStringMap(analysis.main_cluster_by_track)
@@ -2737,9 +2817,7 @@ export default function InspectorPanel() {
                   {renderMetric("Cluster / belastbar", `${analysis.cluster_count} / ${analysis.reliable_cluster_count}`)}
                   {renderMetric(
                     "Differenzielle Bewegung",
-                    differentialMotionLevelLabels[analysis.differential_motion_level] ??
-                      analysis.differential_motion_level ??
-                      (analysis.differential_motion_flag ? "ja" : "nein")
+                    formatDifferentialMotionLevel(analysis.differential_motion_level)
                   )}
                   {renderMetric(
                     "Kontext",

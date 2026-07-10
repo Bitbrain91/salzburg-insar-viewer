@@ -31,6 +31,7 @@ from ..schemas import (
     MLRunSummary,
 )
 from ..ml.colors import assign_building_colors
+from ..ml.cluster_semantics import cluster_kind_from_id, cluster_kind_sql
 from ..ml.rollups import (
     building_rollup_from_meta,
     cluster_rollup_from_meta,
@@ -129,6 +130,11 @@ def _rollup_str(rollup: dict[str, Any], key: str) -> str | None:
     return _nested_str({"value": rollup.get(key)}, "value")
 
 
+def _rollup_object(rollup: dict[str, Any], key: str) -> dict[str, Any] | None:
+    value = rollup.get(key)
+    return value if isinstance(value, dict) else None
+
+
 def _optional_float(value: Any) -> float | None:
     if value is None:
         return None
@@ -154,6 +160,24 @@ def _point_clustering_features(
         if coherence is not None
         else 1.0,
     }
+
+
+def _public_building_context(meta: dict[str, Any]) -> dict[str, Any]:
+    context = _nested_dict(meta, "building_context")
+    rollup = building_rollup_from_meta(meta)
+    active_differential_keys = {
+        "differential_motion_level",
+        "differential_motion_evidence",
+    }
+    public_context = {
+        key: value
+        for key, value in context.items()
+        if not (key.startswith("differential_motion_") and key not in active_differential_keys)
+    }
+    for key in active_differential_keys:
+        if key in rollup:
+            public_context[key] = rollup[key]
+    return public_context
 
 
 def _explain_top_features(meta: dict[str, Any]) -> list[dict[str, Any]]:
@@ -490,6 +514,7 @@ async def ml_point_analysis(
             r.dataset_id,
             r.code,
             r.track,
+            r.cluster_id,
             p.sensor,
             p.velocity,
             p.velocity_std,
@@ -546,7 +571,7 @@ async def ml_point_analysis(
     meta = _parse_meta(row.get("meta"))
     cluster_meta = _nested_dict(meta, "cluster")
     visual_meta = _nested_dict(meta, "visual_context")
-    building_meta = _nested_dict(meta, "building_context")
+    building_meta = _public_building_context(meta)
     explain = _explain_top_features(meta)
 
     return MLPointAnalysisResponse(
@@ -581,6 +606,7 @@ async def ml_point_analysis(
             building_context=building_meta,
             cross_track_summary=meta.get("cross_track_summary") or {},
             neighbour_context=_nested_dict(meta, "neighbour_context"),
+            cluster_kind=cluster_kind_from_id(row.get("cluster_id")),
             cluster_role=cluster_meta.get("cluster_role"),
             cluster_probability=_nested_float(meta, "cluster", "cluster_probability"),
             cluster_outlier_score=_nested_float(meta, "cluster", "cluster_outlier_score"),
@@ -670,6 +696,7 @@ async def ml_building_analysis(
                 r.anomaly_score,
                 r.cross_track_consistency,
                 r.distance_m,
+                r.model_set_version,
                 r.meta,
                 COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index
             FROM ml_point_results r
@@ -758,8 +785,8 @@ async def ml_building_analysis(
             "weak_secondary_track_flag": False,
             "agreement_tension_flag": False,
             "reliability_penalties": [],
-            "differential_motion_flag": False,
-            "differential_motion_level": "none",
+            "differential_motion_level": None,
+            "differential_motion_evidence": None,
             "main_cluster_by_track": {},
             "neighbour_context_available": False,
             "neighbour_candidate_building_count": 0,
@@ -783,6 +810,11 @@ async def ml_building_analysis(
         run_id=str(run["run_id"]),
         pipeline=run["pipeline"],
         run_type=run["run_type"],
+        model_set_version=(
+            str(rows[0]["model_set_version"])
+            if rows and rows[0].get("model_set_version") is not None
+            else None
+        ),
         area_id=selected_area_id,
         building_source=source,
         building_id=building_id,
@@ -802,8 +834,11 @@ async def ml_building_analysis(
             {"value": building_rollup.get("reliability_penalties")},
             "value",
         ),
-        differential_motion_flag=_rollup_bool(building_rollup, "differential_motion_flag"),
-        differential_motion_level=_rollup_str(building_rollup, "differential_motion_level") or "none",
+        differential_motion_level=_rollup_str(building_rollup, "differential_motion_level"),
+        differential_motion_evidence=_rollup_object(
+            building_rollup,
+            "differential_motion_evidence",
+        ),
         building_status=_rollup_str(building_rollup, "building_status"),
         main_cluster_by_track=track_string_map(building_rollup.get("main_cluster_by_track")),
         neighbour_context_available=_rollup_bool(building_rollup, "neighbour_context_available"),
@@ -840,6 +875,7 @@ async def ml_building_analysis(
                 area_id=selected_area_id,
                 dataset_id=run["dataset_id"],
                 cluster_id=str(values["cluster_id"]),
+                cluster_kind=cluster_kind_from_id(values["cluster_id"]),
                 building_source=str(values.get("building_source") or source),
                 building_id=str(values.get("building_id") or building_id),
                 track=int(values["track"]),
@@ -909,6 +945,7 @@ async def ml_building_analysis(
                 code=row["code"],
                 track=row["track"],
                 cluster_id=row.get("cluster_id"),
+                cluster_kind=cluster_kind_from_id(row.get("cluster_id")),
                 cluster_role=_nested_dict(_parse_meta(row.get("meta")), "cluster").get("cluster_role"),
                 label=row["label"],
                 quality_score=row["quality_score"],
@@ -1006,6 +1043,7 @@ async def ml_building_points_visualization(
                 r.quality_score,
                 r.cross_track_consistency,
                 r.distance_m,
+                r.model_set_version,
                 r.meta,
                 COALESCE(cc.cluster_color_index, {CLUSTER_COLOR_OFFSET}) AS cluster_color_index,
                 ST_AsGeoJSON(p.geom)::jsonb AS geometry
@@ -1061,6 +1099,7 @@ async def ml_building_points_visualization(
                     "acceleration": row.get("acceleration"),
                     "coherence": row.get("coherence"),
                     "cluster_id": row.get("cluster_id"),
+                    "cluster_kind": cluster_kind_from_id(row.get("cluster_id")),
                     "cluster_role": cluster_meta.get("cluster_role"),
                     "cluster_probability": _nested_float(meta, "cluster", "cluster_probability"),
                     "cluster_outlier_score": _nested_float(meta, "cluster", "cluster_outlier_score"),
@@ -1071,6 +1110,7 @@ async def ml_building_points_visualization(
                     "anomaly_score": row.get("anomaly_score"),
                     "quality_score": row.get("quality_score"),
                     "cross_track_consistency": row.get("cross_track_consistency"),
+                    "model_set_version": row.get("model_set_version"),
                     "assignment_method": building_meta.get("assignment_method") or visual_meta.get("assignment_method"),
                     "distance_m": row.get("distance_m"),
                     "clustering_features": _point_clustering_features(row, building_meta),
@@ -1109,13 +1149,13 @@ async def ml_building_points_visualization(
                         {"value": building_rollup.get("reliability_penalties")},
                         "value",
                     ),
-                    "differential_motion_flag": bool(
-                        building_rollup.get("differential_motion_flag", False)
-                    ),
                     "differential_motion_level": _rollup_str(
                         building_rollup, "differential_motion_level"
-                    )
-                    or "none",
+                    ),
+                    "differential_motion_evidence": _rollup_object(
+                        building_rollup,
+                        "differential_motion_evidence",
+                    ),
                     "allowed_diff_mm_a": cross_meta.get("allowed_diff_mm_a"),
                     "context_available": _rollup_bool(neighbour_context, "context_available"),
                     "candidate_neighbour_count": _rollup_int(
@@ -1171,6 +1211,11 @@ async def ml_building_points_visualization(
         run_id=str(run["run_id"]),
         pipeline=run["pipeline"],
         run_type=run["run_type"],
+        model_set_version=(
+            str(rows[0]["model_set_version"])
+            if rows and rows[0].get("model_set_version") is not None
+            else None
+        ),
         building_source=source,
         building_id=building_id,
         point_count=len(features),
@@ -1445,7 +1490,7 @@ async def ml_building_context_visualization(
 
         summary_row = await conn.fetchrow(
             """
-            SELECT meta
+            SELECT meta, model_set_version
             FROM ml_point_results
             WHERE run_id = $1::uuid
               AND area_id = $4
@@ -1490,6 +1535,7 @@ async def ml_building_context_visualization(
             geometry=_json_object(row["geometry"]),
             properties={
                 "cluster_id": row["cluster_id"],
+                "cluster_kind": cluster_kind_from_id(row["cluster_id"]),
                 "dataset_id": row["dataset_id"],
                 "track": row["track"],
                 "point_count": row["point_count"],
@@ -1504,6 +1550,11 @@ async def ml_building_context_visualization(
         run_id=str(run["run_id"]),
         pipeline=run["pipeline"],
         run_type=run["run_type"],
+        model_set_version=(
+            str(summary_row["model_set_version"])
+            if summary_row and summary_row.get("model_set_version") is not None
+            else None
+        ),
         building_source=source,
         building_id=building_id,
         bounds=[float(value) for value in (building_row.get("bounds") or [])],
@@ -1536,9 +1587,14 @@ async def ml_building_context_visualization(
                 "value",
             ),
             "building_status": summary_rollup.get("building_status"),
-            "differential_motion_flag": _rollup_bool(summary_rollup, "differential_motion_flag"),
-            "differential_motion_level": _rollup_str(summary_rollup, "differential_motion_level")
-            or "none",
+            "differential_motion_level": _rollup_str(
+                summary_rollup,
+                "differential_motion_level",
+            ),
+            "differential_motion_evidence": _rollup_object(
+                summary_rollup,
+                "differential_motion_evidence",
+            ),
             "neighbour_context_available": _rollup_bool(
                 summary_rollup,
                 "neighbour_context_available",
@@ -1618,6 +1674,7 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                 r.code,
                 r.track,
                 r.cluster_id,
+                {cluster_kind_sql("r.cluster_id")} AS cluster_kind,
                 r.building_source,
                 r.building_id,
                 r.distance_m,
@@ -1654,8 +1711,9 @@ async def ml_tiles(request: Request, run_id: str, z: int, x: int, y: int) -> Res
                     AS agreement_tension_flag,
                 COALESCE((r.meta->'building_rollup'->'reliability_penalties')::text, '[]')
                     AS reliability_penalties_json,
-                COALESCE((r.meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
-                COALESCE(r.meta->'building_rollup'->>'differential_motion_level', 'none') AS differential_motion_level,
+                r.meta->'building_rollup'->>'differential_motion_level' AS differential_motion_level,
+                r.meta->'building_rollup'->>'differential_motion_evidence'
+                    AS differential_motion_evidence_json,
                 (r.meta->'building_rollup'->>'building_status') AS building_status,
                 (r.meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
                 (r.meta->'building_rollup'->>'cluster_count')::integer AS building_cluster_count,
@@ -1724,6 +1782,7 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 area_id,
                 building_source,
                 building_id,
+                model_set_version,
                 (meta->'building_rollup'->>'building_motion_mm_a')::double precision AS building_motion_mm_a,
                 (meta->'building_rollup'->>'building_reliability_score')::double precision AS building_reliability_score,
                 (meta->'building_rollup'->>'building_reliability_band') AS building_reliability_band,
@@ -1733,8 +1792,9 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                     AS agreement_tension_flag,
                 COALESCE((meta->'building_rollup'->'reliability_penalties')::text, '[]')
                     AS reliability_penalties_json,
-                COALESCE((meta->'building_rollup'->>'differential_motion_flag')::boolean, false) AS differential_motion_flag,
-                COALESCE(meta->'building_rollup'->>'differential_motion_level', 'none') AS differential_motion_level,
+                meta->'building_rollup'->>'differential_motion_level' AS differential_motion_level,
+                meta->'building_rollup'->>'differential_motion_evidence'
+                    AS differential_motion_evidence_json,
                 (meta->'building_rollup'->>'building_status') AS building_status,
                 (meta->'building_rollup'->>'track_agreement_score')::double precision AS track_agreement_score,
                 (meta->'building_rollup'->>'cluster_count')::integer AS cluster_count,
@@ -1834,8 +1894,9 @@ async def ml_buildings_tiles(request: Request, run_id: str, z: int, x: int, y: i
                 rollups.weak_secondary_track_flag,
                 rollups.agreement_tension_flag,
                 rollups.reliability_penalties_json,
-                rollups.differential_motion_flag,
                 rollups.differential_motion_level,
+                rollups.differential_motion_evidence_json,
+                rollups.model_set_version,
                 rollups.building_status,
                 rollups.track_agreement_score,
                 rollups.cluster_count,

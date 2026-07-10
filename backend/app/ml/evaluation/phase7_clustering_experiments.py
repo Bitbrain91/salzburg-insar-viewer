@@ -166,6 +166,10 @@ GEOM_EXTRAS_QUERY_TEMPLATE = """
             ST_Distance(p.geom::geography, b.geom::geography) AS d_fp_db
         FROM {building_table} b
         WHERE b.area_id = $5
+          -- Indexierbare, konservative Vorbedingung: 0.001 Grad sind in
+          -- Salzburg/Bad Gastein selbst in Ost-West-Richtung > 60 m. Das
+          -- exakte Geography-DWithin bleibt die fachliche Entscheidung.
+          AND b.geom && ST_Expand(e.geom, 0.001)
           AND ST_DWithin(b.geom::geography, e.geom::geography, 60.0)
         ORDER BY b.geom <-> p.geom
         LIMIT 1
@@ -1192,15 +1196,21 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
     # P8-F (report-only): aktive Differential-Level je Gebaeude inkl.
     # Quell-Cluster - macht den Diff noop<->sepcls_* maschinell auswertbar
     # (pure-geometric annex-Quellen muessen unter anti_foreign verschwinden).
-    diff_levels: dict[str, Any] = {}
+    diff_levels: dict[str, dict[str, str | None]] = {}
+    missing_diff_levels: list[str] = []
     diff_seen: set[str] = set()
     for r in records:
         if not r.building_id or r.building_id in diff_seen or not r.building_rollup:
             continue
         diff_seen.add(r.building_id)
-        level = str(r.building_rollup.get("differential_motion_level") or "none")
+        raw_level = r.building_rollup.get("differential_motion_level")
+        level = raw_level if isinstance(raw_level, str) else None
+        if level is None:
+            missing_diff_levels.append(r.building_id)
+            continue
         if level != "none":
-            evidence = r.building_rollup.get("differential_motion_evidence") or {}
+            raw_evidence = r.building_rollup.get("differential_motion_evidence")
+            evidence = raw_evidence if isinstance(raw_evidence, dict) else {}
             diff_levels[r.building_id] = {
                 "level": level,
                 "cluster_id": evidence.get("cluster_id"),
@@ -1214,6 +1224,8 @@ def summarize_records(records: list[LocalPointRecord]) -> dict[str, Any]:
         "building_status_counts": dict(Counter(statuses.values())),
         "building_statuses": statuses,
         "building_differential_levels": diff_levels,
+        "building_differential_level_missing": sorted(missing_diff_levels),
+        "building_differential_level_missing_count": len(missing_diff_levels),
         "multi_cluster_buildings": multi,
         "multi_cluster_buildings_robust": multi_robust,
         "nearest_dominated_main_clusters": nearest_main,

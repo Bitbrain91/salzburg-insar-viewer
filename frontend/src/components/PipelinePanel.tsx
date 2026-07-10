@@ -28,6 +28,11 @@ import {
   Switch,
 } from "./ui";
 import { cn } from "@/lib/utils";
+import {
+  ML_CLUSTER_KIND_COLORS,
+  ML_CLUSTER_KIND_LABELS,
+  type MlClusterKind,
+} from "../lib/mlClusterKind";
 
 const localAnomalyViews = [
   "cluster",
@@ -37,6 +42,13 @@ const localAnomalyViews = [
   "reliability",
 ] as const;
 const PIPELINE_NAME = "anomaly_local_v1";
+const PIPELINE_BUILDING_SOURCE = { value: "bev", label: "BEV" } as const;
+
+const clusterKindLegend: Array<{ kind: MlClusterKind; color: string }> = [
+  { kind: "standard", color: "linear-gradient(90deg, #d92626, #26d95b, #265bd9)" },
+  { kind: "annex", color: ML_CLUSTER_KIND_COLORS.annex },
+  { kind: "foreign", color: ML_CLUSTER_KIND_COLORS.foreign },
+];
 
 type LocalAnomalyView = (typeof localAnomalyViews)[number];
 
@@ -235,7 +247,7 @@ export default function PipelinePanel() {
       pipeline,
       area_id: selectedAreaId,
       dataset_id: selectedDataset.id,
-      source: "bev",
+      source: PIPELINE_BUILDING_SOURCE.value,
       track: track === "all" ? null : Number(track),
       bbox: mapBBox,
       params,
@@ -302,7 +314,7 @@ export default function PipelinePanel() {
         </div>
 
         <Badge variant="secondary" className="font-normal">
-          AOI: {areaLabel}. Gebäudequelle ist für {pipeline} fest auf GBA gesetzt.
+          AOI: {areaLabel}. Gebäudequelle ist für {pipeline} fest auf {PIPELINE_BUILDING_SOURCE.label} gesetzt.
         </Badge>
 
         <div className="space-y-1.5">
@@ -417,7 +429,7 @@ export default function PipelinePanel() {
           <EmptyState
             tone="warning"
             title="Keine Gebäude zugeordnet"
-            message="Prüfen Sie, ob GBA-Daten in PostGIS geladen sind und der Kartenausschnitt unterstützte Gebäude schneidet."
+            message={`Prüfen Sie, ob ${PIPELINE_BUILDING_SOURCE.label}-Daten in PostGIS geladen sind und der Kartenausschnitt unterstützte Gebäude schneidet.`}
           />
         )}
 
@@ -439,6 +451,17 @@ export default function PipelinePanel() {
             </SelectContent>
           </Select>
         </div>
+
+        {mlView === "cluster" && (
+          <div className="legend" aria-label="Legende der Cluster-Typen">
+            {clusterKindLegend.map((item) => (
+              <div className="legend-item" key={item.kind}>
+                <span className="legend-swatch" style={{ background: item.color }} />
+                <span>{ML_CLUSTER_KIND_LABELS[item.kind]}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Button
           variant="secondary"

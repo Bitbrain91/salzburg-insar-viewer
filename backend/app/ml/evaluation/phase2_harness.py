@@ -13,6 +13,7 @@ import asyncpg
 import numpy as np
 
 from ...config import BASE_DIR, settings
+from ..cluster_semantics import cluster_kind_from_id
 from ..rollups import (
     building_rollup_from_meta,
     cluster_rollup_from_meta,
@@ -30,6 +31,8 @@ DEFAULT_MARKDOWN_PATH = ARTIFACTS_DIR / "phase2_harness_summary.md"
 DEFAULT_REFERENCE_CASES_PATH = ARTIFACTS_DIR / "phase2_reference_cases.json"
 DEFAULT_BOOTSTRAP_SAMPLES = 500
 DEFAULT_BOOTSTRAP_SEED = 17
+DIFFERENTIAL_MOTION_LEVELS = {"none", "candidate", "significant", "confirmed"}
+ACTIVE_DIFFERENTIAL_MOTION_LEVELS = {"candidate", "significant", "confirmed"}
 
 
 @dataclass(frozen=True)
@@ -98,7 +101,7 @@ REFERENCE_CASES: tuple[ReferenceCase, ...] = (
         building_id="96637447",
         case_type="differential_motion",
         expected_status="ok",
-        summary="P1-Anker fuer Multi-Cluster mit gesetztem differential_motion_flag.",
+        summary="Historischer P1-Anker fuer Multi-Cluster und differenzielle Bewegung.",
     ),
     ReferenceCase(
         case_id="moosstrasse_differential_low_agreement",
@@ -213,6 +216,18 @@ def _int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _differential_motion_level(rollup: dict[str, Any]) -> str | None:
+    value = rollup.get("differential_motion_level")
+    if not isinstance(value, str) or value not in DIFFERENTIAL_MOTION_LEVELS:
+        return None
+    return value
+
+
+def _differential_motion_evidence(rollup: dict[str, Any]) -> dict[str, Any] | None:
+    value = rollup.get("differential_motion_evidence")
+    return value if isinstance(value, dict) else None
 
 
 def _median(values: list[float]) -> float | None:
@@ -344,7 +359,8 @@ async def _fetch_building_rollups(conn: asyncpg.Connection, run_id: str) -> list
                 "weak_secondary_track_flag": bool(rollup.get("weak_secondary_track_flag", False)),
                 "agreement_tension_flag": bool(rollup.get("agreement_tension_flag", False)),
                 "reliability_penalties": penalties if isinstance(penalties, list) else [],
-                "differential_motion_flag": bool(rollup.get("differential_motion_flag", False)),
+                "differential_motion_level": _differential_motion_level(rollup),
+                "differential_motion_evidence": _differential_motion_evidence(rollup),
                 "cluster_count": int(rollup.get("cluster_count", 0) or 0),
                 "reliable_cluster_count": int(rollup.get("reliable_cluster_count", 0) or 0),
                 "kept_point_count": int(rollup.get("kept_point_count", 0) or 0),
@@ -410,7 +426,9 @@ def _summarise_run(aoi: AOIRun, metrics: dict[str, float], building_rollups: lis
             [value["building_reliability_band"] for value in building_rollups]
         ),
         "differential_motion_buildings": sum(
-            1 for value in building_rollups if value["differential_motion_flag"]
+            1
+            for value in building_rollups
+            if value["differential_motion_level"] in ACTIVE_DIFFERENTIAL_MOTION_LEVELS
         ),
         "neighbour_context_buildings": sum(
             1 for value in building_rollups if value["neighbour_context_available"]
@@ -605,7 +623,8 @@ async def _fetch_reference_case(
             if isinstance(building_rollup.get("reliability_penalties"), list)
             else []
         ),
-        "differential_motion_flag": bool(building_rollup.get("differential_motion_flag", False)),
+        "differential_motion_level": _differential_motion_level(building_rollup),
+        "differential_motion_evidence": _differential_motion_evidence(building_rollup),
         "main_cluster_by_track": track_string_map(building_rollup.get("main_cluster_by_track")),
         "track_motion_mm_a": track_motion_map(building_rollup.get("track_motion_mm_a")),
         "cluster_count": int(building_rollup.get("cluster_count", 0) or 0),
@@ -638,6 +657,7 @@ async def _fetch_reference_case(
     cluster_summaries = [
         {
             "cluster_id": str(values.get("cluster_id") or cluster_id),
+            "cluster_kind": cluster_kind_from_id(values.get("cluster_id") or cluster_id),
             "building_source": str(
                 values.get("building_source") or reference_case.building_source
             ),
@@ -844,8 +864,11 @@ def _compute_stability(
         notes.append("Building remains ok despite very low main-cluster track agreement.")
     if building_analysis.get("building_status") in {"small_n", "insufficient_support"}:
         notes.append("Status is already a small-sample guard; bootstrap values are diagnostic only.")
-    if building_analysis.get("differential_motion_flag") and int(building_analysis.get("reliable_cluster_count", 0)) < 3:
-        notes.append("Differential flag is set with only a small number of reliable clusters.")
+    if (
+        building_analysis.get("differential_motion_level") in ACTIVE_DIFFERENTIAL_MOTION_LEVELS
+        and int(building_analysis.get("reliable_cluster_count", 0)) < 3
+    ):
+        notes.append("Differential motion is active with only a small number of reliable clusters.")
 
     return {
         "bootstrap_samples": bootstrap_samples,

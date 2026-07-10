@@ -74,6 +74,7 @@ type PointLabel = "normal" | "suspect" | "outlier";
 type ClusterRole = "core" | "noise" | "weak_support" | "insufficient_support" | "excluded";
 type BuildingStatus = "ok" | "single_track_only" | "small_n" | "noise_dominated" | "insufficient_support";
 type ReliabilityBand = "high" | "medium" | "low" | null;
+type DifferentialMotionLevel = "none" | "candidate" | "significant" | "confirmed";
 
 type PointInputs = {
   clusterOutlier: number;
@@ -101,7 +102,7 @@ type BuildingInputs = {
   signal: number;
   assignmentQuality: number;
   trackAgreement: number;
-  differentialMotion: boolean;
+  differentialMotionLevel: DifferentialMotionLevel;
   weakMainCluster: boolean;
   weakSecondaryTrack: boolean;
 };
@@ -807,14 +808,15 @@ const flowNodes: FlowNode[] = [
         label: "penalties",
         text: "Penalties sind gezielte Abzuege, wenn der rechnerische Score zu optimistisch waere.",
         formula:
-          "single_track_only = -0.15\nmain_cluster_support_total < 4 = -0.10\nnoise_dominated = -0.15\ndifferential_motion = -0.15\nweak_main_cluster_support = -0.10\nlow_track_agreement = -0.10",
-        detail: "Die Abzuege werden nach den positiven Komponenten vom Score abgezogen und danach auf den Bereich 0 bis 1 begrenzt.",
+          "single_track_only = -0.15\nmain_cluster_support_total < 4 = -0.10\nnoise_dominated = -0.15\ndifferential_motion_level in (significant, confirmed) = -0.15\nweak_main_cluster_support = -0.10\nlow_track_agreement = -0.10",
+        detail: "Die Abzuege werden nach den positiven Komponenten vom Score abgezogen und danach auf den Bereich 0 bis 1 begrenzt. Ein reiner candidate-Befund bleibt sichtbar, verursacht aber noch keinen Reliability-Abzug.",
       },
       {
-        label: "differential_motion",
-        text: "Differential motion markiert, dass innerhalb eines Tracks mehrere verlaessliche Cluster unterschiedlich starke Bewegung zeigen.",
-        formula: "motion_delta_to_main >= max(1.5, allowed_diff)",
-        detail: "Die Regel wird nur relevant, wenn es in einem Track mindestens zwei verlaessliche Core-Cluster gibt.",
+        label: "differential_motion_level",
+        text: "Das Differential-Level beschreibt die Evidenzstaerke fuer unterschiedliche Bewegungen verlaesslicher Cluster innerhalb eines Gebaeudes.",
+        formula:
+          "none = kein Kandidat\ncandidate = Delta ueber Schwelle\nsignificant = statistisch abgesichert, n >= 3 je Cluster\nconfirmed = significant und durch zweiten Track gleichsigniert bestaetigt",
+        detail: "candidate ist ein sichtbarer Pruefhinweis ohne Reliability-Penalty. Erst significant und confirmed ziehen 0.15 vom Gebaeude-Score ab.",
       },
       {
         label: "Band-Caps",
@@ -957,7 +959,7 @@ const flowNodes: FlowNode[] = [
       "building_reliability_band",
       "label_counts",
       "top_points",
-      "differential_motion_flag",
+      "differential_motion_level",
     ],
     trust: [
       "Starker Befund: building_status ok, Reliability high/medium, beide Tracks stuetzen den Hauptcluster, wenige outlier/noise Punkte und keine harten Warnungen.",
@@ -991,8 +993,8 @@ const flowNodes: FlowNode[] = [
         label: "Harte Warnungen",
         text: "Bestimmte Flags machen den Befund vorsichtiger, auch wenn einzelne Scores gut aussehen.",
         formula:
-          "differential_motion_flag -> mehrere Cluster bewegen sich unterschiedlich\nsingle_track_only -> nur ein Track stuetzt die Aussage\nnoise_dominated -> zu viele kept Punkte sind noise\ninsufficient_support -> zu wenig belastbare Daten",
-        detail: "Solche Warnungen sind kein automatischer Beweis fuer ein Problem am Bauwerk. Sie sagen: Die InSAR-Aussage ist methodisch weniger eindeutig.",
+          "candidate -> pruefpflichtiger Hinweis ohne Penalty\nsignificant -> statistisch abgesicherter Befund mit Penalty\nconfirmed -> durch zweiten Track bestaetigter Befund mit Penalty\nsingle_track_only/noise_dominated/insufficient_support -> eingeschraenkte Aussagebasis",
+        detail: "Auch ein hohes Differential-Level ist kein automatischer Beweis fuer einen Schaden am Bauwerk. Es kennzeichnet die Staerke der InSAR-Evidenz und die notwendige fachliche Pruefung.",
       },
       {
         label: "Praktische Lesereihenfolge",
@@ -1221,9 +1223,12 @@ function buildingResult(input: BuildingInputs) {
     penaltyTotal += 0.15;
     penalties.push("noise_dominated: -0.15");
   }
-  if (input.differentialMotion) {
+  if (
+    input.differentialMotionLevel === "significant" ||
+    input.differentialMotionLevel === "confirmed"
+  ) {
     penaltyTotal += 0.15;
-    penalties.push("differential_motion: -0.15");
+    penalties.push(`differential_motion_${input.differentialMotionLevel}: -0.15`);
   }
   if (input.weakMainCluster) {
     penaltyTotal += 0.1;
@@ -2053,7 +2058,7 @@ function BuildingCalculator() {
     signal: 82,
     assignmentQuality: 84,
     trackAgreement: 78,
-    differentialMotion: false,
+    differentialMotionLevel: "none",
     weakMainCluster: false,
     weakSecondaryTrack: false,
   });
@@ -2086,8 +2091,21 @@ function BuildingCalculator() {
 
         <div className="space-y-4">
           <div className="grid gap-2">
-            <ToggleButton active={input.differentialMotion} onClick={() => update("differentialMotion", !input.differentialMotion)}>
-              Differentielle Bewegung {input.differentialMotion ? "ja" : "nein"}
+            <ToggleButton
+              active={input.differentialMotionLevel !== "none"}
+              onClick={() => {
+                const levels: DifferentialMotionLevel[] = [
+                  "none",
+                  "candidate",
+                  "significant",
+                  "confirmed",
+                ];
+                const nextIndex =
+                  (levels.indexOf(input.differentialMotionLevel) + 1) % levels.length;
+                update("differentialMotionLevel", levels[nextIndex]);
+              }}
+            >
+              Differential-Level: {input.differentialMotionLevel}
             </ToggleButton>
             <ToggleButton active={input.weakMainCluster} onClick={() => update("weakMainCluster", !input.weakMainCluster)}>
               Schwacher Hauptcluster {input.weakMainCluster ? "ja" : "nein"}
