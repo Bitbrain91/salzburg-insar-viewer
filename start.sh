@@ -257,7 +257,11 @@ fi
 echo "    Docker is running."
 
 echo "==> Starting Docker services (PostGIS, MLflow)..."
-docker compose -f "${ROOT_DIR}/docker-compose.yml" up -d
+# Ohne diese Variable erzeugen BuildKit-Provenance-Attestations bei jedem
+# (gecachten) Rebuild eine neue Image-ID und Compose wuerde den
+# MLflow-Container bei jedem Start unnoetig neu erstellen.
+export BUILDX_NO_DEFAULT_ATTESTATIONS=1
+docker compose -f "${ROOT_DIR}/docker-compose.yml" up -d --build
 
 echo "==> Waiting for PostGIS to accept connections..."
 for _ in {1..60}; do
@@ -321,22 +325,37 @@ else
   wait_http_ready "Frontend" "${FRONTEND_URL}" 10
 fi
 
+# Browser sofort oeffnen, sobald der Viewer nutzbar ist; MLflow ist nur
+# Tracking und darf den Start weder verzoegern noch (via set -e + EXIT-Trap)
+# Backend/Frontend mitreissen.
+echo "==> Opening browser..."
+open_browser "$BROWSER_URL"
+
 echo "==> Waiting for MLflow on :${MLFLOW_PORT}..."
-wait_http_ready "MLflow" "${MLFLOW_URL}/" 300
+MLFLOW_READY=1
+if ! wait_http_ready "MLflow" "${MLFLOW_URL}/" 60; then
+  MLFLOW_READY=0
+  echo "    WARNUNG: MLflow ist nicht bereit. Der Viewer funktioniert; ML-Runs laufen ohne MLflow-Tracking."
+fi
 
 echo ""
 echo "========================================"
 echo "  Frontend:  ${BROWSER_URL}"
 echo "  Backend:   ${API_URL}"
-echo "  MLflow:    ${MLFLOW_URL}"
+if [ "$MLFLOW_READY" = "1" ]; then
+  echo "  MLflow:    ${MLFLOW_URL}"
+else
+  echo "  MLflow:    NICHT BEREIT (${MLFLOW_URL})"
+fi
 echo "========================================"
 echo "  Zum Beenden dieses Fenster schliessen oder Ctrl+C druecken."
 echo "========================================"
 
-echo "==> Opening browser..."
-open_browser "$BROWSER_URL"
-
 if [ "${INSAR_EXIT_AFTER_READY:-0}" = "1" ]; then
+  if [ "$MLFLOW_READY" != "1" ]; then
+    echo "[FEHLER] Ready check: MLflow nicht bereit."
+    exit 1
+  fi
   echo "[OK] Ready check completed."
   exit 0
 fi

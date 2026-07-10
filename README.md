@@ -194,6 +194,20 @@ docker compose up -d
 MLflow UI (lokal): `http://localhost:5001`  
 Artefakte werden unter `./mlruns/` gespeichert (inkl. `mlruns/mlflow.db`).
 
+Das MLflow-Image wird lokal aus `docker/mlflow/Dockerfile` gebaut (Compose
+baut fehlende Images bei `up -d` automatisch; `start.sh` nutzt `--build`).
+Der pip-Install laeuft damit einmalig beim Build statt bei jedem
+Container-Start.
+
+Startsemantik (`start.sh` bzw. Desktop-Verknuepfung via
+`scripts/windows/Start-InSARViewer.ps1`, deployt nach
+`%APPDATA%\InSAR Viewer\`):
+- Die Desktop-Verknuepfung startet mit `INSAR_REUSE=1`: laufende, gesunde
+  Backend-/Frontend-Prozesse werden weiterverwendet; `-Fresh` erzwingt einen
+  Kaltstart (Verhalten von `./restart.sh` bleibt unveraendert).
+- Der Browser oeffnet, sobald das Frontend bereit ist; MLflow-Readiness wird
+  danach geprueft und ist nicht blockierend (Warnung statt Abbruch).
+
 ### 2) Pipeline-Abhaengigkeiten installieren
 Linux / WSL:
 ```bash
