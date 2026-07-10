@@ -166,16 +166,24 @@ export type MlRunSummary = {
   dataset_id?: string | null;
   source?: string | null;
   track?: number | null;
+  label?: string | null;
+  notes?: string | null;
+  bbox?: number[] | null;
+  metrics?: Record<string, MlMetricValue>;
   experiment_id?: string | null;
 };
 
 export type MlRunDetail = MlRunSummary & {
   params: Record<string, unknown>;
   pipeline_version?: string | null;
-  bbox?: number[] | null;
   mlflow_run_id?: string | null;
   metrics: Record<string, MlMetricValue>;
   error?: string | null;
+};
+
+export type MlRunUpdatePayload = {
+  label?: string | null;
+  notes?: string | null;
 };
 
 export type MlBuildingRunSummary = MlRunSummary & {
@@ -202,6 +210,7 @@ export type MlRunCreatePayload = {
   track?: number | null;
   bbox?: number[] | null;
   params?: Record<string, number>;
+  label?: string | null;
 };
 
 export type MlRunDeleteResponse = {
@@ -620,6 +629,13 @@ export function getMlPointAnalysis(
 export function createMlRun(payload: MlRunCreatePayload) {
   return fetchJson<MlRunSummary>(`/api/ml/runs`, {
     method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchMlRun(runId: string, payload: MlRunUpdatePayload) {
+  return fetchJson<MlRunSummary>(`/api/ml/runs/${encodeURIComponent(runId)}`, {
+    method: "PATCH",
     body: JSON.stringify(payload),
   });
 }

@@ -119,6 +119,14 @@ ML_SCHEMA_STATEMENTS = [
         SET (autovacuum_analyze_scale_factor = 0.0,
              autovacuum_analyze_threshold = 1000)
     """,
+    """
+    ALTER TABLE IF EXISTS ml_runs
+        ADD COLUMN IF NOT EXISTS label TEXT
+    """,
+    """
+    ALTER TABLE IF EXISTS ml_runs
+        ADD COLUMN IF NOT EXISTS notes TEXT
+    """,
 ]
 
 

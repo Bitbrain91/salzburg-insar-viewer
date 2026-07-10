@@ -29,6 +29,7 @@ from ..schemas import (
     MLRunDeleteResponse,
     MLRunDetail,
     MLRunSummary,
+    MLRunUpdate,
 )
 from ..ml.colors import assign_building_colors
 from ..ml.cluster_semantics import cluster_kind_from_id, cluster_kind_sql
@@ -49,7 +50,13 @@ from ..ml.rollups import (
 from ..ml.track_geometry import track_geometry_values_cte
 from ..ml.registry import get_pipeline, list_pipelines
 from ..ml.runner import run_pipeline_async
-from ..ml.store import create_run_record, fetch_run_detail, fetch_runs
+from ..ml.store import (
+    create_run_record,
+    fetch_run_detail,
+    fetch_run_summary,
+    fetch_runs,
+    update_run_meta,
+)
 from ..ml.types import RunConfig
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
@@ -238,6 +245,7 @@ async def create_run(request: Request, payload: MLRunCreate):
             payload.track,
             bbox,
             payload.params or {},
+            label=payload.label,
         )
 
     task = asyncio.create_task(
@@ -262,13 +270,18 @@ async def create_run(request: Request, payload: MLRunCreate):
         dataset_id=dataset_id or "",
         source=payload.source,
         track=payload.track,
+        label=payload.label,
+        bbox=payload.bbox,
     )
 
 
 @router.get("/runs", response_model=list[MLRunSummary])
-async def list_runs(request: Request):
+async def list_runs(
+    request: Request,
+    limit: int = Query(default=100, ge=1, le=500),
+):
     async with request.app.state.db_pool.acquire() as conn:
-        rows = await fetch_runs(conn)
+        rows = await fetch_runs(conn, limit=limit)
     return [
         MLRunSummary(
             run_id=str(r["run_id"]),
@@ -282,6 +295,10 @@ async def list_runs(request: Request):
             dataset_id=r["dataset_id"],
             source=r["source"],
             track=r["track"],
+            label=r["label"],
+            notes=r["notes"],
+            bbox=r["bbox"],
+            metrics=r["metrics"],
             experiment_id=r["experiment_id"],
         )
         for r in rows
@@ -311,10 +328,44 @@ async def run_detail(request: Request, run_id: str):
         params=run["params"] or {},
         pipeline_version=run.get("pipeline_version"),
         bbox=run.get("bbox"),
+        label=run.get("label"),
+        notes=run.get("notes"),
         mlflow_run_id=run["mlflow_run_id"],
         metrics=metrics,
         error=run["error"],
         experiment_id=(run["params"] or {}).get("experiment_id"),
+    )
+
+
+@router.patch("/runs/{run_id}", response_model=MLRunSummary)
+async def update_run(request: Request, run_id: str, payload: MLRunUpdate):
+    fields = payload.model_dump(exclude_unset=True)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No updatable fields provided")
+    async with request.app.state.db_pool.acquire() as conn:
+        updated = await update_run_meta(conn, run_id, fields)
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+        r = await fetch_run_summary(conn, run_id)
+    if r is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    return MLRunSummary(
+        run_id=str(r["run_id"]),
+        status=r["status"],
+        pipeline=r["pipeline"],
+        run_type=r["run_type"],
+        created_at=r["created_at"],
+        started_at=r["started_at"],
+        finished_at=r["finished_at"],
+        area_id=r["area_id"],
+        dataset_id=r["dataset_id"],
+        source=r["source"],
+        track=r["track"],
+        label=r["label"],
+        notes=r["notes"],
+        bbox=r["bbox"],
+        metrics=r["metrics"],
+        experiment_id=r["experiment_id"],
     )
 
 

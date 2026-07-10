@@ -160,6 +160,13 @@ class MLRunCreate(BaseModel):
     track: Optional[int] = None
     bbox: Optional[List[float]] = None
     params: dict = Field(default_factory=dict)
+    label: Optional[str] = Field(default=None, max_length=120)
+
+
+class MLRunUpdate(BaseModel):
+    # Nur Metadaten; exclude_unset unterscheidet "nicht gesendet" von "auf NULL setzen".
+    label: Optional[str] = Field(default=None, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=4000)
 
 
 class MLRunSummary(BaseModel):
@@ -174,6 +181,11 @@ class MLRunSummary(BaseModel):
     dataset_id: str
     source: Optional[str] = None
     track: Optional[int] = None
+    label: Optional[str] = None
+    notes: Optional[str] = None
+    bbox: Optional[List[float]] = None
+    # Liste: Whitelist-Kennzahlen (RUN_LIST_METRIC_KEYS); Detail: alle Metriken.
+    metrics: dict = Field(default_factory=dict)
     # P7-V2: Harness-Experiment-Runs tragen params.experiment_id; in der
     # Run-Liste als Badge sichtbar (Forschungsplattform-Transparenz).
     experiment_id: Optional[str] = None
@@ -182,9 +194,7 @@ class MLRunSummary(BaseModel):
 class MLRunDetail(MLRunSummary):
     params: dict = Field(default_factory=dict)
     pipeline_version: Optional[str] = None
-    bbox: Optional[List[float]] = None
     mlflow_run_id: Optional[str] = None
-    metrics: dict = Field(default_factory=dict)
     error: Optional[str] = None
 
 

@@ -177,6 +177,8 @@ CREATE TABLE ml_runs (
     bbox JSONB,
     params JSONB,
     status TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     finished_at TIMESTAMPTZ,
