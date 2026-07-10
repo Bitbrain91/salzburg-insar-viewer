@@ -109,9 +109,19 @@ React + MapLibre Frontend
 
 ### Komponenten
 - Frontend (`frontend/`)
-  - React + MapLibre GL
+  - React + MapLibre GL, Tailwind + shadcn/Radix
   - laedt MBTiles als Vector-Tiles
-  - UI: Layer-Toggles, Filter, Inspector, Cross-Reference
+  - Layout: drei per Drag verstellbare Spalten (links Steuerung/Run-Verwaltung,
+    Mitte Karte mit Zeitreihen-Dock, rechts Inspector); Persistenz via
+    localStorage, unter 1200px gestapelte Ansicht
+  - Komponentengliederung: `components/layout/` (App-Shell, Karten-Overlays
+    ActiveRunChip/MapLegend, Zeitreihen-Dock), `components/runs/`
+    (Run-Manager: benennbare Run-Karten, Filter, Run-Detail im Inspector),
+    `components/inspector/` (Befund-Ansichten: Verdict-Karten,
+    Zuverlaessigkeits-Meter, Warum-Panel, Erklaerpfad, Cluster-Karten,
+    Glossar), `components/ui/` (Primitives)
+  - `lib/designTokens.ts` ist die einzige Quelle fuer semantische Farben
+    (Zuverlaessigkeit, Run-Status, Cluster-Arten, Differential-Level)
 
 - Backend (`backend/`)
   - FastAPI
@@ -351,6 +361,8 @@ CREATE TABLE IF NOT EXISTS ml_runs (
     bbox JSONB,
     params JSONB,
     status TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     finished_at TIMESTAMPTZ,
@@ -391,10 +403,27 @@ python -m backend.app.ml.cli --pipeline anomaly_local_v1 --source bev --track 44
   --params '{"max_distance_m":30,"buffer_multiplier":1.0}'
 ```
 
-Alternativ lassen sich Runs ueber die UI im linken Panel starten.
+Alternativ lassen sich Runs ueber die UI starten: linkes Panel, Tab
+`Auswertung`, Formular `+ Neue Auswertung` (analysiert den aktuellen
+Kartenausschnitt; optionales Namensfeld). Die Run-Verwaltung zeigt
+benennbare Run-Karten mit Status, Kennzahlen und Tages-Gruppierung und
+laesst sich nach Gebiet, Sensor, Track, Status und Freitext filtern;
+Klick auf eine Karte aktiviert den Lauf und oeffnet das Run-Detail im
+Inspector (inkl. Notizfeld und vollstaendiger Konfiguration).
+
+Runs koennen benannt und mit Notizen versehen werden
+(`PATCH /api/ml/runs/<RUN_ID>` mit `label`/`notes`; die Listen-API liefert
+zusaetzlich `bbox` und eine Kennzahlen-Whitelist je Run, Limit per
+`?limit=` bis 500).
+
 Visualisierung: Im Frontend kann der ML-Layer aktiviert werden; zusaetzlich gibt es
 eine Gebaeude-Overlay-Ansicht und die aktiven Darstellungsmodi `Cluster`, `Quality`,
-`Anomaly`, `Cross-track` und `Label`.
+`Anomaly`, `Cross-track` und `Reliability` (Karteneinfaerbung im Abschnitt
+`Darstellung`). Der Inspector zeigt fuer Punkte und Gebaeude drei Tabs
+(`Befund | Details | Rohdaten`): Der Befund fasst Bewegung,
+Zuverlaessigkeitsband, Status und Differential-Level verstaendlich zusammen
+("Warum diese Bewertung?", "So kam der Befund zustande",
+"Bewegungsmuster am Gebaeude"); Rohwerte bleiben in Details/Rohdaten.
 
 ### Ergebnisse loeschen (DB + MLflow synchron)
 ```bash

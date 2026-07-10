@@ -12,7 +12,12 @@
 Dieses Runbook beschreibt, wie `anomaly_local_v1` praktisch ausgefuehrt und interpretiert wird.
 
 ## Start
-Die Pipeline ist im linken Panel als `Anomaly Local v1 (Building Clusters)` verfuegbar.
+Die Pipeline wird im linken Panel gestartet: Tab `Auswertung`, Formular
+`+ Neue Auswertung` (Verfahren fest `Lokale Anomalieanalyse v1`; optionales
+Namensfeld, Dataset-/Track-Wahl, erweiterte Parameter einklappbar). Der Lauf
+analysiert den aktuellen Kartenausschnitt und erscheint als Karte in
+`Alle Auswertungen` (filterbar nach Gebiet/Sensor/Track/Status/Freitext);
+Klick aktiviert ihn und oeffnet das Run-Detail im Inspector.
 
 Jeder persistierte Run endet mit einem `ANALYZE ml_point_results`
 (warn-only, Fehlschlag bricht den Run nicht ab), damit Tile- und
@@ -133,18 +138,22 @@ Die Entwicklung und Verifikation soll nicht mit beliebigen Kartenausschnitten pa
 - Differential-Level `none`, `candidate`, `significant` oder `confirmed`
 
 ## Building Cluster View
-Im Inspector gibt es fuer `anomaly_local_v1` drei Steuerungen:
+Im Inspector steuert die Sektion `Bewegungsmuster am Gebaeude`
+(Gebaeude-Befund-Tab) die Clusteransicht:
 
-- `Track filter`
-- `Show gate-excluded points`
-- `Show cluster hulls`
+- Kartenfokus (`Run | Gebaeude | Scoring | Cluster`)
+- Track-Filter
+- Icon-Toggles fuer Cluster-Huellen, gate-ausgeschlossene Punkte und Rauschen
+- Sichtbarkeit je Cluster (Auge-Icon, `Nur dieses`, `Alle`, `Nur Hauptcluster`)
 
 Interpretation:
 
-- `ASC + DSC`: Gesamtbild
-- `ASC only` oder `DSC only`: lokale Unterschiede trackweise pruefen
-- `Show gate-excluded points`: zeigt, welche Punkte schon vor der Clusterung rausgefallen sind
-- `Show cluster hulls`: zeigt die raeumliche Gruppierung besser als reine Punktdarstellung
+- Track-Filter `alle`: Gesamtbild; einzelner Track: lokale Unterschiede trackweise pruefen
+- Ausgeschlossene Punkte einblenden zeigt, welche Punkte schon vor der Clusterung rausgefallen sind
+- Cluster-Huellen zeigen die raeumliche Gruppierung besser als reine Punktdarstellung
+- Hover ueber eine Cluster-Karte hebt die zugehoerige Huelle auf der Karte hervor
+- Fremdreflektor-, Noise- und ausgeschlossene Cluster stehen in der gedaempften
+  Untergruppe `Nicht befundrelevant` und praegen den Gebaeudebefund nicht
 
 ### Aktuelle Punktrollen und Clusterarten in v4
 
@@ -182,8 +191,9 @@ Interpretation:
   Alt/Neu: Legacy-Baselines siehe `legacy_baseline_run` im
   Phase-7-Harness bzw. phase7_clustering_optimization_report.md.
 - Experiment-Runs aus dem Phase-7-Harness tragen ein violettes Badge
-  in "Letzte Auswertungen"; ihre vollstaendige Konfiguration steht im
-  Transparenz-Panel (params.experiment_config).
+  in "Alle Auswertungen"; ihre vollstaendige Konfiguration steht im
+  Run-Detail des Inspectors unter "Konfiguration"
+  (params.experiment_config).
 - **Historischer v2-Befund (2026-06-12, Fall 96959851):** Die damalige
   a5-Politik prueft nur den QUER-Versatz zur Blickrichtung.
   Fremdstrukturen, die LAENGS der Blickachse liegen - insbesondere
