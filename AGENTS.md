@@ -9,6 +9,7 @@ This repository hosts the Salzburg InSAR Viewer: a React/MapLibre frontend, a Fa
   - `components/inspector/`: finding-first inspector views (verdict cards, why-panel, finding steps, cluster section, glossary).
   - `components/ui/`: shadcn primitives plus project composites (`index.tsx`) and finding primitives (`insights.tsx`: ReliabilityMeter, ScoreBar, KindBadge, StatusBadge, FindingCard).
   - `lib/designTokens.ts` is the single source for semantic colors (reliability bands, run status, cluster kinds, differential levels, chart series); Tailwind config, MapLibre paints and ECharts consume it. Do not hardcode semantic hex values elsewhere.
+- `explainers/`: separate Vite/React explainer app (pipeline journey + silver-ground-truth explainer). Chapter registries and the number contracts live in `explainers/src/content/` (`facts.ts`, `silverFacts.ts`); update them in the same ticket as the mirrored pipeline/corpus changes.
 - `backend/`: FastAPI service in `backend/app/`, SQL schema in `backend/sql/`, static assets in `backend/static/`.
 - `pipeline/`: Python scripts to prepare GeoParquet data and build MBTiles (see `pipeline/build_tiles.sh`).
 - `data/`: Raw inputs (`data/Daten/`, `data/gba/`), processed parquet (`data/parquet/`), and tiles (`data/tiles_v2/`).

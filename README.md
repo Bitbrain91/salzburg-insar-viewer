@@ -138,7 +138,11 @@ React + MapLibre Frontend
   - exportiert GeoJSONL -> MBTiles via Tippecanoe (Docker)
 
 - Erklaerdiagramme (`explainers/`)
-  - separate Vite/React-App fuer interaktive Lern- und Methodikdiagramme
+  - separate Vite/React-App mit zwei Explainern: der interaktiven
+    "Pipeline-Reise" durch die aktive ML-Pipeline-Logik (`anomaly_local_v1`,
+    von der Punktzuordnung bis zum Gebaeudebefund) und dem
+    "Silver-Ground-Truth"-Explainer (Entstehung, Inhalt und Verwendung des
+    internen Referenzlabel-Korpus)
   - bewusst getrennt vom produktiven Viewer-Frontend
 
 ### Tile-Stack
@@ -319,8 +323,39 @@ npx vite --host --port 3000
 Oeffne: `http://localhost:3000`
 
 ### 8) Erklaerdiagramme starten
-Die Erklaer-App ist separat vom produktiven Viewer-Frontend und dient nur fuer
-interaktive Methodik- und Algorithmusdiagramme.
+Die Erklaer-App ist separat vom produktiven Viewer-Frontend. Sie enthaelt
+zwei Explainer mit gemeinsamer Kapitelnavigation und einem Umschalter in der
+Seitenleiste:
+
+- Die interaktive "Pipeline-Reise" durch die aktive ML-Pipeline-Logik
+  (`anomaly_local_v1`, Modellset `local_hdbscan_rulegate_v4_k2xhf_diffv2`)
+  in zehn Kapiteln - von der Punktzuordnung ueber Gates,
+  v4-Bauteil-/Fremdreflektortrennung, Clustering, Scoring, Cross-Track und
+  Differential-Level bis zum Lesen des Befunds im Viewer, mit interaktiven
+  Diagrammen, Live-Rechnern und Glossar.
+- Der "Silver-Ground-Truth"-Explainer in sechs Kapiteln: wie der interne
+  Referenzlabel-Korpus entsteht (Evidenzpflicht, GE-3D-Pflichtpruefung),
+  was er enthaelt (alle Korpus-Eintraege mit Evidenztexten), wie der
+  Harness Laeufe benotet (Verdicts, rote Gates) und wofuer die Ergebnisse
+  verwendet werden (Scorecards, RC-Gate) - inklusive Grenzen und
+  Ausbau-Schritten Richtung Gold-Standard.
+
+Kapitel sind per Hash-Anker verlinkbar; die beiden Explainer teilen sich
+einen Namensraum: Pipeline-Kapitel behalten nackte Anker (z. B.
+`#zuordnung`), Silver-Kapitel tragen das Praefix `silver-` (z. B.
+`#silver-korpus`, `#silver` oeffnet die Ansicht am Anfang). Alte
+`?explainer=...`-Deep-Links werden weiterhin umgeleitet.
+
+Alle gezeigten Schwellen, Gewichte und Formeln sind zentral gepflegt und
+muessen bei Aenderungen im selben Ticket nachgezogen werden:
+
+- Pipeline-Reise: `explainers/src/content/facts.ts` (Quellzeilen-Verweise
+  auf `backend/app/ml/pipelines/anomaly_local_v1.py`).
+- Silver-Explainer: `explainers/src/content/silverFacts.ts` (spiegelt
+  `docs/pipelines/anomaly_local_v1/artifacts/reference_labels.json`, die
+  Benotung aus `backend/app/ml/evaluation/phase7_clustering_experiments.py`
+  und das RC-Gate-Artefakt; bei Korpus-Erweiterungen (`version`/`updated`)
+  oder Harness-Aenderungen nachziehen).
 
 ```bash
 cd explainers

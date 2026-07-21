@@ -22,6 +22,10 @@
   --ring: 175 81% 25%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body,
 #root {
@@ -31,6 +35,17 @@ body,
 
 body {
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
+}
+
+/* Kapitel-Anker: Platz für die sticky Mobile-Topbar beim Scrollen. */
+section[id] {
+  scroll-margin-top: 72px;
+}
+
+@media (min-width: 1280px) {
+  section[id] {
+    scroll-margin-top: 24px;
+  }
 }
 
 .font-mono {
@@ -50,4 +65,13 @@ body {
 .explainer-slider {
   accent-color: hsl(var(--primary));
   width: 100%;
+}
+
+/* Unterstrichelter Glossarbegriff. */
+.glossary-term {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: hsl(var(--primary) / 0.6);
+  text-underline-offset: 3px;
+  cursor: help;
 }

@@ -96,3 +96,87 @@ export function Slider({ className, value, onValueChange, ...props }: SliderProp
     />
   );
 }
+
+type LabeledSliderProps = SliderProps & {
+  label: ReactNode;
+  /** Formatierter Anzeigewert, z. B. "38,5°". */
+  valueLabel: string;
+};
+
+/** Slider mit Beschriftung und Mono-Wertanzeige — Standardeingabe der Diagramme. */
+export function LabeledSlider({ label, valueLabel, ...props }: LabeledSliderProps) {
+  return (
+    <label className="grid gap-1 text-xs">
+      <span className="flex items-baseline justify-between gap-2">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono font-semibold text-foreground">{valueLabel}</span>
+      </span>
+      <Slider {...props} />
+    </label>
+  );
+}
+
+type ToggleProps = {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  label: ReactNode;
+  className?: string;
+};
+
+/** Schlichter Schalter für Ja/Nein-Eingaben in den Diagrammen. */
+export function Toggle({ checked, onCheckedChange, label, className }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onCheckedChange(!checked)}
+      className={cn(
+        "flex w-full items-center justify-between gap-3 rounded-md border border-border bg-card px-3 py-2 text-left text-xs transition-colors hover:bg-secondary",
+        className
+      )}
+    >
+      <span className="min-w-0 text-foreground">{label}</span>
+      <span
+        className={cn(
+          "relative h-5 w-9 shrink-0 rounded-full transition-colors",
+          checked ? "bg-primary" : "bg-border"
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-4" : "translate-x-0.5"
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+type TechDetailsProps = {
+  /** Überschrift, Standard: "Exakte Regeln & Schwellen". */
+  summary?: ReactNode;
+  children: ReactNode;
+  className?: string;
+};
+
+/** Aufklappbare technische Tiefe am Ende jedes Kapitels. */
+export function TechDetails({ summary, children, className }: TechDetailsProps) {
+  return (
+    <details
+      className={cn(
+        "group rounded-lg border border-border bg-card open:shadow-sm",
+        className
+      )}
+    >
+      <summary className="flex cursor-pointer select-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold text-foreground [&::-webkit-details-marker]:hidden">
+        <span>{summary ?? "Exakte Regeln & Schwellen"}</span>
+        <span className="text-muted-foreground transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div className="grid gap-3 border-t border-border px-4 py-4 text-sm leading-relaxed text-muted-foreground">
+        {children}
+      </div>
+    </details>
+  );
+}

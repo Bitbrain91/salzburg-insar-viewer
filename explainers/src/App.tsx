@@ -1,114 +1,60 @@
-import { useMemo, useState } from "react";
-import ClusteringMeetingDashboard from "./explainers/clusteringMeeting/ClusteringMeetingDashboard";
-import HdbscanExplainer from "./explainers/hdbscan/HdbscanExplainer";
-import MlLogicExplainer from "./explainers/mlLogic/MlLogicExplainer";
-import SmallNExplainer from "./explainers/smallN/SmallNExplainer";
-import { Button, Card } from "./components/ui";
+import { useEffect } from "react";
+import { useRoute, type ExplainerView } from "@/lib/router";
+import PipelineExplainer from "@/views/PipelineExplainer";
+import SilverExplainer from "@/views/SilverExplainer";
 
-type ExplainerId = "overview" | "hdbscan" | "clustering-meeting" | "small-n" | "ml-logic";
+/**
+ * Legacy-Deep-Links der alten Hub-App (?explainer=...) auf die neue
+ * Ein-Seiten-Struktur mappen. hdbscan/small-n sind jetzt Teil des
+ * Cluster-Kapitels.
+ */
+function resolveLegacyExplainerParam() {
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get("explainer");
+  if (!requested) return;
+  const hash = requested === "hdbscan" || requested === "small-n" ? "#cluster" : "";
+  history.replaceState(null, "", `${window.location.pathname}${hash}`);
+  if (hash) {
+    document.querySelector(hash)?.scrollIntoView({ behavior: "instant", block: "start" });
+  }
+}
 
+const TITLES: Record<ExplainerView, string> = {
+  pipeline: "InSAR-Pipeline erklärt — Salzburg InSAR Viewer",
+  silver: "Silver Ground Truth erklärt — Salzburg InSAR Viewer",
+};
+
+/**
+ * Routing-Weiche: rendert anhand des Hash genau EINE Ansicht (nie beide —
+ * der Scroll-Spy beobachtet sonst tote Anker). Kapitel-Anker teilen sich
+ * einen Namensraum, siehe `lib/router.ts`.
+ */
 export default function App() {
-  const initialExplainer = useMemo<ExplainerId>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedExplainer = params.get("explainer");
-    if (
-      requestedExplainer === "hdbscan" ||
-      requestedExplainer === "clustering-meeting" ||
-      requestedExplainer === "small-n" ||
-      requestedExplainer === "ml-logic"
-    ) {
-      return requestedExplainer;
-    }
-    return "overview";
+  const { view, anchor } = useRoute();
+
+  useEffect(() => {
+    resolveLegacyExplainerParam();
   }, []);
-  const [activeExplainer, setActiveExplainer] = useState<ExplainerId>(initialExplainer);
 
-  if (activeExplainer === "hdbscan") {
-    return <HdbscanExplainer />;
-  }
+  useEffect(() => {
+    document.title = TITLES[view];
+  }, [view]);
 
-  if (activeExplainer === "clustering-meeting") {
-    return <ClusteringMeetingDashboard onBack={() => setActiveExplainer("overview")} />;
-  }
+  // Nach Mount bzw. View-Wechsel zum Anker scrollen: bei einem frischen
+  // Deep-Link (#silver-korpus) existiert das Ziel erst nach dem Rendern.
+  // Bewusst nur an `view` gebunden — Anker-Klicks innerhalb einer Ansicht
+  // scrollen selbst (ChapterNav.navigate).
+  useEffect(() => {
+    const target = anchor && anchor !== "silver" ? document.getElementById(anchor) : null;
+    if (target) {
+      target.scrollIntoView({ behavior: "instant", block: "start" });
+    } else {
+      // "instant" umgeht das globale scroll-behavior: smooth — ein
+      // Ansichtswechsel soll sich wie ein Seitenwechsel anfühlen.
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
-  if (activeExplainer === "small-n") {
-    return <SmallNExplainer onBack={() => setActiveExplainer("overview")} />;
-  }
-
-  if (activeExplainer === "ml-logic") {
-    return <MlLogicExplainer onBack={() => setActiveExplainer("overview")} />;
-  }
-
-  return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground md:px-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <header className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <p className="section-title">Salzburg InSAR Viewer</p>
-          <h1 className="text-3xl font-bold tracking-tight">Interaktive Erklärdiagramme</h1>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            Diese Zusatzapp ist getrennt von der produktiven Viewer-App. Sie dient nur dazu,
-            fachliche Algorithmen und Pipeline-Entscheidungen interaktiv nachvollziehbar zu machen.
-          </p>
-        </header>
-
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card className="flex flex-col gap-4 p-5">
-            <div>
-              <p className="section-title">Meeting-Vorbereitung</p>
-              <h2 className="text-xl font-bold">Clustering-Fragen</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Ausführliche Antworten zu HDBSCAN bei wenigen Punkten, Small-N, Dachkontext,
-                Features, Graph-Clustering und Clusterqualität.
-              </p>
-            </div>
-            <Button onClick={() => setActiveExplainer("clustering-meeting")} className="mt-auto self-start">
-              Fragen öffnen
-            </Button>
-          </Card>
-
-          <Card className="flex flex-col gap-4 p-5">
-            <div>
-              <p className="section-title">Clustering</p>
-              <h2 className="text-xl font-bold">HDBSCAN</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Zeigt lokale Dichte, Cluster-Hierarchie, Noise-Markierung und den Small-N-Fallback
-                aus <span className="font-mono">anomaly_local_v1</span>.
-              </p>
-            </div>
-            <Button onClick={() => setActiveExplainer("hdbscan")} className="mt-auto self-start">
-              HDBSCAN öffnen
-            </Button>
-          </Card>
-
-          <Card className="flex flex-col gap-4 p-5">
-            <div>
-              <p className="section-title">Clustering</p>
-              <h2 className="text-xl font-bold">Small-N-Fallback</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Erklärt Schritt für Schritt, wie <span className="font-mono">3-5</span> kept Punkte
-                ohne HDBSCAN als Core oder Noise markiert werden.
-              </p>
-            </div>
-            <Button onClick={() => setActiveExplainer("small-n")} className="mt-auto self-start">
-              Small-N öffnen
-            </Button>
-          </Card>
-
-          <Card className="flex flex-col gap-4 p-5">
-            <div>
-              <p className="section-title">Pipeline-Logik</p>
-              <h2 className="text-xl font-bold">ML-Vertrauen</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Klickbares Entscheidungsdiagramm fuer Punktlabels, Cluster-Verlaesslichkeit und
-                Gebaeude-Reliability inklusive Live-Score-Rechner.
-              </p>
-            </div>
-            <Button onClick={() => setActiveExplainer("ml-logic")} className="mt-auto self-start">
-              ML-Logik öffnen
-            </Button>
-          </Card>
-        </section>
-      </div>
-    </main>
-  );
+  return view === "silver" ? <SilverExplainer /> : <PipelineExplainer />;
 }
