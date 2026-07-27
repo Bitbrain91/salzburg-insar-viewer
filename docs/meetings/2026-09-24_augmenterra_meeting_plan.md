@@ -51,11 +51,15 @@ wird beim Agenda-Schnitt kurz vor dem Termin erstellt
 
 - Label-Stichprobe 10-15 Gebaeude durch AUGMENTERRA (aus Plan 23.07.,
   Thema 2; nicht behandelt, Prioritaet gesunken durch Wien-Ground-Truth)
-- Hoehensystem der gelieferten Punkthoehen: laut beiden Handbuechern
-  WGS-84-Ellipsoid (AUG v1.3 S. 23; TRE 2.2 S. 28/36, gilt auch fuer
-  TRE-Produkte wie die TSX-Lieferung ES2830A2S) - nur noch kurz bestaetigen
-  lassen, dass keine Lieferung (insbesondere aeltere/hochaufloesende
-  Bestaende) davon abweicht (Details: `next_steps.md` P1-7)
+- Hoehensystem der gelieferten Punkthoehen: Handbuecher sagen
+  WGS-84-Ellipsoid (AUG v1.3 S. 23; TRE 2.2 S. 28/36), empirisch bestaetigt
+  fuer alle SNT- und die Bad-Gastein-TSX/PAZ-Lieferungen - die
+  **Salzburg-TSX-Lieferung 2020 (ES2830A2S) weicht jedoch ab** (Hoehen
+  orthometrisch/gelaendebezogen, ~47 m unter dem Ellipsoid-Rahmen;
+  DB-Evidenz:
+  [`OBS-2026-003`](../research/observations/OBS-2026-003_tsx_salzburg_hoehenbezug.md)).
+  Fragen: Welches Vertikaldatum hat diese Lieferung tatsaechlich, sind
+  weitere Lieferungen betroffen, gibt es eine Angabe je Lieferung?
 - Differentialfall `96637447` (Vor-Ort-Wissen?)
 - Track 22 Ost: Datenabdeckung, Lieferoptionen
 - Tool-Zugang fuer AUGMENTERRA / Expertenlabel-Erfassung im Viewer

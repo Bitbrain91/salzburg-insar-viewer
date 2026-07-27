@@ -31,6 +31,7 @@ Die Dokumentklassen bleiben getrennt:
 |---|---|---|---|---|---|
 | [`OBS-2026-001`](OBS-2026-001_bev-bauwerkskomplexe.md) | BEV zerlegt einen physisch zusammenwirkenden Gebaeudekomplex in mehrere angrenzende Bauwerksobjekte | Daten / Zuordnung / Viewer | stark; vier DB-verifizierte Referenzfaelle (2026-07-22) plus Meeting-Befund 2026-07-23: keine verlaessliche Teilungslogik erkennbar | weitergeleitet | `next_steps.md` P1-11 (Gebaeudedatenfusion); Richtungsentscheidung in den Meeting-Notes 2026-07-23 |
 | [`OBS-2026-002`](OBS-2026-002_bev-median-maximalhoehe-foreign.md) | Unklare Klassifikation von Punkten zwischen BEV-Median- und Maximalhoehe | Daten / Zuordnung / Foreign-Klassifikation | aktive Methodik und Code zum Beobachtungszeitpunkt; fachliche Semantik offen | offen | noch keine |
+| [`OBS-2026-003`](OBS-2026-003_tsx_salzburg_hoehenbezug.md) | Salzburg-TSX-Lieferung 2020 referenziert Hoehen orthometrisch/gelaendebezogen statt ellipsoidisch (Handbuch-Widerspruch, ~47 m Offset) | Daten / Hoehenbezug / Vertikaldatum | stark; DB-verifiziert ueber alle 8 Dataset/Track-Kombinationen plus enge Mirabell-Gegenprobe | offen | Frage an AUGMENTERRA im Themenspeicher 24.09.; Hinweis in `next_steps.md` P1-7 |
 
 ## Statusmodell
 

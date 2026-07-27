@@ -238,19 +238,22 @@ ersetzen, und Zuordnungen nicht zirkulaer umschreiben.
 - alle betroffenen AOIs als expliziten Datenstandswechsel re-baselinen und
   flach/Hang getrennt auswerten.
 
-**Stand Vertikaldatum (2026-07-27, aus den verbindlichen Handbuechern):**
-Beide Handbuecher legen die Punkthoehen auf das WGS-84-Ellipsoid fest -
-AUGMENTERRA-Handbuch v1.3 S. 23 ("Alle Positions- und Hoehenangaben
-beziehen sich auf das WGS 84-Referenzellipsoid") fuer die Sentinel-Kette,
-TRE-Altamira-Handbuch 2.2 S. 28/36 ("HEIGHT ... referred to WGS84
-ellipsoid") fuer TRE-Produkte, zu denen auch die Salzburg-TSX-Lieferung
-ES2830A2S gehoert. Der TSX-Lieferreport selbst nennt nur "WGS 1984" ohne
-explizites Vertikaldatum; eine kurze Bestaetigung durch AUGMENTERRA, dass
-keine Lieferung davon abweicht, steht im Themenspeicher des Meetings am
-24.09. Fuer den DGM/DOM-Abgleich bleibt die eigentliche Arbeit die
-Geoid-Harmonisierung: Die Landesmodelle sind Gebrauchshoehen, die
-Ellipsoidhoehen liegen im Raum Salzburg rund 47 m darueber
-(BEV-Geoidmodell, Standardwissen; vgl. `explainers/src/content/insarFacts.ts`).
+**Stand Vertikaldatum (2026-07-27):** Beide Handbuecher legen die
+Punkthoehen auf das WGS-84-Ellipsoid fest (AUGMENTERRA v1.3 S. 23; TRE
+Altamira 2.2 S. 28/36). Die empirische Pruefung gegen den
+SRTM-Terrainkontext bestaetigt das fuer alle SNT-Lieferungen und die
+Bad-Gastein-TSX/PAZ-Lieferung (Median-Differenz +46 bis +52 m =
+Geoid-Undulation), **widerlegt es aber fuer die Salzburg-TSX-Lieferung
+2020** (`salzburg_tsx_t93_d`: Median-Differenz -0,4 m, also orthometrisch/
+gelaendebezogen) - der Hoehenbezug ist damit **lieferungsspezifisch**;
+Evidenz und offene Fragen in
+[`OBS-2026-003`](../../research/observations/OBS-2026-003_tsx_salzburg_hoehenbezug.md).
+Klaerung mit AUGMENTERRA im Themenspeicher des Meetings am 24.09. Fuer den
+DGM/DOM-Abgleich heisst das: Vertikaldatum je Lieferung explizit behandeln
+(ggf. `height_datum`-Vermerk je Dataset) und Geoid-Harmonisierung
+einplanen - die Landesmodelle sind Gebrauchshoehen, Ellipsoidhoehen liegen
+im Raum Salzburg rund 47 m darueber (BEV-Geoidmodell, Standardwissen; vgl.
+`explainers/src/content/insarFacts.ts`).
 
 ### P1-8 Hanglagenmethodik
 
