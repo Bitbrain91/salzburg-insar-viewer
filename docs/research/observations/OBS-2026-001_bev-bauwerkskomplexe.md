@@ -2,11 +2,11 @@
 
 **Beobachtet:** 2026-07-15
 
-**Ergaenzt:** 2026-07-22 (Referenzfaelle Quellenvergleich BEV/OSM/GBA)
+**Ergaenzt:** 2026-07-22 (Referenzfaelle Quellenvergleich BEV/OSM/GBA); 2026-07-27 (Meeting-Befund 23.07. und Weiterleitung)
 
-**Status:** offen
+**Status:** weitergeleitet (an [`next_steps.md`](../../pipelines/anomaly_local_v1/next_steps.md) P1-11, Gebaeudedatenfusion)
 
-**Entscheidungsstand:** unentschieden
+**Entscheidungsstand:** Richtungsentscheidung getroffen (Meeting 2026-07-23): empirische Fusion mit `footprint_confidence` statt Regelnachbau; aneinandergebaute Gebaeude bleiben getrennte Bewertungseinheiten
 
 **Bereich:** Datenquelle / Gebaeudezuordnung / Viewer
 
@@ -129,6 +129,30 @@ Footprints kartiert" (`anomaly_local_v1.py`, `_assign_side_group`,
 `separation_classes=anti_foreign`) gilt laut Fall 1 und 3 nicht
 universell.
 
+## Ergaenzung 2026-07-27: Meeting-Befund AUGMENTERRA (2026-07-23)
+
+Gemeinsame Live-Pruefung im Meeting
+([`Notes`](../../meetings/2026-07-23_augmenterra_meeting_notes.md)):
+
+1. In einem verifizierten Fall (Bereich Nikolaus-Kronser-/Nussdorfer
+   Strasse) verlaeuft die Grundstuecksgrenze mitten durch das Gebaeude und
+   faellt mit der BEV-Teilung zusammen. Bei weiteren geprueften Gebaeuden
+   trifft das jedoch **nicht** zu; eine verlaessliche generelle Logik hinter
+   der BEV-Aufteilung wurde nicht erkannt. Damit ist die offene Frage 2
+   (belastbarer Schluessel fuer Bauwerkskomplexe) nach aktuellem
+   Kenntnisstand mit **nein** zu beantworten.
+2. Weitere im Gespraech belegte Muster: ein Dachvorsprung im ersten Stock
+   als eigenes BEV-Objekt; Geisterobjekt; ein fehlender Neubau; durch
+   Vordaecher verfaelschte Traufhoehen.
+3. AUGMENTERRA-Position zur Bewertungseinheit: aneinandergebaute Gebaeude
+   getrennt bewerten (ob dieselbe Bodenplatte vorliegt, ist nicht
+   feststellbar; die Bewegungsdifferenz ist das interessante Signal).
+4. Beidseitiges Fazit und Arbeitsauftrag: Die BEV-Granularitaet ist fuer
+   die Bewertungseinheit teilweise zu fein, ohne dass eine regelbasierte
+   Rekonstruktion moeglich waere. Konsequenz ist die empirische
+   Gebaeudedatenfusion mit `footprint_confidence` und DOM/DGM-Abgleich -
+   priorisiert als P1-11 in `next_steps.md`.
+
 ## Warum relevant?
 
 - Punktzuordnung, Candidate Areas und Gebaeuderollups arbeiten derzeit pro
@@ -205,9 +229,11 @@ Repository abgelegt. Bei einer spaeteren Triage sollen neue Screenshots unter
 
 ## Triage und Weiterleitung
 
-- Triage: noch offen
-- `next_steps.md`: nicht aufgenommen
+- Triage: erfolgt 2026-07-23/27 (Meeting AUGMENTERRA + Nachdokumentation)
+- `next_steps.md`: aufgenommen als P1-11 (Gebaeudedatenfusion) am 2026-07-27
 - Research-Dokument: noch keines
-- Decision Record: noch keiner
-- Execution Plan: keiner
+- Decision Record: Richtungsentscheidung in den
+  [`Meeting-Notes 2026-07-23`](../../meetings/2026-07-23_augmenterra_meeting_notes.md)
+  (Beschluesse 4 und 5) festgehalten
+- Execution Plan: noch keiner (folgt mit P1-11)
 - aktive Methodik: unveraendert

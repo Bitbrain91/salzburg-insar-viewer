@@ -1,6 +1,6 @@
 # Meetings: Vorbereitung, Durchfuehrung und Nachdokumentation
 
-**Stand:** 2026-07-21
+**Stand:** 2026-07-27
 
 **Status:** aktive Einstiegs- und Indexseite
 
@@ -65,7 +65,8 @@ Meeting-Dokumente sind Evidenz, keine Zweitpflege von Status oder Methodik
 
 | Datum | Thema | Plan | Notes | Status |
 |---|---|---|---|---|
-| 2026-07-23 | AUGMENTERRA-Jour-fixe | [`Plan`](2026-07-23_augmenterra_meeting_plan.md) | — | in Vorbereitung |
+| 2026-09-24 | AUGMENTERRA-Jour-fixe | [`Plan`](2026-09-24_augmenterra_meeting_plan.md) | — | in Vorbereitung |
+| 2026-07-23 | AUGMENTERRA-Jour-fixe | [`Plan`](2026-07-23_augmenterra_meeting_plan.md) | [`Notes`](2026-07-23_augmenterra_meeting_notes.md) | eingefroren (nachdokumentiert) |
 | 2026-06-19 | ML-Pipeline (SP-AI / AP3) | [`Plan`](2026-06-19_ml_pipeline_meeting_plan.md) | [`Notes`](2026-06-19_ml_pipeline_meeting_notes.md) | eingefroren (nachdokumentiert) |
 
 ## Vorlage: Plan

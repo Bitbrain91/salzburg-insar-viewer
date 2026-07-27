@@ -1,6 +1,6 @@
 # Projektziel: InSAR Building Intelligence
 
-**Stand:** 2026-07-15
+**Stand:** 2026-07-27
 
 **Status:** aktives Living Document
 
@@ -110,7 +110,12 @@ unabhaengige fachliche Ground Truth.
   [`../pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md`](../pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md));
   sie validiert die Sensor-Konsistenz, aber keine absoluten Jahresraten. Offen
   bleibt die Motion-Ablation mit ausreichend langer, mehrsaisonaler Ueberlappung
-  fuer belastbare absolute Jahresraten; diese Referenzdaten liegen noch nicht vor.
+  fuer belastbare absolute Jahresraten. Der vorgesehene Pfad dafuer ist seit dem
+  AUGMENTERRA-Meeting vom 2026-07-23 der zugesagte Wien-Datensatz (2019-heute,
+  Sentinel ASC+DSC plus COSMO-SkyMed DSC, In-situ-Ground-Truth; Lieferung
+  ~Ende August 2026), der zugleich als Gebiets- und Sensor-Holdout dient
+  (Details: [`next_steps.md`](../pipelines/anomaly_local_v1/next_steps.md),
+  P1-13).
 - Offene Phase-8-Feature-, Label- und Terrain-Arbeiten nach dem aktuellen
   [`next_steps.md`](../pipelines/anomaly_local_v1/next_steps.md) priorisieren.
 

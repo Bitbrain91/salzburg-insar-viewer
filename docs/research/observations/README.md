@@ -1,6 +1,6 @@
 # Research Observation Register
 
-**Stand:** 2026-07-22
+**Stand:** 2026-07-27
 
 **Status:** aktive Beobachtungs- und Klaerungswarteschlange
 
@@ -29,7 +29,7 @@ Die Dokumentklassen bleiben getrennt:
 
 | ID | Kurzbeschreibung | Bereich | Evidenz | Status | Weiterleitung |
 |---|---|---|---|---|---|
-| [`OBS-2026-001`](OBS-2026-001_bev-bauwerkskomplexe.md) | BEV zerlegt einen physisch zusammenwirkenden Gebaeudekomplex in mehrere angrenzende Bauwerksobjekte | Daten / Zuordnung / Viewer | stark; seit 2026-07-22 vier DB-verifizierte Referenzfaelle in beide Richtungen (Ueber-/Unterteilung, Geisterobjekt, korrekter Anbau nur in BEV) | offen | noch keine |
+| [`OBS-2026-001`](OBS-2026-001_bev-bauwerkskomplexe.md) | BEV zerlegt einen physisch zusammenwirkenden Gebaeudekomplex in mehrere angrenzende Bauwerksobjekte | Daten / Zuordnung / Viewer | stark; vier DB-verifizierte Referenzfaelle (2026-07-22) plus Meeting-Befund 2026-07-23: keine verlaessliche Teilungslogik erkennbar | weitergeleitet | `next_steps.md` P1-11 (Gebaeudedatenfusion); Richtungsentscheidung in den Meeting-Notes 2026-07-23 |
 | [`OBS-2026-002`](OBS-2026-002_bev-median-maximalhoehe-foreign.md) | Unklare Klassifikation von Punkten zwischen BEV-Median- und Maximalhoehe | Daten / Zuordnung / Foreign-Klassifikation | aktive Methodik und Code zum Beobachtungszeitpunkt; fachliche Semantik offen | offen | noch keine |
 
 ## Statusmodell
