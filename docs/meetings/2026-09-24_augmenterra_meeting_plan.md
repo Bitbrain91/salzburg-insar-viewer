@@ -51,8 +51,11 @@ wird beim Agenda-Schnitt kurz vor dem Termin erstellt
 
 - Label-Stichprobe 10-15 Gebaeude durch AUGMENTERRA (aus Plan 23.07.,
   Thema 2; nicht behandelt, Prioritaet gesunken durch Wien-Ground-Truth)
-- Hoehensystem der gelieferten Punkthoehen (blockiert Vertikaldatum-Klaerung
-  in P1-7)
+- Hoehensystem der gelieferten Punkthoehen: laut beiden Handbuechern
+  WGS-84-Ellipsoid (AUG v1.3 S. 23; TRE 2.2 S. 28/36, gilt auch fuer
+  TRE-Produkte wie die TSX-Lieferung ES2830A2S) - nur noch kurz bestaetigen
+  lassen, dass keine Lieferung (insbesondere aeltere/hochaufloesende
+  Bestaende) davon abweicht (Details: `next_steps.md` P1-7)
 - Differentialfall `96637447` (Vor-Ort-Wissen?)
 - Track 22 Ost: Datenabdeckung, Lieferoptionen
 - Tool-Zugang fuer AUGMENTERRA / Expertenlabel-Erfassung im Viewer

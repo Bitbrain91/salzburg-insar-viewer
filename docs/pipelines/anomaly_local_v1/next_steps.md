@@ -36,27 +36,42 @@ Bewertungsreview (P1-12); Expertenlabels (P1-2) sind zurueckgestellt;
 Hanglagen- (P1-8) und Feature-Details (P1-4) warten bewusst auf den Input
 des Meetings am 24.09.
 
-## Prioritaet P0: rote RC-Befunde klaeren
+## Rote RC-Befunde (Status 2026-07-27 angepasst)
 
-### P0-1 Differentialfall `96637447`
+### P0-1 Differentialfall `96637447` (zurueckgestellt 2026-07-27)
 
 Der Fall bleibt im reproduzierten v4-Stand `candidate`, obwohl ohne neue
 visuelle Evidenz `none` erwartet war. Fachlich klaeren und die begruendete
 Erwartung maschinell pinnen; keine Schwelle nur fuer ein gruenes Gate aendern.
 
-### P0-2 Quellenspezifische Referenzlabels (R9)
+**Zurueckgestellt:** Gebaeudedatenfusion (P1-11) und Bewertungsreview
+(P1-12) werden Bewertungseinheit und Bewertungslogik veraendern; der Fall
+wird danach auf dem neuen Stand neu bewertet statt jetzt auf einem Stand
+geklaert, der sich ohnehin aendert.
+
+### P0-2 Quellenspezifische Referenzlabels (R9) (zurueckgestellt 2026-07-27)
 
 `NSVF80S01` loest in `moosstrasse_bev` das absolute Roof-Loss-Gate aus. Der
 bekannte GBA/BEV-Quell-Mismatch erklaert den Befund, hebt das rote Gate aber
 nicht auf. Label-Grading und Punkt-Pins muessen `building_source` explizit
 beruecksichtigen.
 
+**Zurueckgestellt:** wie P0-1; der Labelvertrag wird im Zuge von P1-11
+ohnehin ueberarbeitet (Klassen-/Labelpruefung ist dort Teil des Umfangs).
+Bis zur Neubewertung gilt der v4-RC-Status unveraendert als
+"geprueft, nicht akzeptiert" und wird nicht als akzeptiert kommuniziert.
+
 ### P0-3 Point-MVT-Performance
 
-Der Smoke lieferte den korrekten MVT-Vertrag, benoetigte aber rund 57,6 s.
-Queryplan, Tile-Ausschnitt und Cache-Verhalten separat profilieren und einen
-reproduzierbaren Latenz-Grenzwert festlegen. Die Harness-BBox-Optimierung
-beschleunigt nicht automatisch den Point-MVT-Endpunkt.
+Der RC-Smoke (2026-07-10, vor den Tile-Optimierungen vom selben Tag) mass
+rund 57,6 s. **Nachmessung 2026-07-27** (Run `moosstrasse_ext`, 22.480
+Punkte, warmes Backend): z13 ~13-15 s bei 4,3 MB Tile, z14 ~9 s, z15
+~6-7 s. Der Altbefund ist damit ueberholt, das Problem aber nicht geloest:
+fuer interaktive Kartennutzung weiterhin ein bis zwei Groessenordnungen zu
+langsam. Queryplan, Tile-Groesse (Attribut-Umfang) und Cache-Verhalten
+profilieren und einen reproduzierbaren Latenz-Grenzwert festlegen; mit
+externem Hosting (P1-14) und Wien-Groessenordnung (P1-13) steigt die
+Relevanz.
 
 ## Prioritaet P1: Gebaeudedatenfusion und Bewertungsreview (neu 2026-07-27)
 
@@ -223,6 +238,20 @@ ersetzen, und Zuordnungen nicht zirkulaer umschreiben.
 - alle betroffenen AOIs als expliziten Datenstandswechsel re-baselinen und
   flach/Hang getrennt auswerten.
 
+**Stand Vertikaldatum (2026-07-27, aus den verbindlichen Handbuechern):**
+Beide Handbuecher legen die Punkthoehen auf das WGS-84-Ellipsoid fest -
+AUGMENTERRA-Handbuch v1.3 S. 23 ("Alle Positions- und Hoehenangaben
+beziehen sich auf das WGS 84-Referenzellipsoid") fuer die Sentinel-Kette,
+TRE-Altamira-Handbuch 2.2 S. 28/36 ("HEIGHT ... referred to WGS84
+ellipsoid") fuer TRE-Produkte, zu denen auch die Salzburg-TSX-Lieferung
+ES2830A2S gehoert. Der TSX-Lieferreport selbst nennt nur "WGS 1984" ohne
+explizites Vertikaldatum; eine kurze Bestaetigung durch AUGMENTERRA, dass
+keine Lieferung davon abweicht, steht im Themenspeicher des Meetings am
+24.09. Fuer den DGM/DOM-Abgleich bleibt die eigentliche Arbeit die
+Geoid-Harmonisierung: Die Landesmodelle sind Gebrauchshoehen, die
+Ellipsoidhoehen liegen im Raum Salzburg rund 47 m darueber
+(BEV-Geoidmodell, Standardwissen; vgl. `explainers/src/content/insarFacts.ts`).
+
 ### P1-8 Hanglagenmethodik
 
 Aspect/Exposition und sichtgeometrische Effekte gegen die neuen Terrain-Daten
@@ -315,19 +344,18 @@ Hypothese, Zielmetrik und Gegenbeispiel.
 
 | Reihenfolge | Arbeit | Startbedingung | Erfolgssignal |
 |---|---|---|---|
-| 1 | P0-1 `96637447` klaeren | sofort | fachlich begruendetes Level und gepinnte Erwartung |
-| 2 | P0-2 R9/source-aware Labels | sofort | absolutes Roof-Loss-Gate fachlich eindeutig |
-| 3 | P0-3 Point-MVT-Profiling | parallel | reproduzierbarer Latenzbefund und Zielwert |
-| 4 | P1-11 Gebaeudedatenfusion (inkl. DOM/DGM-Teil von P1-7) | sofort; Fusionsziel vorab definiert | `insufficient_support`-Anteil sinkt messbar; Anbauten verlaesslicher eingeordnet |
-| 5 | P1-12 Status-/Zuverlaessigkeitsreview | baut auf P1-11 | Redundanz aufgeloest, Treiber der mittleren Zuverlaessigkeit benannt |
-| 6 | P1-13 Wien-Onboarding | Datenlieferung + Meeting-Input 24.09. | eigener Execution Plan mit vorab fixierten Holdout-Kriterien |
-| 7 | P1-14 Hosting/Server | Entscheidung beim Meeting 24.09. | betriebsfaehige Instanz mit geklaertem Zugriff und Lizenzen |
-| 8 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
-| 9 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
-| 10 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
-| 11 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
-| 12 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
-| 13 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
+| 1 | P1-11 Gebaeudedatenfusion (inkl. DOM/DGM-Teil von P1-7) | sofort; Fusionsziel vorab definiert | `insufficient_support`-Anteil sinkt messbar; Anbauten verlaesslicher eingeordnet |
+| 2 | P1-12 Status-/Zuverlaessigkeitsreview | baut auf P1-11 | Redundanz aufgeloest, Treiber der mittleren Zuverlaessigkeit benannt |
+| 3 | P0-3 Point-MVT-Profiling (Ist-Stand 2026-07-27: 6-15 s je Zoom) | parallel | reproduzierbarer Latenzbefund und Zielwert |
+| 4 | P1-13 Wien-Onboarding | Datenlieferung + Meeting-Input 24.09. | eigener Execution Plan mit vorab fixierten Holdout-Kriterien |
+| 5 | P1-14 Hosting/Server | Entscheidung beim Meeting 24.09. | betriebsfaehige Instanz mit geklaertem Zugriff und Lizenzen |
+| 6 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
+| 7 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
+| 8 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
+| 9 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
+| 10 | P0-1/P0-2 Neubewertung der roten RC-Befunde (zurueckgestellt) | nach P1-11/P1-12 | Befunde auf neuem Stand geklaert oder gegenstandslos; RC-Status neu entschieden |
+| 11 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
+| 12 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
 
 Abgeschlossene Punkte werden aus dieser Liste entfernt und in
 [`iterations.md`](iterations.md) beziehungsweise einem phasenspezifischen
