@@ -119,6 +119,26 @@ Holdout-Disziplin (vgl. P1-10): Erfolgskriterien vor dem ersten Lauf
 festlegen, keine gebiets- oder sensorspezifischen Schwellen still
 nachziehen.
 
+### P1-14 Hosting/Server fuer Viewer-Zugang und grosse Laeufe
+
+Aus dem Meeting 2026-07-23 (Thema 5, im Meeting nur angerissen; wird nicht
+vor dem Meeting am 24.09. umgesetzt): eine gehostete Instanz, damit
+AUGMENTERRA den Viewer testen kann (bleibt Forschungswerkzeug, kein
+Produkt), und ausreichend Rechenkapazitaet fuer Laeufe in
+Wien-Groessenordnung.
+
+- Optionen: AUGMENTERRA-Server (Rueckmeldung des Entwicklers zugesagt),
+  FH-Server (SP-AI prueft), eigener gemieteter Server.
+- Randbedingungen aus dem Meeting: voller Admin-Zugriff (ohne den ist die
+  Option unbrauchbar), grob 16+ GB RAM, ~60 GB+ Speicher fuer den aktuellen
+  Bestand; Wien deutlich mehr (3D-Stadtmodell, CSK-Punktdichte).
+- Zu klaeren vor Betrieb: Zugriffsschutz und Datenlizenzen (BEV/TSX in
+  einer extern erreichbaren Instanz).
+- Abhaengigkeit: P0-3 (Point-MVT-Latenz) wird mit externem Zugriff
+  wichtiger.
+
+Entscheidung beim Meeting 2026-09-24.
+
 ## Prioritaet P1: Validierung und Ground Truth
 
 ### P1-1 Label-Korpus erweitern
@@ -301,12 +321,13 @@ Hypothese, Zielmetrik und Gegenbeispiel.
 | 4 | P1-11 Gebaeudedatenfusion (inkl. DOM/DGM-Teil von P1-7) | sofort; Fusionsziel vorab definiert | `insufficient_support`-Anteil sinkt messbar; Anbauten verlaesslicher eingeordnet |
 | 5 | P1-12 Status-/Zuverlaessigkeitsreview | baut auf P1-11 | Redundanz aufgeloest, Treiber der mittleren Zuverlaessigkeit benannt |
 | 6 | P1-13 Wien-Onboarding | Datenlieferung + Meeting-Input 24.09. | eigener Execution Plan mit vorab fixierten Holdout-Kriterien |
-| 7 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
-| 8 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
-| 9 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
-| 10 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
-| 11 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
-| 12 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
+| 7 | P1-14 Hosting/Server | Entscheidung beim Meeting 24.09. | betriebsfaehige Instanz mit geklaertem Zugriff und Lizenzen |
+| 8 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
+| 9 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
+| 10 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
+| 11 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
+| 12 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
+| 13 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
 
 Abgeschlossene Punkte werden aus dieser Liste entfernt und in
 [`iterations.md`](iterations.md) beziehungsweise einem phasenspezifischen
