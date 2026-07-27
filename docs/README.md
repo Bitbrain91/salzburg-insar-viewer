@@ -1,6 +1,6 @@
 # Dokumentationsrouting
 
-**Stand:** 2026-07-10
+**Stand:** 2026-07-15
 
 **Status:** aktive Einstiegs- und Routingseite
 
@@ -25,10 +25,13 @@ nicht.
 | Welche v3/v4-Entscheidungen und Gates fuehrten zum integrierten Stand? | [`pipelines/anomaly_local_v1/artifacts/phase8_integration_report.md`](pipelines/anomaly_local_v1/artifacts/phase8_integration_report.md) | ein Integrationsnachtrag oder eine Korrektur der Evidenz erforderlich ist |
 | Welche Modelliteration geschah wann und warum? | [`pipelines/anomaly_local_v1/iterations.md`](pipelines/anomaly_local_v1/iterations.md) | ein Experiment oder produktiver Modellwechsel abgeschlossen ist |
 | Welche internen Referenzlabels gelten? | [`pipelines/anomaly_local_v1/reference_labels.md`](pipelines/anomaly_local_v1/reference_labels.md) | Labels, Evidenz, Version oder Einsatz im Harness aendert sich |
+| Welche Auffaelligkeiten wurden beobachtet, aber noch nicht als Arbeit priorisiert oder fachlich entschieden? | [`research/observations/README.md`](research/observations/README.md) | eine Beobachtung aufgenommen, triagiert, weitergeleitet oder abgeschlossen wird |
+| Wie werden Projekt- und Stakeholder-Meetings vorbereitet, dokumentiert und nachverfolgt? | [`meetings/README.md`](meetings/README.md) | ein Meeting angelegt, durchgefuehrt oder nachdokumentiert wird oder sich die Konvention aendert |
 | Wie wird das Repository installiert, gestartet und technisch bedient? | [`../README.md`](../README.md) | Architektur, Datenquellen, Setup, CLI oder Laufzeitkonfiguration aendert sich |
 | Wie arbeiten Supervisor und Subagenten? | [`workflows/ai_supervisor_workflow.md`](workflows/ai_supervisor_workflow.md) | der repo-weite AI-Arbeitsvertrag aendert sich |
 | Wo stehen verbindliche Regeln fuer alle Repository-Agenten? | [`../AGENTS.md`](../AGENTS.md) | Coding-, Git-, Daten- oder Dokumentationsregeln aendern sich |
 | Was ist Umfang und Gate-Vertrag des aktuellen P0-Pakets? | [`project/p0_documentation_v4_rc_execution_plan.md`](project/p0_documentation_v4_rc_execution_plan.md) | Umfang, Gate-Status, Integrationsweg oder Blocker aendert sich |
+| Was ist Umfang, Stand und Evidenz der Stakeholder-Evaluation Cross-Track/SNT-TSX (XTV)? | [`pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md`](pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md) | ein XTV-Ticket abgeschlossen, verworfen oder neu geschnitten wird, sich AOIs, Fallback-Bboxen oder Gates aendern oder die Run-Registry neue Extended-Runs erhaelt |
 
 ## Dokumentklassen
 
@@ -42,6 +45,13 @@ nicht.
   nicht automatisch aktuelle Methodik.
 - `docs/research/`: fachliche Analysen und externe Grundlagen. Research wird
   erst durch eine dokumentierte Entscheidung Teil der aktiven Methodik.
+- `docs/research/observations/`: vorgelagerte Beobachtungs- und
+  Klaerungswarteschlange. Ein Eintrag dokumentiert eine Auffaelligkeit, aber
+  weder eine akzeptierte Methodikaussage noch bereits priorisierte Arbeit.
+- `docs/meetings/`: Meeting-Vorbereitung und -Ergebnisse. Der Plan des
+  naechsten Meetings ist bis zum Termin ein lebendes Arbeitsdokument, danach
+  eingefrorene Evidenz; Beschluesse werden in die gerouteten Sources of Truth
+  weitergeleitet (Konvention: [`meetings/README.md`](meetings/README.md)).
 - `docs/workflows/`: repo-weite Arbeitsprozesse.
 - `docs/architecture/`: Systemdiagramme und Architekturentscheidungen.
 - `docs/archive/`: abgeloeste narrative Dokumente, die aus
@@ -88,6 +98,9 @@ aktuellen Methodik; Dateien mit `.deprecated.drawio` sind historisch.
   P0-/Projektplaene unter `docs/project/`.
 - Neue Gate-, Screenshot- und Laufartefakte unter dem zugehoerigen
   `artifacts/`-Ordner mit phasen- und versionsspezifischem Namen.
+- Noch unentschiedene Forschungsbeobachtungen unter
+  `docs/research/observations/`; erst nach Triage in Research, Decision Record,
+  `next_steps.md` oder einen Execution Plan weiterleiten.
 - Root-Dateien direkt unter `docs/` nur fuer echte Querschnittseinstiege.
 - Ersetzte narrative Dokumente nicht loeschen, sondern mit Verweis auf den
   Nachfolger archivieren.
