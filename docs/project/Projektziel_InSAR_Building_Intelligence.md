@@ -1,6 +1,6 @@
 # Projektziel: InSAR Building Intelligence
 
-**Stand:** 2026-07-10
+**Stand:** 2026-07-15
 
 **Status:** aktives Living Document
 
@@ -104,8 +104,13 @@ unabhaengige fachliche Ground Truth.
   Gebaeuderegime testen.
 - 1-m-DGM/DOM kontrolliert ableiten, laden und als eigenen Datenstandswechsel
   re-baselinen; das vorhandene SRTM bleibt bis dahin aktiver Terrain-Stand.
-- Motion-Ablation mit zeitlich ueberlappender Referenzdatenbasis durchfuehren;
-  die benoetigte SNT/TSX-Ueberlappung liegt noch nicht vor.
+- Motion-Ablation mit zeitlich ueberlappender Referenzdatenbasis durchfuehren.
+  Eine kurzfenstrige (232 Tage, ein Winter) Sensor-Konsistenz-Validierung
+  SNT vs. TSX/PAZ in Bad Gastein liegt inzwischen vor (Umfang, Stand und Evidenz:
+  [`../pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md`](../pipelines/anomaly_local_v1/cross_track_validation_execution_plan.md));
+  sie validiert die Sensor-Konsistenz, aber keine absoluten Jahresraten. Offen
+  bleibt die Motion-Ablation mit ausreichend langer, mehrsaisonaler Ueberlappung
+  fuer belastbare absolute Jahresraten; diese Referenzdaten liegen noch nicht vor.
 - Offene Phase-8-Feature-, Label- und Terrain-Arbeiten nach dem aktuellen
   [`next_steps.md`](../pipelines/anomaly_local_v1/next_steps.md) priorisieren.
 

@@ -1,6 +1,6 @@
 # `anomaly_local_v1`: priorisierte naechste Schritte
 
-**Stand:** 2026-07-10
+**Stand:** 2026-07-15
 
 **Status:** aktive Forschungs-Backlog-Uebersicht
 
@@ -131,18 +131,45 @@ bewerten. Cross-Track bleibt bis zu einer belastbaren 2D-Dekomposition ein
 Plausibilitaetsmass. Hangregeln duerfen nicht aus wenigen Salzburg-/Bad-Gastein-
 Einzelfaellen globalisiert werden.
 
+**Evidenz (XTV, 2026-07-15):** Die Cross-Track-Auswertung A zeigt am Hang eine
+gegenlaeufige Rangordnung von auf- und absteigender Blickrichtung
+(`Spearman -0.31` am Hang gegenueber `+0.17` flach;
+[`artifacts/cross_track_consistency_v4.md`](artifacts/cross_track_consistency_v4.md)),
+waehrend Auswertung B gerade am Hang echte Sensor-Konsistenz findet
+(Rollup `ok_ok` `Spearman bis 0.69`;
+[`artifacts/bad_gastein_snt_tsx_motion_comparison_v4.md`](artifacts/bad_gastein_snt_tsx_motion_comparison_v4.md)).
+Beides zusammen stuetzt, dass die reine Vertikalproxy-Annahme am Hang nicht
+traegt und eine 2D-Dekomposition (Vertikal-/Ost-West-Zerlegung) methodisch
+motiviert ist — Evidenz fuer diese offene Hanglagenmethodik, keine bereits
+belegte Hangregel.
+
 ## Prioritaet P1: Motion-Referenz und Generalisierung
 
-### P1-9 SNT/TSX-Motion-Ablation
+### P1-9 SNT/TSX-Motion-Ablation (teilweise adressiert)
 
-Das bestehende Bad-Gastein-Vergleichstooling auf beliebige kompatible
-Gebiets-/Dataset-Paare generalisieren. Metriken: Overlap-Fenster-Slopes,
-Bias/MAE, Vorzeichenuebereinstimmung und Filtergruppen nach Support,
-Zuverlaessigkeit und Clusterart.
+**Teilweise adressiert (Stand 2026-07-15).** Das Bad-Gastein-Vergleichstooling
+ist generalisiert: Quelle (`--source bev/gba`), Overlap-Gates, Zeitfenster und
+Track-Paar-Labels sind parametrisiert, die Terrain-Stratifikation nutzt die
+zentrale `terrain_classes.py`, die Ausgaben sind maschinenlesbar (`--output-json`,
+Audit-Sektion). Darauf aufbauend ist eine quantitative Overlap-Auswertung im
+Fenster `2022-10-06..2023-05-26` (232 Tage, ein Winter) als
+**Sensor-Konsistenz-Validierung** eingefroren
+([`artifacts/bad_gastein_snt_tsx_motion_comparison_v4.md`](artifacts/bad_gastein_snt_tsx_motion_comparison_v4.md)):
+Sensoren korrelieren dort, wo echtes Signal liegt (Hang/Slope Spearman bis 0.69
+im Rollup `ok_ok`, 0.55 im DSC-Overlap), auf flach bleibt Rauschen um Null
+(Rang-Korrelation ≈ 0); die verschaerften Gates (8 Epochen / 150 Tage) binden im
+Kurzfenster nicht (identische n wie 3/30). Rahmung: validiert Sensor-Konsistenz,
+**keine** absoluten Jahresraten.
 
-Die volle Aussage bleibt blockiert, bis zeitlich ausreichend ueberlappende
-Referenzdaten vorliegen. Nicht ueberlappende Zeitraeume duerfen nur als
-qualitative Strukturreferenz verwendet werden.
+**Offen bleibt:** (1) eine belastbare Jahresraten-/Motion-Ablation — extern
+blockiert, bis zeitlich laenger ueberlappende Referenzdaten geliefert sind (das
+232-Tage-Fenster umfasst nur einen Winter, Saisoneffekte sind nicht
+ausgemittelt, Kurzfenster-Vertikalproxy-MAE 4-7 mm/a); (2) die Generalisierung
+des Toolings auf beliebige kompatible Gebiets-/Dataset-Paare ueber das
+Bad-Gastein-Paar hinaus. Zielmetriken bleiben Overlap-Fenster-Slopes, Bias/MAE,
+Vorzeichenuebereinstimmung und Filtergruppen nach Support, Zuverlaessigkeit und
+Clusterart. Nicht ueberlappende Zeitraeume duerfen weiterhin nur als qualitative
+Strukturreferenz verwendet werden.
 
 ### P1-10 Gebiets- und Sensor-Holdouts
 
@@ -169,7 +196,7 @@ Hypothese, Zielmetrik und Gegenbeispiel.
 | 4 | P1-1/P1-2 Labels und Gegenpruefung | nach source-aware Labelvertrag | stratifizierter Korpus und echte Holdouts |
 | 5 | P1-7/P1-8 Terrain/Hang | Datenprovenienz und Vertikaldatum geklaert | kontrollierter Datenstandsvergleich |
 | 6 | P1-4/P1-5 Feature-/Geometrieablation | rote RC-Befunde getrennt verstanden | Verbesserung ohne Reinheits-/Roof-Regression |
-| 7 | P1-9 Motion-Ablation | zeitliche Overlap-Daten geliefert | belastbarer sensoruebergreifender Motion-Vergleich |
+| 7 | P1-9 Motion-Ablation (Tooling generalisiert, Sensor-Konsistenz eingefroren; Jahresraten offen) | zeitlich laenger ueberlappende Referenzdaten geliefert | belastbare absolute Jahresraten ueber beide Geometrien |
 | 8 | P1-10 Generalisierung | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
 | 9 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
 

@@ -1,0 +1,257 @@
+{
+  "generated": "2026-07-14T22:19:11.778468+00:00",
+  "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+  "label_scheme": "xtv_<aoi>_<datasetkurz>_bev_v4",
+  "gate": {
+    "criterion_hours_per_run": 4,
+    "conservative_factor": 1.5,
+    "rate_basis": "process wall clock (/usr/bin/time -v Elapsed), datensatz-spezifisch",
+    "runs": [
+      {
+        "aoi": "bg_flat_01",
+        "dataset_id": "bad_gastein_snt",
+        "run_id": "b8329abc-256e-40a0-82c4-01b191a0dc66",
+        "label": "xtv_gate_bg_flat_01_snt_bev_v4",
+        "bbox": [
+          13.132531,
+          47.106449,
+          13.135531,
+          47.109449
+        ],
+        "wall_seconds": 37.18,
+        "db_wall_seconds": 32.55,
+        "points": 1195,
+        "building_rollups": 92,
+        "peak_rss_mb": 333.9,
+        "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "status": "succeeded"
+      },
+      {
+        "aoi": "bg_flat_01",
+        "dataset_id": "bad_gastein_tsx_paz",
+        "run_id": "c770df11-5f73-44ae-aede-3bb7a11a11a4",
+        "label": "xtv_gate_bg_flat_01_tsxpaz_bev_v4",
+        "bbox": [
+          13.132531,
+          47.106449,
+          13.135531,
+          47.109449
+        ],
+        "wall_seconds": 88.65,
+        "db_wall_seconds": 87.28,
+        "points": 6750,
+        "building_rollups": 102,
+        "peak_rss_mb": 480.4,
+        "model_set_version": "local_hdbscan_rulegate_v4_k2xhf_diffv2",
+        "status": "succeeded",
+        "note": "Status transient auf 'failed' geflippt durch backend uvicorn --reload -> fail_incomplete_runs (nur ml_runs.status, keine Punktdaten betroffen); CLI-Prozess lief durch (exit 0) und setzte final 'succeeded'. error-Spalte enthaelt stale Text (cosmetic)."
+      }
+    ],
+    "projection": [
+      {
+        "aoi": "sbg_flat_ext_01",
+        "dataset_id": "salzburg_snt",
+        "bbox": [
+          13.03,
+          47.8,
+          13.046,
+          47.812
+        ],
+        "expected_points": 25286,
+        "rate_points_per_s": 32.14,
+        "linear_minutes": 13.11,
+        "projected_minutes": 19.67
+      },
+      {
+        "aoi": "sbg_flat_ext_02",
+        "dataset_id": "salzburg_snt",
+        "bbox": [
+          13.018,
+          47.785,
+          13.036,
+          47.798
+        ],
+        "expected_points": 22480,
+        "rate_points_per_s": 32.14,
+        "linear_minutes": 11.66,
+        "projected_minutes": 17.49
+      },
+      {
+        "aoi": "sbg_hang_ext_01",
+        "dataset_id": "salzburg_snt",
+        "bbox": [
+          13.045,
+          47.799,
+          13.06,
+          47.81
+        ],
+        "expected_points": 17318,
+        "rate_points_per_s": 32.14,
+        "linear_minutes": 8.98,
+        "projected_minutes": 13.47
+      },
+      {
+        "aoi": "bg_flat_ext_01",
+        "dataset_id": "bad_gastein_snt",
+        "bbox": [
+          13.125,
+          47.095,
+          13.145,
+          47.115
+        ],
+        "expected_points": 9109,
+        "rate_points_per_s": 32.14,
+        "linear_minutes": 4.72,
+        "projected_minutes": 7.09
+      },
+      {
+        "aoi": "bg_slope_ext_01",
+        "dataset_id": "bad_gastein_snt",
+        "bbox": [
+          13.13,
+          47.112,
+          13.15,
+          47.128
+        ],
+        "expected_points": 8514,
+        "rate_points_per_s": 32.14,
+        "linear_minutes": 4.41,
+        "projected_minutes": 6.62
+      },
+      {
+        "aoi": "bg_flat_ext_01",
+        "dataset_id": "bad_gastein_tsx_paz",
+        "bbox": [
+          13.125,
+          47.095,
+          13.145,
+          47.115
+        ],
+        "expected_points": 52264,
+        "rate_points_per_s": 76.14,
+        "linear_minutes": 11.44,
+        "projected_minutes": 17.16
+      },
+      {
+        "aoi": "bg_slope_ext_01",
+        "dataset_id": "bad_gastein_tsx_paz",
+        "bbox": [
+          13.13,
+          47.112,
+          13.15,
+          47.128
+        ],
+        "expected_points": 46107,
+        "rate_points_per_s": 76.14,
+        "linear_minutes": 10.09,
+        "projected_minutes": 15.14
+      }
+    ],
+    "max_projected_minutes": 19.67,
+    "decision": "go",
+    "fallback_note": "Entscheidung GO: max. projizierte Zeit 19.7 min << 240 min (4h)-Kriterium; keine Fallback-Bbox noetig. Vordeklarierte Fallbacks bei No-Go (Lat-Halbierung): fuer die BG-Boxen bevorzugt geschrumpfte Varianten bg_flat_ext_01 -> 13.125,47.103,13.145,47.115 und bg_slope_ext_01 -> 13.130,47.112,13.150,47.122; fuer die Salzburg-Boxen jeweils Lat-Spanne halbieren.",
+    "environment_warning": "Backend laeuft mit 'uvicorn --reload'. Waehrend eines laufenden CLI-Runs kann ein Reload (durch parallele Backend-Datei-Edits) den Startup-Hook fail_incomplete_runs ausloesen, der ml_runs.status transient auf 'failed' setzt. Punktdaten sind NIE betroffen; der CLI-Prozess setzt am Ende 'succeeded'. Fuer B-W2 (Extended-Runs): Endstatus IMMER erst nach CLI-Prozess-Exit (exit 0) pruefen, nicht dem Zwischenstatus vertrauen; ideal Backend-Edits waehrend der Runs ruhig halten oder --reload temporaer deaktivieren."
+  },
+  "extended_runs_updated": "2026-07-15T10:54:05.630675+00:00",
+  "execution_note": "Runs 2-7 in 3 parallelen Bahnen (je dataset), Run 1 solo; work_mem waehrend der Welle temporaer auf 256MB (DB-Level), danach zurueckgesetzt; Runs 1/2/6 liefen mit 4MB work_mem und entsprechend langsamer Eingabequery.",
+  "extended_runs": [
+    {
+      "aoi": "sbg_flat_ext_01",
+      "dataset_id": "salzburg_snt",
+      "run_id": "8dbeb164-3346-4952-addc-6dc0c8fcd867",
+      "label": "xtv_sbg_flat_ext_01_snt_bev_v4",
+      "bbox": [13.03, 47.8, 13.046, 47.812],
+      "wall_seconds": 9468,
+      "points": 25286,
+      "building_rollups": 1289,
+      "tracks": [44, 95],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T07:25:02Z",
+      "finished_utc": "2026-07-15T10:02:49Z"
+    },
+    {
+      "aoi": "sbg_flat_ext_02",
+      "dataset_id": "salzburg_snt",
+      "run_id": "d1a5e56c-9962-4bb8-a536-210dec41882d",
+      "label": "xtv_sbg_flat_ext_02_snt_bev_v4",
+      "bbox": [13.018, 47.785, 13.036, 47.798],
+      "wall_seconds": 7564,
+      "points": 22480,
+      "building_rollups": 1750,
+      "tracks": [44, 95],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T07:35:14Z",
+      "finished_utc": "2026-07-15T09:41:18Z"
+    },
+    {
+      "aoi": "sbg_hang_ext_01",
+      "dataset_id": "salzburg_snt",
+      "run_id": "4ed36e33-253f-4389-9975-9ca0149b8ce2",
+      "label": "xtv_sbg_hang_ext_01_snt_bev_v4",
+      "bbox": [13.045, 47.799, 13.06, 47.81],
+      "wall_seconds": 4185,
+      "points": 17318,
+      "building_rollups": 1181,
+      "tracks": [44, 95],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T09:41:21Z",
+      "finished_utc": "2026-07-15T10:51:06Z"
+    },
+    {
+      "aoi": "bg_flat_ext_01",
+      "dataset_id": "bad_gastein_snt",
+      "run_id": "f3d22d72-8fa8-4551-96c5-273d84bc8d7a",
+      "label": "xtv_bg_flat_ext_01_snt_bev_v4",
+      "bbox": [13.125, 47.095, 13.145, 47.115],
+      "wall_seconds": 965,
+      "points": 9109,
+      "building_rollups": 616,
+      "tracks": [44, 95],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T07:35:15Z",
+      "finished_utc": "2026-07-15T07:51:21Z"
+    },
+    {
+      "aoi": "bg_slope_ext_01",
+      "dataset_id": "bad_gastein_snt",
+      "run_id": "929e79d9-149b-414d-91aa-6db4e4d3f36f",
+      "label": "xtv_bg_slope_ext_01_snt_bev_v4",
+      "bbox": [13.13, 47.112, 13.15, 47.128],
+      "wall_seconds": 999,
+      "points": 8514,
+      "building_rollups": 664,
+      "tracks": [44, 95],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T07:51:24Z",
+      "finished_utc": "2026-07-15T08:08:04Z"
+    },
+    {
+      "aoi": "bg_flat_ext_01",
+      "dataset_id": "bad_gastein_tsx_paz",
+      "run_id": "533f3ec1-1c4c-4be5-9cf7-7050c06de0bc",
+      "label": "xtv_bg_flat_ext_01_tsxpaz_bev_v4",
+      "bbox": [13.125, 47.095, 13.145, 47.115],
+      "wall_seconds": 4744,
+      "points": 52264,
+      "building_rollups": 664,
+      "tracks": [70, 93],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T07:35:17Z",
+      "finished_utc": "2026-07-15T08:54:21Z"
+    },
+    {
+      "aoi": "bg_slope_ext_01",
+      "dataset_id": "bad_gastein_tsx_paz",
+      "run_id": "3315f80a-1262-4eab-80f7-4d5f0542c14e",
+      "label": "xtv_bg_slope_ext_01_tsxpaz_bev_v4",
+      "bbox": [13.13, 47.112, 13.15, 47.128],
+      "wall_seconds": 4445,
+      "points": 46107,
+      "building_rollups": 722,
+      "tracks": [70, 93],
+      "status": "succeeded",
+      "started_utc": "2026-07-15T08:54:26Z",
+      "finished_utc": "2026-07-15T10:08:31Z"
+    }
+  ]
+}

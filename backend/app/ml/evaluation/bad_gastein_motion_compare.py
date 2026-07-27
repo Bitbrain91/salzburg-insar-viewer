@@ -2,7 +2,12 @@
 
 The report deliberately keeps the existing Phase-7 structural comparison
 separate: this module compares numeric building motions and overlap-window
-slopes for identical GBA building IDs.
+slopes for identical building IDs (GBA or BEV, je nach ``--source``).
+
+Meeting-Rahmung "Variante 1": das kurze Overlap-Fenster validiert die
+Konsistenz der beiden Sensoren untereinander, nicht die absoluten Jahresraten.
+Generalisiert auf v4/BEV; das eingefrorene v2-Artefakt
+``bad_gastein_snt_tsx_motion_comparison.md`` bleibt unberuehrt.
 """
 
 from __future__ import annotations
@@ -21,14 +26,16 @@ import numpy as np
 
 from ...config import BASE_DIR, settings
 from ..track_geometry import get_track_geometry
+from .eval_charts import bar_by_class, scatter_pair
+from .terrain_classes import TERRAIN_CLASS_ORDER, classify_slope
 
 
 ARTIFACTS_DIR = BASE_DIR / "docs" / "pipelines" / "anomaly_local_v1" / "artifacts"
-DEFAULT_OUTPUT = ARTIFACTS_DIR / "bad_gastein_snt_tsx_motion_comparison.md"
+DEFAULT_OUTPUT = ARTIFACTS_DIR / "bad_gastein_snt_tsx_motion_comparison_v4.md"
 OVERLAP_START = date(2022, 10, 6)
 OVERLAP_END = date(2023, 5, 26)
-MIN_OVERLAP_EPOCHS = 3
-MIN_OVERLAP_SPAN_DAYS = 30
+MIN_OVERLAP_EPOCHS = 8
+MIN_OVERLAP_SPAN_DAYS = 150
 SIGN_DEADBAND_MM_A = 0.5
 TRACK_PAIRS = {
     "ASC-vs-ASC": (44, 93),
@@ -36,7 +43,22 @@ TRACK_PAIRS = {
 }
 STATUS_FILTER = {"ok", "single_track_only"}
 RELIABILITY_FILTER = {"medium", "high"}
-EXPECTED_MODEL_SET_VERSION = "local_hdbscan_rulegate_v2_k2x"
+EXPECTED_MODEL_SET_VERSION = "local_hdbscan_rulegate_v4_k2xhf_diffv2"
+DEFAULT_VIEWER_BASE_URL = "http://localhost:3000"
+DEFAULT_TOP_N = 15
+
+# "Variante 1"-Rahmung: hart eingebauter Framing-Satz (Datenstand + Interpretation).
+VARIANTE1_FRAMING = (
+    "Dieses Fenster (232 Tage, ein Winter) validiert die Konsistenz der Sensoren "
+    "untereinander; es validiert keine absoluten Jahresraten."
+)
+
+# Tabellennamen und ID-Spalten je Gebaeudequelle (verifiziert in backend/sql/schema.sql:
+# bev_buildings.bev_id, gba_buildings.gba_id, jeweils PK (area_id, <source>_id)).
+_BUILDING_TABLES = {
+    "bev": ("bev_buildings", "bev_id"),
+    "gba": ("gba_buildings", "gba_id"),
+}
 
 
 @dataclass(frozen=True)
@@ -86,11 +108,14 @@ class RunData:
     buildings: dict[str, dict[str, Any]]
     main_support: dict[tuple[str, int], int]
     overlap_slopes: dict[tuple[str, int], TrackSlope]
+    terrain_slopes: dict[str, float | None]
+    centroids: dict[str, tuple[float, float]]
 
 
 @dataclass(frozen=True)
 class ComparisonRow:
     building_id: str
+    terrain_class: str
     s_value: float | None
     t_value: float | None
     s_status: str
@@ -288,6 +313,25 @@ def _metric_table(rows_by_group: dict[str, list[ComparisonRow]]) -> list[dict[st
     return out
 
 
+# Leitmetriken-Reihenfolge (XTV-A-W2-T2 Punkt 6): zuerst n, Sign-Agreement,
+# Spearman, <=1.0, <=0.5; danach Bias/MAE/RMSE/Pearson/Median-abs-diff.
+_LEAD_METRIC_COLUMNS = [
+    ("n", "n"),
+    ("sign_agreement", "Sign agreement"),
+    ("spearman", "Spearman"),
+    ("within_1_0", "<=1.0"),
+    ("within_0_5", "<=0.5"),
+    ("bias_mean", "Bias mean"),
+    ("bias_median", "Bias median"),
+    ("mae", "MAE"),
+    ("rmse", "RMSE"),
+    ("pearson", "Pearson"),
+    ("median_abs_diff", "Median abs diff"),
+]
+METRIC_COLUMNS = [("group", "Filtergruppe"), *_LEAD_METRIC_COLUMNS]
+TERRAIN_METRIC_COLUMNS = [("terrain_class", "Terrain-Klasse"), *_LEAD_METRIC_COLUMNS]
+
+
 def _markdown_table(rows: list[dict[str, Any]], columns: list[tuple[str, str]]) -> list[str]:
     if not rows:
         return ["_Keine auswertbaren Zeilen._"]
@@ -383,7 +427,9 @@ async def _fetch_run_meta(conn: asyncpg.Connection, run_id: str) -> RunMeta:
     )
 
 
-async def _fetch_buildings(conn: asyncpg.Connection, run_id: str) -> dict[str, dict[str, Any]]:
+async def _fetch_buildings(
+    conn: asyncpg.Connection, run_id: str, source: str
+) -> dict[str, dict[str, Any]]:
     rows = await conn.fetch(
         """
         SELECT DISTINCT ON (r.building_id)
@@ -391,12 +437,13 @@ async def _fetch_buildings(conn: asyncpg.Connection, run_id: str) -> dict[str, d
                r.meta->'building_rollup' AS building_rollup
         FROM ml_point_results r
         WHERE r.run_id = $1::uuid
-          AND r.building_source = 'gba'
+          AND r.building_source = $2
           AND r.building_id IS NOT NULL
           AND r.meta ? 'building_rollup'
         ORDER BY r.building_id, r.track, r.code
         """,
         run_id,
+        source,
     )
     buildings: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -406,13 +453,15 @@ async def _fetch_buildings(conn: asyncpg.Connection, run_id: str) -> dict[str, d
     return buildings
 
 
-async def _fetch_main_support(conn: asyncpg.Connection, run_id: str) -> dict[tuple[str, int], int]:
+async def _fetch_main_support(
+    conn: asyncpg.Connection, run_id: str, source: str
+) -> dict[tuple[str, int], int]:
     rows = await conn.fetch(
         """
         SELECT r.building_id, r.track, count(*) AS n
         FROM ml_point_results r
         WHERE r.run_id = $1::uuid
-          AND r.building_source = 'gba'
+          AND r.building_source = $2
           AND r.building_id IS NOT NULL
           AND r.cluster_id = r.meta->'building_rollup'->'main_cluster_by_track'->>(r.track::text)
           AND r.meta->'cluster'->>'cluster_role' = 'core'
@@ -420,11 +469,14 @@ async def _fetch_main_support(conn: asyncpg.Connection, run_id: str) -> dict[tup
         GROUP BY r.building_id, r.track
         """,
         run_id,
+        source,
     )
     return {(str(row["building_id"]), int(row["track"])): int(row["n"]) for row in rows}
 
 
-async def _fetch_main_points(conn: asyncpg.Connection, run_id: str) -> list[dict[str, Any]]:
+async def _fetch_main_points(
+    conn: asyncpg.Connection, run_id: str, source: str
+) -> list[dict[str, Any]]:
     rows = await conn.fetch(
         """
         SELECT r.area_id, r.dataset_id, r.building_id, r.code, r.track, p.incidence_angle
@@ -435,7 +487,7 @@ async def _fetch_main_points(conn: asyncpg.Connection, run_id: str) -> list[dict
          AND p.code = r.code
          AND p.track = r.track
         WHERE r.run_id = $1::uuid
-          AND r.building_source = 'gba'
+          AND r.building_source = $2
           AND r.building_id IS NOT NULL
           AND r.cluster_id = r.meta->'building_rollup'->'main_cluster_by_track'->>(r.track::text)
           AND r.meta->'cluster'->>'cluster_role' = 'core'
@@ -443,8 +495,56 @@ async def _fetch_main_points(conn: asyncpg.Connection, run_id: str) -> list[dict
         ORDER BY r.building_id, r.track, r.code
         """,
         run_id,
+        source,
     )
     return [dict(row) for row in rows]
+
+
+async def _fetch_terrain_slopes(
+    conn: asyncpg.Connection, area_id: str, source: str, building_ids: list[str]
+) -> dict[str, float | None]:
+    if not building_ids:
+        return {}
+    rows = await conn.fetch(
+        """
+        SELECT building_id, slope_mean_deg
+        FROM building_terrain_context
+        WHERE area_id = $1
+          AND building_source = $2
+          AND building_id = ANY($3::text[])
+        """,
+        area_id,
+        source,
+        building_ids,
+    )
+    return {str(row["building_id"]): _float(row["slope_mean_deg"]) for row in rows}
+
+
+async def _fetch_centroids(
+    conn: asyncpg.Connection, area_id: str, source: str, building_ids: list[str]
+) -> dict[str, tuple[float, float]]:
+    if not building_ids:
+        return {}
+    table, id_col = _BUILDING_TABLES[source]
+    rows = await conn.fetch(
+        f"""
+        SELECT {id_col} AS building_id,
+               ST_X(ST_PointOnSurface(geom)) AS lon,
+               ST_Y(ST_PointOnSurface(geom)) AS lat
+        FROM {table}
+        WHERE area_id = $1
+          AND {id_col} = ANY($2::text[])
+        """,
+        area_id,
+        building_ids,
+    )
+    out: dict[str, tuple[float, float]] = {}
+    for row in rows:
+        lon = _float(row["lon"])
+        lat = _float(row["lat"])
+        if lon is not None and lat is not None:
+            out[str(row["building_id"])] = (lon, lat)
+    return out
 
 
 def _fit_point_slope(
@@ -454,12 +554,15 @@ def _fit_point_slope(
     track: int,
     incidence_angle: float | None,
     series: list[tuple[date, float]],
+    *,
+    min_epochs: int,
+    min_span_days: int,
 ) -> PointSlope | None:
-    if len(series) < MIN_OVERLAP_EPOCHS:
+    if len(series) < min_epochs:
         return None
     ordered = sorted(series, key=lambda item: item[0])
     span_days = (ordered[-1][0] - ordered[0][0]).days
-    if span_days < MIN_OVERLAP_SPAN_DAYS:
+    if span_days < min_span_days:
         return None
     x = np.asarray([(item[0] - ordered[0][0]).days / 365.25 for item in ordered], dtype=float)
     y = np.asarray([item[1] for item in ordered], dtype=float)
@@ -487,9 +590,16 @@ def _fit_point_slope(
 async def _fetch_overlap_slopes(
     conn: asyncpg.Connection,
     run_id: str,
+    area_id: str,
     dataset_id: str,
+    source: str,
+    *,
+    overlap_start: date,
+    overlap_end: date,
+    min_epochs: int,
+    min_span_days: int,
 ) -> dict[tuple[str, int], TrackSlope]:
-    main_points = await _fetch_main_points(conn, run_id)
+    main_points = await _fetch_main_points(conn, run_id, source)
     if not main_points:
         return {}
     point_lookup: dict[tuple[str, int], dict[str, Any]] = {}
@@ -512,16 +622,17 @@ async def _fetch_overlap_slopes(
         JOIN main_points p
           ON p.code = t.code
          AND p.track = t.track
-        WHERE t.area_id = 'bad_gastein'
-          AND t.dataset_id = $3
-          AND t.date BETWEEN $4::date AND $5::date
+        WHERE t.area_id = $3
+          AND t.dataset_id = $4
+          AND t.date BETWEEN $5::date AND $6::date
         ORDER BY t.track, t.code, t.date
         """,
         codes,
         tracks,
+        area_id,
         dataset_id,
-        OVERLAP_START,
-        OVERLAP_END,
+        overlap_start,
+        overlap_end,
     )
     series_by_point: dict[tuple[str, int], list[tuple[date, float]]] = {}
     for row in rows:
@@ -540,6 +651,8 @@ async def _fetch_overlap_slopes(
             track=key[1],
             incidence_angle=_float(point.get("incidence_angle")),
             series=series,
+            min_epochs=min_epochs,
+            min_span_days=min_span_days,
         )
         if point_slope is not None:
             point_slopes.append(point_slope)
@@ -564,12 +677,43 @@ async def _fetch_overlap_slopes(
     return slopes
 
 
-async def _load_run(conn: asyncpg.Connection, label: str, run_id: str) -> RunData:
+async def _load_run(
+    conn: asyncpg.Connection,
+    label: str,
+    run_id: str,
+    *,
+    source: str,
+    overlap_start: date,
+    overlap_end: date,
+    min_epochs: int,
+    min_span_days: int,
+) -> RunData:
     meta = await _fetch_run_meta(conn, run_id)
-    buildings = await _fetch_buildings(conn, run_id)
-    support = await _fetch_main_support(conn, run_id)
-    slopes = await _fetch_overlap_slopes(conn, run_id, meta.dataset_id)
-    return RunData(label=label, meta=meta, buildings=buildings, main_support=support, overlap_slopes=slopes)
+    buildings = await _fetch_buildings(conn, run_id, source)
+    support = await _fetch_main_support(conn, run_id, source)
+    slopes = await _fetch_overlap_slopes(
+        conn,
+        run_id,
+        meta.area_id,
+        meta.dataset_id,
+        source,
+        overlap_start=overlap_start,
+        overlap_end=overlap_end,
+        min_epochs=min_epochs,
+        min_span_days=min_span_days,
+    )
+    building_ids = list(buildings)
+    terrain = await _fetch_terrain_slopes(conn, meta.area_id, source, building_ids)
+    centroids = await _fetch_centroids(conn, meta.area_id, source, building_ids)
+    return RunData(
+        label=label,
+        meta=meta,
+        buildings=buildings,
+        main_support=support,
+        overlap_slopes=slopes,
+        terrain_slopes=terrain,
+        centroids=centroids,
+    )
 
 
 def _building_motion(building: dict[str, Any]) -> float | None:
@@ -604,6 +748,10 @@ def _support_for_rollup(run: RunData, building_id: str, building: dict[str, Any]
     return min(supports) if supports else None
 
 
+def _terrain_class_for(run: RunData, building_id: str) -> str:
+    return classify_slope(run.terrain_slopes.get(building_id))
+
+
 def _reason(row: ComparisonRow) -> str:
     reasons: list[str] = []
     if row.s_status != "ok" or row.t_status != "ok":
@@ -628,6 +776,7 @@ def _rollup_rows(snt: RunData, tsx: RunData, building_ids: set[str]) -> list[Com
         t_building = tsx.buildings[building_id]
         row = ComparisonRow(
             building_id=building_id,
+            terrain_class=_terrain_class_for(snt, building_id),
             s_value=_building_motion(s_building),
             t_value=_building_motion(t_building),
             s_status=_status(s_building),
@@ -655,6 +804,7 @@ def _track_rows(
         t_building = tsx.buildings[building_id]
         row = ComparisonRow(
             building_id=building_id,
+            terrain_class=_terrain_class_for(snt, building_id),
             s_value=_track_motion(s_building, s_track),
             t_value=_track_motion(t_building, t_track),
             s_status=_status(s_building),
@@ -692,6 +842,7 @@ def _overlap_rows(
             t_value = t_slope.slope_los_mm_a if t_slope else None
         row = ComparisonRow(
             building_id=building_id,
+            terrain_class=_terrain_class_for(snt, building_id),
             s_value=s_value,
             t_value=t_value,
             s_status=_status(s_building),
@@ -738,6 +889,7 @@ def _top_rows(top: list[ComparisonRow]) -> list[dict[str, Any]]:
         out.append(
             {
                 "building_id": row.building_id,
+                "terrain_class": row.terrain_class,
                 "status": f"{row.s_status}-{row.t_status}",
                 "reliability": f"{row.s_reliability or '-'}-{row.t_reliability or '-'}",
                 "snt": row.s_value,
@@ -809,12 +961,30 @@ def _metric_rows(table: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [by_group[group] for group in order if group in by_group]
 
 
+def _terrain_metric_rows(rows: list[ComparisonRow], filter_group: str) -> list[dict[str, Any]]:
+    """Metrik-Zeilen je Terrain-Klasse fuer eine Filtergruppe (feste Reihenfolge)."""
+    subset = _filter_groups(rows).get(filter_group, [])
+    by_class: dict[str, list[ComparisonRow]] = {}
+    for row in subset:
+        by_class.setdefault(row.terrain_class, []).append(row)
+    ordered = [c for c in TERRAIN_CLASS_ORDER if c in by_class]
+    ordered += [c for c in by_class if c not in TERRAIN_CLASS_ORDER]
+    return [{"terrain_class": cls, **_metric_summary(by_class[cls])} for cls in ordered]
+
+
 def _reason_counts(rows: list[ComparisonRow]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in _top_deviations(rows):
         primary = row.reason.split("; ", 1)[0]
         counts[primary] = counts.get(primary, 0) + 1
     return counts
+
+
+def _deep_link(base_url: str, area_id: str, run_id: str, source: str, building_id: str) -> str:
+    return (
+        f"{base_url.rstrip('/')}/?area={area_id}&run={run_id}"
+        f"&building={source}:{building_id}&mlview=cross-track&mlbuildings=1"
+    )
 
 
 def _interpretation(
@@ -849,6 +1019,7 @@ def _interpretation(
     lines = [
         "## Interpretation",
         "",
+        f"- **Variante 1:** {VARIANTE1_FRAMING}",
         (
             "- Flach-AOI: Rollup-Vergleich "
             f"MAE={_fmt(flat_mae)} mm/a, Sign-Agreement={_fmt_pct(flat_sign)}; "
@@ -896,26 +1067,82 @@ def _validate_runs(runs: list[RunData]) -> list[str]:
             warnings.append(
                 f"{run.label}: model_set_version is {run.meta.model_versions}, expected {EXPECTED_MODEL_SET_VERSION}"
             )
-        if run.meta.area_id != "bad_gastein":
-            warnings.append(f"{run.label}: area_id is {run.meta.area_id}, expected bad_gastein")
     return warnings
 
 
-def _render_report(aoi_data: dict[str, tuple[RunData, RunData]]) -> str:
+def _coupling_sentence(source: str) -> str:
+    if source == "bev":
+        return (
+            "- Gekoppelt wird ausschliesslich ueber identische BEV-GUIDs (`bev_id`); beide "
+            "Runs teilen dieselben BEV-Footprints."
+        )
+    return "- Gekoppelt wird ausschliesslich ueber gleiche GBA-`building_id`."
+
+
+@dataclass
+class ReportBundle:
+    markdown: str
+    payload: dict[str, Any]
+    scatter: dict[str, tuple[list[float], list[float], list[str]]]
+    leadmetrics: dict[str, dict[str, float]]
+
+
+def _row_payload(row: ComparisonRow) -> dict[str, Any]:
+    return {
+        "building_id": row.building_id,
+        "terrain_class": row.terrain_class,
+        "s_value": row.s_value,
+        "t_value": row.t_value,
+        "delta": row.delta,
+        "abs_delta": row.abs_delta,
+        "s_status": row.s_status,
+        "t_status": row.t_status,
+        "s_reliability": row.s_reliability,
+        "t_reliability": row.t_reliability,
+        "s_support": row.s_support,
+        "t_support": row.t_support,
+        "reason": row.reason,
+    }
+
+
+def _build_report(
+    aoi_data: dict[str, tuple[RunData, RunData]],
+    *,
+    flat_label: str,
+    slope_label: str,
+    params: dict[str, Any],
+) -> ReportBundle:
+    source = str(params["source"])
+    top_n = int(params["top_n"])
+    viewer_base_url = str(params["viewer_base_url"])
     all_runs = [run for pair in aoi_data.values() for run in pair]
     warnings = _validate_runs(all_runs)
+
     lines: list[str] = [
         "# Bad Gastein SNT-vs-TSX/PAZ Bewegungsvergleich",
         "",
         f"Stand: {datetime.now(timezone.utc).isoformat()}",
         "",
+        f'**Meeting-Rahmung "Variante 1":** {VARIANTE1_FRAMING}',
+        "",
         "## Datenstand und Methode",
         "",
-        f"- Overlap-Zeitfenster: `{OVERLAP_START}` bis `{OVERLAP_END}`.",
-        "- Gekoppelt wird ausschliesslich ueber gleiche GBA-`building_id`.",
+        f"- Gebaeudequelle: `{source}`.",
+        (
+            f"- Overlap-Zeitfenster (effektiv): `{params['overlap_start']}` bis "
+            f"`{params['overlap_end']}` ({params['overlap_span_days']} Tage)."
+        ),
+        (
+            f"- Overlap-Gates (effektiv): mindestens {params['min_epochs']} Epochen und "
+            f"{params['min_span_days']} Tage Spanne je Punkt."
+        ),
+        _coupling_sentence(source),
         "- Rollup-Vergleich nutzt `meta.building_rollup.building_motion_mm_a` und `track_motion_mm_a`.",
         "- Overlap-Vergleich fitet neue lineare Punkt-Slopes im gemeinsamen Zeitraum; primaer LOS in `mm/a`, sekundaer `vertical_proxy = slope / max(cos(incidence_angle), 0.30)`.",
         "- Sign-Klassen: `stable` bei `abs(value) <= 0.5 mm/a`, sonst `negative` oder `positive`.",
+        "- Terrain-Klasse aus `building_terrain_context.slope_mean_deg` (flach <5deg, uebergang <15deg, sonst hang).",
+        "- Leitmetriken zuerst: n, Sign-Agreement, Spearman, <=1.0 und <=0.5 mm/a; danach Bias/MAE/RMSE/Pearson.",
+        f"- {VARIANTE1_FRAMING}",
         "",
     ]
     if warnings:
@@ -924,9 +1151,10 @@ def _render_report(aoi_data: dict[str, tuple[RunData, RunData]]) -> str:
         lines.append("")
 
     lines.extend(["## Verwendete Runs", ""])
+    run_rows = _run_table(all_runs)
     lines.extend(
         _markdown_table(
-            _run_table(all_runs),
+            run_rows,
             [
                 ("label", "Label"),
                 ("run_id", "Run-ID"),
@@ -941,9 +1169,10 @@ def _render_report(aoi_data: dict[str, tuple[RunData, RunData]]) -> str:
         )
     )
     lines.extend(["", "## Datenfenster", ""])
+    window_rows = _window_table(all_runs)
     lines.extend(
         _markdown_table(
-            _window_table(all_runs),
+            window_rows,
             [
                 ("label", "Label"),
                 ("track", "Track"),
@@ -954,23 +1183,9 @@ def _render_report(aoi_data: dict[str, tuple[RunData, RunData]]) -> str:
         )
     )
 
-    metric_columns = [
-        ("group", "Filtergruppe"),
-        ("n", "n"),
-        ("bias_mean", "Bias mean"),
-        ("bias_median", "Bias median"),
-        ("mae", "MAE"),
-        ("rmse", "RMSE"),
-        ("median_abs_diff", "Median abs diff"),
-        ("pearson", "Pearson"),
-        ("spearman", "Spearman"),
-        ("sign_agreement", "Sign agreement"),
-        ("within_0_5", "<=0.5"),
-        ("within_1_0", "<=1.0"),
-        ("within_2_0", "<=2.0"),
-    ]
     top_columns = [
         ("building_id", "Building-ID"),
+        ("terrain_class", "Terrain-Klasse"),
         ("status", "Status"),
         ("reliability", "Reliability"),
         ("snt", "SNT"),
@@ -986,104 +1201,417 @@ def _render_report(aoi_data: dict[str, tuple[RunData, RunData]]) -> str:
         ("with_both_values", "mit beiden Werten"),
     ]
 
+    # Rollen-Zuordnung fuer Interpretation/Charts (unabhaengig von den Labelnamen).
+    role_by_label = {flat_label: "flat", slope_label: "slope"}
     interpretation_inputs: dict[str, Any] = {}
+
+    metrics_payload: dict[str, Any] = {}
+    buildings_payload: dict[str, Any] = {}
+    scatter: dict[str, tuple[list[float], list[float], list[str]]] = {
+        pair_label: ([], [], []) for pair_label in TRACK_PAIRS
+    }
+    lead_rows_pooled: list[ComparisonRow] = []
+    audit_candidates: list[dict[str, Any]] = []
+
     for aoi_label, (snt, tsx) in aoi_data.items():
         building_ids = set(snt.buildings) & set(tsx.buildings)
         rollup_rows = _rollup_rows(snt, tsx, building_ids)
-        interpretation_inputs[f"{aoi_label}_rollup"] = rollup_rows
+        lead_rows_pooled.extend(rollup_rows)
+        track_rows_by_pair = {
+            pair_label: _track_rows(snt, tsx, building_ids, s_track, t_track)
+            for pair_label, (s_track, t_track) in TRACK_PAIRS.items()
+        }
+        overlap_los_by_pair = {
+            pair_label: _overlap_rows(snt, tsx, building_ids, s_track, t_track, value_key="los")
+            for pair_label, (s_track, t_track) in TRACK_PAIRS.items()
+        }
+        overlap_vert_by_pair = {
+            pair_label: _overlap_rows(
+                snt, tsx, building_ids, s_track, t_track, value_key="vertical"
+            )
+            for pair_label, (s_track, t_track) in TRACK_PAIRS.items()
+        }
+
+        interpretation_inputs[aoi_label] = {
+            "rollup": rollup_rows,
+            "overlap_los": overlap_los_by_pair,
+        }
 
         lines.extend(["", f"## {aoi_label}", ""])
         lines.append(f"- SNT-Gebaeude: {len(snt.buildings)}")
         lines.append(f"- TSX/PAZ-Gebaeude: {len(tsx.buildings)}")
-        lines.append(f"- gekoppelte GBA-Gebaeude: {len(building_ids)}")
+        lines.append(f"- gekoppelte Gebaeude: {len(building_ids)}")
         lines.append("")
         lines.extend(["### Auswertbare Gebaeude je Filtergruppe", ""])
         lines.extend(_markdown_table(_filter_count_rows(rollup_rows), count_columns))
         lines.extend(["", "### Rollup-Vergleich `building_motion_mm_a`", ""])
-        lines.extend(_markdown_table(_metric_rows(_metric_table(_filter_groups(rollup_rows))), metric_columns))
+        lines.extend(
+            _markdown_table(_metric_rows(_metric_table(_filter_groups(rollup_rows))), METRIC_COLUMNS)
+        )
 
-        for pair_label, (s_track, t_track) in TRACK_PAIRS.items():
-            track_rows = _track_rows(snt, tsx, building_ids, s_track, t_track)
+        for pair_label, track_rows in track_rows_by_pair.items():
+            s_track, t_track = TRACK_PAIRS[pair_label]
             lines.extend(["", f"### {pair_label} Rollup-Track {s_track} vs {t_track}", ""])
             lines.extend(
-                _markdown_table(_metric_rows(_metric_table(_filter_groups(track_rows))), metric_columns)
+                _markdown_table(_metric_rows(_metric_table(_filter_groups(track_rows))), METRIC_COLUMNS)
             )
 
-        overlap_los_by_pair: dict[str, list[ComparisonRow]] = {}
-        for pair_label, (s_track, t_track) in TRACK_PAIRS.items():
-            overlap_los = _overlap_rows(
-                snt, tsx, building_ids, s_track, t_track, value_key="los"
-            )
-            overlap_vertical = _overlap_rows(
-                snt, tsx, building_ids, s_track, t_track, value_key="vertical"
-            )
-            overlap_los_by_pair[pair_label] = overlap_los
+        for pair_label in TRACK_PAIRS:
+            s_track, t_track = TRACK_PAIRS[pair_label]
+            overlap_los = overlap_los_by_pair[pair_label]
+            overlap_vertical = overlap_vert_by_pair[pair_label]
             lines.extend(["", f"### Overlap-LOS {pair_label} {s_track} vs {t_track}", ""])
             lines.extend(
                 _markdown_table(
                     _metric_rows(_metric_table(_filter_groups(overlap_los))),
-                    metric_columns,
+                    METRIC_COLUMNS,
                 )
             )
             lines.extend(["", f"### Overlap-Vertical-Proxy {pair_label} {s_track} vs {t_track}", ""])
             lines.extend(
                 _markdown_table(
                     _metric_rows(_metric_table(_filter_groups(overlap_vertical))),
-                    metric_columns,
+                    METRIC_COLUMNS,
                 )
             )
-        interpretation_inputs[f"{aoi_label}_overlap"] = overlap_los_by_pair
+            # Scatter-Daten (gepoolt ueber beide AOIs) fuer dieses Track-Paar.
+            xs, ys, classes = scatter[pair_label]
+            for row in _filter_groups(overlap_vertical)["all_coupled"]:
+                if row.s_value is None or row.t_value is None:
+                    continue
+                xs.append(float(row.s_value))
+                ys.append(float(row.t_value))
+                classes.append(row.terrain_class)
 
         lines.extend(["", "### Top-10 groesste Rollup-Abweichungen", ""])
         lines.extend(_markdown_table(_top_rows(_top_deviations(rollup_rows)), top_columns))
 
+        # Terrain-Stratifikation NACH den bestehenden Tabellen.
+        lines.extend(["", "### Terrain-Stratifikation", ""])
+        lines.append(
+            "Leitmetriken je Terrain-Klasse (Hangklasse aus "
+            "`building_terrain_context.slope_mean_deg`)."
+        )
+        rollup_terrain_payload: dict[str, Any] = {}
+        lines.extend(["", "#### Rollup-Vergleich nach Terrain-Klasse", ""])
+        for group in ("status_ok_or_single_both", "ok_ok"):
+            terrain_rows = _terrain_metric_rows(rollup_rows, group)
+            rollup_terrain_payload[group] = terrain_rows
+            lines.extend([f"**Gruppe {group}**", ""])
+            lines.extend(_markdown_table(terrain_rows, TERRAIN_METRIC_COLUMNS))
+            lines.append("")
+        overlap_terrain_payload: dict[str, Any] = {}
+        for pair_label in TRACK_PAIRS:
+            overlap_vertical = overlap_vert_by_pair[pair_label]
+            pair_payload: dict[str, Any] = {}
+            lines.extend([f"#### Overlap-Vertikalproxy {pair_label} nach Terrain-Klasse", ""])
+            for group in ("status_ok_or_single_both", "ok_ok"):
+                terrain_rows = _terrain_metric_rows(overlap_vertical, group)
+                pair_payload[group] = terrain_rows
+                lines.extend([f"**Gruppe {group}**", ""])
+                lines.extend(_markdown_table(terrain_rows, TERRAIN_METRIC_COLUMNS))
+                lines.append("")
+            overlap_terrain_payload[pair_label] = pair_payload
+
+        # Audit-Kandidaten: Union ueber beide Track-Paare, je Gebaeude max |Δ| (Vertikalproxy).
+        best_by_building: dict[str, dict[str, Any]] = {}
+        for pair_label in TRACK_PAIRS:
+            for row in _filter_groups(overlap_vert_by_pair[pair_label])["all_coupled"]:
+                if row.abs_delta is None:
+                    continue
+                lon_lat = snt.centroids.get(row.building_id)
+                entry = {
+                    "building_id": row.building_id,
+                    "terrain_class": row.terrain_class,
+                    "pair": pair_label,
+                    "snt": row.s_value,
+                    "tsx": row.t_value,
+                    "delta": row.delta,
+                    "abs_delta": row.abs_delta,
+                    "status": f"{row.s_status}-{row.t_status}",
+                    "reliability": f"{row.s_reliability or '-'}-{row.t_reliability or '-'}",
+                    "lon": lon_lat[0] if lon_lat else None,
+                    "lat": lon_lat[1] if lon_lat else None,
+                    "area_id": snt.meta.area_id,
+                    "snt_run_id": snt.meta.run_id,
+                    "tsx_run_id": tsx.meta.run_id,
+                    "aoi": aoi_label,
+                }
+                prev = best_by_building.get(row.building_id)
+                if prev is None or float(row.abs_delta) > float(prev["abs_delta"]):
+                    best_by_building[row.building_id] = entry
+        audit_candidates.extend(best_by_building.values())
+
+        metrics_payload[aoi_label] = {
+            "role": role_by_label.get(aoi_label, aoi_label),
+            "counts": len(building_ids),
+            "filter_counts": _filter_count_rows(rollup_rows),
+            "rollup": _metric_table(_filter_groups(rollup_rows)),
+            "rollup_by_terrain": rollup_terrain_payload,
+            "track": {
+                pair_label: _metric_table(_filter_groups(rows))
+                for pair_label, rows in track_rows_by_pair.items()
+            },
+            "overlap_los": {
+                pair_label: _metric_table(_filter_groups(rows))
+                for pair_label, rows in overlap_los_by_pair.items()
+            },
+            "overlap_vertical": {
+                pair_label: _metric_table(_filter_groups(rows))
+                for pair_label, rows in overlap_vert_by_pair.items()
+            },
+            "overlap_vertical_by_terrain": overlap_terrain_payload,
+        }
+        buildings_payload[aoi_label] = {
+            "rollup": [_row_payload(row) for row in rollup_rows],
+            "track": {
+                pair_label: [_row_payload(row) for row in rows]
+                for pair_label, rows in track_rows_by_pair.items()
+            },
+            "overlap_los": {
+                pair_label: [_row_payload(row) for row in rows]
+                for pair_label, rows in overlap_los_by_pair.items()
+            },
+            "overlap_vertical": {
+                pair_label: [_row_payload(row) for row in rows]
+                for pair_label, rows in overlap_vert_by_pair.items()
+            },
+        }
+
+    # Audit-Sektion (global, top-N nach |Δ| Overlap-Vertikalproxy). Global je
+    # Gebaeude dedupliziert (building_id ist eindeutig; robust auch wenn flat-
+    # und slope-Runs identisch sind, z. B. im BEV-Codepfad-Smoke).
+    audit_by_building: dict[str, dict[str, Any]] = {}
+    for entry in audit_candidates:
+        prev = audit_by_building.get(entry["building_id"])
+        if prev is None or float(entry["abs_delta"]) > float(prev["abs_delta"]):
+            audit_by_building[entry["building_id"]] = entry
+    audit_sorted = sorted(
+        audit_by_building.values(), key=lambda e: float(e["abs_delta"]), reverse=True
+    )[:top_n]
+    lines.extend(["", "## Audit: Top-divergente Gebaeude (GE-3D manuell pruefen)", ""])
+    lines.append(
+        f"Top-{top_n} nach absolutem Vertikalproxy-Unterschied im Overlap-Fenster "
+        "(Union beider Track-Paare, je Gebaeude die staerkste Divergenz)."
+    )
+    lines.append("")
+    audit_header = [
+        "Building-ID",
+        "Terrain-Klasse",
+        "Paar",
+        "SNT",
+        "TSX/PAZ",
+        "Delta",
+        "Status",
+        "Reliability",
+        "lon",
+        "lat",
+        "Deep-Links",
+        "GE-3D-Befund",
+    ]
+    lines.append("| " + " | ".join(audit_header) + " |")
+    lines.append("| " + " | ".join("---" for _ in audit_header) + " |")
+    audit_payload: list[dict[str, Any]] = []
+    for entry in audit_sorted:
+        snt_link = _deep_link(
+            viewer_base_url, entry["area_id"], entry["snt_run_id"], source, entry["building_id"]
+        )
+        tsx_link = _deep_link(
+            viewer_base_url, entry["area_id"], entry["tsx_run_id"], source, entry["building_id"]
+        )
+        links = f"[SNT]({snt_link}) / [TSX]({tsx_link})"
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    entry["building_id"],
+                    entry["terrain_class"],
+                    entry["pair"],
+                    _fmt(entry["snt"]),
+                    _fmt(entry["tsx"]),
+                    _fmt(entry["delta"]),
+                    entry["status"],
+                    entry["reliability"],
+                    _fmt(entry["lon"], 6),
+                    _fmt(entry["lat"], 6),
+                    links,
+                    " ",
+                ]
+            )
+            + " |"
+        )
+        audit_payload.append(
+            {
+                **entry,
+                "snt_deep_link": snt_link,
+                "tsx_deep_link": tsx_link,
+                "ge_3d_befund": None,
+            }
+        )
+
+    flat_inputs = interpretation_inputs.get(flat_label, {"rollup": [], "overlap_los": {}})
+    slope_inputs = interpretation_inputs.get(slope_label, {"rollup": [], "overlap_los": {}})
     lines.extend(
         [
             "",
             *_interpretation(
-                interpretation_inputs.get("bg_flat_01_rollup", []),
-                interpretation_inputs.get("bg_slope_01_rollup", []),
-                interpretation_inputs.get("bg_flat_01_overlap", {}),
-                interpretation_inputs.get("bg_slope_01_overlap", {}),
+                flat_inputs["rollup"],
+                slope_inputs["rollup"],
+                flat_inputs["overlap_los"],
+                slope_inputs["overlap_los"],
             ),
         ]
     )
     lines.append("")
-    return "\n".join(lines)
+
+    # Lead-Metriken je Terrain-Klasse fuer den Balkenchart (gepoolt, Gruppe all_coupled).
+    leadmetrics: dict[str, dict[str, float]] = {"Sign-Agreement": {}, "Innerhalb 1.0 mm/a": {}}
+    pooled_by_class: dict[str, list[ComparisonRow]] = {}
+    for row in lead_rows_pooled:
+        pooled_by_class.setdefault(row.terrain_class, []).append(row)
+    for cls in TERRAIN_CLASS_ORDER:
+        rows = pooled_by_class.get(cls)
+        if not rows:
+            continue
+        summary = _metric_summary(rows)
+        if summary.get("sign_agreement") is not None:
+            leadmetrics["Sign-Agreement"][cls] = float(summary["sign_agreement"])
+        if summary.get("within_1_0") is not None:
+            leadmetrics["Innerhalb 1.0 mm/a"][cls] = float(summary["within_1_0"])
+
+    payload = {
+        "generated": datetime.now(timezone.utc).isoformat(),
+        "params": params,
+        "runs": run_rows,
+        "windows": window_rows,
+        "warnings": warnings,
+        "metrics": metrics_payload,
+        "audit": audit_payload,
+        "buildings": buildings_payload,
+    }
+    return ReportBundle(markdown="\n".join(lines), payload=payload, scatter=scatter, leadmetrics=leadmetrics)
+
+
+def _write_charts(bundle: ReportBundle, charts_dir: Path, stem: str) -> list[Path]:
+    written: list[Path] = []
+    suffix_by_pair = {"ASC-vs-ASC": "asc", "DSC-vs-DSC": "dsc"}
+    for pair_label, (xs, ys, classes) in bundle.scatter.items():
+        suffix = suffix_by_pair.get(pair_label, pair_label.lower())
+        written.extend(
+            scatter_pair(
+                xs,
+                ys,
+                classes,
+                xlabel="SNT Vertikalproxy [mm/a]",
+                ylabel="TSX/PAZ Vertikalproxy [mm/a]",
+                deadband=SIGN_DEADBAND_MM_A,
+                stem=charts_dir / f"{stem}_scatter_{suffix}",
+            )
+        )
+    if any(bundle.leadmetrics.values()):
+        written.extend(
+            bar_by_class(
+                bundle.leadmetrics,
+                ylabel="Anteil",
+                stem=charts_dir / f"{stem}_leadmetrics_by_class",
+                value_format="{:.0%}",
+            )
+        )
+    return written
 
 
 async def _run(args: argparse.Namespace) -> None:
+    source = args.source
+    overlap_start = date.fromisoformat(args.overlap_start)
+    overlap_end = date.fromisoformat(args.overlap_end)
+    flat_label = args.flat_label
+    slope_label = args.slope_label
+
     pool = await asyncpg.create_pool(dsn=settings.db_dsn, min_size=1, max_size=3)
     try:
         async with pool.acquire() as conn:
-            flat_snt = await _load_run(conn, "bg_flat_01_snt", args.flat_snt_run)
-            flat_tsx = await _load_run(conn, "bg_flat_01_tsx_paz", args.flat_tsx_run)
-            slope_snt = await _load_run(conn, "bg_slope_01_snt", args.slope_snt_run)
-            slope_tsx = await _load_run(conn, "bg_slope_01_tsx_paz", args.slope_tsx_run)
+            load_kwargs = dict(
+                source=source,
+                overlap_start=overlap_start,
+                overlap_end=overlap_end,
+                min_epochs=args.min_epochs,
+                min_span_days=args.min_span_days,
+            )
+            flat_snt = await _load_run(conn, f"{flat_label}_snt", args.flat_snt_run, **load_kwargs)
+            flat_tsx = await _load_run(
+                conn, f"{flat_label}_tsx_paz", args.flat_tsx_run, **load_kwargs
+            )
+            slope_snt = await _load_run(
+                conn, f"{slope_label}_snt", args.slope_snt_run, **load_kwargs
+            )
+            slope_tsx = await _load_run(
+                conn, f"{slope_label}_tsx_paz", args.slope_tsx_run, **load_kwargs
+            )
     finally:
         await pool.close()
 
-    report = _render_report(
+    params = {
+        "source": source,
+        "overlap_start": overlap_start.isoformat(),
+        "overlap_end": overlap_end.isoformat(),
+        "overlap_span_days": (overlap_end - overlap_start).days,
+        "min_epochs": args.min_epochs,
+        "min_span_days": args.min_span_days,
+        "flat_label": flat_label,
+        "slope_label": slope_label,
+        "top_n": args.top_n,
+        "viewer_base_url": args.viewer_base_url,
+        "expected_model_set_version": EXPECTED_MODEL_SET_VERSION,
+        "sign_deadband_mm_a": SIGN_DEADBAND_MM_A,
+        "track_pairs": {k: list(v) for k, v in TRACK_PAIRS.items()},
+    }
+
+    bundle = _build_report(
         {
-            "bg_flat_01": (flat_snt, flat_tsx),
-            "bg_slope_01": (slope_snt, slope_tsx),
-        }
+            flat_label: (flat_snt, flat_tsx),
+            slope_label: (slope_snt, slope_tsx),
+        },
+        flat_label=flat_label,
+        slope_label=slope_label,
+        params=params,
     )
+
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(report, encoding="utf-8")
+    output.write_text(bundle.markdown, encoding="utf-8")
     print(f"Wrote {output}")
+
+    json_path = Path(args.output_json) if args.output_json else output.with_suffix(".json")
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.write_text(json.dumps(bundle.payload, indent=2, default=str), encoding="utf-8")
+    print(f"Wrote {json_path}")
+
+    charts_dir = Path(args.charts_dir) if args.charts_dir else output.parent
+    written = _write_charts(bundle, charts_dir, output.stem)
+    for path in written:
+        print(f"Wrote {path}")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Quantitative Bad Gastein SNT-vs-TSX/PAZ motion comparison."
+        description="Quantitative Bad Gastein SNT-vs-TSX/PAZ motion comparison (v4/BEV, Variante 1)."
     )
     parser.add_argument("--flat-snt-run", required=True)
     parser.add_argument("--flat-tsx-run", required=True)
     parser.add_argument("--slope-snt-run", required=True)
     parser.add_argument("--slope-tsx-run", required=True)
+    parser.add_argument("--source", choices=["bev", "gba"], default="bev")
+    parser.add_argument("--min-epochs", type=int, default=MIN_OVERLAP_EPOCHS)
+    parser.add_argument("--min-span-days", type=int, default=MIN_OVERLAP_SPAN_DAYS)
+    parser.add_argument("--overlap-start", default=OVERLAP_START.isoformat())
+    parser.add_argument("--overlap-end", default=OVERLAP_END.isoformat())
+    parser.add_argument("--flat-label", default="bg_flat_ext_01")
+    parser.add_argument("--slope-label", default="bg_slope_ext_01")
+    parser.add_argument("--top-n", type=int, default=DEFAULT_TOP_N)
+    parser.add_argument("--viewer-base-url", default=DEFAULT_VIEWER_BASE_URL)
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    parser.add_argument("--output-json", default=None)
+    parser.add_argument("--charts-dir", default=None)
     return parser
 
 
