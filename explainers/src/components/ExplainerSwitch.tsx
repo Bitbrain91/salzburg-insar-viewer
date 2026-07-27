@@ -9,13 +9,14 @@ import type { ExplainerView } from "@/lib/router";
 const VIEWS: { view: ExplainerView; label: string; hash: string }[] = [
   { view: "pipeline", label: "Pipeline-Reise", hash: "" },
   { view: "silver", label: "Silver Ground Truth", hash: "silver" },
+  { view: "insar", label: "Datenpunkte", hash: "insar" },
 ];
 
 export function ExplainerSwitch({ active }: { active: ExplainerView }) {
   return (
     <nav
       aria-label="Explainer wählen"
-      className="grid grid-cols-2 gap-0.5 rounded-lg border border-border bg-muted p-0.5"
+      className="grid grid-cols-3 gap-0.5 rounded-lg border border-border bg-muted p-0.5"
     >
       {VIEWS.map(({ view, label, hash }) => {
         const isActive = view === active;

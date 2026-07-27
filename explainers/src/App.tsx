@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, type ComponentType } from "react";
 import { useRoute, type ExplainerView } from "@/lib/router";
+import InsarExplainer from "@/views/InsarExplainer";
 import PipelineExplainer from "@/views/PipelineExplainer";
 import SilverExplainer from "@/views/SilverExplainer";
 
@@ -22,7 +23,17 @@ function resolveLegacyExplainerParam() {
 const TITLES: Record<ExplainerView, string> = {
   pipeline: "InSAR-Pipeline erklärt — Salzburg InSAR Viewer",
   silver: "Silver Ground Truth erklärt — Salzburg InSAR Viewer",
+  insar: "InSAR-Datenpunkte erklärt — Salzburg InSAR Viewer",
 };
+
+const VIEW_COMPONENTS: Record<ExplainerView, ComponentType> = {
+  pipeline: PipelineExplainer,
+  silver: SilverExplainer,
+  insar: InsarExplainer,
+};
+
+/** Anker, die eine Ansicht am Seitenanfang öffnen — kein Scroll-Ziel im DOM. */
+const VIEW_ROOT_ANCHORS = new Set(["silver", "insar"]);
 
 /**
  * Routing-Weiche: rendert anhand des Hash genau EINE Ansicht (nie beide —
@@ -45,7 +56,8 @@ export default function App() {
   // Bewusst nur an `view` gebunden — Anker-Klicks innerhalb einer Ansicht
   // scrollen selbst (ChapterNav.navigate).
   useEffect(() => {
-    const target = anchor && anchor !== "silver" ? document.getElementById(anchor) : null;
+    const target =
+      anchor && !VIEW_ROOT_ANCHORS.has(anchor) ? document.getElementById(anchor) : null;
     if (target) {
       target.scrollIntoView({ behavior: "instant", block: "start" });
     } else {
@@ -56,5 +68,6 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
-  return view === "silver" ? <SilverExplainer /> : <PipelineExplainer />;
+  const View = VIEW_COMPONENTS[view];
+  return <View />;
 }

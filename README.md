@@ -324,7 +324,7 @@ Oeffne: `http://localhost:3000`
 
 ### 8) Erklaerdiagramme starten
 Die Erklaer-App ist separat vom produktiven Viewer-Frontend. Sie enthaelt
-zwei Explainer mit gemeinsamer Kapitelnavigation und einem Umschalter in der
+drei Explainer mit gemeinsamer Kapitelnavigation und einem Umschalter in der
 Seitenleiste:
 
 - Die interaktive "Pipeline-Reise" durch die aktive ML-Pipeline-Logik
@@ -339,12 +339,21 @@ Seitenleiste:
   Harness Laeufe benotet (Verdicts, rote Gates) und wofuer die Ergebnisse
   verwendet werden (Scorecards, RC-Gate) - inklusive Grenzen und
   Ausbau-Schritten Richtung Gold-Standard.
+- Der Explainer "Entstehung der InSAR-Datenpunkte" (Umschalter
+  "Datenpunkte") in neun Kapiteln: wie aus Radarpulsen im Orbit ueber
+  SAR-Aufnahmen, Phasenmessung und den Bildstapel die einzelnen Messpunkte
+  entstehen - inklusive Fehlerquellen (Lagestreuung, Hoehentoleranz,
+  Layover, Zell-Vermischung) und einem Vergleich der Sensoren Sentinel-1 /
+  TerraSAR-X samt den realen Salzburger Datensaetzen. Aussagen sind
+  durchgaengig als allgemein oder sensorspezifisch gekennzeichnet.
 
-Kapitel sind per Hash-Anker verlinkbar; die beiden Explainer teilen sich
+Kapitel sind per Hash-Anker verlinkbar; die drei Explainer teilen sich
 einen Namensraum: Pipeline-Kapitel behalten nackte Anker (z. B.
 `#zuordnung`), Silver-Kapitel tragen das Praefix `silver-` (z. B.
-`#silver-korpus`, `#silver` oeffnet die Ansicht am Anfang). Alte
-`?explainer=...`-Deep-Links werden weiterhin umgeleitet.
+`#silver-korpus`, `#silver` oeffnet die Ansicht am Anfang) und
+Datenpunkt-Kapitel das Praefix `insar-` (z. B. `#insar-punkte`, `#insar`
+oeffnet die Ansicht am Anfang). Alte `?explainer=...`-Deep-Links werden
+weiterhin umgeleitet.
 
 Alle gezeigten Schwellen, Gewichte und Formeln sind zentral gepflegt und
 muessen bei Aenderungen im selben Ticket nachgezogen werden:
@@ -356,6 +365,12 @@ muessen bei Aenderungen im selben Ticket nachgezogen werden:
   Benotung aus `backend/app/ml/evaluation/phase7_clustering_experiments.py`
   und das RC-Gate-Artefakt; bei Korpus-Erweiterungen (`version`/`updated`)
   oder Harness-Aenderungen nachziehen).
+- Datenpunkt-Explainer: `explainers/src/content/insarFacts.ts`
+  (Handbuch-Fakten aus
+  `docs/research/external/AUGMENTERRA_InSAR_Handbook_v1_3.pdf` und
+  `docs/research/external/TREALTAMIRA_handbook_2.2_20180604.pdf` sowie dem
+  TSX-Lieferreport ES2830A2S; bei geaenderten Handbuch-Fakten oder
+  Datensatz-Kennzahlen im selben Ticket nachziehen).
 
 ```bash
 cd explainers

@@ -281,6 +281,185 @@ export const glossary = {
       "Nur an ihnen lässt sich echte Generalisierung messen. Der Silver-Korpus hat noch keine " +
       "Holdouts — ein zentraler Grund, warum er „Silver“ und nicht „Gold“ ist.",
   },
+  // --- Begriffe des Datenpunkt-Explainers (Entstehung der InSAR-Punkte) ---
+  sar: {
+    begriff: "SAR",
+    text:
+      "Synthetic Aperture Radar: aktives Radar, das entlang der Flugbahn viele Echos kohärent " +
+      "kombiniert und so die Auflösung einer riesigen virtuellen Antenne erreicht — bei Tag, " +
+      "Nacht und durch Wolken.",
+  },
+  resolutionCell: {
+    begriff: "Auflösungszelle",
+    text:
+      "Die kleinste unterscheidbare Bodenfläche eines SAR-Bilds. Alles, was in derselben Zelle " +
+      "liegt, verschmilzt zu einem einzigen Messwert — die Zellgröße ist sensorabhängig.",
+  },
+  amplitude: {
+    begriff: "Amplitude",
+    text:
+      "Stärke des zurückgestreuten Radarechos einer Zelle. Metall, Kanten und Fels erscheinen " +
+      "hell, glattes Wasser dunkel. Für die Bewegungsmessung zählt dagegen die Phase.",
+  },
+  phase: {
+    begriff: "Phase",
+    text:
+      "Schwingungslage der Radarwelle beim Eintreffen des Echos — ein Maß für die Distanz " +
+      "Sensor–Ziel in Bruchteilen der Wellenlänge. Die Grundlage jeder InSAR-Messung.",
+  },
+  interferogramm: {
+    begriff: "Interferogramm",
+    text:
+      "Phasendifferenz-Bild zweier SAR-Aufnahmen desselben Gebiets. Farbige Streifenmuster " +
+      "(Fringes) zeigen Wegänderungen zwischen den Aufnahmen.",
+  },
+  fringe: {
+    begriff: "Fringe",
+    text:
+      "Ein voller Farbzyklus im Interferogramm = ein voller Phasenumlauf = eine Wegänderung " +
+      "von einer halben Wellenlänge entlang der Blicklinie.",
+  },
+  unwrapping: {
+    begriff: "Phasenabwicklung (Unwrapping)",
+    text:
+      "Die Phase ist nur als Rest zwischen −π und +π messbar; die Abwicklung rekonstruiert die " +
+      "ganzen Zyklen unter der Annahme, dass Nachbarwerte nah beieinander liegen. Ein " +
+      "mathematisch heikler Schritt — und ein Grund, warum InSAR nie absolut misst.",
+  },
+  aliasing: {
+    begriff: "Mehrdeutigkeit (λ/4-Grenze)",
+    text:
+      "Bewegt sich ein einzelnes Ziel zwischen zwei Aufnahmen um mehr als ein Viertel der " +
+      "Wellenlänge, ist die Richtung/Größe der Bewegung nicht mehr eindeutig bestimmbar — " +
+      "schnelle Bewegungen gehen prinzipiell verloren.",
+  },
+  aps: {
+    begriff: "Atmosphärenphase (APS)",
+    text:
+      "Signalverzögerung durch feuchte Luftschichten. Räumlich glatt, aber zeitlich zufällig — " +
+      "deshalb lässt sie sich im Bildstapel schätzen und entfernen.",
+  },
+  ps: {
+    begriff: "Permanent Scatterer (PS)",
+    text:
+      "Punktförmiger, über Jahre stabiler Reflektor — typisch Gebäudekanten, Masten, Fels. " +
+      "Liefert das Signal einer einzelnen Struktur; effektive Fläche 0.",
+  },
+  ds: {
+    begriff: "Distributed Scatterer (DS)",
+    text:
+      "Ausgedehnte, statistisch homogene Fläche (Schotter, Brachland), deren Zellen erst durch " +
+      "Mittelung ein stabiles Signal ergeben. Der Punkt repräsentiert eine Fläche (eff_area), " +
+      "keinen Einzelreflektor.",
+  },
+  squeesar: {
+    begriff: "SqueeSAR",
+    text:
+      "Verarbeitungsalgorithmus von TRE Altamira (3. Generation), der Permanent und Distributed " +
+      "Scatterer kombiniert — auch die Salzburger TSX-Daten sind so prozessiert.",
+  },
+  referenzpunkt: {
+    begriff: "Referenzpunkt (REF)",
+    text:
+      "Als unbeweglich angenommener Punkt, auf den alle Messungen räumlich bezogen sind. Bewegt " +
+      "er sich doch, wandert dieser Fehler in jede Zeitreihe des Datensatzes.",
+  },
+  effArea: {
+    begriff: "Effektive Fläche (eff_area)",
+    text:
+      "Fläche, über die ein Distributed Scatterer mittelt. 0 bei Persistent Scatterern — dann " +
+      "stammt das Echo von einem punktförmigen Reflektor.",
+    einheit: "m²",
+  },
+  speckle: {
+    begriff: "Speckle",
+    text:
+      "Körniges Rauschen in SAR-Bildern: Viele Elementarstreuer je Auflösungszelle überlagern " +
+      "sich mal verstärkend, mal auslöschend — das „Salz-und-Pfeffer“-Muster der Radarbilder.",
+  },
+  slantRange: {
+    begriff: "Slant Range",
+    text:
+      "Schrägentfernung Sensor–Ziel entlang der Blicklinie. SAR misst in Slant Range; erst die " +
+      "Umrechnung auf den Boden (Ground Range) erzeugt die Karte — und dabei entstehen die " +
+      "Schrägsicht-Verzerrungen.",
+  },
+  foreshortening: {
+    begriff: "Foreshortening",
+    text:
+      "Stauchung dem Radar zugewandter Hänge: Viele Bodenpunkte fallen in wenige Zellen, der " +
+      "Hang erscheint verkürzt und hell.",
+  },
+  radarschatten: {
+    begriff: "Radarschatten",
+    text:
+      "Vom Radar abgewandte Steilhänge oder verdeckte Bereiche werden gar nicht beleuchtet — " +
+      "dort können keine Messpunkte entstehen.",
+  },
+  phasenzentrum: {
+    begriff: "Phasenzentrum",
+    text:
+      "Der effektive Entstehungsort des Echos einer Zelle. Bei mehreren oder mehrfach " +
+      "reflektierten Signalen liegt er nicht zwingend am sichtbaren Objekt — die Punktposition " +
+      "ist der Ort des Phasenzentrums, nicht des Objekts.",
+  },
+  doubleBounce: {
+    begriff: "Double Bounce",
+    text:
+      "Zweifachreflexion, typisch Boden→Fassade→Sensor. Sie erzeugt starke Echos, deren " +
+      "Phasenzentrum am Fuß der Struktur liegt — nicht auf dem Dach.",
+  },
+  geokodierung: {
+    begriff: "Geokodierung",
+    text:
+      "Umrechnung der Radar-Bildkoordinaten (Slant Range/Azimut) in Landeskoordinaten und Höhe. " +
+      "Ihre Präzision ist sensorabhängig und macht die Punktlage zum Schätzwert.",
+  },
+  baseline: {
+    begriff: "Baseline",
+    text:
+      "Abstand zweier Aufnahmepositionen: räumlich (senkrechte Baseline, beeinflusst den " +
+      "Topografie-Anteil der Phase) und zeitlich (Tage zwischen Aufnahmen, beeinflusst die " +
+      "Dekorrelation).",
+  },
+  ranging: {
+    begriff: "Ranging (Laufzeitmessung)",
+    text:
+      "Die Ur-Messung jedes Radars: Aus der Laufzeit des Pulses folgt die Entfernung " +
+      "Sensor–Ziel auf Meter genau — ganz ohne Phasentrick. Zusammen mit der präzise " +
+      "bekannten Satellitenbahn ortet sie jede Bildzelle grob absolut; nur die Höhe bleibt " +
+      "dabei zunächst offen.",
+  },
+  demRestfehler: {
+    begriff: "DEM-Restfehler ε",
+    text:
+      "Abweichung der wahren Streuerhöhe vom Höhenmodell, das die Verarbeitung als " +
+      "Startannahme nutzt. ε wird je Punkt über den Bildstapel mitgeschätzt — und genau " +
+      "diese Schätzung wird zur gelieferten Punkthöhe: height = Referenzhöhe + ε.",
+  },
+  mehrdeutigkeitshoehe: {
+    begriff: "Mehrdeutigkeitshöhe",
+    text:
+      "Höhenunterschied, der einem vollen Phasenumlauf entspricht (hₐ = λ·R·sinθ/(2·Bn)) — " +
+      "je nach Baseline einige zehn bis hunderte Meter. Das Höhen-Gegenstück zur λ/2-Fringe " +
+      "der Bewegung: Weil die Höhe nur über die winzige Blickwinkel-Parallaxe wirkt, misst " +
+      "dieselbe Zentimeter-Welle hier Meter statt Millimeter.",
+  },
+  ellipsoidhoehe: {
+    begriff: "Ellipsoidhöhe",
+    text:
+      "Höhe über dem WGS-84-Referenzellipsoid, dem mathematischen Erdmodell der " +
+      "Satellitenmessung — nicht über dem Meeresniveau (Geoid). In Salzburg liegen " +
+      "Ellipsoidhöhen rund 47 m über der vertrauten Meereshöhe.",
+  },
+  gnss: {
+    begriff: "GNSS",
+    text:
+      "Global Navigation Satellite System — Sammelbegriff für Satellitennavigation wie GPS " +
+      "oder Galileo. Ein fest installierter GNSS-Empfänger misst die Position eines " +
+      "Bodenpunkts dauerhaft und millimetergenau — unabhängig vom Radar. Nur so lässt sich " +
+      "prüfen, ob der als unbeweglich angenommene Referenzpunkt wirklich stillsteht.",
+  },
 } as const;
 
 export type GlossaryKey = keyof typeof glossary;
