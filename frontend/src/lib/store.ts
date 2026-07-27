@@ -196,7 +196,7 @@ export const useAppStore = create<AppState>((set) => ({
     velocityMax: 10,
     coherenceMin: 0.6,
   },
-  filtersEnabled: true,
+  filtersEnabled: false,
   selection: null,
   basemapId: "light",
   cameraMode: "default",

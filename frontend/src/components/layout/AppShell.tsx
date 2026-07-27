@@ -21,6 +21,7 @@ import {
 } from "../ui";
 import { useAppStore } from "../../lib/store";
 import { ActiveRunChip } from "./ActiveRunChip";
+import { MapFilterBadge } from "./MapFilterBadge";
 import { MapLegend } from "./MapLegend";
 import { TimeseriesCollapsedBar, TimeseriesDock } from "./TimeseriesDock";
 import { useMediaQuery } from "./useMediaQuery";
@@ -80,6 +81,7 @@ export function AppShell() {
       </div>
       <ActiveRunChip />
       <MapLegend />
+      <MapFilterBadge />
     </div>
   );
 

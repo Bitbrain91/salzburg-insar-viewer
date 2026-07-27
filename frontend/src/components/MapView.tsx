@@ -2415,33 +2415,23 @@ export default function MapView() {
       getConfiguredTracksForArea(currentSelectedAreaId)
     );
     const genericInsarVisible = hasGenericInsarForArea(currentSelectedAreaId);
+    // Zoom-Umfang kommt aus dem TileJSON des Backends (MBTiles-Metadaten),
+    // damit Tile-Build und Karte nie wieder auseinanderlaufen koennen.
     addSourceIfMissing(map, GENERIC_INSAR_SOURCE_ID, {
       type: "vector",
-      tiles: [`${tilesBase}/mbtiles/insar_points/{z}/{x}/{y}.pbf`],
-      tileSize: 512,
-      minzoom: 0,
-      maxzoom: 16,
+      url: `${tilesBase}/mbtiles/insar_points.json`,
     });
     addSourceIfMissing(map, "bev", {
       type: "vector",
-      tiles: [`${tilesBase}/mbtiles/bev/{z}/{x}/{y}.pbf`],
-      tileSize: 512,
-      minzoom: 0,
-      maxzoom: 15,
+      url: `${tilesBase}/mbtiles/bev.json`,
     });
     addSourceIfMissing(map, "gba", {
       type: "vector",
-      tiles: [`${tilesBase}/mbtiles/gba/{z}/{x}/{y}.pbf`],
-      tileSize: 512,
-      minzoom: 0,
-      maxzoom: 15,
+      url: `${tilesBase}/mbtiles/gba.json`,
     });
     addSourceIfMissing(map, "osm", {
       type: "vector",
-      tiles: [`${tilesBase}/mbtiles/osm/{z}/{x}/{y}.pbf`],
-      tileSize: 512,
-      minzoom: 0,
-      maxzoom: 15,
+      url: `${tilesBase}/mbtiles/osm.json`,
     });
     addSourceIfMissing(map, "relief_hillshade", {
       type: "raster",

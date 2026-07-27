@@ -111,8 +111,11 @@ run_tippecanoe() {
   fi
 }
 
+# Maxzoom 17: erst dort passt der volle Punktbestand ohne Ausduennung in die
+# Kacheln. extend-zooms bleibt als Sicherheitsnetz fuer dichtere Datenbestaende;
+# das Frontend uebernimmt den realen Maxzoom aus dem TileJSON des Backends.
 run_tippecanoe insar_points.mbtiles insar_points insar_points.geojsonl \
-  --minimum-zoom=8 --maximum-zoom=16 \
+  --minimum-zoom=8 --maximum-zoom=17 \
   --drop-fraction-as-needed \
   --extend-zooms-if-still-dropping \
   --buffer=32

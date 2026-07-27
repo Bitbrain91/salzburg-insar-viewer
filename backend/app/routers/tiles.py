@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from functools import lru_cache
@@ -87,6 +88,38 @@ def _open_mbtiles(path: str) -> sqlite3.Connection:
 
 def _tms_y(z: int, y: int) -> int:
     return (1 << z) - 1 - y
+
+
+@router.get("/mbtiles/{name}.json")
+async def mbtiles_tilejson(name: str, request: Request) -> Response:
+    tiles_dir = settings.tiles_dir
+    path = tiles_dir / f"{name}.mbtiles"
+
+    if not path.exists() or not path.is_file():
+        raise HTTPException(status_code=404, detail="MBTiles not found")
+
+    conn = _open_mbtiles(str(path))
+    metadata = dict(conn.execute("SELECT name, value FROM metadata"))
+
+    base = str(request.base_url).rstrip("/")
+    tilejson: dict = {
+        "tilejson": "2.2.0",
+        "name": name,
+        "scheme": "xyz",
+        "tiles": [f"{base}/mbtiles/{name}/{{z}}/{{x}}/{{y}}.pbf"],
+        "minzoom": int(metadata.get("minzoom", 0)),
+        "maxzoom": int(metadata.get("maxzoom", 16)),
+    }
+    if "bounds" in metadata:
+        tilejson["bounds"] = [float(v) for v in metadata["bounds"].split(",")]
+    if "center" in metadata:
+        tilejson["center"] = [float(v) for v in metadata["center"].split(",")]
+
+    return Response(
+        content=json.dumps(tilejson),
+        media_type="application/json",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get("/mbtiles/{name}/{z}/{x}/{y}.pbf")

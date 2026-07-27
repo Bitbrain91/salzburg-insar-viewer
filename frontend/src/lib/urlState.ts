@@ -101,7 +101,17 @@ export function applyUrlStateToStore(
     params.get("building"),
     area ?? current.selectedAreaId
   );
-  if (selection) next.selection = selection;
+  if (selection && selection.type === "building") {
+    next.selection = selection;
+    // Wie setSelection im Store: Ein Gebäude-Deep-Link aktiviert auch den
+    // ML-Gebäude-Fokus. Ohne ihn bleibt die Fokus-Kontext-Query disabled
+    // und der Deep-Link-Auto-Fit in MapView feuert nie.
+    next.mlBuildingFocusSelection = {
+      source: selection.source,
+      id: selection.id,
+      areaId: selection.areaId,
+    };
+  }
 
   const mlView = params.get("mlview") as AppState["mlView"] | null;
   if (mlView && ML_VIEWS.includes(mlView)) next.mlView = mlView;
