@@ -154,6 +154,28 @@ Wien-Groessenordnung.
 
 Entscheidung beim Meeting 2026-09-24.
 
+### P1-15 Analyse-Dashboard fuer ML-Runs (aufgenommen 2026-07-28)
+
+Ein uebersichtliches Dashboard zur Analyse von ML-Runs, aufbauend auf der
+Vertrauens- und Ergebnis-Uebersicht
+([`trust_overview.py`](../../../backend/app/ml/evaluation/trust_overview.py) /
+`trust_onepager_2026-07.html`) - diese ist bisher ein eingefrorener
+One-Pager ueber die fuenf XTV-Runs; das Dashboard soll dieselbe Sicht fuer
+beliebige Runs verfuegbar machen und erweitern:
+
+- Verteilung von Status und Zuverlaessigkeitsband je Run (wie bisher),
+  zusaetzlich die **Gruende** je Status und Zuverlaessigkeit (z. B.
+  `gate_reasons`, Statusursachen, Zuverlaessigkeitsabzuege) fuer eine
+  echte Treiberanalyse.
+- Statistik ueber die statischen Bestandsdaten: Gebaeudeanzahl,
+  Grundflaechen, Hoehenverteilung, Punkte pro Gebaeude usw.
+
+Umfang, Form (One-Pager-Generator vs. Viewer-Integration) und
+Detailmetriken sind **bewusst noch nicht festgelegt**; das wird beim
+Umsetzungsstart entschieden. Nutzen: besserer Ueberblick und schnellere
+Analyse - unterstuetzt direkt die Zielmetrik-Beobachtung von P1-11
+(`insufficient_support`-Anteil) und die Treiberanalyse aus P1-12.
+
 ## Prioritaet P1: Validierung und Ground Truth
 
 ### P1-1 Label-Korpus erweitern
@@ -350,15 +372,16 @@ Hypothese, Zielmetrik und Gegenbeispiel.
 | 1 | P1-11 Gebaeudedatenfusion (inkl. DOM/DGM-Teil von P1-7) | sofort; Fusionsziel vorab definiert | `insufficient_support`-Anteil sinkt messbar; Anbauten verlaesslicher eingeordnet |
 | 2 | P1-12 Status-/Zuverlaessigkeitsreview | baut auf P1-11 | Redundanz aufgeloest, Treiber der mittleren Zuverlaessigkeit benannt |
 | 3 | P0-3 Point-MVT-Profiling (Ist-Stand 2026-07-27: 6-15 s je Zoom) | parallel | reproduzierbarer Latenzbefund und Zielwert |
-| 4 | P1-13 Wien-Onboarding | Datenlieferung + Meeting-Input 24.09. | eigener Execution Plan mit vorab fixierten Holdout-Kriterien |
-| 5 | P1-14 Hosting/Server | Entscheidung beim Meeting 24.09. | betriebsfaehige Instanz mit geklaertem Zugriff und Lizenzen |
-| 6 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
-| 7 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
-| 8 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
-| 9 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
-| 10 | P0-1/P0-2 Neubewertung der roten RC-Befunde (zurueckgestellt) | nach P1-11/P1-12 | Befunde auf neuem Stand geklaert oder gegenstandslos; RC-Status neu entschieden |
-| 11 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
-| 12 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
+| 4 | P1-15 Analyse-Dashboard fuer ML-Runs | parallel; unterstuetzt P1-11/P1-12 | Status-/Zuverlaessigkeitsgruende und Bestandsstatistik je Run auf einen Blick |
+| 5 | P1-13 Wien-Onboarding | Datenlieferung + Meeting-Input 24.09. | eigener Execution Plan mit vorab fixierten Holdout-Kriterien |
+| 6 | P1-14 Hosting/Server | Entscheidung beim Meeting 24.09. | betriebsfaehige Instanz mit geklaertem Zugriff und Lizenzen |
+| 7 | P1-8 Hanglagenmethodik/2D-Zerlegung | Abgleich mit AUGMENTERRA am 24.09. | Pruefstrategie ohne lange HR-Referenz beschlossen |
+| 8 | P1-4/P1-5 Feature-/Geometrieablation | nach Meeting 24.09.; Gebiet (Salzburg vs. Wien) entschieden | Verbesserung ohne Reinheits-/Roof-Regression |
+| 9 | P1-9 Motion-Ablation (Jahresraten) | Wien-Daten integriert (P1-13) | belastbare absolute Jahresraten ueber beide Geometrien |
+| 10 | P1-10 Generalisierung (Wien als Holdout) | Methodik und Gates stabil | Holdout-Ergebnis ohne stilles Retuning |
+| 11 | P0-1/P0-2 Neubewertung der roten RC-Befunde (zurueckgestellt) | nach P1-11/P1-12 | Befunde auf neuem Stand geklaert oder gegenstandslos; RC-Status neu entschieden |
+| 12 | P1-1/P1-2 Labels und Gegenpruefung (zurueckgestellt) | Wien-Ground-Truth ausgeschoepft oder Bedarf belegt | stratifizierter Korpus und unabhaengige Expertenpruefung |
+| 13 | P2 Alternativmodelle | konkreter v4-Fehler belegt | hypothesengeleitete Verbesserung |
 
 Abgeschlossene Punkte werden aus dieser Liste entfernt und in
 [`iterations.md`](iterations.md) beziehungsweise einem phasenspezifischen
